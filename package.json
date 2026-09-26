@@ -1,0 +1,81 @@
+{
+  "name": "juya-admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "句芽英语内容与体验运营后台",
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=22.22.0 <23",
+    "pnpm": "11.22.0"
+  },
+  "scripts": {
+    "build": "vite build",
+    "check": "pnpm format:check && pnpm lint && pnpm lint:style && pnpm typecheck",
+    "dev": "vite",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix --max-warnings=0",
+    "lint:style": "stylelint \"**/*.{vue,css,scss}\" --max-warnings=0",
+    "lint:style:fix": "stylelint \"**/*.{vue,css,scss}\" --fix --max-warnings=0",
+    "prepare": "simple-git-hooks",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json"
+  },
+  "dependencies": {
+    "pinia": "3.0.4",
+    "vue": "3.5.43",
+    "vue-router": "4.6.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.1",
+    "@tsconfig/node22": "22.0.6",
+    "@types/node": "22.20.4",
+    "@vitejs/plugin-vue": "6.0.9",
+    "@vue/compiler-sfc": "3.5.43",
+    "@vue/tsconfig": "0.9.1",
+    "eslint": "9.39.1",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-import-resolver-typescript": "4.4.5",
+    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-simple-import-sort": "14.0.0",
+    "eslint-plugin-unicorn": "60.0.0",
+    "eslint-plugin-vue": "10.6.2",
+    "jsdom": "27.0.1",
+    "lint-staged": "16.2.6",
+    "postcss-html": "2.0.0",
+    "prettier": "3.9.9",
+    "sass": "1.77.8",
+    "simple-git-hooks": "2.13.1",
+    "stylelint": "17.15.0",
+    "stylelint-config-recommended-vue": "2.0.0",
+    "stylelint-config-standard-scss": "17.0.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.1",
+    "vite": "8.3.1",
+    "vitest": "5.0.2",
+    "vue-eslint-parser": "10.3.0",
+    "vue-tsc": "3.3.11"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,ts,tsx}": [
+      "eslint --fix --max-warnings=0",
+      "prettier --write"
+    ],
+    "*.vue": [
+      "eslint --fix --max-warnings=0",
+      "stylelint --fix --max-warnings=0",
+      "prettier --write"
+    ],
+    "*.{css,scss}": [
+      "stylelint --fix --max-warnings=0",
+      "prettier --write"
+    ],
+    "*.{json,md,yaml,yml}": "prettier --write"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm exec lint-staged"
+  }
+}
