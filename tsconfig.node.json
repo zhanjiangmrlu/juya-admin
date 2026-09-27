@@ -3,7 +3,8 @@
   "compilerOptions": {
     "composite": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true
+    "noEmit": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo"
   },
   "include": ["eslint.config.mjs", "vite.config.ts", "vitest.config.ts"]
 }

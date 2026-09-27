@@ -6,10 +6,12 @@ import prettier from 'eslint-config-prettier'
 import importPlugin from 'eslint-plugin-import'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
 import unicorn from 'eslint-plugin-unicorn'
+import unusedImports from 'eslint-plugin-unused-imports'
 import vue from 'eslint-plugin-vue'
 import tseslint from 'typescript-eslint'
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url))
+const importGroups = [['^node:'], ['^@?\\w'], ['^@/'], ['^.+\\u0000$'], ['^\\.'], ['^\\u0000']]
 
 export default tseslint.config(
   {
@@ -30,9 +32,11 @@ export default tseslint.config(
     plugins: {
       import: importPlugin,
       'simple-import-sort': simpleImportSort,
-      unicorn
+      unicorn,
+      'unused-imports': unusedImports
     },
     rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
       'import/no-duplicates': 'error',
       'import/no-unresolved': [
         'error',
@@ -43,7 +47,22 @@ export default tseslint.config(
         }
       ],
       'simple-import-sort/exports': 'error',
-      'simple-import-sort/imports': 'error'
+      'simple-import-sort/imports': [
+        'error',
+        {
+          groups: importGroups
+        }
+      ],
+      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-vars': [
+        'error',
+        {
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+          vars: 'all',
+          varsIgnorePattern: '^_'
+        }
+      ]
     },
     settings: {
       'import/resolver': {

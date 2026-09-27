@@ -1,9 +1,12 @@
 node_modules/
 dist/
 coverage/
+package-lock.json
+yarn.lock
 .env
 .env.*
 !.env.example
+*.tsbuildinfo
 *.local
 .DS_Store
 Thumbs.db
