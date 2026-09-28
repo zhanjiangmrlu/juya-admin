@@ -6,7 +6,13 @@ const adminPageRoutes: RouteRecordRaw[] = ADMIN_PAGE_DEFINITIONS.map((page) => (
   component:
     page.name === 'dashboard'
       ? () => import('@/pages/dashboard/dashboard-page.vue')
-      : () => import('@/pages/capability-placeholder/capability-placeholder-page.vue'),
+      : page.name === 'users'
+        ? () => import('@/pages/users/user-list-page.vue')
+        : page.name === 'user-detail'
+          ? () => import('@/pages/users/user-detail-page.vue')
+          : page.name === 'contact-correction'
+            ? () => import('@/pages/contacts/contact-correction-page.vue')
+            : () => import('@/pages/capability-placeholder/capability-placeholder-page.vue'),
   meta: {
     capability: page.capability,
     navigationPath: page.navigationPath,

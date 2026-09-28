@@ -86,7 +86,9 @@ async function logout(): Promise<void> {
           <template #title>{{ item.label }}</template>
         </ElMenuItem>
 
-        <li v-if="!isCollapsed" class="admin-layout__section-label">基础能力</li>
+        <li v-if="!isCollapsed" class="admin-layout__section-label" role="presentation">
+          基础能力
+        </li>
 
         <ElMenuItem v-for="item in BASIC_NAVIGATION" :key="item.path" :index="item.path">
           <ElIcon><component :is="navigationIconMap[item.icon]" /></ElIcon>
@@ -189,7 +191,7 @@ async function logout(): Promise<void> {
 
   &__section-label {
     padding: 24px 26px 10px;
-    color: rgb(255 255 255 / 38%);
+    color: rgb(255 255 255 / 66%);
     font-size: 11px;
     letter-spacing: 0.08em;
     list-style: none;
@@ -238,7 +240,7 @@ async function logout(): Promise<void> {
     padding: 4px 10px;
     border-radius: 999px;
     background: var(--juya-color-primary-soft);
-    color: var(--juya-color-primary);
+    color: var(--juya-color-primary-hover);
     font-size: 12px;
     font-weight: 600;
   }
