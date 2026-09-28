@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import eslint from '@eslint/js'
 import prettier from 'eslint-config-prettier'
 import importPlugin from 'eslint-plugin-import'
+import jsdoc from 'eslint-plugin-jsdoc'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
 import unicorn from 'eslint-plugin-unicorn'
 import unusedImports from 'eslint-plugin-unused-imports'
@@ -31,6 +32,7 @@ export default tseslint.config(
     },
     plugins: {
       import: importPlugin,
+      jsdoc,
       'simple-import-sort': simpleImportSort,
       unicorn,
       'unused-imports': unusedImports
@@ -46,6 +48,27 @@ export default tseslint.config(
           commonjs: true
         }
       ],
+      'jsdoc/check-param-names': 'error',
+      'jsdoc/check-tag-names': 'error',
+      'jsdoc/require-description': 'error',
+      'jsdoc/require-jsdoc': [
+        'error',
+        {
+          contexts: [
+            'FunctionDeclaration',
+            'MethodDefinition',
+            'VariableDeclarator[init.type="ArrowFunctionExpression"]',
+            'VariableDeclarator[init.type="FunctionExpression"]'
+          ],
+          enableFixer: false
+        }
+      ],
+      'jsdoc/require-param': 'error',
+      'jsdoc/require-param-description': 'error',
+      'jsdoc/require-param-type': 'off',
+      'jsdoc/require-returns': 'error',
+      'jsdoc/require-returns-description': 'error',
+      'jsdoc/require-returns-type': 'off',
       'simple-import-sort/exports': 'error',
       'simple-import-sort/imports': [
         'error',
@@ -72,6 +95,12 @@ export default tseslint.config(
           project: ['./tsconfig.app.json', './tsconfig.node.json']
         }
       }
+    }
+  },
+  {
+    files: ['**/*.{spec,test}.{js,mjs,cjs,ts,tsx}', '**/__tests__/**/*.{js,mjs,cjs,ts,tsx}'],
+    rules: {
+      'jsdoc/require-jsdoc': 'off'
     }
   },
   {
