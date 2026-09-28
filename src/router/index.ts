@@ -36,7 +36,8 @@ function resolveAdminPageComponent(
     'limited-entitlement-action': () => import('@/pages/entitlements/limited-action-page.vue'),
     'limited-entitlement-grant': () => import('@/pages/entitlements/limited-grant-page.vue'),
     'user-detail': () => import('@/pages/users/user-detail-page.vue'),
-    users: () => import('@/pages/users/user-list-page.vue')
+    users: () => import('@/pages/users/user-list-page.vue'),
+    'work-items': () => import('@/pages/work-items/work-item-page.vue')
   }
   if (name in pageComponents) return pageComponents[name as keyof typeof pageComponents]
   return () => import('@/pages/capability-placeholder/capability-placeholder-page.vue')

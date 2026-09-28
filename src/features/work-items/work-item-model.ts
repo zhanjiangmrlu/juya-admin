@@ -1,4 +1,4 @@
-import type { WorkItemDto } from '@/features/dashboard/dashboard-adapter'
+import type { WorkItemDto } from './work-item-adapter'
 
 export type WorkItemTone = 'danger' | 'info' | 'warning'
 

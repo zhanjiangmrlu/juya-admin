@@ -1,4 +1,9 @@
+import { createWorkItemAdapter } from '@/features/work-items/work-item-adapter'
+
+import type { WorkItemDto } from '@/features/work-items/work-item-adapter'
 import type { ApiClient } from '@/services/api/api-client'
+
+export type { WorkItemDto } from '@/features/work-items/work-item-adapter'
 
 export interface DashboardSnapshotDto {
   active_users: number
@@ -6,13 +11,6 @@ export interface DashboardSnapshotDto {
   failed_jobs: number
   open_feedback: number
   overdue_feedback: number
-}
-
-export interface WorkItemDto {
-  due_at: string
-  key: string
-  kind: string
-  priority_rank: number
 }
 
 export interface DashboardAdapter {
@@ -27,6 +25,7 @@ export interface DashboardAdapter {
  * @returns 提供快照和待办查询的适配器。
  */
 export function createDashboardAdapter(client: ApiClient): DashboardAdapter {
+  const workItemAdapter = createWorkItemAdapter(client)
   return {
     /**
      * 读取当前工作台汇总指标。
@@ -50,13 +49,7 @@ export function createDashboardAdapter(client: ApiClient): DashboardAdapter {
      * @returns 不改变服务端顺序的待办数组。
      */
     async getWorkItems(signal?: AbortSignal): Promise<WorkItemDto[]> {
-      const response = await client.request<unknown>({
-        method: 'GET',
-        path: '/api/v1/admin/work-items',
-        signal
-      })
-      if (!Array.isArray(response)) throw new Error('待办接口响应格式不正确')
-      return response.map(parseWorkItem)
+      return workItemAdapter.getWorkItems(signal)
     }
   }
 }
@@ -78,22 +71,6 @@ function parseDashboardSnapshot(source: Record<string, unknown>): DashboardSnaps
 }
 
 /**
- * 校验并转换单条待办响应。
- *
- * @param source - 待办数组中的未知元素。
- * @returns 字段完整的待办对象。
- */
-function parseWorkItem(source: unknown): WorkItemDto {
-  if (!isRecord(source)) throw new Error('待办接口响应格式不正确')
-  return {
-    due_at: requireString(source, 'due_at'),
-    key: requireString(source, 'key'),
-    kind: requireString(source, 'kind'),
-    priority_rank: requireNumber(source, 'priority_rank')
-  }
-}
-
-/**
  * 从接口对象读取有限数字字段。
  *
  * @param source - 接口响应对象。
@@ -106,29 +83,4 @@ function requireNumber(source: Record<string, unknown>, key: string): number {
     throw new Error(`工作台接口响应缺少数字字段：${key}`)
   }
   return value
-}
-
-/**
- * 从接口对象读取必需字符串字段。
- *
- * @param source - 接口响应对象。
- * @param key - 字符串字段名。
- * @returns 对应非空字符串。
- */
-function requireString(source: Record<string, unknown>, key: string): string {
-  const value = source[key]
-  if (typeof value !== 'string' || value.length === 0) {
-    throw new Error(`工作台接口响应缺少字符串字段：${key}`)
-  }
-  return value
-}
-
-/**
- * 判断未知值是否为非空记录对象。
- *
- * @param value - 需要判断的未知值。
- * @returns 值是否可按记录对象读取。
- */
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
