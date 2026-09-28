@@ -30,6 +30,8 @@ function resolveAdminPageComponent(
     entitlements: () => import('@/pages/entitlements/entitlement-center-page.vue'),
     'formal-entitlement-action': () => import('@/pages/entitlements/formal-action-page.vue'),
     'formal-entitlement-grant': () => import('@/pages/entitlements/formal-grant-page.vue'),
+    'limited-entitlement-action': () => import('@/pages/entitlements/limited-action-page.vue'),
+    'limited-entitlement-grant': () => import('@/pages/entitlements/limited-grant-page.vue'),
     'user-detail': () => import('@/pages/users/user-detail-page.vue'),
     users: () => import('@/pages/users/user-list-page.vue')
   }
