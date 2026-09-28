@@ -3,7 +3,10 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { ADMIN_PAGE_DEFINITIONS } from '@/app/admin-navigation'
 
 const adminPageRoutes: RouteRecordRaw[] = ADMIN_PAGE_DEFINITIONS.map((page) => ({
-  component: () => import('@/pages/capability-placeholder/capability-placeholder-page.vue'),
+  component:
+    page.name === 'dashboard'
+      ? () => import('@/pages/dashboard/dashboard-page.vue')
+      : () => import('@/pages/capability-placeholder/capability-placeholder-page.vue'),
   meta: {
     capability: page.capability,
     navigationPath: page.navigationPath,

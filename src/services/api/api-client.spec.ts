@@ -99,4 +99,16 @@ describe('api client', () => {
 
     await expect(client.request({ method: 'GET', path: '/resource' })).rejects.toBe(abortError)
   })
+
+  it('parses JSON-shaped success bodies when a proxy omits the content type', async () => {
+    const client = createApiClient({
+      fetchImplementation: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response('{"active_users":28}', { status: 200 }))
+    })
+
+    await expect(client.request({ method: 'GET', path: '/dashboard' })).resolves.toEqual({
+      active_users: 28
+    })
+  })
 })
