@@ -3,16 +3,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { ADMIN_PAGE_DEFINITIONS } from '@/app/admin-navigation'
 
 const adminPageRoutes: RouteRecordRaw[] = ADMIN_PAGE_DEFINITIONS.map((page) => ({
-  component:
-    page.name === 'dashboard'
-      ? () => import('@/pages/dashboard/dashboard-page.vue')
-      : page.name === 'users'
-        ? () => import('@/pages/users/user-list-page.vue')
-        : page.name === 'user-detail'
-          ? () => import('@/pages/users/user-detail-page.vue')
-          : page.name === 'contact-correction'
-            ? () => import('@/pages/contacts/contact-correction-page.vue')
-            : () => import('@/pages/capability-placeholder/capability-placeholder-page.vue'),
+  component: resolveAdminPageComponent(page.name),
   meta: {
     capability: page.capability,
     navigationPath: page.navigationPath,
@@ -23,6 +14,28 @@ const adminPageRoutes: RouteRecordRaw[] = ADMIN_PAGE_DEFINITIONS.map((page) => (
   name: page.name,
   path: page.path.slice(1)
 }))
+
+/**
+ * 将页面定义名称解析为对应的懒加载页面组件。
+ *
+ * @param name - 管理端页面定义名称。
+ * @returns 对应页面的异步组件；尚未实现时返回能力占位页。
+ */
+function resolveAdminPageComponent(
+  name: string
+): Exclude<RouteRecordRaw['component'], null | undefined> {
+  const pageComponents = {
+    'contact-correction': () => import('@/pages/contacts/contact-correction-page.vue'),
+    dashboard: () => import('@/pages/dashboard/dashboard-page.vue'),
+    entitlements: () => import('@/pages/entitlements/entitlement-center-page.vue'),
+    'formal-entitlement-action': () => import('@/pages/entitlements/formal-action-page.vue'),
+    'formal-entitlement-grant': () => import('@/pages/entitlements/formal-grant-page.vue'),
+    'user-detail': () => import('@/pages/users/user-detail-page.vue'),
+    users: () => import('@/pages/users/user-list-page.vue')
+  }
+  if (name in pageComponents) return pageComponents[name as keyof typeof pageComponents]
+  return () => import('@/pages/capability-placeholder/capability-placeholder-page.vue')
+}
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
