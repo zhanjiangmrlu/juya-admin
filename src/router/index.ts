@@ -47,6 +47,7 @@ function resolveAdminPageComponent(
     'formal-entitlement-grant': () => import('@/pages/entitlements/formal-grant-page.vue'),
     'limited-entitlement-action': () => import('@/pages/entitlements/limited-action-page.vue'),
     'limited-entitlement-grant': () => import('@/pages/entitlements/limited-grant-page.vue'),
+    settings: () => import('@/pages/settings/settings-page.vue'),
     'user-detail': () => import('@/pages/users/user-detail-page.vue'),
     users: () => import('@/pages/users/user-list-page.vue'),
     'work-items': () => import('@/pages/work-items/work-item-page.vue')
