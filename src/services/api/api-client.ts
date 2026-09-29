@@ -187,10 +187,18 @@ async function createApiError(response: Response, clientRequestId: string): Prom
   const defaultMessage = genericMessages[response.status] ?? '服务暂时不可用，请稍后重试'
   const message =
     hasServerRequestId && typeof payload.message === 'string' ? payload.message : defaultMessage
+  const details = isRecord(payload.details) ? { ...payload.details } : {}
+  const retryAfter = response.headers.get('Retry-After')
+  if (response.status === 429 && retryAfter && details.retry_after_seconds === undefined) {
+    const seconds = /^\d+$/.test(retryAfter)
+      ? Number(retryAfter)
+      : Math.max(0, Math.ceil((Date.parse(retryAfter) - Date.now()) / 1000))
+    if (Number.isFinite(seconds)) details.retry_after_seconds = seconds
+  }
 
   return new ApiError({
     code: typeof payload.code === 'string' ? payload.code : `HTTP_${response.status}`,
-    details: isRecord(payload.details) ? payload.details : {},
+    details,
     message,
     requestId,
     status: response.status

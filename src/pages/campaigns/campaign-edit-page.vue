@@ -3,6 +3,7 @@ import { ElMessage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
@@ -46,13 +47,13 @@ const canEdit = computed(() => isNew.value || editor.server.value?.status === 'D
 watch(
   campaignId,
   (id) => {
-    if (id !== 'new')
-      void editor
-        .load(id)
-        .then(() => {
+    void editor
+      .load(id)
+      .then((loaded) => {
+        if (loaded && id === campaignId.value)
           sceneText.value = editor.draft.value.sceneIds.join('\n')
-        })
-        .catch(() => undefined)
+      })
+      .catch(() => undefined)
   },
   { immediate: true }
 )
@@ -122,7 +123,8 @@ async function confirm(): Promise<void> {
       type="error"
       :closable="false"
       show-icon
-      ><p v-if="editor.conflict.value">
+      ><ApiErrorDetails :error="editor.apiError.value" />
+      <p v-if="editor.conflict.value">
         草稿已保留。服务端最新版本：{{
           editor.conflictVersion.value === null
             ? '暂未获取，请刷新'

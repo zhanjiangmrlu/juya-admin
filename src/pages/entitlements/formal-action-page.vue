@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
@@ -14,6 +15,7 @@ import {
 } from '@/features/entitlements/formal-entitlement-model'
 import { useFormalEntitlementCommand } from '@/features/entitlements/use-formal-entitlement-command'
 import { createApiClient } from '@/services/api/api-client'
+import { ApiError } from '@/shared/errors/api-error'
 
 import type { FormalDetail } from '@/features/entitlements/entitlement-query-adapter'
 import type {
@@ -38,6 +40,8 @@ const controller = useFormalEntitlementCommand(createFormalEntitlementAdapter(cl
 const detail = ref<FormalDetail | null>(null)
 const state = ref<'loading' | 'ready' | 'error'>('loading')
 const error = ref('')
+const apiError = shallowRef<ApiError | null>(null)
+const commandApiError = shallowRef<ApiError | null>(null)
 const commandError = ref<string | null>(null)
 const hadConflict = ref(false)
 const form = reactive({
@@ -58,6 +62,7 @@ const allowedOperations = computed(() =>
 async function load(keepDraft = false): Promise<void> {
   state.value = 'loading'
   error.value = ''
+  apiError.value = null
   try {
     detail.value = await query.formal(entitlementId.value)
     if (!keepDraft) {
@@ -65,7 +70,8 @@ async function load(keepDraft = false): Promise<void> {
       form.term = FORMAL_TERMS.find((value) => value === detail.value?.term) ?? 'MONTH_3'
     }
     state.value = 'ready'
-  } catch {
+  } catch (failure) {
+    apiError.value = failure instanceof ApiError ? failure : null
     state.value = 'error'
     error.value = '正式权益详情加载失败，请重试'
   }
@@ -96,6 +102,7 @@ watch(
  */
 async function preview(): Promise<void> {
   commandError.value = null
+  commandApiError.value = null
   hadConflict.value = false
   try {
     await controller.preview()
@@ -119,6 +126,7 @@ async function confirm(reason: string): Promise<void> {
     confirmVisible.value = false
     hadConflict.value = controller.hasConflict.value
     commandError.value = controller.errorMessage.value
+    commandApiError.value = controller.apiError.value
     if (hadConflict.value) await load(true)
   }
 }
@@ -140,7 +148,9 @@ async function confirm(reason: string): Promise<void> {
       >
       <ElSkeleton v-if="state === 'loading'" :rows="6" animated aria-label="正在加载正式权益" />
       <ElAlert v-if="error" class="notice" :title="error" type="error" :closable="false" show-icon
-        ><ElButton size="small" @click="load(true)">重试</ElButton></ElAlert
+        ><ApiErrorDetails :error="apiError" /><ElButton size="small" @click="load(true)"
+          >重试</ElButton
+        ></ElAlert
       >
       <template v-if="detail"
         ><ElDescriptions :column="2" border
@@ -184,7 +194,8 @@ async function confirm(reason: string): Promise<void> {
             type="error"
             :closable="false"
             show-icon
-            ><template v-if="hadConflict"
+            ><ApiErrorDetails :error="commandApiError ?? controller.apiError.value" /><template
+              v-if="hadConflict"
               ><p>
                 原操作输入已保留。服务端最新版本：{{
                   state === 'ready' ? `v${detail.version}` : '暂未获取，请刷新'

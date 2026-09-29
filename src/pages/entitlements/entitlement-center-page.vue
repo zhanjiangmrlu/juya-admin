@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 
+import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
 import { useEntitlementList } from '@/features/entitlements/use-entitlement-list'
@@ -110,7 +111,11 @@ void controller.load({ ...filters })
         type="error"
         :closable="false"
         show-icon
-        ><ElButton size="small" @click="controller.load({ ...filters })">重试</ElButton></ElAlert
+        ><ApiErrorDetails :error="controller.apiError.value" /><ElButton
+          size="small"
+          @click="controller.load({ ...filters })"
+          >重试</ElButton
+        ></ElAlert
       >
       <ElEmpty
         v-else-if="controller.state.value === 'empty'"

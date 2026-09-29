@@ -18,6 +18,7 @@ export function useEntitlementList(adapter: EntitlementQueryAdapter) {
   const page = shallowRef<Page<EntitlementRow>>({ items: [], page: 1, pageSize: 20, total: 0 })
   const state = ref<'idle' | 'loading' | 'empty' | 'error' | 'success'>('idle')
   const error = ref<string | null>(null)
+  const apiError = shallowRef<ApiError | null>(null)
   let sequence = 0
   /**
    * 根据筛选条件请求服务端分页。
@@ -28,6 +29,7 @@ export function useEntitlementList(adapter: EntitlementQueryAdapter) {
     const current = ++sequence
     state.value = 'loading'
     error.value = null
+    apiError.value = null
     try {
       const result = await adapter.list(filters)
       if (current !== sequence) return
@@ -36,9 +38,10 @@ export function useEntitlementList(adapter: EntitlementQueryAdapter) {
     } catch (failure) {
       if (current !== sequence) return
       state.value = 'error'
+      apiError.value = failure instanceof ApiError ? failure : null
       error.value =
         failure instanceof ApiError ? `${failure.message}，请重试` : '权益列表加载失败，请重试'
     }
   }
-  return { page, state, error, load }
+  return { page, state, error, apiError, load }
 }

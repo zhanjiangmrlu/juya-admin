@@ -20,6 +20,7 @@ export interface FormalEntitlementCommandController {
   commandState: Readonly<Ref<'error' | 'idle' | 'submitting' | 'success'>>
   draft: DeepReadonly<Ref<FormalEntitlementDraft | null>>
   errorMessage: Readonly<Ref<string | null>>
+  apiError: Readonly<Ref<ApiError | null>>
   hasConflict: Readonly<Ref<boolean>>
   preview(): Promise<FormalEntitlement>
   previewResult: DeepReadonly<Ref<FormalEntitlement | null>>
@@ -40,6 +41,7 @@ export function useFormalEntitlementCommand(
   const draft = shallowRef<FormalEntitlementDraft | null>(null)
   const previewResult = shallowRef<FormalEntitlement | null>(null)
   const errorMessage = ref<string | null>(null)
+  const apiError = shallowRef<ApiError | null>(null)
   const hasConflict = ref(false)
   const command = useIdempotentCommand<FormalEntitlementDraft, FormalEntitlement>(
     async (input, idempotencyKey) =>
@@ -57,6 +59,7 @@ export function useFormalEntitlementCommand(
     draft.value = { ...nextDraft }
     previewResult.value = null
     errorMessage.value = null
+    apiError.value = null
     hasConflict.value = false
     command.reset(nextDraft)
   }
@@ -69,12 +72,14 @@ export function useFormalEntitlementCommand(
   async function preview(): Promise<FormalEntitlement> {
     if (draft.value === null) throw new Error('请先填写正式权益操作信息')
     errorMessage.value = null
+    apiError.value = null
     hasConflict.value = false
     try {
       const result = await adapter.preview(draft.value.operation, toPayload(draft.value))
       previewResult.value = result
       return result
     } catch (reason) {
+      apiError.value = reason instanceof ApiError ? reason : null
       previewResult.value = null
       errorMessage.value = toErrorMessage(reason, '权益预览失败，请检查输入后重试')
       throw reason
@@ -99,10 +104,12 @@ export function useFormalEntitlementCommand(
   async function submit(reason: string): Promise<FormalEntitlement> {
     if (!canConfirm.value || draft.value === null) throw new Error('请先完成服务端预览')
     errorMessage.value = null
+    apiError.value = null
     hasConflict.value = false
     try {
       return await command.submit({ ...draft.value, reason })
     } catch (failure) {
+      apiError.value = failure instanceof ApiError ? failure : null
       hasConflict.value = failure instanceof ApiError && failure.status === 409
       errorMessage.value = toErrorMessage(failure, '正式权益操作失败，请稍后重试')
       throw failure
@@ -114,6 +121,7 @@ export function useFormalEntitlementCommand(
     commandState: command.state,
     draft: readonly(draft),
     errorMessage: readonly(errorMessage),
+    apiError,
     hasConflict: readonly(hasConflict),
     preview,
     previewResult: readonly(previewResult),

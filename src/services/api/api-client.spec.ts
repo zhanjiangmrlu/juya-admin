@@ -18,6 +18,23 @@ const jsonResponse = (body: unknown, status = 200): Response =>
   })
 
 describe('api client', () => {
+  it('preserves Retry-After with rate-limit metadata', async () => {
+    const client = createApiClient({
+      fetchImplementation: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ code: 'RATE_LIMITED', request_id: 'req-429', details: {} }),
+            { status: 429, headers: { 'Retry-After': '30' } }
+          )
+        )
+    })
+    await expect(client.request({ method: 'GET', path: '/campaigns' })).rejects.toMatchObject({
+      status: 429,
+      requestId: 'req-429',
+      details: { retry_after_seconds: 30 }
+    })
+  })
   it('adds CSRF, request ID and idempotency headers to write requests', async () => {
     const fetchImplementation = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }))
     const client = createApiClient({

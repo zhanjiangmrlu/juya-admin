@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
@@ -32,6 +33,8 @@ const controller = useLimitedEntitlementCommand(createLimitedEntitlementAdapter(
 const detail = ref<LimitedDetail | null>(null)
 const state = ref<'loading' | 'ready' | 'error'>('loading')
 const error = ref('')
+const apiError = shallowRef<ApiError | null>(null)
+const commandApiError = shallowRef<ApiError | null>(null)
 const commandError = ref<string | null>(null)
 const hadConflict = ref(false)
 const operation = ref<LimitedEntitlementOperation>('PAUSE')
@@ -60,11 +63,13 @@ const nextStatus = computed(
 async function load(keepDraft = false): Promise<void> {
   state.value = 'loading'
   error.value = ''
+  apiError.value = null
   try {
     detail.value = await query.limited(entitlementId.value)
     if (!keepDraft) operation.value = allowedOperations.value[0] ?? 'PAUSE'
     state.value = 'ready'
-  } catch {
+  } catch (failure) {
+    apiError.value = failure instanceof ApiError ? failure : null
     state.value = 'error'
     error.value = '限时权益详情加载失败，请重试'
   }
@@ -93,6 +98,7 @@ watch(
 async function confirm(reason: string): Promise<void> {
   try {
     commandError.value = null
+    commandApiError.value = null
     hadConflict.value = false
     await controller.submit(reason)
     confirmVisible.value = false
@@ -102,6 +108,7 @@ async function confirm(reason: string): Promise<void> {
     confirmVisible.value = false
     hadConflict.value = failure instanceof ApiError && failure.status === 409
     commandError.value = controller.disabledReason.value ?? controller.errorMessage.value
+    commandApiError.value = controller.apiError.value
     if (hadConflict.value) await load(true)
   }
 }
@@ -123,7 +130,9 @@ async function confirm(reason: string): Promise<void> {
       >
       <ElSkeleton v-if="state === 'loading'" :rows="6" animated aria-label="正在加载限时权益" />
       <ElAlert v-if="error" class="notice" :title="error" type="error" :closable="false" show-icon
-        ><ElButton size="small" @click="load(true)">重试</ElButton></ElAlert
+        ><ApiErrorDetails :error="apiError" /><ElButton size="small" @click="load(true)"
+          >重试</ElButton
+        ></ElAlert
       >
       <template v-if="detail"
         ><ElDescriptions :column="2" border
@@ -163,7 +172,8 @@ async function confirm(reason: string): Promise<void> {
           type="error"
           :closable="false"
           show-icon
-          ><p v-if="hadConflict">
+          ><ApiErrorDetails :error="commandApiError ?? controller.apiError.value" />
+          <p v-if="hadConflict">
             原操作选择已保留。服务端最新版本：{{
               state === 'ready' ? `v${detail.version}` : '暂未获取，请刷新'
             }}，请核对当前状态。

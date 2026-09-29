@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, shallowRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
@@ -15,6 +16,7 @@ import {
 } from '@/features/entitlements/formal-entitlement-model'
 import { useFormalEntitlementCommand } from '@/features/entitlements/use-formal-entitlement-command'
 import { createApiClient } from '@/services/api/api-client'
+import { ApiError } from '@/shared/errors/api-error'
 
 import type { ContentPackage } from '@/features/entitlements/entitlement-query-adapter'
 import type { FormalEntitlementTerm } from '@/features/entitlements/formal-entitlement-model'
@@ -36,7 +38,9 @@ const form = reactive<GrantForm>({
 })
 const isConfirmVisible = ref(false)
 const conflictMessage = ref<string | null>(null)
-const latestVersion = ref<number | null>(null)
+const conflictError = shallowRef<ApiError | null>(null)
+const packageError = shallowRef<ApiError | null>(null)
+const projectedVersion = ref<number | null>(null)
 const packages = ref<ContentPackage[]>([])
 const packagePage = ref(1)
 const packageTotal = ref(0)
@@ -58,13 +62,15 @@ const queryAdapter = createEntitlementQueryAdapter(
  */
 async function loadPackages(page = 1): Promise<void> {
   packageState.value = 'loading'
+  packageError.value = null
   try {
     const result = await queryAdapter.packages(page)
     packages.value = result.items
     packagePage.value = result.page
     packageTotal.value = result.total
     packageState.value = 'ready'
-  } catch {
+  } catch (failure) {
+    packageError.value = failure instanceof ApiError ? failure : null
     packageState.value = 'error'
   }
 }
@@ -103,7 +109,8 @@ watch(
 async function handlePreview(): Promise<void> {
   if (!form.userId.trim() || !form.packageId.trim()) return
   conflictMessage.value = null
-  latestVersion.value = null
+  conflictError.value = null
+  projectedVersion.value = null
   try {
     await controller.preview()
     isConfirmVisible.value = true
@@ -127,8 +134,9 @@ async function handleConfirm(reason: string): Promise<void> {
     isConfirmVisible.value = false
     if (controller.hasConflict.value) {
       conflictMessage.value = controller.errorMessage.value
+      conflictError.value = controller.apiError.value
       try {
-        latestVersion.value = (await controller.refreshPreview()).version
+        projectedVersion.value = (await controller.refreshPreview()).version
       } catch {
         // Keep the original draft and conflict message if refresh also fails.
       }
@@ -217,9 +225,10 @@ function formatServerTime(value: string | null): string {
           type="error"
           show-icon
         >
-          原用户、内容包和期限输入已保留。服务端最新版本：{{
-            latestVersion === null ? '暂未获取' : `v${latestVersion}`
-          }}，请重新预览后确认。
+          <ApiErrorDetails :error="conflictError" />
+          原用户、内容包和期限输入已保留。当前版本尚未获取；重新预览的预计操作后版本：{{
+            projectedVersion === null ? '暂未获取' : `v${projectedVersion}`
+          }}，此预览尚未保存，请重新确认。
         </ElAlert>
         <ElAlert
           v-if="controller.errorMessage.value"
@@ -229,9 +238,10 @@ function formatServerTime(value: string | null): string {
           type="error"
           show-icon
         >
-          <template v-if="controller.hasConflict.value" #default>
-            <ElButton size="small" @click="controller.refreshPreview">刷新服务端预览</ElButton>
-          </template>
+          <ApiErrorDetails :error="controller.apiError.value" />
+          <ElButton v-if="controller.hasConflict.value" size="small" @click="handlePreview"
+            >刷新服务端预览</ElButton
+          >
         </ElAlert>
         <ElAlert
           v-if="packageState === 'error'"
@@ -239,7 +249,11 @@ function formatServerTime(value: string | null): string {
           title="内容包加载失败，请重试"
           type="error"
           :closable="false"
-          ><ElButton size="small" @click="loadPackages(packagePage)">重试</ElButton></ElAlert
+          ><ApiErrorDetails :error="packageError" /><ElButton
+            size="small"
+            @click="loadPackages(packagePage)"
+            >重试</ElButton
+          ></ElAlert
         >
 
         <div v-if="controller.previewResult.value" class="preview">

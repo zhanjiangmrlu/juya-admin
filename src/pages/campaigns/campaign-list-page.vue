@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 
+import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
 import { createApiClient } from '@/services/api/api-client'
@@ -25,18 +26,26 @@ const filters = reactive({ page: 1, status: '' })
 const page = ref<CampaignPage>({ items: [], page: 1, pageSize: 20, total: 0 })
 const state = ref<'loading' | 'empty' | 'error' | 'success'>('loading')
 const error = ref('')
+const apiError = shallowRef<ApiError | null>(null)
+let requestSequence = 0
 /**
  * 加载服务端活动分页。
  * @returns 活动列表加载完成后的 Promise
  */
 async function load(): Promise<void> {
+  const sequence = ++requestSequence
   state.value = 'loading'
   error.value = ''
+  apiError.value = null
   try {
-    page.value = await adapter.list(filters.page, filters.status || undefined)
+    const result = await adapter.list(filters.page, filters.status || undefined)
+    if (sequence !== requestSequence) return
+    page.value = result
     state.value = page.value.items.length ? 'success' : 'empty'
   } catch (failure) {
+    if (sequence !== requestSequence) return
     state.value = 'error'
+    apiError.value = failure instanceof ApiError ? failure : null
     error.value = failure instanceof ApiError ? failure.message : '活动列表加载失败，请重试'
   }
 }
@@ -85,7 +94,9 @@ void load()
       </div>
       <ElSkeleton v-if="state === 'loading'" :rows="5" animated aria-label="正在加载活动" />
       <ElAlert v-else-if="state === 'error'" :title="error" type="error" :closable="false" show-icon
-        ><ElButton size="small" @click="load">重试</ElButton></ElAlert
+        ><ApiErrorDetails :error="apiError" /><ElButton size="small" @click="load"
+          >重试</ElButton
+        ></ElAlert
       >
       <ElEmpty
         v-else-if="state === 'empty'"

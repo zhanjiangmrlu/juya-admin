@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
@@ -32,11 +33,17 @@ const listPage = ref(1)
 const listTotal = ref(0)
 const state = ref<'loading' | 'ready' | 'error'>('loading')
 const error = ref('')
+const apiError = shallowRef<ApiError | null>(null)
+const commandApiError = shallowRef<ApiError | null>(null)
 const commandError = ref<string | null>(null)
 const hadConflict = ref(false)
 const confirmVisible = ref(false)
+const detailLoading = ref(false)
+let detailSequence = 0
 const eligible = computed(
   () =>
+    !detailLoading.value &&
+    detail.value?.id === form.campaignId &&
     detail.value?.status === 'OPEN' &&
     Boolean(detail.value.currentVersion) &&
     (detail.value.currentVersion?.grantedUserCount ?? 0) <
@@ -49,13 +56,16 @@ const eligible = computed(
  */
 async function loadCampaigns(page = 1): Promise<void> {
   state.value = 'loading'
+  error.value = ''
+  apiError.value = null
   try {
     const result = await campaigns.list(page, 'OPEN')
     rows.value = result.items
     listPage.value = result.page
     listTotal.value = result.total
     state.value = 'ready'
-  } catch {
+  } catch (failure) {
+    apiError.value = failure instanceof ApiError ? failure : null
     state.value = 'error'
     error.value = '活动列表加载失败，请重试'
   }
@@ -66,12 +76,23 @@ async function loadCampaigns(page = 1): Promise<void> {
  * @returns 加载完成的 Promise
  */
 async function selectCampaign(id: string): Promise<void> {
-  detail.value = null
+  const sequence = ++detailSequence
+  if (detail.value?.id !== id) detail.value = null
+  error.value = ''
+  apiError.value = null
+  detailLoading.value = Boolean(id)
   if (!id) return
   try {
-    detail.value = await campaigns.detail(id)
-  } catch {
+    const result = await campaigns.detail(id)
+    if (sequence !== detailSequence || id !== form.campaignId) return
+    if (result.id !== id) throw new Error('活动详情与当前选择不匹配')
+    detail.value = result
+  } catch (failure) {
+    if (sequence !== detailSequence || id !== form.campaignId) return
+    apiError.value = failure instanceof ApiError ? failure : null
     error.value = '活动详情加载失败，请重新选择或重试'
+  } finally {
+    if (sequence === detailSequence) detailLoading.value = false
   }
 }
 watch(
@@ -83,6 +104,7 @@ watch(
 watch(
   [() => form.userId, detail],
   () => {
+    if (!detail.value || detail.value.id !== form.campaignId) return
     controller.setDraft({
       campaignVersionId: detail.value?.currentVersion?.id ?? null,
       entitlementId: null,
@@ -97,8 +119,10 @@ watch(
  * @returns 开通限时权益完成后的 Promise
  */
 async function confirm(): Promise<void> {
+  if (!eligible.value) return
   try {
     commandError.value = null
+    commandApiError.value = null
     hadConflict.value = false
     await controller.submit('')
     confirmVisible.value = false
@@ -108,7 +132,8 @@ async function confirm(): Promise<void> {
     confirmVisible.value = false
     hadConflict.value = failure instanceof ApiError && failure.status === 409
     commandError.value = controller.disabledReason.value ?? controller.errorMessage.value
-    await selectCampaign(form.campaignId)
+    commandApiError.value = controller.apiError.value
+    if (hadConflict.value) await selectCampaign(form.campaignId)
   }
 }
 void loadCampaigns()
@@ -157,7 +182,13 @@ void loadCampaigns()
           type="error"
           :closable="false"
           show-icon
-          ><ElButton size="small" @click="loadCampaigns(listPage)">重试</ElButton></ElAlert
+          ><ApiErrorDetails :error="apiError" /><ElButton
+            size="small"
+            @click="loadCampaigns(listPage)"
+            >重新加载活动列表</ElButton
+          ><ElButton v-if="form.campaignId" size="small" @click="selectCampaign(form.campaignId)"
+            >重新加载活动详情</ElButton
+          ></ElAlert
         >
         <ElDescriptions v-if="detail?.currentVersion" :column="2" border class="summary"
           ><ElDescriptionsItem label="当前状态">{{ detail.status }}</ElDescriptionsItem
@@ -189,9 +220,10 @@ void loadCampaigns()
           type="error"
           :closable="false"
           show-icon
-          ><p v-if="hadConflict">
-            原用户与活动选择已保留。服务端最新版本：v{{
-              detail?.version ?? '未知'
+          ><ApiErrorDetails :error="commandApiError ?? controller.apiError.value" />
+          <p v-if="hadConflict">
+            原用户与活动选择已保留。服务端最新版本：{{
+              !error && detail ? `v${detail.version}` : '暂未获取，请刷新'
             }}，请核对状态和容量。
           </p>
           <ElButton size="small" @click="selectCampaign(form.campaignId)"

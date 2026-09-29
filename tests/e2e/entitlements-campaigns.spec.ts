@@ -1,5 +1,9 @@
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 
+test.afterEach(({ adminApi }) => {
+  expect(adminApi.unexpectedRequests).toEqual([])
+})
+
 const viewports = [
   { width: 1440, height: 900 },
   { width: 1280, height: 800 }

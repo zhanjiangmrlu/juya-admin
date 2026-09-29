@@ -15,6 +15,7 @@ export interface LimitedEntitlementCommandController {
   disabledReason: Readonly<Ref<string | null>>
   draft: DeepReadonly<Ref<LimitedEntitlementCommandInput | null>>
   errorMessage: Readonly<Ref<string | null>>
+  apiError: Readonly<Ref<ApiError | null>>
   result: DeepReadonly<Ref<LimitedEntitlement | null>>
   setDraft(draft: LimitedEntitlementCommandInput): void
   submit(reason: string): Promise<LimitedEntitlement>
@@ -32,21 +33,33 @@ export function useLimitedEntitlementCommand(
   const draft = shallowRef<LimitedEntitlementCommandInput | null>(null)
   const result = shallowRef<LimitedEntitlement | null>(null)
   const errorMessage = ref<string | null>(null)
+  const apiError = shallowRef<ApiError | null>(null)
   const disabledReason = ref<string | null>(null)
   const command = useIdempotentCommand<LimitedEntitlementCommandInput, LimitedEntitlement>(
     adapter.execute
   )
 
   /**
-   * 替换命令输入并生成新的幂等键
+   * 仅在输入实质变化时替换命令，保留不确定失败的重试身份
    *
    * @param nextDraft - 最新限时权益命令输入
    * @returns 无返回值
    */
   function setDraft(nextDraft: LimitedEntitlementCommandInput): void {
+    const previous = draft.value
+    if (
+      previous &&
+      previous.operation === nextDraft.operation &&
+      previous.userId === nextDraft.userId &&
+      previous.entitlementId === nextDraft.entitlementId &&
+      previous.campaignVersionId === nextDraft.campaignVersionId &&
+      previous.reason === nextDraft.reason
+    )
+      return
     draft.value = { ...nextDraft }
     result.value = null
     errorMessage.value = null
+    apiError.value = null
     disabledReason.value = null
     command.reset(nextDraft)
   }
@@ -59,13 +72,22 @@ export function useLimitedEntitlementCommand(
    */
   async function submit(reason: string): Promise<LimitedEntitlement> {
     if (draft.value === null) throw new Error('请先填写限时权益操作信息')
+    if (command.state.value === 'submitting') throw new Error('操作正在提交')
     errorMessage.value = null
+    apiError.value = null
     disabledReason.value = null
     try {
-      const nextResult = await command.submit({ ...draft.value, reason })
+      const nextResult = await command.submit({
+        ...draft.value,
+        reason:
+          draft.value.operation === 'PAUSE' || draft.value.operation === 'REVOKE'
+            ? reason
+            : undefined
+      })
       result.value = nextResult
       return nextResult
     } catch (failure) {
+      apiError.value = failure instanceof ApiError ? failure : null
       errorMessage.value =
         failure instanceof ApiError ? failure.message : '限时权益操作失败，请稍后重试'
       disabledReason.value = mapDisabledReason(failure)
@@ -78,6 +100,7 @@ export function useLimitedEntitlementCommand(
     disabledReason: readonly(disabledReason),
     draft: readonly(draft),
     errorMessage: readonly(errorMessage),
+    apiError,
     result: readonly(result),
     setDraft,
     submit

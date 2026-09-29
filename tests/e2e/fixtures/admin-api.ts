@@ -17,6 +17,7 @@ export interface AdminApiMock {
   conflictOnNextSettingsUpdate(): void
   findRequest(method: string, pathname: string): ApiRequestRecord | undefined
   requests: ApiRequestRecord[]
+  unexpectedRequests: ApiRequestRecord[]
   unauthorizedPaths: Set<string>
 }
 
@@ -26,7 +27,13 @@ interface AdminApiState extends AdminApiMock {
   campaignCapacity: number
   campaignGrantedCount: number
   campaignName: string
-  campaignStatus: 'DRAFT' | 'OPEN'
+  campaignStatus: 'DRAFT' | 'OPEN' | 'PAUSED' | 'ENDED' | 'ARCHIVED' | 'CLOSED'
+  campaignVersionStatus: string
+  campaignVersionNo: number
+  campaignVersionRevision: number
+  campaignDuration: number
+  campaignWindow: number
+  campaignScenes: string[]
   contactDecisionConflictPending: boolean
   contactCorrectionStatus: 'APPROVED' | 'PENDING' | 'REJECTED'
   feedbackStatus: string
@@ -43,6 +50,7 @@ export const test = base.extend<{ adminApi: AdminApiMock }>({
       },
       setCampaignStatus(status) {
         state.campaignStatus = status
+        state.campaignVersionStatus = status
       },
       conflictOnNextContactDecision() {
         state.contactDecisionConflictPending = true
@@ -62,9 +70,16 @@ export const test = base.extend<{ adminApi: AdminApiMock }>({
       campaignGrantedCount: 5,
       campaignName: '秋季限时学习',
       campaignStatus: 'OPEN',
+      campaignVersionStatus: 'OPEN',
+      campaignVersionNo: 1,
+      campaignVersionRevision: 1,
+      campaignDuration: 3,
+      campaignWindow: 7,
+      campaignScenes: ['SCENE-1'],
       contactDecisionConflictPending: false,
       feedbackStatus: 'PROCESSING',
       requests: [],
+      unexpectedRequests: [],
       settingsConflictPending: false,
       settingsVersion: 3,
       supplementRounds: 0,
@@ -359,26 +374,31 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
   }
   if (url.pathname === '/api/v1/admin/campaigns' && request.method() === 'GET') {
     await replyJson(route, {
-      items: [
-        {
-          id: 'CAMP-1',
-          name: state.campaignName,
-          status: state.campaignStatus,
-          version: state.campaignVersion,
-          current_version_id: 'VERSION-1',
-          capacity: state.campaignCapacity,
-          granted_user_count: state.campaignGrantedCount,
-          created_at: '2026-09-29T00:00:00Z',
-          updated_at: '2026-09-29T00:00:00Z',
-          available_operations:
-            state.campaignStatus === 'DRAFT'
-              ? ['open', 'copy', 'capacity']
-              : ['pause', 'end', 'capacity']
-        }
-      ],
+      items:
+        (url.searchParams.has('status') &&
+          url.searchParams.get('status') !== state.campaignStatus) ||
+        Number(url.searchParams.get('page') ?? 1) !== 1
+          ? []
+          : [
+              {
+                id: 'CAMP-1',
+                name: state.campaignName,
+                status: state.campaignStatus,
+                version: state.campaignVersion,
+                current_version_id: `VERSION-${state.campaignVersionNo}`,
+                capacity: state.campaignCapacity,
+                granted_user_count: state.campaignGrantedCount,
+                created_at: '2026-09-29T00:00:00Z',
+                updated_at: '2026-09-29T00:00:00Z',
+                available_operations: campaignOperations(state.campaignStatus)
+              }
+            ],
       page: Number(url.searchParams.get('page') ?? 1),
       page_size: 20,
-      total: 1
+      total:
+        url.searchParams.has('status') && url.searchParams.get('status') !== state.campaignStatus
+          ? 0
+          : 1
     })
     return
   }
@@ -386,20 +406,65 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     await replyJson(route, createCampaignDetail(state))
     return
   }
-  if (url.pathname === '/api/v1/admin/campaigns' && request.method() === 'POST') {
-    state.campaignStatus = 'DRAFT'
-    state.campaignVersion = 1
-    state.campaignGrantedCount = 0
-    state.campaignName = (record.body as { name?: string }).name ?? state.campaignName
-    state.campaignCapacity =
-      (record.body as { capacity?: number }).capacity ?? state.campaignCapacity
-    await replyJson(route, createCampaignDetail(state), 201)
-    return
-  }
-  if (
-    url.pathname.startsWith('/api/v1/admin/campaigns/CAMP-1') &&
-    ['PUT', 'POST'].includes(request.method())
-  ) {
+  const creating = url.pathname === '/api/v1/admin/campaigns' && request.method() === 'POST'
+  const updating = url.pathname === '/api/v1/admin/campaigns/CAMP-1' && request.method() === 'PUT'
+  const operation =
+    request.method() === 'POST'
+      ? url.pathname === '/api/v1/admin/campaigns/CAMP-1/versions/copy'
+        ? 'copy'
+        : /^\/api\/v1\/admin\/campaigns\/CAMP-1\/commands\/(open|pause|resume|end|archive|capacity)$/.exec(
+            url.pathname
+          )?.[1]
+      : undefined
+  if (creating || updating || operation) {
+    const body = record.body
+    if (
+      !validCampaignBody(body, creating, updating, operation) ||
+      !record.headers['x-idempotency-key']
+    ) {
+      await replyJson(
+        route,
+        { code: 'VALIDATION_ERROR', message: '活动请求参数不正确', request_id: 'e2e-422' },
+        422
+      )
+      return
+    }
+    if (!record.headers['x-csrf-token']) {
+      await replyJson(
+        route,
+        { code: 'CSRF_REQUIRED', message: '缺少安全凭证', request_id: 'e2e-403' },
+        403
+      )
+      return
+    }
+    if (!creating && body.expected_version !== state.campaignVersion) {
+      await replyJson(
+        route,
+        {
+          code: 'CAMPAIGN_VERSION_CONFLICT',
+          message: '活动版本冲突',
+          request_id: 'e2e-campaign-409'
+        },
+        409
+      )
+      return
+    }
+    if (
+      (updating && state.campaignStatus !== 'DRAFT') ||
+      (operation && !campaignOperations(state.campaignStatus).includes(operation)) ||
+      (typeof body.capacity === 'number' && !creating && body.capacity < state.campaignGrantedCount)
+    ) {
+      await replyJson(
+        route,
+        {
+          code: 'CAMPAIGN_STATE_CONFLICT',
+          message: '活动状态或容量不允许此操作',
+          request_id: 'e2e-campaign-409'
+        },
+        409
+      )
+      return
+    }
     if (state.campaignConflictPending) {
       state.campaignConflictPending = false
       state.campaignVersion += 1
@@ -415,14 +480,30 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
       )
       return
     }
-    state.campaignVersion += 1
-    if (url.pathname.endsWith('/commands/open')) state.campaignStatus = 'OPEN'
-    if (url.pathname.endsWith('/commands/capacity'))
-      state.campaignCapacity =
-        (record.body as { capacity?: number }).capacity ?? state.campaignCapacity
-    if (request.method() === 'PUT')
-      state.campaignName = (record.body as { name?: string }).name ?? state.campaignName
-    await replyJson(route, createCampaignDetail(state))
+    state.campaignVersion = creating ? 1 : state.campaignVersion + 1
+    if (creating || operation === 'copy') {
+      state.campaignStatus = 'DRAFT'
+      state.campaignVersionStatus = 'DRAFT'
+      state.campaignVersionNo = creating ? 1 : state.campaignVersionNo + 1
+      state.campaignVersionRevision = 1
+      state.campaignGrantedCount = 0
+    } else {
+      if (operation !== 'archive') state.campaignVersionRevision += 1
+      const target = campaignTargetStatus[operation ?? '']
+      if (target) {
+        state.campaignStatus = target
+        if (operation !== 'archive') state.campaignVersionStatus = target
+      }
+    }
+    if (creating || updating) {
+      state.campaignName = String(body.name)
+      if (typeof body.duration_days === 'number') state.campaignDuration = body.duration_days
+      if (typeof body.activation_window_days === 'number')
+        state.campaignWindow = body.activation_window_days
+      if (Array.isArray(body.scene_ids)) state.campaignScenes = body.scene_ids as string[]
+    }
+    if (typeof body.capacity === 'number') state.campaignCapacity = body.capacity
+    await replyJson(route, createCampaignDetail(state), creating ? 201 : 200)
     return
   }
   if (url.pathname === '/api/v1/admin/feedback/FB-1') {
@@ -475,7 +556,103 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     return
   }
 
-  await replyJson(route, {})
+  state.unexpectedRequests.push(record)
+  await replyJson(
+    route,
+    {
+      code: 'UNEXPECTED_TEST_REQUEST',
+      message: `未匹配的测试请求 ${record.method} ${record.pathname}`,
+      request_id: 'e2e-unknown'
+    },
+    404
+  )
+}
+
+const campaignTargetStatus: Record<string, AdminApiState['campaignStatus']> = {
+  open: 'OPEN',
+  pause: 'PAUSED',
+  resume: 'OPEN',
+  end: 'ENDED',
+  archive: 'ARCHIVED'
+}
+
+/**
+ * 按后端契约返回夹具允许操作。
+ * @param status - 活动状态
+ * @returns 允许操作
+ */
+function campaignOperations(status: string): string[] {
+  const operations: Record<string, string[]> = {
+    DRAFT: ['open', 'copy', 'capacity'],
+    OPEN: ['pause', 'end', 'capacity'],
+    PAUSED: ['resume', 'end', 'capacity'],
+    ENDED: ['archive', 'copy', 'capacity'],
+    CLOSED: ['archive', 'copy', 'capacity'],
+    ARCHIVED: ['capacity']
+  }
+  return operations[status] ?? []
+}
+
+/**
+ * 校验活动写入请求，禁止缺字段、未知字段及无效数值被夹具吞掉。
+ * @param body - HTTP 请求体
+ * @param creating - 是否创建
+ * @param updating - 是否更新
+ * @param operation - 命令名
+ * @returns 请求体是否满足契约
+ */
+function validCampaignBody(
+  body: unknown,
+  creating: boolean,
+  updating: boolean,
+  operation?: string
+): body is Record<string, unknown> {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) return false
+  const value = body as Record<string, unknown>
+  const allowed =
+    creating || updating
+      ? [
+          'name',
+          'expected_version',
+          'duration_days',
+          'activation_window_days',
+          'capacity',
+          'scene_ids'
+        ]
+      : ['expected_version', 'capacity']
+  if (Object.keys(value).some((key) => !allowed.includes(key))) return false
+  if (
+    (!creating || value.expected_version !== undefined) &&
+    (!Number.isInteger(value.expected_version) || Number(value.expected_version) < 1)
+  )
+    return false
+  if (
+    (creating || updating) &&
+    (typeof value.name !== 'string' || !value.name.trim() || value.name.length > 200)
+  )
+    return false
+  if (
+    (creating || value.duration_days !== undefined) &&
+    value.duration_days !== 3 &&
+    value.duration_days !== 5
+  )
+    return false
+  if (
+    (creating || value.activation_window_days !== undefined) &&
+    (!Number.isInteger(value.activation_window_days) || Number(value.activation_window_days) < 1)
+  )
+    return false
+  if (
+    (creating || operation === 'capacity' || value.capacity !== undefined) &&
+    (!Number.isInteger(value.capacity) || Number(value.capacity) < 0)
+  )
+    return false
+  if (
+    value.scene_ids !== undefined &&
+    (!Array.isArray(value.scene_ids) || value.scene_ids.some((id) => typeof id !== 'string'))
+  )
+    return false
+  return true
 }
 
 /**
@@ -617,24 +794,21 @@ const formalEntitlement = {
  */
 function createCampaignDetail(state: AdminApiState) {
   return {
-    available_operations:
-      state.campaignStatus === 'DRAFT'
-        ? ['open', 'copy', 'capacity']
-        : ['pause', 'end', 'capacity'],
+    available_operations: campaignOperations(state.campaignStatus),
     created_at: '2026-09-29T00:00:00Z',
     current_version: {
-      activation_window_days: 7,
+      activation_window_days: state.campaignWindow,
       capacity: state.campaignCapacity,
-      duration_days: 3,
+      duration_days: state.campaignDuration,
       grant_ends_at: null,
       grant_starts_at: null,
       granted_user_count: state.campaignGrantedCount,
-      id: 'VERSION-1',
+      id: `VERSION-${state.campaignVersionNo}`,
       locked_at: state.campaignStatus === 'DRAFT' ? null : '2026-09-29T00:00:00Z',
-      scene_ids: ['SCENE-1'],
-      status: state.campaignStatus,
-      version: state.campaignVersion,
-      version_no: 1
+      scene_ids: state.campaignScenes,
+      status: state.campaignVersionStatus,
+      version: state.campaignVersionRevision,
+      version_no: state.campaignVersionNo
     },
     id: 'CAMP-1',
     name: state.campaignName,

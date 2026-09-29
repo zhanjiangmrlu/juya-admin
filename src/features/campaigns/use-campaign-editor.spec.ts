@@ -18,6 +18,54 @@ const detail = {
 }
 
 describe('campaign editor', () => {
+  it('ignores an older load and saves only the latest selected campaign', async () => {
+    let finishA!: (value: typeof detail) => void
+    let finishB!: (value: typeof detail) => void
+    const adapter = {
+      detail: vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              finishA = resolve
+            })
+        )
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              finishB = resolve
+            })
+        ),
+      save: vi.fn().mockResolvedValue({ ...detail, id: 'B' })
+    } as unknown as CampaignAdapter
+    const editor = useCampaignEditor(adapter)
+    const a = editor.load('A')
+    const b = editor.load('B')
+    finishB({ ...detail, id: 'B', name: '活动 B' })
+    await b
+    finishA({ ...detail, id: 'A', name: '活动 A' })
+    await a
+    expect(editor.server.value?.id).toBe('B')
+    expect(editor.draft.value.name).toBe('活动 B')
+    await editor.save()
+    expect(vi.mocked(adapter.save).mock.calls[0]?.[0]).toBe('B')
+  })
+
+  it('does not submit an old campaign while the new identity is loading', async () => {
+    const adapter = {
+      detail: vi
+        .fn()
+        .mockResolvedValueOnce(detail)
+        .mockImplementationOnce(() => new Promise(() => {})),
+      save: vi.fn()
+    } as unknown as CampaignAdapter
+    const editor = useCampaignEditor(adapter)
+    await editor.load('CAMP-1')
+    void editor.load('CAMP-2')
+    await expect(async () => editor.save()).rejects.toThrow()
+    expect(adapter.save).not.toHaveBeenCalled()
+  })
+
   it('keeps the admin draft on 409 and shows the latest server version', async () => {
     const adapter = {
       detail: vi
