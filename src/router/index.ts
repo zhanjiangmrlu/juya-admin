@@ -30,6 +30,7 @@ function resolveAdminPageComponent(
     campaigns: () => import('@/pages/campaigns/campaign-list-page.vue'),
     'contact-correction': () => import('@/pages/contacts/contact-correction-page.vue'),
     'content-scenes': () => import('@/pages/content/content-list-page.vue'),
+    'content-import': () => import('@/pages/content/content-import-page.vue'),
     dashboard: () => import('@/pages/dashboard/dashboard-page.vue'),
     entitlements: () => import('@/pages/entitlements/entitlement-center-page.vue'),
     feedback: () => import('@/pages/feedback/feedback-list-page.vue'),
