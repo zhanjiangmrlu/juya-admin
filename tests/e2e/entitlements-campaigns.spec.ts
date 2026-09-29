@@ -9,6 +9,49 @@ const viewports = [
   { width: 1280, height: 800 }
 ]
 
+test('A09 same-object refresh preserves the exact retry key after a network failure', async ({
+  adminApi,
+  page
+}) => {
+  const attempts: { body: unknown; key: string | undefined }[] = []
+  await loginAsAdmin(page)
+  await page.route(
+    '**/api/v1/admin/limited-entitlements/LIMITED-1/commands/revoke',
+    async (route) => {
+      const request = route.request()
+      expect(request.method()).toBe('POST')
+      const headers = await request.allHeaders()
+      expect(headers['x-csrf-token']).toBeTruthy()
+      attempts.push({ body: request.postDataJSON(), key: headers['x-idempotency-key'] })
+      await route.abort('failed')
+    }
+  )
+  await navigateInApp(page, '/entitlements/limited/LIMITED-1/action')
+  await page.locator('main').getByText('延长启动截止', { exact: true }).click()
+  await page.getByRole('option', { name: '撤销', exact: true }).click()
+  await page.getByRole('button', { name: '二次确认并执行' }).click()
+  await page.getByPlaceholder('请输入可审计的操作原因').fill('核对操作')
+  await page.getByRole('button', { name: '确认执行', exact: true }).click()
+  await expect(page.getByRole('dialog')).toBeHidden()
+  await page.getByRole('button', { name: '刷新服务端信息', exact: true }).click()
+  await expect(page.locator('main').getByRole('combobox')).toBeVisible()
+  await page.getByRole('button', { name: '二次确认并执行' }).click()
+  await page.getByPlaceholder('请输入可审计的操作原因').fill('核对操作')
+  await page.getByRole('button', { name: '确认执行', exact: true }).click()
+  await expect(page.getByRole('dialog')).toBeHidden()
+  expect(attempts).toHaveLength(2)
+  expect(attempts[0]?.body).toEqual({ reason: '核对操作' })
+  expect(attempts[0]?.key).toMatch(/^idem-/)
+  expect(attempts[1]).toEqual(attempts[0])
+  expect(
+    adminApi.requests.filter(
+      (request) =>
+        request.method === 'GET' &&
+        request.pathname === '/api/v1/admin/limited-entitlements/LIMITED-1'
+    )
+  ).toHaveLength(2)
+})
+
 test('A07 conflict keeps latest version unknown after list-only retry', async ({
   adminApi,
   page

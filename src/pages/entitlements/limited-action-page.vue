@@ -30,6 +30,7 @@ const client = createApiClient({
 })
 const query = createEntitlementQueryAdapter(client)
 const controller = shallowRef(useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client)))
+let controllerEntitlementId = entitlementId.value
 let requestSequence = 0
 onBeforeUnmount(() => {
   requestSequence += 1
@@ -69,7 +70,10 @@ async function load(keepDraft = false): Promise<void> {
   const id = entitlementId.value
   detail.value = null
   confirmVisible.value = false
-  controller.value = useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client))
+  if (controllerEntitlementId !== id) {
+    controller.value = useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client))
+    controllerEntitlementId = id
+  }
   if (!keepDraft) {
     commandError.value = null
     commandApiError.value = null

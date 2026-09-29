@@ -189,3 +189,115 @@ it('ignores an A preview that completes after B details have loaded', async () =
   wrapper.unmount()
   vi.unstubAllGlobals()
 })
+
+describe('limited action retry identity', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('keeps the exact retry key after network failure and same-object detail refresh', async () => {
+    const commands: { url: string; body: unknown; key: string | null }[] = []
+    let reads = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init: RequestInit) => {
+        if (init.method === 'POST') {
+          commands.push({
+            url,
+            body: JSON.parse(String(init.body)),
+            key: new Headers(init.headers).get('X-Idempotency-Key')
+          })
+          return Promise.reject(new TypeError('response lost'))
+        }
+        reads += 1
+        return Promise.resolve(
+          json({
+            ...detail('A'),
+            version: reads,
+            campaign_name: reads === 1 ? '刷新前活动' : '刷新后活动',
+            available_operations: reads === 1 ? ['PAUSE', 'REVOKE'] : ['REVOKE', 'PAUSE']
+          })
+        )
+      })
+    )
+    const { wrapper } = await setup('limited')
+    await flushPromises()
+    await wrapper.find('.submit').trigger('click')
+    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '核对操作')
+    await flushPromises()
+    expect(commands).toHaveLength(1)
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '刷新服务端信息')!
+      .trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('刷新后活动')
+    expect(wrapper.text()).toContain('v2')
+    await wrapper.find('.submit').trigger('click')
+    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '核对操作')
+    await flushPromises()
+    expect(commands).toHaveLength(2)
+    expect(commands[0]?.key).toMatch(/^idem-/)
+    expect(commands[1]).toEqual(commands[0])
+    await wrapper.find('.submit').trigger('click')
+    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '新的操作原因')
+    await flushPromises()
+    expect(commands[2]?.body).toEqual({ reason: '新的操作原因' })
+    expect(commands[2]?.key).not.toBe(commands[1]?.key)
+    wrapper.unmount()
+  })
+
+  it('invalidates retry identity on route changes and ignores the old object refresh', async () => {
+    const commands: { url: string; body: unknown; key: string | null }[] = []
+    let finishRefresh!: (response: Response) => void
+    let readsA = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init: RequestInit) => {
+        if (init.method === 'POST') {
+          commands.push({
+            url,
+            body: JSON.parse(String(init.body)),
+            key: new Headers(init.headers).get('X-Idempotency-Key')
+          })
+          return Promise.reject(new TypeError('response lost'))
+        }
+        if (url.endsWith('/A')) {
+          readsA += 1
+          if (readsA === 2)
+            return new Promise<Response>((resolve) => {
+              finishRefresh = resolve
+            })
+        }
+        return Promise.resolve(json(detail(url.slice(-1))))
+      })
+    )
+    const { wrapper, router } = await setup('limited')
+    await flushPromises()
+    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '核对操作')
+    await flushPromises()
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '刷新服务端信息')!
+      .trigger('click')
+    await router.push('/action/B')
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('操作失败')
+    finishRefresh(json({ ...detail('A'), version: 99 }))
+    await flushPromises()
+    expect(wrapper.text()).toContain('USER-B')
+    expect(wrapper.text()).not.toContain('USER-A')
+    expect(wrapper.text()).not.toContain('v99')
+    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '核对操作')
+    await flushPromises()
+    expect(commands[1]?.url).toContain('/limited-entitlements/B/commands/pause')
+    expect(commands[1]?.key).not.toBe(commands[0]?.key)
+    await router.push('/action/A')
+    await flushPromises()
+    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '核对操作')
+    await flushPromises()
+    expect(commands).toHaveLength(3)
+    expect(commands[2]?.url).toBe(commands[0]?.url)
+    expect(commands[2]?.body).toEqual(commands[0]?.body)
+    expect(commands[2]?.key).not.toBe(commands[0]?.key)
+    wrapper.unmount()
+  })
+})
