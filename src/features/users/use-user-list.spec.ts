@@ -66,7 +66,7 @@ describe('useUserList', () => {
     const adapter = createAdapter()
     let firstSignal: AbortSignal | undefined
     vi.mocked(adapter.searchUsers)
-      .mockImplementationOnce((_query, signal) => {
+      .mockImplementationOnce((_query, _contactStatus, signal) => {
         firstSignal = signal
         return new Promise(() => undefined)
       })
@@ -77,5 +77,20 @@ describe('useUserList', () => {
     await controller.search('second')
 
     expect(firstSignal?.aborted).toBe(true)
+  })
+
+  it('passes the selected contact status to the server and URL', async () => {
+    const adapter = createAdapter()
+    const router = await createUserRouter()
+    const controller = useUserList(adapter, router)
+
+    await controller.search('', 'UNREACHABLE')
+
+    expect(adapter.searchUsers).toHaveBeenCalledWith(
+      undefined,
+      'UNREACHABLE',
+      expect.any(AbortSignal)
+    )
+    expect(router.currentRoute.value.query).toEqual({ contact_status: 'UNREACHABLE' })
   })
 })

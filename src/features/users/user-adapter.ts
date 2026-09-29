@@ -2,6 +2,8 @@ import type { ApiClient } from '@/services/api/api-client'
 
 export interface UserProjectionDto {
   account_status: string
+  contact: UserContactDto | null
+  contact_degraded: boolean
   formal_entitlement_count: number
   last_active_at: string | null
   limited_entitlement_count: number
@@ -9,14 +11,23 @@ export interface UserProjectionDto {
   user_id: string
 }
 
+export type ContactStatus =
+  'NOT_PROVIDED' | 'PENDING' | 'CONTACTED' | 'UNREACHABLE' | 'DO_NOT_CONTACT'
+
 export interface UserContactDto {
-  contact_status: string
+  change_pending: boolean
+  contact_status: ContactStatus
+  updated_at: string
+  verified_at: string | null
+  verified_by: string | null
   wechat_id: string | null
 }
 
 export interface UserDetailDto extends UserProjectionDto {
-  contact: UserContactDto | null
-  contact_degraded: boolean
+  favorite_count: number | null
+  learning_days: number | null
+  learning_degraded: boolean
+  open_scene_completed_count: number | null
 }
 
 export interface WechatSearchRequest {
@@ -26,7 +37,11 @@ export interface WechatSearchRequest {
 export interface UserAdapter {
   getUserDetail(userId: string, signal?: AbortSignal): Promise<UserDetailDto>
   searchByWechat(payload: WechatSearchRequest, signal?: AbortSignal): Promise<UserProjectionDto[]>
-  searchUsers(query?: string, signal?: AbortSignal): Promise<UserProjectionDto[]>
+  searchUsers(
+    query?: string,
+    contactStatus?: ContactStatus,
+    signal?: AbortSignal
+  ): Promise<UserProjectionDto[]>
 }
 
 /**
@@ -77,14 +92,22 @@ export function createUserAdapter(client: ApiClient): UserAdapter {
      * 使用普通非敏感查询条件检索用户
      *
      * @param query - 用户编号等非敏感查询条件
+     * @param contactStatus - 可选联系状态筛选
      * @param signal - 可选请求取消信号
      * @returns 匹配的用户投影数组
      */
-    async searchUsers(query?: string, signal?: AbortSignal): Promise<UserProjectionDto[]> {
+    async searchUsers(
+      query?: string,
+      contactStatus?: ContactStatus,
+      signal?: AbortSignal
+    ): Promise<UserProjectionDto[]> {
       const response = await client.request<unknown>({
         method: 'GET',
         path: '/api/v1/admin/users',
-        query: query ? { query } : undefined,
+        query:
+          query || contactStatus
+            ? { contact_status: contactStatus, query: query || undefined }
+            : undefined,
         signal
       })
       return parseUserList(response)
@@ -111,20 +134,12 @@ function parseUserList(source: unknown): UserProjectionDto[] {
  */
 function parseUserDetail(source: unknown): UserDetailDto {
   if (!isRecord(source)) throw new Error('用户详情接口响应格式不正确')
-  const contactSource = source.contact
-  let contact: UserContactDto | null = null
-  if (contactSource !== null && contactSource !== undefined) {
-    if (!isRecord(contactSource)) throw new Error('用户联系方式响应格式不正确')
-    contact = {
-      contact_status: requireString(contactSource, 'contact_status'),
-      wechat_id: contactSource.wechat_id === null ? null : requireString(contactSource, 'wechat_id')
-    }
-  }
-
   return {
     ...parseUserProjection(source),
-    contact,
-    contact_degraded: requireBoolean(source, 'contact_degraded')
+    favorite_count: requireNullableNumber(source, 'favorite_count'),
+    learning_days: requireNullableNumber(source, 'learning_days'),
+    learning_degraded: requireBoolean(source, 'learning_degraded'),
+    open_scene_completed_count: requireNullableNumber(source, 'open_scene_completed_count')
   }
 }
 
@@ -136,8 +151,23 @@ function parseUserDetail(source: unknown): UserDetailDto {
  */
 function parseUserProjection(source: unknown): UserProjectionDto {
   if (!isRecord(source)) throw new Error('用户接口响应格式不正确')
+  const contactSource = source.contact
+  let contact: UserContactDto | null = null
+  if (contactSource !== null && contactSource !== undefined) {
+    if (!isRecord(contactSource)) throw new Error('用户联系方式响应格式不正确')
+    contact = {
+      change_pending: requireBoolean(contactSource, 'change_pending'),
+      contact_status: requireContactStatus(contactSource, 'contact_status'),
+      updated_at: requireString(contactSource, 'updated_at'),
+      verified_at: requireNullableString(contactSource, 'verified_at'),
+      verified_by: requireNullableString(contactSource, 'verified_by'),
+      wechat_id: requireNullableString(contactSource, 'wechat_id')
+    }
+  }
   return {
     account_status: requireString(source, 'account_status'),
+    contact,
+    contact_degraded: requireBoolean(source, 'contact_degraded'),
     formal_entitlement_count: requireNumber(source, 'formal_entitlement_count'),
     last_active_at: source.last_active_at === null ? null : requireString(source, 'last_active_at'),
     limited_entitlement_count: requireNumber(source, 'limited_entitlement_count'),
@@ -170,6 +200,48 @@ function requireNumber(source: Record<string, unknown>, key: string): number {
   const value = source[key]
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     throw new Error(`用户接口缺少数字字段：${key}`)
+  }
+  return value
+}
+
+/**
+ * 读取可空数字字段。
+ * @param source - 接口响应对象
+ * @param key - 字段名
+ * @returns 数字或空值
+ */
+function requireNullableNumber(source: Record<string, unknown>, key: string): number | null {
+  if (source[key] === null) return null
+  return requireNumber(source, key)
+}
+
+/**
+ * 读取可空字符串字段。
+ * @param source - 接口响应对象
+ * @param key - 字段名
+ * @returns 字符串或空值
+ */
+function requireNullableString(source: Record<string, unknown>, key: string): string | null {
+  if (source[key] === null) return null
+  return requireString(source, key)
+}
+
+/**
+ * 读取并校验五种联系状态。
+ * @param source - 接口响应对象
+ * @param key - 字段名
+ * @returns 合法联系状态
+ */
+function requireContactStatus(source: Record<string, unknown>, key: string): ContactStatus {
+  const value = requireString(source, key)
+  if (
+    value !== 'NOT_PROVIDED' &&
+    value !== 'PENDING' &&
+    value !== 'CONTACTED' &&
+    value !== 'UNREACHABLE' &&
+    value !== 'DO_NOT_CONTACT'
+  ) {
+    throw new Error(`用户接口联系状态无效：${value}`)
   }
   return value
 }

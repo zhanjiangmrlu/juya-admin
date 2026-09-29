@@ -65,7 +65,7 @@ export function useUserDetail(
         contact: result.contact_degraded ? 'error' : 'success',
         entitlements: 'success',
         feedback: 'success',
-        learning: 'pending'
+        learning: result.learning_degraded ? 'error' : 'success'
       }
       state.value = 'success'
     } catch (reason) {

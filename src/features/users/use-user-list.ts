@@ -2,14 +2,19 @@ import { type Ref, ref } from 'vue'
 
 import { ApiError } from '@/shared/errors/api-error'
 
-import type { UserAdapter, UserProjectionDto, WechatSearchRequest } from './user-adapter'
+import type {
+  ContactStatus,
+  UserAdapter,
+  UserProjectionDto,
+  WechatSearchRequest
+} from './user-adapter'
 import type { UserPageState } from './user-model'
 import type { Router } from 'vue-router'
 
 export interface UserListController {
   dispose(): void
   error: Ref<string | null>
-  search(query?: string): Promise<void>
+  search(query?: string, contactStatus?: ContactStatus): Promise<void>
   searchByWechat(value: string): Promise<void>
   state: Ref<UserPageState>
   users: Ref<UserProjectionDto[]>
@@ -33,13 +38,17 @@ export function useUserList(adapter: UserAdapter, router: Router): UserListContr
    * 执行普通非敏感用户搜索并同步 URL query
    *
    * @param query - 用户编号等普通搜索条件
+   * @param contactStatus - 可选联系状态筛选
    * @returns 搜索完成后的 Promise
    */
-  async function search(query = ''): Promise<void> {
+  async function search(query = '', contactStatus?: ContactStatus): Promise<void> {
     const normalizedQuery = query.trim()
     await runSearch(
-      (signal) => adapter.searchUsers(normalizedQuery || undefined, signal),
-      normalizedQuery ? { query: normalizedQuery } : {}
+      (signal) => adapter.searchUsers(normalizedQuery || undefined, contactStatus, signal),
+      {
+        ...(normalizedQuery ? { query: normalizedQuery } : {}),
+        ...(contactStatus ? { contact_status: contactStatus } : {})
+      }
     )
   }
 
