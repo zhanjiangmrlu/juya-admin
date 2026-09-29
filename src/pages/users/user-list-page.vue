@@ -141,6 +141,7 @@ function contactStatusLabel(status: string | undefined): string {
           </ElFormItem>
           <ElFormItem>
             <ElSelect
+              class="entitlement-filter"
               disabled
               model-value=""
               placeholder="全部权益"
@@ -296,6 +297,10 @@ function contactStatusLabel(status: string | undefined): string {
 
   .status-filter {
     width: 148px;
+  }
+
+  .entitlement-filter {
+    width: 120px;
   }
 
   .notice {

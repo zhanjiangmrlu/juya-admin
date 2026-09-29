@@ -11,6 +11,7 @@ export interface ApiRequestRecord {
 }
 
 export interface AdminApiMock {
+  conflictOnNextContactDecision(): void
   conflictOnNextSettingsUpdate(): void
   findRequest(method: string, pathname: string): ApiRequestRecord | undefined
   requests: ApiRequestRecord[]
@@ -18,6 +19,8 @@ export interface AdminApiMock {
 }
 
 interface AdminApiState extends AdminApiMock {
+  contactDecisionConflictPending: boolean
+  contactCorrectionStatus: 'APPROVED' | 'PENDING' | 'REJECTED'
   feedbackStatus: string
   settingsConflictPending: boolean
   settingsVersion: number
@@ -27,6 +30,9 @@ interface AdminApiState extends AdminApiMock {
 export const test = base.extend<{ adminApi: AdminApiMock }>({
   adminApi: async ({ page }, use) => {
     const state: AdminApiState = {
+      conflictOnNextContactDecision() {
+        state.contactDecisionConflictPending = true
+      },
       conflictOnNextSettingsUpdate() {
         state.settingsConflictPending = true
       },
@@ -35,6 +41,8 @@ export const test = base.extend<{ adminApi: AdminApiMock }>({
           (request) => request.method === method && request.pathname === pathname
         )
       },
+      contactCorrectionStatus: 'PENDING',
+      contactDecisionConflictPending: false,
       feedbackStatus: 'PROCESSING',
       requests: [],
       settingsConflictPending: false,
@@ -170,13 +178,62 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
   if (url.pathname === '/api/v1/admin/users/USER-1' && request.method() === 'GET') {
     await replyJson(route, {
       ...userProjection,
-      contact: { contact_status: 'VERIFIED', wechat_id: 'juya_verified' },
-      contact_degraded: false
+      favorite_count: 4,
+      learning_days: 12,
+      learning_degraded: false,
+      open_scene_completed_count: 7
     })
     return
   }
   if (url.pathname === '/api/v1/admin/users' && request.method() === 'GET') {
     await replyJson(route, [userProjection])
+    return
+  }
+  if (url.pathname === '/api/v1/admin/users/USER-1/commands/contact-status') {
+    const status = (record.body as { status?: string } | null)?.status ?? 'PENDING'
+    await replyJson(route, { ...contactProjection, contact_status: status })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/users/USER-1/commands/verify-contact-change') {
+    await replyJson(route, { ...contactProjection, change_pending: false })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/users/USER-1/contact-copy-events') {
+    await route.fulfill({ status: 204 })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/contact-corrections' && request.method() === 'GET') {
+    await replyJson(route, {
+      items: [createContactCorrection(state.contactCorrectionStatus)],
+      page: 1,
+      page_size: 20,
+      total: 1
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/contact-corrections/COR-1' && request.method() === 'GET') {
+    await replyJson(route, createContactCorrection(state.contactCorrectionStatus))
+    return
+  }
+  if (
+    url.pathname.startsWith('/api/v1/admin/contact-corrections/COR-1/commands/') &&
+    request.method() === 'POST'
+  ) {
+    if (state.contactDecisionConflictPending) {
+      state.contactDecisionConflictPending = false
+      await replyJson(
+        route,
+        { code: 'IDEMPOTENCY_KEY_REUSED', message: '数据状态已变化', request_id: 'e2e-409' },
+        409
+      )
+      return
+    }
+    state.contactCorrectionStatus = url.pathname.endsWith('/approve') ? 'APPROVED' : 'REJECTED'
+    await replyJson(route, {
+      id: 'COR-1',
+      processed_at: '2026-09-29T10:00:00Z',
+      status: state.contactCorrectionStatus
+    })
     return
   }
   if (url.pathname === '/api/v1/admin/formal-entitlements/preview-operation') {
@@ -306,11 +363,59 @@ const dashboardSnapshot = {
 
 const userProjection = {
   account_status: 'ACTIVE',
+  contact: {
+    change_pending: true,
+    contact_status: 'CONTACTED',
+    updated_at: '2026-09-29T09:00:00Z',
+    verified_at: '2026-09-29T08:30:00Z',
+    verified_by: 'ADMIN-1',
+    wechat_id: 'juya_verified'
+  },
+  contact_degraded: false,
   formal_entitlement_count: 2,
   last_active_at: '2026-09-29T08:00:00Z',
   limited_entitlement_count: 1,
   open_feedback_count: 1,
   user_id: 'USER-1'
+}
+
+const contactProjection = {
+  change_pending: true,
+  contact_status: 'CONTACTED',
+  updated_at: '2026-09-29T09:00:00Z',
+  user_id: 'USER-1',
+  verified_at: '2026-09-29T08:30:00Z',
+  verified_by: 'ADMIN-1',
+  wechat_id: 'juya_verified'
+}
+
+/**
+ * 创建联系更正详情夹具
+ *
+ * @param status - 当前申请状态
+ * @returns 联系更正详情响应
+ */
+function createContactCorrection(status: AdminApiState['contactCorrectionStatus']) {
+  return {
+    created_at: '2026-09-29T08:00:00Z',
+    id: 'COR-1',
+    juya_number: 'JY000000000001',
+    nickname: '学习者',
+    processed_at: status === 'PENDING' ? null : '2026-09-29T10:00:00Z',
+    reason: '申请重新修改微信号',
+    status,
+    timeline: [
+      {
+        actor_id: 'USER-1',
+        actor_type: 'USER',
+        event_type: 'CONTACT_CORRECTION_CREATED',
+        occurred_at: '2026-09-29T08:00:00Z',
+        status: 'PENDING'
+      }
+    ],
+    user_id: 'USER-1',
+    wechat_id: 'juya_verified'
+  }
 }
 
 const formalEntitlement = {
