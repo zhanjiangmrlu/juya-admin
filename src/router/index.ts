@@ -35,6 +35,8 @@ function resolveAdminPageComponent(
     'content-scene-audio': () => import('@/pages/content/audio-version-page.vue'),
     'content-scene-edit': () => import('@/pages/content/scene-editor-page.vue'),
     'content-scene-publish': () => import('@/pages/content/publish-check-page.vue'),
+    'content-discovery-config': () => import('@/pages/content/discovery-config-page.vue'),
+    'content-jobs': () => import('@/pages/content/batch-jobs-page.vue'),
     dashboard: () => import('@/pages/dashboard/dashboard-page.vue'),
     entitlements: () => import('@/pages/entitlements/entitlement-center-page.vue'),
     feedback: () => import('@/pages/feedback/feedback-list-page.vue'),
