@@ -18,6 +18,10 @@
   --juya-color-surface: #fff;
   --juya-sidebar-width: 222px;
   --juya-header-height: 66px;
+  --juya-main-padding-top: 22px;
+  --juya-main-padding-inline: 24px;
+  --juya-main-padding-bottom: 32px;
+  --juya-main-padding-block: calc(var(--juya-main-padding-top) + var(--juya-main-padding-bottom));
   --juya-panel-radius: 8px;
   --juya-control-radius: 6px;
   --juya-shadow-panel: 0 1px 3px rgb(31 45 39 / 6%);

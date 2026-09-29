@@ -335,7 +335,8 @@ async function logout(): Promise<void> {
   .main {
     min-width: 0;
     overflow: auto;
-    padding: 22px 24px 32px;
+    padding: var(--juya-main-padding-top) var(--juya-main-padding-inline)
+      var(--juya-main-padding-bottom);
   }
 
   .menu.el-menu {

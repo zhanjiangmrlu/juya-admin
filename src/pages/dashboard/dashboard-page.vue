@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import StatusTag from '@/components/status-tag/status-tag.vue'
+import ViewportFill from '@/components/viewport-fill/viewport-fill.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createDashboardAdapter } from '@/features/dashboard/dashboard-adapter'
 import { useDashboard } from '@/features/dashboard/use-dashboard'
@@ -58,7 +59,7 @@ function formatDueAt(value: string): string {
 </script>
 
 <template>
-  <section class="dashboard-page">
+  <ViewportFill class="dashboard-page">
     <ElAlert
       v-if="dashboard.error.value"
       class="error"
@@ -158,7 +159,7 @@ function formatDueAt(value: string): string {
         </ElCard>
       </div>
     </template>
-  </section>
+  </ViewportFill>
 </template>
 
 <style scoped lang="scss">
@@ -197,12 +198,30 @@ function formatDueAt(value: string): string {
 
   .content {
     display: grid;
+    flex: 1;
     grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
     gap: 14px;
+    min-height: 275px;
   }
 
   .panel {
+    display: flex;
     min-height: 275px;
+    flex-direction: column;
+  }
+
+  /* stylelint-disable-next-line selector-class-pattern -- Element Plus 外部组件类名 */
+  .panel :deep(.el-card__body) {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .panel :deep(.el-empty) {
+    width: 100%;
+    flex: 1;
+    justify-content: center;
   }
 
   .panel-heading {
@@ -277,6 +296,7 @@ function formatDueAt(value: string): string {
 @media (width <= 1080px) {
   .dashboard-page {
     .content {
+      flex: 0 0 auto;
       grid-template-columns: 1fr;
     }
   }
