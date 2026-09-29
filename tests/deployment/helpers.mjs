@@ -36,3 +36,33 @@ export function runBash(scriptPath, args = [], options = {}) {
     })
   })
 }
+
+/**
+ * Convert an absolute host path to the form understood by Git Bash.
+ *
+ * @param {string} path host filesystem path
+ * @returns {string} Bash-compatible path
+ */
+export function toBashPath(path) {
+  if (platform !== 'win32') return path
+
+  return path
+    .replace(/^([A-Za-z]):[\\/]/, (_, drive) => `/${drive.toLowerCase()}/`)
+    .replaceAll('\\', '/')
+}
+
+/**
+ * Build a PATH value that keeps host tools visible inside Git Bash.
+ *
+ * @param {string} firstPath directory to prepend
+ * @returns {string} Bash-compatible PATH value
+ */
+export function prependBashPath(firstPath) {
+  const separator = platform === 'win32' ? ';' : ':'
+  const inheritedPaths = (processEnvironment.PATH ?? '')
+    .split(separator)
+    .filter(Boolean)
+    .map(toBashPath)
+
+  return [toBashPath(firstPath), ...inheritedPaths].join(':')
+}
