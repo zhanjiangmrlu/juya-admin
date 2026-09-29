@@ -10,6 +10,11 @@ export default defineConfig({
         codeSplitting: {
           groups: [
             {
+              maxSize: 350 * 1024,
+              name: 'echarts',
+              test: /node_modules[\\/](?:echarts|zrender)[\\/]/
+            },
+            {
               maxSize: 400 * 1024,
               name: 'element-plus',
               test: /node_modules[\\/]element-plus[\\/]/

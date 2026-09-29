@@ -25,6 +25,7 @@ function resolveAdminPageComponent(
   name: string
 ): Exclude<RouteRecordRaw['component'], null | undefined> {
   const pageComponents = {
+    analytics: () => import('@/pages/analytics/analytics-page.vue'),
     'campaign-edit': () => import('@/pages/campaigns/campaign-edit-page.vue'),
     'campaign-versions': () => import('@/pages/campaigns/campaign-version-page.vue'),
     campaigns: () => import('@/pages/campaigns/campaign-list-page.vue'),
