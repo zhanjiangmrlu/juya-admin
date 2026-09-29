@@ -39,10 +39,12 @@ const commandError = ref<string | null>(null)
 const hadConflict = ref(false)
 const confirmVisible = ref(false)
 const detailLoading = ref(false)
+const detailFresh = ref(false)
 let detailSequence = 0
 const eligible = computed(
   () =>
     !detailLoading.value &&
+    detailFresh.value &&
     detail.value?.id === form.campaignId &&
     detail.value?.status === 'OPEN' &&
     Boolean(detail.value.currentVersion) &&
@@ -77,6 +79,7 @@ async function loadCampaigns(page = 1): Promise<void> {
  */
 async function selectCampaign(id: string): Promise<void> {
   const sequence = ++detailSequence
+  detailFresh.value = false
   if (detail.value?.id !== id) detail.value = null
   error.value = ''
   apiError.value = null
@@ -87,6 +90,7 @@ async function selectCampaign(id: string): Promise<void> {
     if (sequence !== detailSequence || id !== form.campaignId) return
     if (result.id !== id) throw new Error('活动详情与当前选择不匹配')
     detail.value = result
+    detailFresh.value = true
   } catch (failure) {
     if (sequence !== detailSequence || id !== form.campaignId) return
     apiError.value = failure instanceof ApiError ? failure : null
@@ -223,7 +227,7 @@ void loadCampaigns()
           ><ApiErrorDetails :error="commandApiError ?? controller.apiError.value" />
           <p v-if="hadConflict">
             原用户与活动选择已保留。服务端最新版本：{{
-              !error && detail ? `v${detail.version}` : '暂未获取，请刷新'
+              detailFresh && detail ? `v${detail.version}` : '暂未获取，请刷新'
             }}，请核对状态和容量。
           </p>
           <ElButton size="small" @click="selectCampaign(form.campaignId)"

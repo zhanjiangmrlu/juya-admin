@@ -9,6 +9,59 @@ const viewports = [
   { width: 1280, height: 800 }
 ]
 
+test('A07 conflict keeps latest version unknown after list-only retry', async ({
+  adminApi,
+  page
+}) => {
+  let detailRequests = 0
+  await loginAsAdmin(page)
+  await page.route('**/api/v1/admin/campaigns/CAMP-1', async (route) => {
+    detailRequests += 1
+    if (detailRequests === 1) return route.fallback()
+    return route.fulfill({
+      status: 503,
+      json: {
+        code: 'SERVICE_UNAVAILABLE',
+        message: '活动详情暂不可用',
+        request_id: 'req-detail-503'
+      }
+    })
+  })
+  await page.route('**/api/v1/admin/limited-entitlements/commands/grant', async (route) => {
+    expect(route.request().method()).toBe('POST')
+    return route.fulfill({
+      status: 409,
+      json: {
+        code: 'CAMPAIGN_STATE_CONFLICT',
+        message: '活动状态已变化',
+        request_id: 'req-grant-conflict'
+      }
+    })
+  })
+  await navigateInApp(page, '/entitlements/limited/grant')
+  await page.getByPlaceholder('输入用户编号').fill('USER-1')
+  await page.getByRole('combobox', { name: /开放中的活动/ }).click()
+  await page.getByRole('option', { name: /秋季限时学习/ }).click()
+  await expect(page.getByText('VERSION-1')).toBeVisible()
+  await page.getByRole('button', { name: '二次确认并开通' }).click()
+  await page.getByRole('button', { name: '确认执行' }).click()
+  await expect(page.getByText(/服务端最新版本：暂未获取，请刷新/)).toBeVisible()
+  expect(detailRequests).toBe(2)
+  await page.getByRole('button', { name: '重新加载活动列表', exact: true }).click()
+  await expect
+    .poll(
+      () =>
+        adminApi.requests.filter(
+          (request) => request.method === 'GET' && request.pathname === '/api/v1/admin/campaigns'
+        ).length
+    )
+    .toBe(2)
+  expect(detailRequests).toBe(2)
+  await expect(page.getByText(/服务端最新版本：暂未获取，请刷新/)).toBeVisible()
+  await expect(page.getByText(/服务端最新版本：v3/)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '二次确认并开通' })).toBeDisabled()
+})
+
 for (const viewport of viewports) {
   test(`A05–A12 real API pages fit ${viewport.width}×${viewport.height}`, async ({
     adminApi,

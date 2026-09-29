@@ -72,6 +72,65 @@ async function setup(component: Component, path = '/test') {
 describe('batch two page regressions', () => {
   afterEach(() => vi.unstubAllGlobals())
 
+  it('does not promote cached campaign details after a list-only retry following grant conflict', async () => {
+    let detailRequests = 0
+    let listRequests = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init: RequestInit) => {
+        if (init.method === 'POST')
+          return json(
+            { code: 'CONFLICT', message: '活动状态冲突', request_id: 'req-grant-conflict' },
+            409
+          )
+        if (url.endsWith('/A')) {
+          detailRequests += 1
+          if (detailRequests === 2)
+            return json(
+              { code: 'SERVICE_UNAVAILABLE', message: '详情不可用', request_id: 'req-detail-503' },
+              503
+            )
+          return json({ ...campaign('A'), version: detailRequests === 1 ? 3 : 4 })
+        }
+        listRequests += 1
+        return json({ items: [campaign('A')], page: 1, page_size: 20, total: 1 })
+      })
+    )
+    const wrapper = await setup(LimitedGrantPage)
+    await flushPromises()
+    await wrapper.find('input').setValue('USER-1')
+    wrapper.findComponent(ElSelect).vm.$emit('update:modelValue', 'A')
+    await flushPromises()
+    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '')
+    await flushPromises()
+    expect(detailRequests).toBe(2)
+    expect(wrapper.text()).toContain('暂未获取，请刷新')
+    const listRetry = wrapper
+      .findAll('button')
+      .find((button) => button.text() === '重新加载活动列表')
+    expect(listRetry).toBeDefined()
+    await listRetry!.trigger('click')
+    await flushPromises()
+    expect(listRequests).toBe(2)
+    expect(detailRequests).toBe(2)
+    expect(wrapper.text()).toContain('暂未获取，请刷新')
+    expect(wrapper.text()).not.toMatch(/服务端最新版本：\s*v3/)
+    expect(
+      wrapper
+        .findAll('button')
+        .find((button) => button.text() === '二次确认并开通')!
+        .attributes('disabled')
+    ).toBeDefined()
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '刷新活动状态')!
+      .trigger('click')
+    await flushPromises()
+    expect(detailRequests).toBe(3)
+    expect(wrapper.text()).toMatch(/服务端最新版本：\s*v4/)
+    wrapper.unmount()
+  })
+
   it('keeps campaign B selected when A resolves last and grants VERSION-B', async () => {
     let finishA!: (response: Response) => void
     let finishB!: (response: Response) => void
