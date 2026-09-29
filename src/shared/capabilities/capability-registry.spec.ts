@@ -9,8 +9,9 @@ describe('capability registry', () => {
     expect(getCapability('users.wechat-search')).toBe('available')
   })
 
-  it('marks unsupported contact commands as pending', () => {
-    expect(getCapability('contacts.correction-command')).toBe('pending')
-    expect(getCapability('contacts.copy-audit')).toBe('pending')
+  it('marks implemented contact capabilities as available', () => {
+    expect(getCapability('contacts.correction-command')).toBe('available')
+    expect(getCapability('contacts.correction-list')).toBe('available')
+    expect(getCapability('contacts.copy-audit')).toBe('available')
   })
 })

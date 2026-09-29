@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { UserFilled } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import SensitiveValue from '@/components/sensitive-value/sensitive-value.vue'
 import StatusTag from '@/components/status-tag/status-tag.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
-import { createContactCapabilities } from '@/features/contacts/contact-capabilities'
+import {
+  copyContactValue,
+  createContactCapabilities
+} from '@/features/contacts/contact-capabilities'
 import { useUserDetail } from '@/features/users/use-user-detail'
 import { createUserAdapter } from '@/features/users/user-adapter'
 import { getAccountStatusLabel, getAccountStatusTone } from '@/features/users/user-model'
 import { createApiClient } from '@/services/api/api-client'
+
+import type { ContactStatus } from '@/features/contacts/contact-capabilities'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,6 +24,7 @@ const authStore = useAuthStore()
 const userId = computed(() => String(route.params.userId))
 const client = createApiClient({
   baseUrl: import.meta.env.VITE_API_BASE_URL,
+  getCsrfToken: () => authStore.csrfToken,
   onUnauthorized: () => {
     authStore.clearSensitiveState()
     void router.replace({ name: 'login' })
@@ -26,18 +32,80 @@ const client = createApiClient({
 })
 const controller = useUserDetail(createUserAdapter(client), userId)
 const contactCapabilities = createContactCapabilities(client)
+const selectedStatus = ref<ContactStatus>('PENDING')
+const contactBusy = ref(false)
+const copyBusy = ref(false)
+const actionError = ref<string | null>(null)
+const copyFeedback = ref<string | null>(null)
+const contactStatusOptions: { label: string; value: ContactStatus }[] = [
+  { label: '未填写', value: 'NOT_PROVIDED' },
+  { label: '待联系', value: 'PENDING' },
+  { label: '已联系', value: 'CONTACTED' },
+  { label: '暂无法联系', value: 'UNREACHABLE' },
+  { label: '不希望联系', value: 'DO_NOT_CONTACT' }
+]
 
+watch(
+  () => controller.detail.value?.contact?.contact_status,
+  (status) => {
+    if (status) selectedStatus.value = status
+  }
+)
 onMounted(() => void controller.load())
 onBeforeUnmount(controller.dispose)
 
 /**
- * 格式化最近活跃时间
- *
+ * 格式化管理端日期时间。
  * @param value - ISO 8601 时间或空值
  * @returns 管理端日期时间文案
  */
 function formatDateTime(value: string | null): string {
   return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '暂无记录'
+}
+
+/** 更新联系状态并重新读取详情。 */
+async function updateContactStatus(): Promise<void> {
+  contactBusy.value = true
+  actionError.value = null
+  try {
+    await contactCapabilities.updateStatus(userId.value, selectedStatus.value)
+    await controller.load()
+  } catch (reason) {
+    actionError.value = reason instanceof Error ? reason.message : '联系状态更新失败，请稍后重试'
+  } finally {
+    contactBusy.value = false
+  }
+}
+
+/** 核对微信号变更并重新读取详情。 */
+async function verifyContactChange(): Promise<void> {
+  contactBusy.value = true
+  actionError.value = null
+  try {
+    await contactCapabilities.verifyChange(userId.value)
+    await controller.load()
+  } catch (reason) {
+    actionError.value = reason instanceof Error ? reason.message : '微信号核对失败，请稍后重试'
+  } finally {
+    contactBusy.value = false
+  }
+}
+
+/** 审计成功后复制完整微信号。 */
+async function copyWechat(): Promise<void> {
+  const value = controller.detail.value?.contact?.wechat_id
+  if (!value) return
+  copyBusy.value = true
+  actionError.value = null
+  copyFeedback.value = null
+  try {
+    await copyContactValue(contactCapabilities, userId.value, value)
+    copyFeedback.value = '微信号已复制，审计记录已保存'
+  } catch (reason) {
+    actionError.value = reason instanceof Error ? reason.message : '复制审计失败，未写入剪贴板'
+  } finally {
+    copyBusy.value = false
+  }
 }
 </script>
 
@@ -84,28 +152,30 @@ function formatDateTime(value: string | null): string {
 
           <ElCard shadow="never">
             <template #header><h3 class="panel-title">学习与运营概况</h3></template>
-            <div class="metrics">
+            <ElAlert
+              v-if="controller.sectionStates.value.learning === 'error'"
+              class="notice"
+              :closable="false"
+              title="学习概况上游暂时不可用，其他区块仍可正常查看"
+              type="warning"
+              show-icon
+            />
+            <div v-else class="metrics">
               <div>
-                <span>正式权益</span
-                ><strong>{{ controller.detail.value.formal_entitlement_count }}</strong>
+                <span>开放场景完成数</span
+                ><strong>{{ controller.detail.value.open_scene_completed_count }}</strong>
               </div>
               <div>
-                <span>限时权益</span
-                ><strong>{{ controller.detail.value.limited_entitlement_count }}</strong>
+                <span>学习天数</span><strong>{{ controller.detail.value.learning_days }}</strong>
+              </div>
+              <div>
+                <span>收藏数</span><strong>{{ controller.detail.value.favorite_count }}</strong>
               </div>
               <div>
                 <span>待处理反馈</span
                 ><strong>{{ controller.detail.value.open_feedback_count }}</strong>
               </div>
-              <div><span>学习数据</span><strong>待接入</strong></div>
             </div>
-            <ElAlert
-              class="pending"
-              :closable="false"
-              title="开放场景、学习天数与收藏统计接口待接入"
-              type="warning"
-              show-icon
-            />
           </ElCard>
         </div>
 
@@ -123,24 +193,61 @@ function formatDateTime(value: string | null): string {
               <span>微信号</span>
               <SensitiveValue
                 :can-copy="contactCapabilities.canCopySensitiveValue"
+                :copying="copyBusy"
                 :value="controller.detail.value.contact?.wechat_id ?? null"
+                @copy="copyWechat"
               />
             </div>
             <div class="contact-row">
               <span>联系状态</span>
-              <strong>{{ controller.detail.value.contact?.contact_status ?? '未提供' }}</strong>
+              <ElSelect v-model="selectedStatus" aria-label="联系状态">
+                <ElOption
+                  v-for="option in contactStatusOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+                />
+              </ElSelect>
+            </div>
+            <div class="contact-meta">
+              <span
+                >待核对变更：{{
+                  controller.detail.value.contact?.change_pending ? '是' : '否'
+                }}</span
+              >
+              <span
+                >最近核对：{{
+                  formatDateTime(controller.detail.value.contact?.verified_at ?? null)
+                }}</span
+              >
+              <span>核对管理员：{{ controller.detail.value.contact?.verified_by || '暂无' }}</span>
             </div>
           </template>
           <ElAlert
-            class="pending"
+            v-if="actionError"
+            class="notice"
             :closable="false"
-            title="联系状态更新、敏感复制审计和更正命令接口待接入"
-            type="info"
+            :title="actionError"
+            type="error"
             show-icon
           />
+          <p v-if="copyFeedback" class="copy-feedback" role="status">{{ copyFeedback }}</p>
           <div class="actions">
-            <ElButton disabled>更新状态</ElButton>
-            <ElButton disabled type="primary">已核对新微信号</ElButton>
+            <ElButton
+              :disabled="!controller.detail.value.contact"
+              :loading="contactBusy"
+              @click="updateContactStatus"
+            >
+              更新状态
+            </ElButton>
+            <ElButton
+              :disabled="!controller.detail.value.contact?.change_pending"
+              :loading="contactBusy"
+              type="primary"
+              @click="verifyContactChange"
+            >
+              已核对微信号变更
+            </ElButton>
           </div>
         </ElCard>
       </div>
@@ -161,7 +268,6 @@ function formatDateTime(value: string | null): string {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.08em;
   }
 
   .toolbar h2,
@@ -187,6 +293,7 @@ function formatDateTime(value: string | null): string {
 
   .column {
     display: grid;
+    min-width: 0;
     gap: 14px;
   }
 
@@ -210,12 +317,14 @@ function formatDateTime(value: string | null): string {
   .profile-copy {
     display: flex;
     align-items: center;
+    min-width: 0;
     gap: 12px;
     flex-wrap: wrap;
   }
 
   .profile-copy strong {
     width: 100%;
+    overflow-wrap: anywhere;
     font-size: 17px;
   }
 
@@ -253,11 +362,12 @@ function formatDateTime(value: string | null): string {
     font-size: 24px;
   }
 
-  .pending {
-    margin-top: 16px;
+  .notice {
+    margin-bottom: 14px;
   }
 
   .contact {
+    min-width: 0;
     min-height: 390px;
   }
 
@@ -267,8 +377,21 @@ function formatDateTime(value: string | null): string {
     margin-bottom: 20px;
   }
 
-  .contact-row > span {
+  .contact-row > span,
+  .contact-meta {
     color: var(--juya-color-text-secondary);
+    font-size: 12px;
+  }
+
+  .contact-meta {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .copy-feedback {
+    margin: 12px 0 0;
+    color: var(--juya-color-success);
     font-size: 12px;
   }
 
@@ -284,6 +407,10 @@ function formatDateTime(value: string | null): string {
   .user-detail-page {
     .grid {
       grid-template-columns: 1fr;
+    }
+
+    .metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 }

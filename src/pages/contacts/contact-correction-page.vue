@@ -1,17 +1,70 @@
 <script setup lang="ts">
-import { WarningFilled } from '@element-plus/icons-vue'
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import dayjs from 'dayjs'
+import { ElMessageBox } from 'element-plus'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-import PendingCapability from '@/components/pending-capability/pending-capability.vue'
-import { createContactCapabilities } from '@/features/contacts/contact-capabilities'
+import { useAuthStore } from '@/features/auth/auth-store'
+import {
+  type ContactCorrectionAction,
+  createContactCapabilities
+} from '@/features/contacts/contact-capabilities'
+import { useContactCorrections } from '@/features/contacts/use-contact-corrections'
 import { createApiClient } from '@/services/api/api-client'
 
 const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
 const correctionId = computed(() => String(route.params.id))
 const capabilities = createContactCapabilities(
-  createApiClient({ baseUrl: import.meta.env.VITE_API_BASE_URL })
+  createApiClient({
+    baseUrl: import.meta.env.VITE_API_BASE_URL,
+    getCsrfToken: () => authStore.csrfToken,
+    onUnauthorized: () => {
+      authStore.clearSensitiveState()
+      void router.replace({ name: 'login' })
+    }
+  })
 )
+const controller = useContactCorrections(capabilities)
+const canDecide = computed(
+  () =>
+    controller.detail.value?.status === 'PENDING' && controller.commandState.value !== 'submitting'
+)
+
+onMounted(() => void controller.loadDetail(correctionId.value))
+onBeforeUnmount(controller.dispose)
+
+/**
+ * 格式化管理端日期时间。
+ * @param value - ISO 8601 时间或空值
+ * @returns 管理端日期时间文案
+ */
+function formatDateTime(value: string | null): string {
+  return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '暂无记录'
+}
+
+/**
+ * 二次确认后提交批准或拒绝决定。
+ * @param action - 批准或拒绝动作
+ */
+async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
+  const actionLabel = action === 'approve' ? '批准并重置一次修改机会' : '拒绝申请'
+  try {
+    await ElMessageBox.confirm(
+      `确认${actionLabel}？服务端会重新核对申请状态。`,
+      '确认联系更正处理',
+      {
+        cancelButtonText: '取消',
+        confirmButtonText: action === 'approve' ? '确认批准' : '确认拒绝',
+        type: action === 'approve' ? 'warning' : 'error'
+      }
+    )
+    await controller.decide(correctionId.value, action)
+  } catch (reason) {
+    if (reason === 'cancel' || reason === 'close') return
+  }
+}
 </script>
 
 <template>
@@ -22,48 +75,87 @@ const capabilities = createContactCapabilities(
         <h2>联系资料更正申请</h2>
       </div>
       <RouterLink v-slot="{ navigate }" custom :to="{ name: 'users' }">
-        <ElButton @click="navigate">查看用户列表</ElButton>
+        <ElButton @click="navigate">返回联系申请列表</ElButton>
       </RouterLink>
     </div>
 
     <ElAlert
+      v-if="controller.error.value"
+      class="notice"
       :closable="false"
-      title="联系资料更正详情与处理命令接口尚未提供，当前页面不会发送未知请求"
-      type="warning"
+      :title="controller.error.value"
+      type="error"
       show-icon
     />
+    <ElSkeleton v-if="controller.state.value === 'loading'" :rows="8" animated />
 
-    <div class="grid">
+    <div v-else-if="controller.detail.value" class="grid">
       <ElCard shadow="never">
         <template #header><h3>申请信息</h3></template>
         <ElDescriptions :column="1" border>
-          <ElDescriptionsItem label="申请编号">{{ correctionId }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="用户编号">接口待接入</ElDescriptionsItem>
-          <ElDescriptionsItem label="原微信号">接口待接入</ElDescriptionsItem>
-          <ElDescriptionsItem label="新微信号">接口待接入</ElDescriptionsItem>
-          <ElDescriptionsItem label="更正原因">接口待接入</ElDescriptionsItem>
+          <ElDescriptionsItem label="申请编号">{{ controller.detail.value.id }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="用户编号">{{
+            controller.detail.value.user_id
+          }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="句芽编号">{{
+            controller.detail.value.juya_number
+          }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="当前微信号">
+            <span class="contact-value">{{ controller.detail.value.wechat_id || '未填写' }}</span>
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="更正原因">
+            <span class="reason">{{ controller.detail.value.reason }}</span>
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="申请状态">{{
+            controller.detail.value.status
+          }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="申请时间">{{
+            formatDateTime(controller.detail.value.created_at)
+          }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="处理时间">{{
+            formatDateTime(controller.detail.value.processed_at)
+          }}</ElDescriptionsItem>
         </ElDescriptions>
-        <PendingCapability description="缺少更正申请详情接口，未展示任何模拟用户或联系方式。" />
+        <ElAlert
+          class="explanation"
+          :closable="false"
+          title="批准仅重置一次用户自助修改机会，不会直接改写微信号。"
+          type="info"
+          show-icon
+        />
       </ElCard>
 
       <ElCard class="audit" shadow="never">
         <template #header><h3>联系与审计</h3></template>
-        <div class="empty-audit">
-          <ElIcon><WarningFilled /></ElIcon>
-          <strong>审计时间线待接入</strong>
-          <span>批准、拒绝、敏感复制审计和联系状态命令均缺少后端接口。</span>
-        </div>
+        <ElTimeline v-if="controller.detail.value.timeline.length" class="timeline">
+          <ElTimelineItem
+            v-for="item in controller.detail.value.timeline"
+            :key="`${item.occurred_at}-${item.event_type}`"
+            :timestamp="formatDateTime(item.occurred_at)"
+            placement="top"
+          >
+            <strong>{{ item.event_type }}</strong>
+            <span>{{ item.actor_type }} · {{ item.status }}</span>
+          </ElTimelineItem>
+        </ElTimeline>
+        <ElEmpty v-else description="暂无处理时间线" />
         <div class="actions">
-          <ElTooltip content="拒绝命令接口待接入">
-            <span><ElButton disabled>拒绝</ElButton></span>
-          </ElTooltip>
-          <ElTooltip content="批准命令接口待接入">
-            <span><ElButton disabled type="primary">批准并重置修改机会</ElButton></span>
-          </ElTooltip>
+          <ElButton
+            :disabled="!canDecide"
+            :loading="controller.commandState.value === 'submitting'"
+            @click="confirmDecision('reject')"
+          >
+            拒绝
+          </ElButton>
+          <ElButton
+            :disabled="!canDecide"
+            :loading="controller.commandState.value === 'submitting'"
+            type="primary"
+            @click="confirmDecision('approve')"
+          >
+            批准并重置修改机会
+          </ElButton>
         </div>
-        <p class="request-state">
-          网络请求状态：{{ capabilities.canCopySensitiveValue ? '可用' : '0 个未知请求' }}
-        </p>
       </ElCard>
     </div>
   </section>
@@ -99,34 +191,45 @@ const capabilities = createContactCapabilities(
     font-size: 15px;
   }
 
+  .notice {
+    margin-bottom: 14px;
+  }
+
   .grid {
     display: grid;
     grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr);
     gap: 14px;
-    margin-top: 14px;
   }
 
   .audit {
+    min-width: 0;
     min-height: 390px;
   }
 
-  .empty-audit {
-    display: grid;
+  .contact-value,
+  .reason {
+    font-family: inherit;
+    overflow-wrap: anywhere;
+  }
+
+  .explanation {
+    margin-top: 14px;
+  }
+
+  .timeline {
     min-height: 205px;
+    padding-inline-start: 4px;
+  }
+
+  .timeline strong,
+  .timeline span {
+    display: block;
+  }
+
+  .timeline span {
+    margin-top: 4px;
     color: var(--juya-color-text-secondary);
-    place-items: center;
-    align-content: center;
-    gap: 9px;
-    text-align: center;
-  }
-
-  .empty-audit .el-icon {
-    color: var(--juya-color-warning);
-    font-size: 28px;
-  }
-
-  .empty-audit strong {
-    color: var(--juya-color-text-primary);
+    font-size: 11px;
   }
 
   .actions {
@@ -135,16 +238,8 @@ const capabilities = createContactCapabilities(
     gap: 10px;
   }
 
-  .actions .el-button,
-  .actions span {
+  .actions .el-button {
     width: 100%;
-  }
-
-  .request-state {
-    margin: 14px 0 0;
-    color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    text-align: center;
   }
 }
 
