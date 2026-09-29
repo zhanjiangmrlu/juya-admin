@@ -12,7 +12,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.spec.ts'],
+    include: ['src/**/*.spec.ts', 'tests/visual/page-manifest.spec.ts'],
     maxWorkers: 1
   }
 })

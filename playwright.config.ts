@@ -5,7 +5,8 @@ export default defineConfig({
   fullyParallel: false,
   reporter: [['list']],
   retries: 0,
-  testDir: './tests/e2e',
+  testDir: './tests',
+  testMatch: ['e2e/**/*.spec.ts', 'visual/admin-pages.visual.spec.ts'],
   timeout: 30_000,
   workers: 1,
   use: {
