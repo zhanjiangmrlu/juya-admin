@@ -36,6 +36,8 @@ interface AdminApiState extends AdminApiMock {
   campaignScenes: string[]
   contactDecisionConflictPending: boolean
   contactCorrectionStatus: 'APPROVED' | 'PENDING' | 'REJECTED'
+  feedbackNotes: Array<Record<string, unknown>>
+  feedbackScreenshotSequence: number
   feedbackStatus: string
   settingsConflictPending: boolean
   settingsVersion: number
@@ -77,6 +79,8 @@ export const test = base.extend<{ adminApi: AdminApiMock }>({
       campaignWindow: 7,
       campaignScenes: ['SCENE-1'],
       contactDecisionConflictPending: false,
+      feedbackNotes: [],
+      feedbackScreenshotSequence: 0,
       feedbackStatus: 'PROCESSING',
       requests: [],
       unexpectedRequests: [],
@@ -506,9 +510,58 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     await replyJson(route, createCampaignDetail(state), creating ? 201 : 200)
     return
   }
-  if (url.pathname === '/api/v1/admin/feedback/FB-1') {
+  if (url.pathname === '/api/v1/admin/feedback' && request.method() === 'GET') {
+    await replyJson(route, {
+      items: [
+        {
+          category: feedbackTicket.category,
+          created_at: feedbackTicket.created_at,
+          deadline_at: feedbackTicket.deadline_at,
+          description: feedbackTicket.description,
+          id: feedbackTicket.id,
+          sla_state: 'ON_TRACK',
+          status: state.feedbackStatus,
+          supplement_rounds: state.supplementRounds,
+          updated_at: feedbackTicket.updated_at,
+          user_id: feedbackTicket.user_id
+        }
+      ],
+      page: Number(url.searchParams.get('page') ?? 1),
+      page_size: 20,
+      total: 21
+    })
+    return
+  }
+  if (
+    url.pathname === '/api/v1/admin/feedback/FB-1/screenshot-url' &&
+    request.method() === 'POST'
+  ) {
+    state.feedbackScreenshotSequence += 1
+    await replyJson(route, {
+      expires_at: '2026-09-29T12:05:00Z',
+      url: `https://signed.example/feedback-1?version=${state.feedbackScreenshotSequence}`
+    })
+    return
+  }
+  if (
+    url.pathname === '/api/v1/admin/feedback/FB-1/internal-notes' &&
+    request.method() === 'POST'
+  ) {
+    const body = record.body as { content?: unknown }
+    const note = {
+      admin_id: 'ADMIN-1',
+      content: String(body.content ?? ''),
+      created_at: '2026-09-29T10:00:00Z',
+      id: `NOTE-${state.feedbackNotes.length + 1}`
+    }
+    state.feedbackNotes.push(note)
+    await replyJson(route, note, 201)
+    return
+  }
+  if (url.pathname === '/api/v1/admin/feedback/FB-1' && request.method() === 'GET') {
     await replyJson(route, {
       ...feedbackTicket,
+      internal_notes: state.feedbackNotes,
       status: state.feedbackStatus,
       supplement_rounds: state.supplementRounds
     })
@@ -819,18 +872,48 @@ function createCampaignDetail(state: AdminApiState) {
 }
 
 const feedbackTicket = {
-  category: 'CONTENT_ERROR',
+  category: 'CONTENT',
   closed_at: null,
   created_at: '2026-09-29T01:00:00Z',
   deadline_at: '2026-09-30T01:00:00Z',
-  description: '第三句字幕与音频不一致',
+  description: '<img src=x onerror=alert(1)>',
   id: 'FB-1',
+  internal_notes: [],
   reopen_count: 0,
+  replies: [],
   resolved_at: null,
+  rounds: [
+    {
+      paused_at: '2026-09-29T03:00:00Z',
+      request_text: '请补充出现问题的页面',
+      round_number: 1,
+      supplied_at: '2026-09-29T04:00:00Z',
+      supplement_text: '已补充学习页截图'
+    }
+  ],
+  screenshots: [{ delete_after: null, deleted_at: null, security_status: 'PASSED' }],
   sla_remaining_seconds: 36_000,
   source: { app_version: '1.0.0' },
   status: 'PROCESSING',
   supplement_rounds: 0,
+  timeline: [
+    {
+      actor_id: 'USER-1',
+      actor_type: 'USER',
+      event_type: 'CREATED',
+      occurred_at: '2026-09-29T01:00:00Z',
+      payload: {},
+      visibility: 'BOTH'
+    },
+    {
+      actor_id: 'ADMIN-1',
+      actor_type: 'ADMIN',
+      event_type: 'PROCESSING_STARTED',
+      occurred_at: '2026-09-29T02:00:00Z',
+      payload: {},
+      visibility: 'BOTH'
+    }
+  ],
   updated_at: '2026-09-29T02:00:00Z',
   user_id: 'USER-1'
 }

@@ -14,4 +14,11 @@ describe('capability registry', () => {
     expect(getCapability('contacts.correction-list')).toBe('available')
     expect(getCapability('contacts.copy-audit')).toBe('available')
   })
+
+  it('marks the complete feedback loop as available', () => {
+    expect(getCapability('feedback.list')).toBe('available')
+    expect(getCapability('feedback.detail')).toBe('available')
+    expect(getCapability('feedback.command')).toBe('available')
+    expect(getCapability('feedback.screenshot-url')).toBe('available')
+  })
 })

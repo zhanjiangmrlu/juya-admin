@@ -9,7 +9,7 @@ import { useFeedbackCommand } from './use-feedback-command'
 
 describe('feedback command controller', () => {
   it('requires a resolve template and limits notes to 200 characters', async () => {
-    const adapter: FeedbackAdapter = { execute: vi.fn(), getDetail: vi.fn() }
+    const adapter = { execute: vi.fn(), getDetail: vi.fn() } as unknown as FeedbackAdapter
     const controller = useFeedbackCommand(adapter, ref(ticket))
 
     await expect(controller.resolve({ note: '说明', template: '' })).rejects.toMatchObject({
@@ -22,7 +22,7 @@ describe('feedback command controller', () => {
   })
 
   it('rejects a third supplement request without sending a request', async () => {
-    const adapter: FeedbackAdapter = { execute: vi.fn(), getDetail: vi.fn() }
+    const adapter = { execute: vi.fn(), getDetail: vi.fn() } as unknown as FeedbackAdapter
     const controller = useFeedbackCommand(adapter, ref({ ...ticket, supplementRounds: 2 }))
 
     await expect(controller.requestSupplement('请补充步骤')).rejects.toMatchObject({
@@ -41,7 +41,10 @@ describe('feedback command controller', () => {
     const execute = vi.fn().mockRejectedValueOnce(conflict).mockResolvedValueOnce(ticket)
     const getDetail = vi.fn().mockResolvedValue({ ...ticket, status: 'NEED_MORE' })
     const ticketRef = ref(ticket)
-    const controller = useFeedbackCommand({ execute, getDetail }, ticketRef)
+    const controller = useFeedbackCommand(
+      { execute, getDetail } as unknown as FeedbackAdapter,
+      ticketRef
+    )
 
     await expect(controller.requestSupplement('请补充操作步骤')).rejects.toBe(conflict)
     expect(controller.hasConflict.value).toBe(true)
@@ -54,7 +57,7 @@ describe('feedback command controller', () => {
 })
 
 const ticket = {
-  category: 'CONTENT',
+  category: 'CONTENT' as const,
   closedAt: null,
   createdAt: '2026-09-29T08:00:00Z',
   deadlineAt: '2026-09-30T08:00:00Z',

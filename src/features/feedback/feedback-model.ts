@@ -4,13 +4,13 @@ export type FeedbackStatus =
 export type FeedbackOperation = 'CLOSE' | 'REQUEST_SUPPLEMENT' | 'RESOLVE' | 'START'
 
 export interface FeedbackViewModel {
-  deadlineAt: string
+  deadlineAt: string | null
   status: FeedbackStatus
   supplementRounds: number
 }
 
 export interface FeedbackSlaViewModel {
-  state: 'due-soon' | 'normal' | 'overdue' | 'paused'
+  state: 'completed' | 'due-soon' | 'normal' | 'overdue' | 'paused'
   text: string
 }
 
@@ -41,6 +41,7 @@ export function getFeedbackOperations(ticket: FeedbackViewModel): readonly Feedb
  */
 export function formatFeedbackSla(ticket: FeedbackViewModel, now: Date): FeedbackSlaViewModel {
   if (ticket.status === 'NEED_MORE') return { state: 'paused', text: '等待用户补充' }
+  if (ticket.deadlineAt === null) return { state: 'completed', text: '处理已结束' }
   const remainingMilliseconds = new Date(ticket.deadlineAt).getTime() - now.getTime()
   if (remainingMilliseconds <= 0) return { state: 'overdue', text: '已超时' }
   const remainingHours = Math.ceil(remainingMilliseconds / 3_600_000)

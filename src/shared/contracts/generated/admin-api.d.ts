@@ -483,6 +483,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/feedback': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Feedback */
+    get: operations['list_feedback_api_v1_admin_feedback_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/feedback/{ticket_id}': {
     parameters: {
       query?: never
@@ -494,6 +511,40 @@ export interface paths {
     get: operations['detail_api_v1_admin_feedback__ticket_id__get']
     put?: never
     post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/feedback/{ticket_id}/screenshot-url': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Screenshot Url */
+    post: operations['screenshot_url_api_v1_admin_feedback__ticket_id__screenshot_url_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/feedback/{ticket_id}/internal-notes': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Add Internal Note */
+    post: operations['add_internal_note_api_v1_admin_feedback__ticket_id__internal_notes_post']
     delete?: never
     options?: never
     head?: never
@@ -1310,6 +1361,67 @@ export interface components {
      * @enum {string}
      */
     EntitlementTerm: 'MONTH_1' | 'MONTH_2' | 'MONTH_3' | 'MONTH_6' | 'MONTH_12' | 'PERMANENT'
+    /** FeedbackAdminDetailResponse */
+    FeedbackAdminDetailResponse: {
+      /** Id */
+      id: string
+      /** User Id */
+      user_id: string
+      /**
+       * Category
+       * @enum {string}
+       */
+      category: 'CONTENT' | 'PRONUNCIATION' | 'DISPLAY' | 'FUNCTION'
+      /** Description */
+      description: string
+      /** Source */
+      source: {
+        [key: string]: unknown
+      }
+      /**
+       * Status
+       * @enum {string}
+       */
+      status:
+        | 'PENDING'
+        | 'PROCESSING'
+        | 'NEED_MORE'
+        | 'USER_SUPPLIED'
+        | 'RESOLVED'
+        | 'CLOSED_INSUFFICIENT'
+      /** Deadline At */
+      deadline_at: string | null
+      /** Sla Remaining Seconds */
+      sla_remaining_seconds: number | null
+      /** Supplement Rounds */
+      supplement_rounds: number
+      /** Reopen Count */
+      reopen_count: number
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string
+      /** Resolved At */
+      resolved_at: string | null
+      /** Closed At */
+      closed_at: string | null
+      /** Screenshots */
+      screenshots: components['schemas']['FeedbackScreenshotResponse'][]
+      /** Rounds */
+      rounds: components['schemas']['FeedbackRoundResponse'][]
+      /** Replies */
+      replies: components['schemas']['FeedbackReplyResponse'][]
+      /** Timeline */
+      timeline: components['schemas']['FeedbackTimelineResponse'][]
+      /** Internal Notes */
+      internal_notes: components['schemas']['FeedbackInternalNoteResponse'][]
+    }
     /** FeedbackCreateRequest */
     FeedbackCreateRequest: {
       /** User Id */
@@ -1324,6 +1436,182 @@ export interface components {
       }
       /** Screenshots */
       screenshots?: string[]
+    }
+    /** FeedbackInternalNoteResponse */
+    FeedbackInternalNoteResponse: {
+      /** Id */
+      id: string
+      /** Admin Id */
+      admin_id: string
+      /** Content */
+      content: string
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
+    /** FeedbackListItemResponse */
+    FeedbackListItemResponse: {
+      /** Id */
+      id: string
+      /** User Id */
+      user_id: string
+      /**
+       * Category
+       * @enum {string}
+       */
+      category: 'CONTENT' | 'PRONUNCIATION' | 'DISPLAY' | 'FUNCTION'
+      /** Description */
+      description: string
+      /**
+       * Status
+       * @enum {string}
+       */
+      status:
+        | 'PENDING'
+        | 'PROCESSING'
+        | 'NEED_MORE'
+        | 'USER_SUPPLIED'
+        | 'RESOLVED'
+        | 'CLOSED_INSUFFICIENT'
+      /** Deadline At */
+      deadline_at: string | null
+      /**
+       * Sla State
+       * @enum {string}
+       */
+      sla_state: 'PAUSED' | 'OVERDUE' | 'DUE_SOON' | 'ON_TRACK' | 'COMPLETED'
+      /** Supplement Rounds */
+      supplement_rounds: number
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string
+    }
+    /** FeedbackPageResponse */
+    FeedbackPageResponse: {
+      /** Items */
+      items: components['schemas']['FeedbackListItemResponse'][]
+      /** Page */
+      page: number
+      /** Page Size */
+      page_size: number
+      /** Total */
+      total: number
+    }
+    /** FeedbackReplyResponse */
+    FeedbackReplyResponse: {
+      /** Template */
+      template: string
+      /** Note */
+      note: string | null
+      /** Admin Id */
+      admin_id: string
+      /**
+       * Sent At
+       * Format: date-time
+       */
+      sent_at: string
+    }
+    /** FeedbackRoundResponse */
+    FeedbackRoundResponse: {
+      /** Round Number */
+      round_number: number
+      /** Request Text */
+      request_text: string | null
+      /** Supplement Text */
+      supplement_text: string | null
+      /** Paused At */
+      paused_at: string | null
+      /** Supplied At */
+      supplied_at: string | null
+    }
+    /** FeedbackScreenshotResponse */
+    FeedbackScreenshotResponse: {
+      /** Security Status */
+      security_status: string
+      /** Delete After */
+      delete_after: string | null
+      /** Deleted At */
+      deleted_at: string | null
+    }
+    /** FeedbackTicketResponse */
+    FeedbackTicketResponse: {
+      /** Id */
+      id: string
+      /** User Id */
+      user_id: string
+      /**
+       * Category
+       * @enum {string}
+       */
+      category: 'CONTENT' | 'PRONUNCIATION' | 'DISPLAY' | 'FUNCTION'
+      /** Description */
+      description: string
+      /** Source */
+      source: {
+        [key: string]: unknown
+      }
+      /**
+       * Status
+       * @enum {string}
+       */
+      status:
+        | 'PENDING'
+        | 'PROCESSING'
+        | 'NEED_MORE'
+        | 'USER_SUPPLIED'
+        | 'RESOLVED'
+        | 'CLOSED_INSUFFICIENT'
+      /** Deadline At */
+      deadline_at: string | null
+      /** Sla Remaining Seconds */
+      sla_remaining_seconds: number | null
+      /** Supplement Rounds */
+      supplement_rounds: number
+      /** Reopen Count */
+      reopen_count: number
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string
+      /** Resolved At */
+      resolved_at: string | null
+      /** Closed At */
+      closed_at: string | null
+    }
+    /** FeedbackTimelineResponse */
+    FeedbackTimelineResponse: {
+      /** Event Type */
+      event_type: string
+      /** Actor Type */
+      actor_type: string
+      /** Actor Id */
+      actor_id: string
+      /** Visibility */
+      visibility: string
+      /** Payload */
+      payload: {
+        [key: string]: unknown
+      }
+      /**
+       * Occurred At
+       * Format: date-time
+       */
+      occurred_at: string
     }
     /** FormalEntitlementDetailResponse */
     FormalEntitlementDetailResponse: {
@@ -1362,6 +1650,11 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components['schemas']['ValidationError'][]
+    }
+    /** InternalNoteRequest */
+    InternalNoteRequest: {
+      /** Content */
+      content: string
     }
     /** LimitedEntitlementDetailResponse */
     LimitedEntitlementDetailResponse: {
@@ -1468,6 +1761,16 @@ export interface components {
       template: string
       /** Note */
       note?: string | null
+    }
+    /** SignedFeedbackScreenshotResponse */
+    SignedFeedbackScreenshotResponse: {
+      /** Url */
+      url: string
+      /**
+       * Expires At
+       * Format: date-time
+       */
+      expires_at: string
     }
     /** SupplementCommand */
     SupplementCommand: {
@@ -2730,6 +3033,53 @@ export interface operations {
       }
     }
   }
+  list_feedback_api_v1_admin_feedback_get: {
+    parameters: {
+      query?: {
+        status?:
+          | (
+              | 'PENDING'
+              | 'PROCESSING'
+              | 'NEED_MORE'
+              | 'USER_SUPPLIED'
+              | 'RESOLVED'
+              | 'CLOSED_INSUFFICIENT'
+            )
+          | null
+        category?: ('CONTENT' | 'PRONUNCIATION' | 'DISPLAY' | 'FUNCTION') | null
+        keyword?: string | null
+        sla?: ('PAUSED' | 'OVERDUE' | 'DUE_SOON' | 'ON_TRACK' | 'COMPLETED') | null
+        page?: number
+        page_size?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FeedbackPageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   detail_api_v1_admin_feedback__ticket_id__get: {
     parameters: {
       query?: never
@@ -2749,9 +3099,82 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['FeedbackAdminDetailResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  screenshot_url_api_v1_admin_feedback__ticket_id__screenshot_url_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        ticket_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SignedFeedbackScreenshotResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  add_internal_note_api_v1_admin_feedback__ticket_id__internal_notes_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        ticket_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['InternalNoteRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FeedbackInternalNoteResponse']
         }
       }
       /** @description Validation Error */
@@ -2787,9 +3210,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['FeedbackTicketResponse']
         }
       }
       /** @description Validation Error */
@@ -2829,9 +3250,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['FeedbackTicketResponse']
         }
       }
       /** @description Validation Error */
@@ -2871,9 +3290,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['FeedbackTicketResponse']
         }
       }
       /** @description Validation Error */
@@ -2913,9 +3330,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['FeedbackTicketResponse']
         }
       }
       /** @description Validation Error */

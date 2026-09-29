@@ -16,7 +16,7 @@ defineProps<{ items: FeedbackTimelineItem[] }>()
       <span>{{ item.actor }}</span>
     </ElTimelineItem>
   </ElTimeline>
-  <ElEmpty v-else description="时间线接口待接入" />
+  <ElEmpty v-else description="暂无处理记录" />
 </template>
 
 <style scoped lang="scss">

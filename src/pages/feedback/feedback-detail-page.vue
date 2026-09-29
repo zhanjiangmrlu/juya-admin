@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import dayjs from 'dayjs'
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AuditTimeline from '@/components/audit-timeline/audit-timeline.vue'
@@ -13,18 +13,22 @@ import { formatFeedbackSla, getFeedbackOperations } from '@/features/feedback/fe
 import { useFeedbackDetail } from '@/features/feedback/use-feedback-detail'
 import { createApiClient } from '@/services/api/api-client'
 
+import type { FeedbackCategory, FeedbackTimelineEvent } from '@/features/feedback/feedback-adapter'
 import type { FeedbackStatus } from '@/features/feedback/feedback-model'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const ticketId = computed(() => String(route.params.id))
+const isLoadingScreenshot = ref(false)
+const categoryLabels: Record<FeedbackCategory, string> = {
+  CONTENT: '内容问题',
+  DISPLAY: '显示问题',
+  FUNCTION: '功能问题',
+  PRONUNCIATION: '发音问题'
+}
 
-/**
- * 清理失效认证状态并跳转登录页
- *
- * @returns 无返回值
- */
+/** 清理失效会话并跳转登录页。 */
 function handleUnauthorized(): void {
   authStore.clearSensitiveState()
   void router.replace({ name: 'login' })
@@ -34,6 +38,7 @@ const controller = useFeedbackDetail(
   createFeedbackAdapter(
     createApiClient({
       baseUrl: import.meta.env.VITE_API_BASE_URL,
+      getCsrfToken: () => authStore.csrfToken,
       onUnauthorized: handleUnauthorized
     })
   ),
@@ -45,24 +50,61 @@ const operations = computed(() =>
 const sla = computed(() =>
   controller.ticket.value ? formatFeedbackSla(controller.ticket.value, new Date()) : null
 )
+const timeline = computed(() =>
+  (controller.ticket.value?.timeline ?? []).map((event, index) => ({
+    actor: `${event.actorType === 'ADMIN' ? '管理员' : '用户'} · ${event.actorId}`,
+    at: formatDateTime(event.occurredAt),
+    content: timelineLabel(event),
+    id: `${event.occurredAt}-${event.eventType}-${index}`
+  }))
+)
 
 onMounted(() => void controller.load())
 onBeforeUnmount(controller.dispose)
 
 /**
- * 格式化反馈日期时间
- *
+ * 格式化管理端日期时间。
  * @param value - ISO 8601 日期时间
- * @returns 管理端日期时间文案
+ * @returns 日期时间文案
  */
 function formatDateTime(value: string): string {
   return dayjs(value).format('YYYY-MM-DD HH:mm')
 }
 
 /**
- * 返回反馈状态标签色调
- *
- * @param status - 反馈状态
+ * 返回反馈事件的管理员可读文案。
+ * @param event - 反馈时间线事件
+ * @returns 事件文案
+ */
+function timelineLabel(event: FeedbackTimelineEvent): string {
+  const labels: Record<string, string> = {
+    CLOSED_INSUFFICIENT: '因信息不足关闭',
+    CREATED: '提交反馈',
+    INTERNAL_NOTE_ADDED: '添加内部备注',
+    PROCESSING_STARTED: '开始处理',
+    REPLIED: '回复并解决',
+    RESOLVED: '反馈已解决',
+    SUPPLEMENT_REQUESTED: '要求补充信息',
+    USER_SUPPLIED: '用户已补充信息'
+  }
+  return labels[event.eventType] ?? event.eventType
+}
+
+/** 按需重新签发并展示截图临时地址。 */
+async function loadScreenshot(): Promise<void> {
+  isLoadingScreenshot.value = true
+  try {
+    await controller.loadScreenshot()
+  } catch {
+    // 控制器提供页面错误状态。
+  } finally {
+    isLoadingScreenshot.value = false
+  }
+}
+
+/**
+ * 返回反馈状态标签色调。
+ * @param status - 当前反馈状态
  * @returns 状态标签色调
  */
 function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'warning' {
@@ -82,7 +124,7 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
       type="error"
       show-icon
     />
-    <ElSkeleton v-else-if="controller.isLoading.value" :rows="9" animated />
+    <ElSkeleton v-if="controller.isLoading.value" :rows="9" animated />
 
     <template v-else-if="controller.ticket.value">
       <div class="page-heading">
@@ -120,15 +162,22 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
             <PlainTextContent :content="controller.ticket.value.description" />
           </ElCard>
 
+          <ElCard v-if="controller.ticket.value.rounds.length" shadow="never">
+            <template #header><h3 class="panel-title">补充记录</h3></template>
+            <div
+              v-for="round in controller.ticket.value.rounds"
+              :key="round.roundNumber"
+              class="record-block"
+            >
+              <strong>第 {{ round.roundNumber }} 轮</strong>
+              <PlainTextContent :content="round.requestText ?? '未记录补充要求'" />
+              <PlainTextContent :content="round.supplementText ?? '等待用户补充'" />
+            </div>
+          </ElCard>
+
           <ElCard shadow="never">
             <template #header><h3 class="panel-title">处理时间线</h3></template>
-            <ElAlert
-              :closable="false"
-              title="完整时间线接口待接入，当前不推测管理员和用户操作记录"
-              type="warning"
-              show-icon
-            />
-            <AuditTimeline :items="[]" />
+            <AuditTimeline :items="timeline" />
           </ElCard>
         </div>
 
@@ -140,7 +189,7 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
                 controller.ticket.value.userId
               }}</ElDescriptionsItem>
               <ElDescriptionsItem label="反馈分类">{{
-                controller.ticket.value.category
+                categoryLabels[controller.ticket.value.category]
               }}</ElDescriptionsItem>
               <ElDescriptionsItem label="提交时间">{{
                 formatDateTime(controller.ticket.value.createdAt)
@@ -161,17 +210,49 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
                         : undefined
                   "
                   effect="plain"
+                  >{{ sla?.text }}</ElTag
                 >
-                  {{ sla?.text }}
-                </ElTag>
               </ElDescriptionsItem>
             </ElDescriptions>
           </ElCard>
 
           <ElCard shadow="never">
-            <template #header><h3 class="panel-title">反馈截图</h3></template>
-            <ElEmpty description="截图访问能力待接入" :image-size="72" />
-            <p class="capability-note">未生成或展示任何虚构、过期的签名地址</p>
+            <template #header>
+              <div class="card-heading">
+                <h3>反馈截图</h3>
+                <ElButton
+                  v-if="controller.ticket.value.screenshots.length"
+                  :aria-label="controller.screenshotUrl.value ? '刷新临时地址' : '查看反馈截图'"
+                  :loading="isLoadingScreenshot"
+                  size="small"
+                  @click="loadScreenshot"
+                >
+                  {{ controller.screenshotUrl.value ? '刷新临时地址' : '查看反馈截图' }}
+                </ElButton>
+              </div>
+            </template>
+            <ElEmpty
+              v-if="controller.ticket.value.screenshots.length === 0"
+              description="该反馈没有截图"
+              :image-size="72"
+            />
+            <div v-else-if="controller.screenshotUrl.value" class="screenshot-preview">
+              <img :src="controller.screenshotUrl.value" alt="反馈截图" />
+              <p>临时地址有效至 {{ formatDateTime(controller.screenshotExpiresAt.value ?? '') }}</p>
+            </div>
+            <p v-else class="capability-note">截图仅在点击后签发短期地址，离开页面即清除。</p>
+          </ElCard>
+
+          <ElCard v-if="controller.ticket.value.internalNotes.length" shadow="never">
+            <template #header><h3 class="panel-title">内部备注</h3></template>
+            <div
+              v-for="note in controller.ticket.value.internalNotes"
+              :key="note.id"
+              class="record-block"
+            >
+              <PlainTextContent :content="note.content" />
+              <small>{{ note.adminId }} · {{ formatDateTime(note.createdAt) }}</small>
+            </div>
           </ElCard>
         </div>
       </div>
@@ -181,6 +262,8 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
 
 <style scoped lang="scss">
 .feedback-detail-page {
+  min-width: 0;
+
   .page-heading,
   .card-heading,
   .heading-actions {
@@ -192,19 +275,19 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
   .page-heading {
     align-items: flex-start;
     margin-bottom: 14px;
+  }
 
-    .page-number {
-      color: var(--juya-color-text-primary);
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-    }
+  .page-number {
+    color: var(--juya-color-text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
 
-    h2 {
-      margin: 3px 0 0;
-      color: var(--juya-color-sidebar);
-      font-size: 18px;
-    }
+  h2 {
+    margin: 3px 0 0;
+    color: var(--juya-color-sidebar);
+    font-size: 18px;
   }
 
   .heading-actions {
@@ -231,8 +314,31 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
     font-size: 15px;
   }
 
+  .record-block + .record-block {
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid var(--juya-color-border);
+  }
+
+  .record-block strong,
+  .record-block small {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--juya-color-text-secondary);
+  }
+
+  .screenshot-preview img {
+    display: block;
+    width: 100%;
+    max-height: 380px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: var(--juya-color-background);
+  }
+
+  .screenshot-preview p,
   .capability-note {
-    margin: -8px 0 0;
+    margin: 10px 0 0;
     color: var(--juya-color-text-secondary);
     font-size: 11px;
     text-align: center;

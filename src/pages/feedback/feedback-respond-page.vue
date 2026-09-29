@@ -13,6 +13,7 @@ import {
 } from '@/features/feedback/feedback-copy'
 import { getFeedbackOperations } from '@/features/feedback/feedback-model'
 import { useFeedbackCommand } from '@/features/feedback/use-feedback-command'
+import { useFeedbackNote } from '@/features/feedback/use-feedback-note'
 import { createApiClient } from '@/services/api/api-client'
 
 import type { FeedbackTicket } from '@/features/feedback/feedback-adapter'
@@ -26,7 +27,6 @@ const isLoading = shallowRef(true)
 const loadError = shallowRef<string | null>(null)
 const form = reactive({
   closeReason: '',
-  internalNote: '',
   replyNote: '',
   requestText: '',
   template: ''
@@ -50,6 +50,7 @@ const adapter = createFeedbackAdapter(
   })
 )
 const command = useFeedbackCommand(adapter, ticket)
+const note = useFeedbackNote(adapter, ticketId.value)
 const operations = computed(() => (ticket.value ? getFeedbackOperations(ticket.value) : []))
 
 onMounted(() => void loadTicket())
@@ -111,6 +112,16 @@ async function handleResolve(): Promise<void> {
  */
 async function handleClose(): Promise<void> {
   await submitCommand(() => command.close(form.closeReason), '反馈已关闭')
+}
+
+/** 保存仅管理员可见的内部备注。 */
+async function handleInternalNote(): Promise<void> {
+  try {
+    await note.submit()
+    ElMessage.success('内部备注已保存')
+  } catch {
+    // 控制器保留草稿并提供错误文案。
+  }
 }
 
 /**
@@ -278,15 +289,33 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
           </ElForm>
 
           <ElDivider />
-          <ElForm class="internal-note" label-position="top">
+          <ElForm class="internal-note" label-position="top" @submit.prevent="handleInternalNote">
+            <ElAlert
+              v-if="note.error.value"
+              class="note-error"
+              :closable="false"
+              :title="note.error.value"
+              type="error"
+              show-icon
+            />
             <ElFormItem label="内部备注（仅管理员可见）">
               <ElInput
-                v-model="form.internalNote"
-                disabled
-                placeholder="内部备注接口待接入，不会随用户回复提交"
+                :model-value="note.draft.value"
+                maxlength="200"
+                placeholder="最多 200 字，仅管理员可见"
+                show-word-limit
                 type="textarea"
+                @update:model-value="note.setDraft"
               />
             </ElFormItem>
+            <ElButton
+              :disabled="!note.draft.value.trim()"
+              :loading="note.isSubmitting.value"
+              native-type="submit"
+              type="primary"
+            >
+              保存内部备注
+            </ElButton>
           </ElForm>
         </ElCard>
       </div>
@@ -373,7 +402,11 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
   }
 
   .internal-note {
-    opacity: 0.82;
+    margin-top: 4px;
+  }
+
+  .note-error {
+    margin-bottom: 12px;
   }
 
   @media (width <= 1100px) {

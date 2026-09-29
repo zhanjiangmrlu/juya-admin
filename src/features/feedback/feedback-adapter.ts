@@ -1,11 +1,22 @@
 import type { FeedbackStatus } from './feedback-model'
 import type { ApiClient } from '@/services/api/api-client'
+import type { components } from '@/shared/contracts/generated/admin-api'
+
+type FeedbackDetailDto = components['schemas']['FeedbackAdminDetailResponse']
+type FeedbackListItemDto = components['schemas']['FeedbackListItemResponse']
+type FeedbackNoteDto = components['schemas']['FeedbackInternalNoteResponse']
+type FeedbackPageDto = components['schemas']['FeedbackPageResponse']
+type FeedbackTicketDto = components['schemas']['FeedbackTicketResponse']
+type SignedScreenshotDto = components['schemas']['SignedFeedbackScreenshotResponse']
+
+export type FeedbackCategory = FeedbackDetailDto['category']
+export type FeedbackSlaState = FeedbackListItemDto['sla_state']
 
 export interface FeedbackTicket {
-  category: string
+  category: FeedbackCategory
   closedAt: string | null
   createdAt: string
-  deadlineAt: string
+  deadlineAt: string | null
   description: string
   id: string
   reopenCount: number
@@ -18,6 +29,85 @@ export interface FeedbackTicket {
   userId: string
 }
 
+export interface FeedbackListItem {
+  category: FeedbackCategory
+  createdAt: string
+  deadlineAt: string | null
+  description: string
+  id: string
+  slaState: FeedbackSlaState
+  status: FeedbackStatus
+  supplementRounds: number
+  updatedAt: string
+  userId: string
+}
+
+export interface FeedbackTimelineEvent {
+  actorId: string
+  actorType: string
+  eventType: string
+  occurredAt: string
+  payload: Readonly<Record<string, unknown>>
+  visibility: string
+}
+
+export interface FeedbackScreenshot {
+  deleteAfter: string | null
+  deletedAt: string | null
+  securityStatus: string
+}
+
+export interface FeedbackRound {
+  pausedAt: string | null
+  requestText: string | null
+  roundNumber: number
+  suppliedAt: string | null
+  supplementText: string | null
+}
+
+export interface FeedbackReply {
+  adminId: string
+  note: string | null
+  sentAt: string
+  template: string
+}
+
+export interface FeedbackInternalNote {
+  adminId: string
+  content: string
+  createdAt: string
+  id: string
+}
+
+export interface FeedbackDetail extends FeedbackTicket {
+  internalNotes: readonly FeedbackInternalNote[]
+  replies: readonly FeedbackReply[]
+  rounds: readonly FeedbackRound[]
+  screenshots: readonly FeedbackScreenshot[]
+  timeline: readonly FeedbackTimelineEvent[]
+}
+
+export interface FeedbackFilters {
+  category?: FeedbackCategory
+  keyword?: string
+  page?: number
+  pageSize?: number
+  sla?: FeedbackSlaState
+  status?: FeedbackStatus
+}
+
+export interface FeedbackPage {
+  items: readonly FeedbackListItem[]
+  page: number
+  pageSize: number
+  total: number
+}
+
+export interface SignedFeedbackScreenshot {
+  expiresAt: string
+  url: string
+}
+
 export type FeedbackCommandType = 'CLOSE' | 'REQUEST_SUPPLEMENT' | 'RESOLVE' | 'START'
 
 export interface FeedbackCommandInput {
@@ -27,156 +117,157 @@ export interface FeedbackCommandInput {
 }
 
 export interface FeedbackAdapter {
+  addInternalNote(
+    ticketId: string,
+    content: string,
+    idempotencyKey: string
+  ): Promise<FeedbackInternalNote>
   execute(input: FeedbackCommandInput, idempotencyKey: string): Promise<FeedbackTicket>
-  getDetail(ticketId: string, signal?: AbortSignal): Promise<FeedbackTicket>
+  getDetail(ticketId: string, signal?: AbortSignal): Promise<FeedbackDetail>
+  getScreenshotUrl(ticketId: string): Promise<SignedFeedbackScreenshot>
+  list(filters: FeedbackFilters, signal?: AbortSignal): Promise<FeedbackPage>
 }
 
 /**
- * 创建反馈详情与命令接口适配器
- *
+ * 创建反馈查询、截图、备注和命令接口适配器。
  * @param client - 统一 API 客户端
  * @returns 反馈接口适配器
  */
 export function createFeedbackAdapter(client: ApiClient): FeedbackAdapter {
   return {
-    /**
-     * 执行指定反馈命令
-     *
-     * @param input - 反馈编号、命令类型与请求体
-     * @param idempotencyKey - 当前逻辑操作复用的幂等键
-     * @returns 命令返回的反馈详情
-     */
+    async addInternalNote(ticketId, content, idempotencyKey) {
+      const response = await client.request<FeedbackNoteDto>({
+        body: { content },
+        idempotencyKey,
+        method: 'POST',
+        path: `/api/v1/admin/feedback/${encodeURIComponent(ticketId)}/internal-notes`
+      })
+      return mapInternalNote(response)
+    },
     async execute(input, idempotencyKey) {
       const commandPath =
         input.type === 'CLOSE' ? 'close-insufficient' : input.type.toLowerCase().replace('_', '-')
-      const response = await client.request<unknown>({
+      const response = await client.request<FeedbackTicketDto>({
         body: input.payload,
         idempotencyKey,
         method: 'POST',
         path: `/api/v1/admin/feedback/${encodeURIComponent(input.ticketId)}/commands/${commandPath}`
       })
-      return parseFeedbackTicket(response)
+      return mapFeedbackTicket(response)
     },
-
-    /**
-     * 读取单条真实反馈详情
-     *
-     * @param ticketId - 反馈编号
-     * @param signal - 可选请求取消信号
-     * @returns 已校验的反馈详情
-     */
     async getDetail(ticketId, signal) {
-      const response = await client.request<unknown>({
+      const response = await client.request<FeedbackDetailDto>({
         method: 'GET',
         path: `/api/v1/admin/feedback/${encodeURIComponent(ticketId)}`,
         signal
       })
-      return parseFeedbackTicket(response)
+      return {
+        ...mapFeedbackTicket(response),
+        internalNotes: response.internal_notes.map(mapInternalNote),
+        replies: response.replies.map((reply) => ({
+          adminId: reply.admin_id,
+          note: reply.note,
+          sentAt: reply.sent_at,
+          template: reply.template
+        })),
+        rounds: response.rounds.map((round) => ({
+          pausedAt: round.paused_at,
+          requestText: round.request_text,
+          roundNumber: round.round_number,
+          suppliedAt: round.supplied_at,
+          supplementText: round.supplement_text
+        })),
+        screenshots: response.screenshots.map((screenshot) => ({
+          deleteAfter: screenshot.delete_after,
+          deletedAt: screenshot.deleted_at,
+          securityStatus: screenshot.security_status
+        })),
+        timeline: response.timeline.map((event) => ({
+          actorId: event.actor_id,
+          actorType: event.actor_type,
+          eventType: event.event_type,
+          occurredAt: event.occurred_at,
+          payload: event.payload,
+          visibility: event.visibility
+        }))
+      }
+    },
+    async getScreenshotUrl(ticketId) {
+      const response = await client.request<SignedScreenshotDto>({
+        method: 'POST',
+        path: `/api/v1/admin/feedback/${encodeURIComponent(ticketId)}/screenshot-url`
+      })
+      return { expiresAt: response.expires_at, url: response.url }
+    },
+    async list(filters, signal) {
+      const response = await client.request<FeedbackPageDto>({
+        method: 'GET',
+        path: '/api/v1/admin/feedback',
+        query: {
+          category: filters.category,
+          keyword: filters.keyword,
+          page: filters.page,
+          page_size: filters.pageSize,
+          sla: filters.sla,
+          status: filters.status
+        },
+        signal
+      })
+      return {
+        items: response.items.map((item) => ({
+          category: item.category,
+          createdAt: item.created_at,
+          deadlineAt: item.deadline_at,
+          description: item.description,
+          id: item.id,
+          slaState: item.sla_state,
+          status: item.status,
+          supplementRounds: item.supplement_rounds,
+          updatedAt: item.updated_at,
+          userId: item.user_id
+        })),
+        page: response.page,
+        pageSize: response.page_size,
+        total: response.total
+      }
     }
   }
 }
 
 /**
- * 校验并映射反馈详情响应
- *
- * @param source - 接口返回的未知值
- * @returns 反馈详情视图模型
+ * 将生成契约中的反馈工单映射为页面模型。
+ * @param source - 反馈工单或聚合详情响应
+ * @returns 反馈页面模型
  */
-function parseFeedbackTicket(source: unknown): FeedbackTicket {
-  if (!isRecord(source)) throw new Error('反馈详情接口响应格式不正确')
+function mapFeedbackTicket(source: FeedbackTicketDto | FeedbackDetailDto): FeedbackTicket {
   return {
-    category: requireString(source, 'category'),
-    closedAt: nullableString(source, 'closed_at'),
-    createdAt: requireString(source, 'created_at'),
-    deadlineAt: requireString(source, 'deadline_at'),
-    description: requireString(source, 'description'),
-    id: requireString(source, 'id'),
-    reopenCount: requireNumber(source, 'reopen_count'),
-    resolvedAt: nullableString(source, 'resolved_at'),
-    slaRemainingSeconds: nullableNumber(source, 'sla_remaining_seconds'),
-    source: isRecord(source.source) ? source.source : {},
-    status: requireStatus(source.status),
-    supplementRounds: requireNumber(source, 'supplement_rounds'),
-    updatedAt: requireString(source, 'updated_at'),
-    userId: requireString(source, 'user_id')
+    category: source.category,
+    closedAt: source.closed_at,
+    createdAt: source.created_at,
+    deadlineAt: source.deadline_at,
+    description: source.description,
+    id: source.id,
+    reopenCount: source.reopen_count,
+    resolvedAt: source.resolved_at,
+    slaRemainingSeconds: source.sla_remaining_seconds,
+    source: source.source,
+    status: source.status,
+    supplementRounds: source.supplement_rounds,
+    updatedAt: source.updated_at,
+    userId: source.user_id
   }
 }
 
 /**
- * 校验反馈状态
- *
- * @param value - 接口返回的状态字段
- * @returns 已校验的反馈状态
+ * 映射内部备注响应。
+ * @param source - 内部备注接口响应
+ * @returns 内部备注页面模型
  */
-function requireStatus(value: unknown): FeedbackStatus {
-  const statuses: readonly string[] = [
-    'PENDING',
-    'PROCESSING',
-    'NEED_MORE',
-    'USER_SUPPLIED',
-    'RESOLVED',
-    'CLOSED_INSUFFICIENT'
-  ]
-  if (typeof value !== 'string' || !statuses.includes(value))
-    throw new Error('反馈详情缺少有效状态')
-  return value as FeedbackStatus
-}
-
-/**
- * 读取必需字符串字段
- *
- * @param source - 反馈响应对象
- * @param key - 字段名
- * @returns 非空字符串
- */
-function requireString(source: Record<string, unknown>, key: string): string {
-  const value = source[key]
-  if (typeof value !== 'string') throw new Error(`反馈详情缺少字段：${key}`)
-  return value
-}
-
-/**
- * 读取必需有限数字字段
- *
- * @param source - 反馈响应对象
- * @param key - 字段名
- * @returns 有限数字
- */
-function requireNumber(source: Record<string, unknown>, key: string): number {
-  const value = source[key]
-  if (typeof value !== 'number' || !Number.isFinite(value))
-    throw new Error(`反馈详情缺少字段：${key}`)
-  return value
-}
-
-/**
- * 读取可为空字符串字段
- *
- * @param source - 反馈响应对象
- * @param key - 字段名
- * @returns 字符串或空值
- */
-function nullableString(source: Record<string, unknown>, key: string): string | null {
-  return source[key] === null ? null : requireString(source, key)
-}
-
-/**
- * 读取可为空数字字段
- *
- * @param source - 反馈响应对象
- * @param key - 字段名
- * @returns 数字或空值
- */
-function nullableNumber(source: Record<string, unknown>, key: string): number | null {
-  return source[key] === null ? null : requireNumber(source, key)
-}
-
-/**
- * 判断未知值是否为普通记录对象
- *
- * @param value - 需要判断的未知值
- * @returns 值是否为非空且非数组对象
- */
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+function mapInternalNote(source: FeedbackNoteDto): FeedbackInternalNote {
+  return {
+    adminId: source.admin_id,
+    content: source.content,
+    createdAt: source.created_at,
+    id: source.id
+  }
 }

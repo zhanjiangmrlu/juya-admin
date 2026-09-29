@@ -2305,6 +2305,152 @@
         }
       }
     },
+    "/api/v1/admin/feedback": {
+      "get": {
+        "tags": ["feedback"],
+        "summary": "List Feedback",
+        "operationId": "list_feedback_api_v1_admin_feedback_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "PENDING",
+                    "PROCESSING",
+                    "NEED_MORE",
+                    "USER_SUPPLIED",
+                    "RESOLVED",
+                    "CLOSED_INSUFFICIENT"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["CONTENT", "PRONUNCIATION", "DISPLAY", "FUNCTION"],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Keyword"
+            }
+          },
+          {
+            "name": "sla",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["PAUSED", "OVERDUE", "DUE_SOON", "ON_TRACK", "COMPLETED"],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sla"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackPageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/feedback/{ticket_id}": {
       "get": {
         "tags": ["feedback"],
@@ -2343,9 +2489,172 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Detail Api V1 Admin Feedback  Ticket Id  Get"
+                  "$ref": "#/components/schemas/FeedbackAdminDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/feedback/{ticket_id}/screenshot-url": {
+      "post": {
+        "tags": ["feedback"],
+        "summary": "Screenshot Url",
+        "operationId": "screenshot_url_api_v1_admin_feedback__ticket_id__screenshot_url_post",
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticket Id"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignedFeedbackScreenshotResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/feedback/{ticket_id}/internal-notes": {
+      "post": {
+        "tags": ["feedback"],
+        "summary": "Add Internal Note",
+        "operationId": "add_internal_note_api_v1_admin_feedback__ticket_id__internal_notes_post",
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticket Id"
+            }
+          },
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "X-Idempotency-Key"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InternalNoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackInternalNoteResponse"
                 }
               }
             }
@@ -2384,6 +2693,8 @@
             "required": true,
             "schema": {
               "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
               "title": "X-Idempotency-Key"
             }
           },
@@ -2426,9 +2737,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Start Api V1 Admin Feedback  Ticket Id  Commands Start Post"
+                  "$ref": "#/components/schemas/FeedbackTicketResponse"
                 }
               }
             }
@@ -2467,6 +2776,8 @@
             "required": true,
             "schema": {
               "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
               "title": "X-Idempotency-Key"
             }
           },
@@ -2519,9 +2830,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Request Supplement Api V1 Admin Feedback  Ticket Id  Commands Request Supplement Post"
+                  "$ref": "#/components/schemas/FeedbackTicketResponse"
                 }
               }
             }
@@ -2560,6 +2869,8 @@
             "required": true,
             "schema": {
               "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
               "title": "X-Idempotency-Key"
             }
           },
@@ -2612,9 +2923,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Resolve Api V1 Admin Feedback  Ticket Id  Commands Resolve Post"
+                  "$ref": "#/components/schemas/FeedbackTicketResponse"
                 }
               }
             }
@@ -2653,6 +2962,8 @@
             "required": true,
             "schema": {
               "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
               "title": "X-Idempotency-Key"
             }
           },
@@ -2705,9 +3016,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Close Insufficient Api V1 Admin Feedback  Ticket Id  Commands Close Insufficient Post"
+                  "$ref": "#/components/schemas/FeedbackTicketResponse"
                 }
               }
             }
@@ -5119,6 +5428,167 @@
         "enum": ["MONTH_1", "MONTH_2", "MONTH_3", "MONTH_6", "MONTH_12", "PERMANENT"],
         "title": "EntitlementTerm"
       },
+      "FeedbackAdminDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["CONTENT", "PRONUNCIATION", "DISPLAY", "FUNCTION"],
+            "title": "Category"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "source": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Source"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "NEED_MORE",
+              "USER_SUPPLIED",
+              "RESOLVED",
+              "CLOSED_INSUFFICIENT"
+            ],
+            "title": "Status"
+          },
+          "deadline_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadline At"
+          },
+          "sla_remaining_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sla Remaining Seconds"
+          },
+          "supplement_rounds": {
+            "type": "integer",
+            "title": "Supplement Rounds"
+          },
+          "reopen_count": {
+            "type": "integer",
+            "title": "Reopen Count"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "screenshots": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackScreenshotResponse"
+            },
+            "type": "array",
+            "title": "Screenshots"
+          },
+          "rounds": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackRoundResponse"
+            },
+            "type": "array",
+            "title": "Rounds"
+          },
+          "replies": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackReplyResponse"
+            },
+            "type": "array",
+            "title": "Replies"
+          },
+          "timeline": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackTimelineResponse"
+            },
+            "type": "array",
+            "title": "Timeline"
+          },
+          "internal_notes": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackInternalNoteResponse"
+            },
+            "type": "array",
+            "title": "Internal Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "category",
+          "description",
+          "source",
+          "status",
+          "deadline_at",
+          "sla_remaining_seconds",
+          "supplement_rounds",
+          "reopen_count",
+          "created_at",
+          "updated_at",
+          "resolved_at",
+          "closed_at",
+          "screenshots",
+          "rounds",
+          "replies",
+          "timeline",
+          "internal_notes"
+        ],
+        "title": "FeedbackAdminDetailResponse"
+      },
       "FeedbackCreateRequest": {
         "properties": {
           "user_id": {
@@ -5155,6 +5625,418 @@
         "type": "object",
         "required": ["user_id", "category", "description"],
         "title": "FeedbackCreateRequest"
+      },
+      "FeedbackInternalNoteResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "admin_id": {
+            "type": "string",
+            "title": "Admin Id"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "admin_id", "content", "created_at"],
+        "title": "FeedbackInternalNoteResponse"
+      },
+      "FeedbackListItemResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["CONTENT", "PRONUNCIATION", "DISPLAY", "FUNCTION"],
+            "title": "Category"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "NEED_MORE",
+              "USER_SUPPLIED",
+              "RESOLVED",
+              "CLOSED_INSUFFICIENT"
+            ],
+            "title": "Status"
+          },
+          "deadline_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadline At"
+          },
+          "sla_state": {
+            "type": "string",
+            "enum": ["PAUSED", "OVERDUE", "DUE_SOON", "ON_TRACK", "COMPLETED"],
+            "title": "Sla State"
+          },
+          "supplement_rounds": {
+            "type": "integer",
+            "title": "Supplement Rounds"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "category",
+          "description",
+          "status",
+          "deadline_at",
+          "sla_state",
+          "supplement_rounds",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "FeedbackListItemResponse"
+      },
+      "FeedbackPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackListItemResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": ["items", "page", "page_size", "total"],
+        "title": "FeedbackPageResponse"
+      },
+      "FeedbackReplyResponse": {
+        "properties": {
+          "template": {
+            "type": "string",
+            "title": "Template"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "admin_id": {
+            "type": "string",
+            "title": "Admin Id"
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Sent At"
+          }
+        },
+        "type": "object",
+        "required": ["template", "note", "admin_id", "sent_at"],
+        "title": "FeedbackReplyResponse"
+      },
+      "FeedbackRoundResponse": {
+        "properties": {
+          "round_number": {
+            "type": "integer",
+            "title": "Round Number"
+          },
+          "request_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Text"
+          },
+          "supplement_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplement Text"
+          },
+          "paused_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused At"
+          },
+          "supplied_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplied At"
+          }
+        },
+        "type": "object",
+        "required": ["round_number", "request_text", "supplement_text", "paused_at", "supplied_at"],
+        "title": "FeedbackRoundResponse"
+      },
+      "FeedbackScreenshotResponse": {
+        "properties": {
+          "security_status": {
+            "type": "string",
+            "title": "Security Status"
+          },
+          "delete_after": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delete After"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          }
+        },
+        "type": "object",
+        "required": ["security_status", "delete_after", "deleted_at"],
+        "title": "FeedbackScreenshotResponse"
+      },
+      "FeedbackTicketResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["CONTENT", "PRONUNCIATION", "DISPLAY", "FUNCTION"],
+            "title": "Category"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "source": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Source"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "NEED_MORE",
+              "USER_SUPPLIED",
+              "RESOLVED",
+              "CLOSED_INSUFFICIENT"
+            ],
+            "title": "Status"
+          },
+          "deadline_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadline At"
+          },
+          "sla_remaining_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sla Remaining Seconds"
+          },
+          "supplement_rounds": {
+            "type": "integer",
+            "title": "Supplement Rounds"
+          },
+          "reopen_count": {
+            "type": "integer",
+            "title": "Reopen Count"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "category",
+          "description",
+          "source",
+          "status",
+          "deadline_at",
+          "sla_remaining_seconds",
+          "supplement_rounds",
+          "reopen_count",
+          "created_at",
+          "updated_at",
+          "resolved_at",
+          "closed_at"
+        ],
+        "title": "FeedbackTicketResponse"
+      },
+      "FeedbackTimelineResponse": {
+        "properties": {
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "actor_type": {
+            "type": "string",
+            "title": "Actor Type"
+          },
+          "actor_id": {
+            "type": "string",
+            "title": "Actor Id"
+          },
+          "visibility": {
+            "type": "string",
+            "title": "Visibility"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_type",
+          "actor_type",
+          "actor_id",
+          "visibility",
+          "payload",
+          "occurred_at"
+        ],
+        "title": "FeedbackTimelineResponse"
       },
       "FormalEntitlementDetailResponse": {
         "properties": {
@@ -5258,6 +6140,20 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "InternalNoteRequest": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Content"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["content"],
+        "title": "InternalNoteRequest"
       },
       "LimitedEntitlementDetailResponse": {
         "properties": {
@@ -5542,6 +6438,22 @@
         "type": "object",
         "required": ["template"],
         "title": "ResolveCommand"
+      },
+      "SignedFeedbackScreenshotResponse": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": ["url", "expires_at"],
+        "title": "SignedFeedbackScreenshotResponse"
       },
       "SupplementCommand": {
         "properties": {
