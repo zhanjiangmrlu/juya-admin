@@ -16,13 +16,20 @@ Copy-Item .env.example .env.local
 pnpm dev
 ```
 
-`VITE_API_BASE_URL` 留空时请求当前站点的 `/api/v1/admin` 路径；前后端分离开发时填写管理端 API 地址，例如：
+本地开发先在 `D:\个人\juya\juya-admin-api` 启动真实管理接口：
 
-```dotenv
-VITE_API_BASE_URL=http://127.0.0.1:8000
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local.ps1
 ```
 
-本地开发地址由 Vite 输出，Playwright 验收固定使用 `http://127.0.0.1:4173`
+`VITE_API_BASE_URL` 在本地保持为空，请求会通过 Vite 的 `/api` 同源代理进入管理接口。代理默认连接 `http://127.0.0.1:8000`，只有后端使用其他地址时才覆盖：
+
+```dotenv
+VITE_API_BASE_URL=
+VITE_DEV_API_PROXY_TARGET=http://127.0.0.1:8000
+```
+
+修改环境变量后需要重启 `pnpm dev`。本地开发地址由 Vite 输出，Playwright 验收固定使用 `http://127.0.0.1:4173`
 
 ## 常用命令
 
