@@ -34,6 +34,7 @@ function resolveAdminPageComponent(
     'content-ocr': () => import('@/pages/content/ocr-review-page.vue'),
     'content-scene-audio': () => import('@/pages/content/audio-version-page.vue'),
     'content-scene-edit': () => import('@/pages/content/scene-editor-page.vue'),
+    'content-scene-publish': () => import('@/pages/content/publish-check-page.vue'),
     dashboard: () => import('@/pages/dashboard/dashboard-page.vue'),
     entitlements: () => import('@/pages/entitlements/entitlement-center-page.vue'),
     feedback: () => import('@/pages/feedback/feedback-list-page.vue'),
