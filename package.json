@@ -22,7 +22,8 @@
     "lint:style:fix": "stylelint \"**/*.{vue,css,scss}\" --fix --max-warnings=0",
     "prepare": "simple-git-hooks",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run && pnpm test:deploy",
+    "test:deploy": "node --test tests/deployment/*.test.mjs",
     "test:e2e": "playwright test",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json"
   },
