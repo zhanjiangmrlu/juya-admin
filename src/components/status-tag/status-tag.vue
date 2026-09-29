@@ -23,7 +23,7 @@ const toneIcon = computed(() => {
 </script>
 
 <template>
-  <ElTag class="status-tag" :class="`status-tag--${tone}`" :type="tagType" effect="light" round>
+  <ElTag class="status-tag" :class="`tone-${tone}`" :type="tagType" effect="light" round>
     <ElIcon><component :is="toneIcon" /></ElIcon>
     <span>{{ label }}</span>
   </ElTag>
@@ -35,8 +35,24 @@ const toneIcon = computed(() => {
   align-items: center;
   gap: 4px;
 
-  &__icon {
+  .el-icon {
     font-size: 12px;
+  }
+
+  &.tone-danger {
+    --el-tag-text-color: #9f3430;
+  }
+
+  &.tone-info {
+    --el-tag-text-color: #475569;
+  }
+
+  &.tone-success {
+    --el-tag-text-color: #256f4f;
+  }
+
+  &.tone-warning {
+    --el-tag-text-color: #8b5a18;
   }
 }
 </style>

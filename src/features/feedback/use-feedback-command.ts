@@ -1,4 +1,4 @@
-import { readonly, ref, shallowRef } from 'vue'
+import { computed, readonly, ref, shallowRef } from 'vue'
 
 import { useIdempotentCommand } from '@/shared/commands/idempotent-command'
 import { ApiError } from '@/shared/errors/api-error'
@@ -19,6 +19,7 @@ export interface FeedbackCommandController {
   close(reason: string): Promise<void>
   error: Readonly<Ref<string | null>>
   hasConflict: Readonly<Ref<boolean>>
+  isSubmitting: Readonly<Ref<boolean>>
   lastInput: Readonly<Ref<FeedbackCommandInput | null>>
   requestSupplement(requestText: string): Promise<void>
   resolve(input: ResolveFeedbackInput): Promise<void>
@@ -127,6 +128,7 @@ export function useFeedbackCommand(
     close,
     error: readonly(error),
     hasConflict: readonly(hasConflict),
+    isSubmitting: readonly(computed(() => command.state.value === 'submitting')),
     lastInput: readonly(lastInput),
     requestSupplement,
     resolve,

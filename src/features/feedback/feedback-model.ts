@@ -15,10 +15,10 @@ export interface FeedbackSlaViewModel {
 }
 
 /**
- * 根据反馈状态与补充轮次返回当前可执行操作。
+ * 根据反馈状态与补充轮次返回当前可执行操作
  *
- * @param ticket - 反馈状态、截止时间与补充轮次。
- * @returns 当前允许的反馈操作数组。
+ * @param ticket - 反馈状态、截止时间与补充轮次
+ * @returns 当前允许的反馈操作数组
  */
 export function getFeedbackOperations(ticket: FeedbackViewModel): readonly FeedbackOperation[] {
   if (ticket.status === 'PENDING') return ['START']
@@ -33,11 +33,11 @@ export function getFeedbackOperations(ticket: FeedbackViewModel): readonly Feedb
 }
 
 /**
- * 按反馈状态与服务端截止时间格式化 SLA 展示。
+ * 按反馈状态与服务端截止时间格式化 SLA 展示
  *
- * @param ticket - 反馈状态和服务端截止时间。
- * @param now - 用于计算展示的当前时间。
- * @returns SLA 状态和说明文案。
+ * @param ticket - 反馈状态和服务端截止时间
+ * @param now - 用于计算展示的当前时间
+ * @returns SLA 状态和说明文案
  */
 export function formatFeedbackSla(ticket: FeedbackViewModel, now: Date): FeedbackSlaViewModel {
   if (ticket.status === 'NEED_MORE') return { state: 'paused', text: '等待用户补充' }

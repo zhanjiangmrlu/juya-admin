@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 
+import { ApiError } from '@/shared/errors/api-error'
+
 import type { FeedbackAdapter } from './feedback-adapter'
 
 import { useFeedbackCommand } from './use-feedback-command'
@@ -27,6 +29,27 @@ describe('feedback command controller', () => {
       code: 'CLIENT_VALIDATION_ERROR'
     })
     expect(adapter.execute).not.toHaveBeenCalled()
+  })
+
+  it('preserves the last input after a conflict and refreshes detail after success', async () => {
+    const conflict = new ApiError({
+      code: 'FEEDBACK_STATE_CONFLICT',
+      message: '反馈状态已变化',
+      requestId: 'request-1',
+      status: 409
+    })
+    const execute = vi.fn().mockRejectedValueOnce(conflict).mockResolvedValueOnce(ticket)
+    const getDetail = vi.fn().mockResolvedValue({ ...ticket, status: 'NEED_MORE' })
+    const ticketRef = ref(ticket)
+    const controller = useFeedbackCommand({ execute, getDetail }, ticketRef)
+
+    await expect(controller.requestSupplement('请补充操作步骤')).rejects.toBe(conflict)
+    expect(controller.hasConflict.value).toBe(true)
+    expect(controller.lastInput.value?.payload).toEqual({ request_text: '请补充操作步骤' })
+
+    await controller.requestSupplement('请补充操作步骤')
+    expect(getDetail).toHaveBeenCalledWith('FB-1')
+    expect(ticketRef.value.status).toBe('NEED_MORE')
   })
 })
 

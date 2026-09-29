@@ -16,10 +16,10 @@ const adminPageRoutes: RouteRecordRaw[] = ADMIN_PAGE_DEFINITIONS.map((page) => (
 }))
 
 /**
- * 将页面定义名称解析为对应的懒加载页面组件。
+ * 将页面定义名称解析为对应的懒加载页面组件
  *
- * @param name - 管理端页面定义名称。
- * @returns 对应页面的异步组件；尚未实现时返回能力占位页。
+ * @param name - 管理端页面定义名称
+ * @returns 对应页面的异步组件；尚未实现时返回能力占位页
  */
 function resolveAdminPageComponent(
   name: string
@@ -31,6 +31,9 @@ function resolveAdminPageComponent(
     'contact-correction': () => import('@/pages/contacts/contact-correction-page.vue'),
     dashboard: () => import('@/pages/dashboard/dashboard-page.vue'),
     entitlements: () => import('@/pages/entitlements/entitlement-center-page.vue'),
+    feedback: () => import('@/pages/feedback/feedback-list-page.vue'),
+    'feedback-detail': () => import('@/pages/feedback/feedback-detail-page.vue'),
+    'feedback-respond': () => import('@/pages/feedback/feedback-respond-page.vue'),
     'formal-entitlement-action': () => import('@/pages/entitlements/formal-action-page.vue'),
     'formal-entitlement-grant': () => import('@/pages/entitlements/formal-grant-page.vue'),
     'limited-entitlement-action': () => import('@/pages/entitlements/limited-action-page.vue'),
