@@ -430,6 +430,108 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/contact-corrections': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Corrections */
+    get: operations['list_corrections_api_v1_admin_contact_corrections_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/contact-corrections/{correction_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Correction Detail */
+    get: operations['correction_detail_api_v1_admin_contact_corrections__correction_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/contact-corrections/{correction_id}/commands/{command}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Decide Correction */
+    post: operations['decide_correction_api_v1_admin_contact_corrections__correction_id__commands__command__post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/users/{user_id}/commands/contact-status': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Update Contact Status */
+    post: operations['update_contact_status_api_v1_admin_users__user_id__commands_contact_status_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/users/{user_id}/commands/verify-contact-change': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Verify Contact Change */
+    post: operations['verify_contact_change_api_v1_admin_users__user_id__commands_verify_contact_change_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/users/{user_id}/contact-copy-events': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Audit Contact Copy */
+    post: operations['audit_contact_copy_api_v1_admin_users__user_id__contact_copy_events_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/media/upload-policies': {
     parameters: {
       query?: never
@@ -785,6 +887,108 @@ export interface components {
       /** Object Key */
       object_key: string
     }
+    /** ContactCorrectionPageResponse */
+    ContactCorrectionPageResponse: {
+      /** Items */
+      items: components['schemas']['ContactCorrectionResponse'][]
+      /** Total */
+      total: number
+      /** Page */
+      page: number
+      /** Page Size */
+      page_size: number
+    }
+    /** ContactCorrectionResponse */
+    ContactCorrectionResponse: {
+      /** Id */
+      id: string
+      /** User Id */
+      user_id: string
+      /** Juya Number */
+      juya_number: string
+      /** Nickname */
+      nickname: string | null
+      /** Wechat Id */
+      wechat_id: string | null
+      /** Reason */
+      reason: string
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'PENDING' | 'PROCESSING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /** Processed At */
+      processed_at: string | null
+      /** Timeline */
+      timeline: components['schemas']['ContactTimelineResponse'][]
+    }
+    /** ContactProjectionResponse */
+    ContactProjectionResponse: {
+      /** User Id */
+      user_id: string
+      /** Wechat Id */
+      wechat_id: string | null
+      /**
+       * Contact Status
+       * @enum {string}
+       */
+      contact_status: 'NOT_PROVIDED' | 'PENDING' | 'CONTACTED' | 'UNREACHABLE' | 'DO_NOT_CONTACT'
+      /** Change Pending */
+      change_pending: boolean
+      /** Verified At */
+      verified_at: string | null
+      /** Verified By */
+      verified_by: string | null
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string
+    }
+    /** ContactStatusRequest */
+    ContactStatusRequest: {
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'NOT_PROVIDED' | 'PENDING' | 'CONTACTED' | 'UNREACHABLE' | 'DO_NOT_CONTACT'
+    }
+    /** ContactTimelineResponse */
+    ContactTimelineResponse: {
+      /** Status */
+      status: string
+      /** Actor Type */
+      actor_type: string
+      /** Actor Id */
+      actor_id: string
+      /** Event Type */
+      event_type: string
+      /**
+       * Occurred At
+       * Format: date-time
+       */
+      occurred_at: string
+    }
+    /** CorrectionDecisionResponse */
+    CorrectionDecisionResponse: {
+      /** Id */
+      id: string
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'APPROVED' | 'REJECTED'
+      /**
+       * Processed At
+       * Format: date-time
+       */
+      processed_at: string
+    }
     /** CreateRevisionRequest */
     CreateRevisionRequest: {
       /** Source Revision Id */
@@ -901,6 +1105,71 @@ export interface components {
     UploadPolicyRequest: {
       /** Asset Type */
       asset_type: string
+    }
+    /** UserContactResponse */
+    UserContactResponse: {
+      /** Wechat Id */
+      wechat_id: string | null
+      /**
+       * Contact Status
+       * @enum {string}
+       */
+      contact_status: 'NOT_PROVIDED' | 'PENDING' | 'CONTACTED' | 'UNREACHABLE' | 'DO_NOT_CONTACT'
+      /** Change Pending */
+      change_pending: boolean
+      /** Verified At */
+      verified_at: string | null
+      /** Verified By */
+      verified_by: string | null
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string
+    }
+    /** UserDetailResponse */
+    UserDetailResponse: {
+      /** User Id */
+      user_id: string
+      /** Account Status */
+      account_status: string
+      /** Last Active At */
+      last_active_at: string | null
+      /** Formal Entitlement Count */
+      formal_entitlement_count: number
+      /** Limited Entitlement Count */
+      limited_entitlement_count: number
+      /** Open Feedback Count */
+      open_feedback_count: number
+      contact: components['schemas']['UserContactResponse'] | null
+      /** Contact Degraded */
+      contact_degraded: boolean
+      /** Learning Degraded */
+      learning_degraded: boolean
+      /** Open Scene Completed Count */
+      open_scene_completed_count: number | null
+      /** Learning Days */
+      learning_days: number | null
+      /** Favorite Count */
+      favorite_count: number | null
+    }
+    /** UserProjectionResponse */
+    UserProjectionResponse: {
+      /** User Id */
+      user_id: string
+      /** Account Status */
+      account_status: string
+      /** Last Active At */
+      last_active_at: string | null
+      /** Formal Entitlement Count */
+      formal_entitlement_count: number
+      /** Limited Entitlement Count */
+      limited_entitlement_count: number
+      /** Open Feedback Count */
+      open_feedback_count: number
+      contact: components['schemas']['UserContactResponse'] | null
+      /** Contact Degraded */
+      contact_degraded: boolean
     }
     /** UserQuery */
     UserQuery: {
@@ -1911,6 +2180,218 @@ export interface operations {
       }
     }
   }
+  list_corrections_api_v1_admin_contact_corrections_get: {
+    parameters: {
+      query?: {
+        status?: ('PENDING' | 'PROCESSING' | 'APPROVED' | 'REJECTED' | 'CANCELLED') | null
+        page?: number
+        page_size?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ContactCorrectionPageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  correction_detail_api_v1_admin_contact_corrections__correction_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        correction_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ContactCorrectionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  decide_correction_api_v1_admin_contact_corrections__correction_id__commands__command__post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        correction_id: string
+        command: 'approve' | 'reject'
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CorrectionDecisionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  update_contact_status_api_v1_admin_users__user_id__commands_contact_status_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        user_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ContactStatusRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ContactProjectionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  verify_contact_change_api_v1_admin_users__user_id__commands_verify_contact_change_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        user_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ContactProjectionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  audit_contact_copy_api_v1_admin_users__user_id__contact_copy_events_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        user_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   create_upload_policy_api_v1_admin_media_upload_policies_post: {
     parameters: {
       query?: never
@@ -1993,6 +2474,8 @@ export interface operations {
     parameters: {
       query?: {
         query?: string | null
+        contact_status?:
+          ('NOT_PROVIDED' | 'PENDING' | 'CONTACTED' | 'UNREACHABLE' | 'DO_NOT_CONTACT') | null
       }
       header?: never
       path?: never
@@ -2008,9 +2491,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }[]
+          'application/json': components['schemas']['UserProjectionResponse'][]
         }
       }
       /** @description Validation Error */
@@ -2045,9 +2526,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }[]
+          'application/json': components['schemas']['UserProjectionResponse'][]
         }
       }
       /** @description Validation Error */
@@ -2080,9 +2559,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['UserDetailResponse']
         }
       }
       /** @description Validation Error */

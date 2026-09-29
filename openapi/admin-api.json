@@ -1,9 +1,6 @@
 {
   "openapi": "3.1.0",
-  "info": {
-    "title": "Juya Admin API",
-    "version": "0.1.0"
-  },
+  "info": { "title": "Juya Admin API", "version": "0.1.0" },
   "paths": {
     "/health/live": {
       "get": {
@@ -16,9 +13,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
+                  "additionalProperties": { "type": "string" },
                   "type": "object",
                   "title": "Response Live Health Live Get"
                 }
@@ -58,9 +53,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PasswordLoginRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/PasswordLoginRequest" }
             }
           }
         },
@@ -81,9 +74,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -99,14 +90,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -128,9 +112,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -148,14 +130,7 @@
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -164,29 +139,18 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
+          "204": { "description": "Successful Response" },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -204,14 +168,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -233,9 +190,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -252,24 +207,14 @@
             "name": "key",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Key"
-            }
+            "schema": { "type": "string", "title": "Key" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -278,14 +223,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -293,11 +231,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConfigUpdateRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/ConfigUpdateRequest" } }
           }
         },
         "responses": {
@@ -317,9 +251,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -336,25 +268,14 @@
             "name": "limit",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 100,
-              "title": "Limit"
-            }
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
           },
           {
             "name": "juya_admin_session",
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -376,9 +297,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -395,24 +314,14 @@
             "name": "scene_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Scene Id"
-            }
+            "schema": { "type": "string", "title": "Scene Id" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -421,14 +330,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -437,9 +339,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateRevisionRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateRevisionRequest" }
             }
           }
         },
@@ -460,9 +360,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -479,24 +377,14 @@
             "name": "revision_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Revision Id"
-            }
+            "schema": { "type": "string", "title": "Revision Id" }
           },
           {
             "name": "juya_admin_session",
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -505,9 +393,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PublishRevisionRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/PublishRevisionRequest" }
             }
           }
         },
@@ -528,9 +414,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -547,33 +431,20 @@
             "name": "revision_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Revision Id"
-            }
+            "schema": { "type": "string", "title": "Revision Id" }
           },
           {
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "X-Idempotency-Key"
-            }
+            "schema": { "type": "string", "title": "X-Idempotency-Key" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -582,14 +453,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -598,9 +462,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PublishRevisionRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/PublishRevisionRequest" }
             }
           }
         },
@@ -621,9 +483,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -641,14 +501,7 @@
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -657,14 +510,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -672,11 +518,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OpenScenesRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/OpenScenesRequest" } }
           }
         },
         "responses": {
@@ -696,9 +538,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -715,24 +555,14 @@
             "name": "series_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Series Id"
-            }
+            "schema": { "type": "string", "title": "Series Id" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -741,14 +571,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -757,9 +580,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PreviewScenesRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/PreviewScenesRequest" }
             }
           }
         },
@@ -780,9 +601,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -799,24 +618,14 @@
             "name": "scene_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Scene Id"
-            }
+            "schema": { "type": "string", "title": "Scene Id" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -825,29 +634,18 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
+          "204": { "description": "Successful Response" },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -864,23 +662,14 @@
             "name": "operation",
             "in": "query",
             "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntitlementOperation"
-            }
+            "schema": { "$ref": "#/components/schemas/EntitlementOperation" }
           },
           {
             "name": "juya_admin_session",
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -889,9 +678,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EntitlementCommandRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/EntitlementCommandRequest" }
             }
           }
         },
@@ -912,9 +699,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -931,32 +716,20 @@
             "name": "operation",
             "in": "path",
             "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntitlementOperation"
-            }
+            "schema": { "$ref": "#/components/schemas/EntitlementOperation" }
           },
           {
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "X-Idempotency-Key"
-            }
+            "schema": { "type": "string", "title": "X-Idempotency-Key" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -965,14 +738,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -981,9 +747,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EntitlementCommandRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/EntitlementCommandRequest" }
             }
           }
         },
@@ -1004,9 +768,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1023,24 +785,14 @@
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "X-Idempotency-Key"
-            }
+            "schema": { "type": "string", "title": "X-Idempotency-Key" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -1049,14 +801,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -1064,11 +809,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GrantRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/GrantRequest" } }
           }
         },
         "responses": {
@@ -1088,9 +829,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1107,33 +846,20 @@
             "name": "entitlement_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Entitlement Id"
-            }
+            "schema": { "type": "string", "title": "Entitlement Id" }
           },
           {
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "X-Idempotency-Key"
-            }
+            "schema": { "type": "string", "title": "X-Idempotency-Key" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -1142,14 +868,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -1157,11 +876,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RemedyRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/RemedyRequest" } }
           }
         },
         "responses": {
@@ -1181,9 +896,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1200,24 +913,14 @@
             "name": "entitlement_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Entitlement Id"
-            }
+            "schema": { "type": "string", "title": "Entitlement Id" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -1226,14 +929,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -1241,11 +937,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReasonRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/ReasonRequest" } }
           }
         },
         "responses": {
@@ -1265,9 +957,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1284,24 +974,14 @@
             "name": "entitlement_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Entitlement Id"
-            }
+            "schema": { "type": "string", "title": "Entitlement Id" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -1310,14 +990,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -1339,9 +1012,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1358,24 +1029,14 @@
             "name": "entitlement_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Entitlement Id"
-            }
+            "schema": { "type": "string", "title": "Entitlement Id" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -1384,14 +1045,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -1399,11 +1053,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReasonRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/ReasonRequest" } }
           }
         },
         "responses": {
@@ -1423,9 +1073,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1442,24 +1090,14 @@
             "name": "ticket_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticket Id"
-            }
+            "schema": { "type": "string", "title": "Ticket Id" }
           },
           {
             "name": "juya_admin_session",
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -1481,9 +1119,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1500,33 +1136,20 @@
             "name": "ticket_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticket Id"
-            }
+            "schema": { "type": "string", "title": "Ticket Id" }
           },
           {
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "X-Idempotency-Key"
-            }
+            "schema": { "type": "string", "title": "X-Idempotency-Key" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -1535,14 +1158,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -1564,9 +1180,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1583,33 +1197,20 @@
             "name": "ticket_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticket Id"
-            }
+            "schema": { "type": "string", "title": "Ticket Id" }
           },
           {
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "X-Idempotency-Key"
-            }
+            "schema": { "type": "string", "title": "X-Idempotency-Key" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -1618,14 +1219,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -1633,11 +1227,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SupplementCommand"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/SupplementCommand" } }
           }
         },
         "responses": {
@@ -1657,9 +1247,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1676,33 +1264,20 @@
             "name": "ticket_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticket Id"
-            }
+            "schema": { "type": "string", "title": "Ticket Id" }
           },
           {
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "X-Idempotency-Key"
-            }
+            "schema": { "type": "string", "title": "X-Idempotency-Key" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -1711,14 +1286,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -1726,11 +1294,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResolveCommand"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/ResolveCommand" } }
           }
         },
         "responses": {
@@ -1750,9 +1314,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1769,33 +1331,20 @@
             "name": "ticket_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticket Id"
-            }
+            "schema": { "type": "string", "title": "Ticket Id" }
           },
           {
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "X-Idempotency-Key"
-            }
+            "schema": { "type": "string", "title": "X-Idempotency-Key" }
           },
           {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -1804,14 +1353,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -1819,11 +1361,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloseCommand"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/CloseCommand" } }
           }
         },
         "responses": {
@@ -1843,9 +1381,340 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/contact-corrections": {
+      "get": {
+        "tags": ["admin-contacts"],
+        "summary": "List Corrections",
+        "operationId": "list_corrections_api_v1_admin_contact_corrections_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["PENDING", "PROCESSING", "APPROVED", "REJECTED", "CANCELLED"],
+                  "type": "string"
+                },
+                { "type": "null" }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "default": 1, "title": "Page" }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ContactCorrectionPageResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/contact-corrections/{correction_id}": {
+      "get": {
+        "tags": ["admin-contacts"],
+        "summary": "Correction Detail",
+        "operationId": "correction_detail_api_v1_admin_contact_corrections__correction_id__get",
+        "parameters": [
+          {
+            "name": "correction_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Correction Id" }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ContactCorrectionResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/contact-corrections/{correction_id}/commands/{command}": {
+      "post": {
+        "tags": ["admin-contacts"],
+        "summary": "Decide Correction",
+        "operationId": "decide_correction_api_v1_admin_contact_corrections__correction_id__commands__command__post",
+        "parameters": [
+          {
+            "name": "correction_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Correction Id" }
+          },
+          {
+            "name": "command",
+            "in": "path",
+            "required": true,
+            "schema": { "enum": ["approve", "reject"], "type": "string", "title": "Command" }
+          },
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "X-Idempotency-Key"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CorrectionDecisionResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{user_id}/commands/contact-status": {
+      "post": {
+        "tags": ["admin-contacts"],
+        "summary": "Update Contact Status",
+        "operationId": "update_contact_status_api_v1_admin_users__user_id__commands_contact_status_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "User Id" }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContactStatusRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ContactProjectionResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{user_id}/commands/verify-contact-change": {
+      "post": {
+        "tags": ["admin-contacts"],
+        "summary": "Verify Contact Change",
+        "operationId": "verify_contact_change_api_v1_admin_users__user_id__commands_verify_contact_change_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "User Id" }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ContactProjectionResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{user_id}/contact-copy-events": {
+      "post": {
+        "tags": ["admin-contacts"],
+        "summary": "Audit Contact Copy",
+        "operationId": "audit_contact_copy_api_v1_admin_users__user_id__contact_copy_events_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "User Id" }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1863,14 +1732,7 @@
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -1879,14 +1741,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -1894,11 +1749,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UploadPolicyRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/UploadPolicyRequest" } }
           }
         },
         "responses": {
@@ -1918,9 +1769,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1938,14 +1787,7 @@
             "in": "header",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "X-Csrf-Token"
             }
           },
@@ -1954,14 +1796,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -1970,9 +1805,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConfirmUploadRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/ConfirmUploadRequest" }
             }
           }
         },
@@ -1993,9 +1826,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2013,16 +1844,23 @@
             "in": "query",
             "required": false,
             "schema": {
+              "anyOf": [{ "type": "string", "maxLength": 64 }, { "type": "null" }],
+              "title": "Query"
+            }
+          },
+          {
+            "name": "contact_status",
+            "in": "query",
+            "required": false,
+            "schema": {
               "anyOf": [
                 {
-                  "type": "string",
-                  "maxLength": 64
+                  "enum": ["NOT_PROVIDED", "PENDING", "CONTACTED", "UNREACHABLE", "DO_NOT_CONTACT"],
+                  "type": "string"
                 },
-                {
-                  "type": "null"
-                }
+                { "type": "null" }
               ],
-              "title": "Query"
+              "title": "Contact Status"
             }
           },
           {
@@ -2030,14 +1868,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -2049,10 +1880,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": true
-                  },
+                  "items": { "$ref": "#/components/schemas/UserProjectionResponse" },
                   "title": "Response Search Users Api V1 Admin Users Get"
                 }
               }
@@ -2062,9 +1890,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2082,14 +1908,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -2097,11 +1916,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WechatSearchRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/WechatSearchRequest" } }
           }
         },
         "responses": {
@@ -2111,10 +1926,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": true
-                  },
+                  "items": { "$ref": "#/components/schemas/UserProjectionResponse" },
                   "title": "Response Search Users By Wechat Api V1 Admin Users Search By Wechat Post"
                 }
               }
@@ -2124,9 +1936,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2143,24 +1953,14 @@
             "name": "user_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "User Id"
-            }
+            "schema": { "type": "string", "title": "User Id" }
           },
           {
             "name": "juya_admin_session",
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -2170,11 +1970,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response User Detail Api V1 Admin Users  User Id  Get"
-                }
+                "schema": { "$ref": "#/components/schemas/UserDetailResponse" }
               }
             }
           },
@@ -2182,9 +1978,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2202,14 +1996,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -2221,9 +2008,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": {
-                    "type": "integer"
-                  },
+                  "additionalProperties": { "type": "integer" },
                   "title": "Response Dashboard Snapshot Api V1 Admin Dashboard Get"
                 }
               }
@@ -2233,9 +2018,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2253,14 +2036,7 @@
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -2272,10 +2048,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": true
-                  },
+                  "items": { "type": "object", "additionalProperties": true },
                   "title": "Response Active Work Items Api V1 Admin Work Items Get"
                 }
               }
@@ -2285,9 +2058,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2304,35 +2075,20 @@
             "name": "start",
             "in": "query",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date",
-              "title": "Start"
-            }
+            "schema": { "type": "string", "format": "date", "title": "Start" }
           },
           {
             "name": "end",
             "in": "query",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date",
-              "title": "End"
-            }
+            "schema": { "type": "string", "format": "date", "title": "End" }
           },
           {
             "name": "juya_admin_session",
             "in": "cookie",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Juya Admin Session"
             }
           }
@@ -2344,10 +2100,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": true
-                  },
+                  "items": { "type": "object", "additionalProperties": true },
                   "title": "Response Analytics Export Api V1 Admin Analytics Export Get"
                 }
               }
@@ -2357,9 +2110,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2394,11 +2145,7 @@
         "operationId": "learning_catalog_internal_v1_learning_catalog_post",
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserQuery"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/UserQuery" } }
           },
           "required": true
         },
@@ -2419,9 +2166,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2435,11 +2180,7 @@
         "operationId": "access_batch_internal_v1_access_batch_post",
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AccessBatchRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/AccessBatchRequest" } }
           },
           "required": true
         },
@@ -2460,9 +2201,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2479,20 +2218,13 @@
             "name": "scene_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Scene Id"
-            }
+            "schema": { "type": "string", "title": "Scene Id" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserQuery"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/UserQuery" } }
           }
         },
         "responses": {
@@ -2512,9 +2244,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2531,29 +2261,19 @@
             "name": "scene_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Scene Id"
-            }
+            "schema": { "type": "string", "title": "Scene Id" }
           },
           {
             "name": "entry_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Entry Id"
-            }
+            "schema": { "type": "string", "title": "Entry Id" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserQuery"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/UserQuery" } }
           }
         },
         "responses": {
@@ -2573,9 +2293,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2592,19 +2310,14 @@
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "X-Idempotency-Key"
-            }
+            "schema": { "type": "string", "title": "X-Idempotency-Key" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FeedbackCreateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/FeedbackCreateRequest" }
             }
           }
         },
@@ -2625,9 +2338,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2644,10 +2355,7 @@
             "name": "ticket_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticket Id"
-            }
+            "schema": { "type": "string", "title": "Ticket Id" }
           }
         ],
         "responses": {
@@ -2667,9 +2375,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2686,29 +2392,19 @@
             "name": "ticket_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticket Id"
-            }
+            "schema": { "type": "string", "title": "Ticket Id" }
           },
           {
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "X-Idempotency-Key"
-            }
+            "schema": { "type": "string", "title": "X-Idempotency-Key" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SupplementRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/SupplementRequest" } }
           }
         },
         "responses": {
@@ -2728,9 +2424,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2747,28 +2441,20 @@
             "name": "ticket_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticket Id"
-            }
+            "schema": { "type": "string", "title": "Ticket Id" }
           },
           {
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "X-Idempotency-Key"
-            }
+            "schema": { "type": "string", "title": "X-Idempotency-Key" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserResolutionRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/UserResolutionRequest" }
             }
           }
         },
@@ -2789,9 +2475,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2808,19 +2492,13 @@
             "name": "target_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Target Id"
-            }
+            "schema": { "type": "string", "title": "Target Id" }
           },
           {
             "name": "X-User-ID",
             "in": "header",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "X-User-Id"
-            }
+            "schema": { "type": "string", "title": "X-User-Id" }
           }
         ],
         "responses": {
@@ -2840,9 +2518,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2859,20 +2535,13 @@
             "name": "user_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "User Id"
-            }
+            "schema": { "type": "string", "title": "User Id" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeletionRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/DeletionRequest" } }
           }
         },
         "responses": {
@@ -2892,9 +2561,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2906,16 +2573,9 @@
     "schemas": {
       "AccessBatchRequest": {
         "properties": {
-          "user_id": {
-            "type": "string",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "User Id"
-          },
+          "user_id": { "type": "string", "maxLength": 64, "minLength": 1, "title": "User Id" },
           "scene_ids": {
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "type": "array",
             "maxItems": 100,
             "title": "Scene Ids"
@@ -2928,12 +2588,7 @@
       },
       "CloseCommand": {
         "properties": {
-          "reason": {
-            "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Reason"
-          }
+          "reason": { "type": "string", "maxLength": 200, "minLength": 1, "title": "Reason" }
         },
         "additionalProperties": false,
         "type": "object",
@@ -2942,16 +2597,8 @@
       },
       "ConfigUpdateRequest": {
         "properties": {
-          "value": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Value"
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 1,
-            "title": "Expected Version"
-          }
+          "value": { "additionalProperties": true, "type": "object", "title": "Value" },
+          "expected_version": { "type": "integer", "minimum": 1.0, "title": "Expected Version" }
         },
         "additionalProperties": false,
         "type": "object",
@@ -2960,10 +2607,7 @@
       },
       "ConfirmUploadRequest": {
         "properties": {
-          "asset_type": {
-            "type": "string",
-            "title": "Asset Type"
-          },
+          "asset_type": { "type": "string", "title": "Asset Type" },
           "object_key": {
             "type": "string",
             "maxLength": 512,
@@ -2976,17 +2620,137 @@
         "required": ["asset_type", "object_key"],
         "title": "ConfirmUploadRequest"
       },
+      "ContactCorrectionPageResponse": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/ContactCorrectionResponse" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "title": "Total" },
+          "page": { "type": "integer", "title": "Page" },
+          "page_size": { "type": "integer", "title": "Page Size" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "page_size"],
+        "title": "ContactCorrectionPageResponse"
+      },
+      "ContactCorrectionResponse": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "user_id": { "type": "string", "title": "User Id" },
+          "juya_number": { "type": "string", "title": "Juya Number" },
+          "nickname": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Nickname" },
+          "wechat_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Wechat Id"
+          },
+          "reason": { "type": "string", "title": "Reason" },
+          "status": {
+            "type": "string",
+            "enum": ["PENDING", "PROCESSING", "APPROVED", "REJECTED", "CANCELLED"],
+            "title": "Status"
+          },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
+          "processed_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Processed At"
+          },
+          "timeline": {
+            "items": { "$ref": "#/components/schemas/ContactTimelineResponse" },
+            "type": "array",
+            "title": "Timeline"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "juya_number",
+          "nickname",
+          "wechat_id",
+          "reason",
+          "status",
+          "created_at",
+          "processed_at",
+          "timeline"
+        ],
+        "title": "ContactCorrectionResponse"
+      },
+      "ContactProjectionResponse": {
+        "properties": {
+          "user_id": { "type": "string", "title": "User Id" },
+          "wechat_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Wechat Id"
+          },
+          "contact_status": {
+            "type": "string",
+            "enum": ["NOT_PROVIDED", "PENDING", "CONTACTED", "UNREACHABLE", "DO_NOT_CONTACT"],
+            "title": "Contact Status"
+          },
+          "change_pending": { "type": "boolean", "title": "Change Pending" },
+          "verified_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Verified At"
+          },
+          "verified_by": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Verified By"
+          },
+          "updated_at": { "type": "string", "format": "date-time", "title": "Updated At" }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "wechat_id",
+          "contact_status",
+          "change_pending",
+          "verified_at",
+          "verified_by",
+          "updated_at"
+        ],
+        "title": "ContactProjectionResponse"
+      },
+      "ContactStatusRequest": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["NOT_PROVIDED", "PENDING", "CONTACTED", "UNREACHABLE", "DO_NOT_CONTACT"],
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["status"],
+        "title": "ContactStatusRequest"
+      },
+      "ContactTimelineResponse": {
+        "properties": {
+          "status": { "type": "string", "title": "Status" },
+          "actor_type": { "type": "string", "title": "Actor Type" },
+          "actor_id": { "type": "string", "title": "Actor Id" },
+          "event_type": { "type": "string", "title": "Event Type" },
+          "occurred_at": { "type": "string", "format": "date-time", "title": "Occurred At" }
+        },
+        "type": "object",
+        "required": ["status", "actor_type", "actor_id", "event_type", "occurred_at"],
+        "title": "ContactTimelineResponse"
+      },
+      "CorrectionDecisionResponse": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "status": { "type": "string", "enum": ["APPROVED", "REJECTED"], "title": "Status" },
+          "processed_at": { "type": "string", "format": "date-time", "title": "Processed At" }
+        },
+        "type": "object",
+        "required": ["id", "status", "processed_at"],
+        "title": "CorrectionDecisionResponse"
+      },
       "CreateRevisionRequest": {
         "properties": {
           "source_revision_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Source Revision Id"
           }
         },
@@ -2996,12 +2760,7 @@
       },
       "DeletionRequest": {
         "properties": {
-          "event_id": {
-            "type": "string",
-            "maxLength": 128,
-            "minLength": 1,
-            "title": "Event Id"
-          }
+          "event_id": { "type": "string", "maxLength": 128, "minLength": 1, "title": "Event Id" }
         },
         "additionalProperties": false,
         "type": "object",
@@ -3010,12 +2769,7 @@
       },
       "EntitlementCommandRequest": {
         "properties": {
-          "user_id": {
-            "type": "string",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "User Id"
-          },
+          "user_id": { "type": "string", "maxLength": 64, "minLength": 1, "title": "User Id" },
           "package_id": {
             "type": "string",
             "maxLength": 64,
@@ -3023,25 +2777,10 @@
             "title": "Package Id"
           },
           "term": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EntitlementTerm"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/EntitlementTerm" }, { "type": "null" }]
           },
           "reason": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 500 }, { "type": "null" }],
             "title": "Reason"
           }
         },
@@ -3062,31 +2801,17 @@
       },
       "FeedbackCreateRequest": {
         "properties": {
-          "user_id": {
-            "type": "string",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "User Id"
-          },
-          "category": {
-            "type": "string",
-            "title": "Category"
-          },
+          "user_id": { "type": "string", "maxLength": 64, "minLength": 1, "title": "User Id" },
+          "category": { "type": "string", "title": "Category" },
           "description": {
             "type": "string",
             "maxLength": 300,
             "minLength": 1,
             "title": "Description"
           },
-          "source": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Source"
-          },
+          "source": { "additionalProperties": true, "type": "object", "title": "Source" },
           "screenshots": {
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "type": "array",
             "maxItems": 1,
             "title": "Screenshots"
@@ -3099,12 +2824,7 @@
       },
       "GrantRequest": {
         "properties": {
-          "user_id": {
-            "type": "string",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "User Id"
-          },
+          "user_id": { "type": "string", "maxLength": 64, "minLength": 1, "title": "User Id" },
           "campaign_version_id": {
             "type": "string",
             "maxLength": 64,
@@ -3120,9 +2840,7 @@
       "HTTPValidationError": {
         "properties": {
           "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
+            "items": { "$ref": "#/components/schemas/ValidationError" },
             "type": "array",
             "title": "Detail"
           }
@@ -3133,9 +2851,7 @@
       "OpenScenesRequest": {
         "properties": {
           "scene_ids": {
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "type": "array",
             "maxItems": 3,
             "minItems": 3,
@@ -3149,18 +2865,8 @@
       },
       "PasswordLoginRequest": {
         "properties": {
-          "username": {
-            "type": "string",
-            "maxLength": 100,
-            "minLength": 1,
-            "title": "Username"
-          },
-          "password": {
-            "type": "string",
-            "maxLength": 1024,
-            "minLength": 1,
-            "title": "Password"
-          }
+          "username": { "type": "string", "maxLength": 100, "minLength": 1, "title": "Username" },
+          "password": { "type": "string", "maxLength": 1024, "minLength": 1, "title": "Password" }
         },
         "additionalProperties": false,
         "type": "object",
@@ -3170,9 +2876,7 @@
       "PreviewScenesRequest": {
         "properties": {
           "scene_ids": {
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "type": "array",
             "maxItems": 6,
             "minItems": 3,
@@ -3187,9 +2891,7 @@
       "PublishRevisionRequest": {
         "properties": {
           "acknowledged_warning_codes": {
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "type": "array",
             "uniqueItems": true,
             "title": "Acknowledged Warning Codes"
@@ -3201,12 +2903,7 @@
       },
       "ReasonRequest": {
         "properties": {
-          "reason": {
-            "type": "string",
-            "maxLength": 500,
-            "minLength": 1,
-            "title": "Reason"
-          }
+          "reason": { "type": "string", "maxLength": 500, "minLength": 1, "title": "Reason" }
         },
         "additionalProperties": false,
         "type": "object",
@@ -3219,11 +2916,7 @@
         "title": "RemedyMode"
       },
       "RemedyRequest": {
-        "properties": {
-          "mode": {
-            "$ref": "#/components/schemas/RemedyMode"
-          }
-        },
+        "properties": { "mode": { "$ref": "#/components/schemas/RemedyMode" } },
         "additionalProperties": false,
         "type": "object",
         "required": ["mode"],
@@ -3231,20 +2924,9 @@
       },
       "ResolveCommand": {
         "properties": {
-          "template": {
-            "type": "string",
-            "title": "Template"
-          },
+          "template": { "type": "string", "title": "Template" },
           "note": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 200
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 200 }, { "type": "null" }],
             "title": "Note"
           }
         },
@@ -3269,18 +2951,8 @@
       },
       "SupplementRequest": {
         "properties": {
-          "user_id": {
-            "type": "string",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "User Id"
-          },
-          "text": {
-            "type": "string",
-            "maxLength": 300,
-            "minLength": 1,
-            "title": "Text"
-          }
+          "user_id": { "type": "string", "maxLength": 64, "minLength": 1, "title": "User Id" },
+          "text": { "type": "string", "maxLength": 300, "minLength": 1, "title": "Text" }
         },
         "additionalProperties": false,
         "type": "object",
@@ -3288,25 +2960,123 @@
         "title": "SupplementRequest"
       },
       "UploadPolicyRequest": {
-        "properties": {
-          "asset_type": {
-            "type": "string",
-            "title": "Asset Type"
-          }
-        },
+        "properties": { "asset_type": { "type": "string", "title": "Asset Type" } },
         "additionalProperties": false,
         "type": "object",
         "required": ["asset_type"],
         "title": "UploadPolicyRequest"
       },
+      "UserContactResponse": {
+        "properties": {
+          "wechat_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Wechat Id"
+          },
+          "contact_status": {
+            "type": "string",
+            "enum": ["NOT_PROVIDED", "PENDING", "CONTACTED", "UNREACHABLE", "DO_NOT_CONTACT"],
+            "title": "Contact Status"
+          },
+          "change_pending": { "type": "boolean", "title": "Change Pending" },
+          "verified_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Verified At"
+          },
+          "verified_by": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Verified By"
+          },
+          "updated_at": { "type": "string", "format": "date-time", "title": "Updated At" }
+        },
+        "type": "object",
+        "required": [
+          "wechat_id",
+          "contact_status",
+          "change_pending",
+          "verified_at",
+          "verified_by",
+          "updated_at"
+        ],
+        "title": "UserContactResponse"
+      },
+      "UserDetailResponse": {
+        "properties": {
+          "user_id": { "type": "string", "title": "User Id" },
+          "account_status": { "type": "string", "title": "Account Status" },
+          "last_active_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Last Active At"
+          },
+          "formal_entitlement_count": { "type": "integer", "title": "Formal Entitlement Count" },
+          "limited_entitlement_count": { "type": "integer", "title": "Limited Entitlement Count" },
+          "open_feedback_count": { "type": "integer", "title": "Open Feedback Count" },
+          "contact": {
+            "anyOf": [{ "$ref": "#/components/schemas/UserContactResponse" }, { "type": "null" }]
+          },
+          "contact_degraded": { "type": "boolean", "title": "Contact Degraded" },
+          "learning_degraded": { "type": "boolean", "title": "Learning Degraded" },
+          "open_scene_completed_count": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Open Scene Completed Count"
+          },
+          "learning_days": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Learning Days"
+          },
+          "favorite_count": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Favorite Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "account_status",
+          "last_active_at",
+          "formal_entitlement_count",
+          "limited_entitlement_count",
+          "open_feedback_count",
+          "contact",
+          "contact_degraded",
+          "learning_degraded",
+          "open_scene_completed_count",
+          "learning_days",
+          "favorite_count"
+        ],
+        "title": "UserDetailResponse"
+      },
+      "UserProjectionResponse": {
+        "properties": {
+          "user_id": { "type": "string", "title": "User Id" },
+          "account_status": { "type": "string", "title": "Account Status" },
+          "last_active_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Last Active At"
+          },
+          "formal_entitlement_count": { "type": "integer", "title": "Formal Entitlement Count" },
+          "limited_entitlement_count": { "type": "integer", "title": "Limited Entitlement Count" },
+          "open_feedback_count": { "type": "integer", "title": "Open Feedback Count" },
+          "contact": {
+            "anyOf": [{ "$ref": "#/components/schemas/UserContactResponse" }, { "type": "null" }]
+          },
+          "contact_degraded": { "type": "boolean", "title": "Contact Degraded" }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "account_status",
+          "last_active_at",
+          "formal_entitlement_count",
+          "limited_entitlement_count",
+          "open_feedback_count",
+          "contact",
+          "contact_degraded"
+        ],
+        "title": "UserProjectionResponse"
+      },
       "UserQuery": {
         "properties": {
-          "user_id": {
-            "type": "string",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "User Id"
-          }
+          "user_id": { "type": "string", "maxLength": 64, "minLength": 1, "title": "User Id" }
         },
         "additionalProperties": false,
         "type": "object",
@@ -3315,26 +3085,10 @@
       },
       "UserResolutionRequest": {
         "properties": {
-          "user_id": {
-            "type": "string",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "User Id"
-          },
-          "action": {
-            "type": "string",
-            "title": "Action"
-          },
+          "user_id": { "type": "string", "maxLength": 64, "minLength": 1, "title": "User Id" },
+          "action": { "type": "string", "title": "Action" },
           "reason": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 300
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 300 }, { "type": "null" }],
             "title": "Reason"
           }
         },
@@ -3346,34 +3100,14 @@
       "ValidationError": {
         "properties": {
           "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
             "type": "array",
             "title": "Location"
           },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
-          }
+          "msg": { "type": "string", "title": "Message" },
+          "type": { "type": "string", "title": "Error Type" },
+          "input": { "title": "Input" },
+          "ctx": { "type": "object", "title": "Context" }
         },
         "type": "object",
         "required": ["loc", "msg", "type"],
@@ -3381,12 +3115,7 @@
       },
       "WechatSearchRequest": {
         "properties": {
-          "wechat_id": {
-            "type": "string",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "Wechat Id"
-          }
+          "wechat_id": { "type": "string", "maxLength": 64, "minLength": 1, "title": "Wechat Id" }
         },
         "additionalProperties": false,
         "type": "object",
