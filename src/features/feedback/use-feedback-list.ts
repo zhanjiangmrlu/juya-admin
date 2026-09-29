@@ -6,6 +6,7 @@ import type { FeedbackAdapter, FeedbackFilters, FeedbackPage } from './feedback-
 import type { DeepReadonly, Ref } from 'vue'
 
 export interface FeedbackListController {
+  apiError: Readonly<Ref<ApiError | null>>
   dispose(): void
   error: Readonly<Ref<string | null>>
   isLoading: Readonly<Ref<boolean>>
@@ -21,6 +22,7 @@ export interface FeedbackListController {
 export function useFeedbackList(adapter: FeedbackAdapter): FeedbackListController {
   const page = shallowRef<FeedbackPage>({ items: [], page: 1, pageSize: 20, total: 0 })
   const error = ref<string | null>(null)
+  const apiError = shallowRef<ApiError | null>(null)
   const isLoading = ref(false)
   let controller: AbortController | null = null
   let sequence = 0
@@ -36,11 +38,13 @@ export function useFeedbackList(adapter: FeedbackAdapter): FeedbackListControlle
     const current = ++sequence
     isLoading.value = true
     error.value = null
+    apiError.value = null
     try {
       const result = await adapter.list(filters, controller.signal)
       if (current === sequence) page.value = result
     } catch (failure) {
       if (current === sequence && !controller.signal.aborted) {
+        apiError.value = failure instanceof ApiError ? failure : null
         error.value = failure instanceof ApiError ? failure.message : '反馈列表加载失败'
       }
     } finally {
@@ -57,6 +61,7 @@ export function useFeedbackList(adapter: FeedbackAdapter): FeedbackListControlle
   }
 
   return {
+    apiError: readonly(apiError),
     dispose,
     error: readonly(error),
     isLoading: readonly(isLoading),

@@ -16,6 +16,7 @@ export class FeedbackClientError extends Error {
 }
 
 export interface FeedbackCommandController {
+  apiError: Readonly<Ref<ApiError | null>>
   close(reason: string): Promise<void>
   error: Readonly<Ref<string | null>>
   hasConflict: Readonly<Ref<boolean>>
@@ -38,6 +39,7 @@ export function useFeedbackCommand(
   ticket: Ref<FeedbackTicket | null>
 ): FeedbackCommandController {
   const error = ref<string | null>(null)
+  const apiError = shallowRef<ApiError | null>(null)
   const hasConflict = ref(false)
   const lastInput = shallowRef<FeedbackCommandInput | null>(null)
   const command = useIdempotentCommand<FeedbackCommandInput, FeedbackTicket>(adapter.execute)
@@ -51,11 +53,13 @@ export function useFeedbackCommand(
   async function run(input: FeedbackCommandInput): Promise<void> {
     lastInput.value = input
     error.value = null
+    apiError.value = null
     hasConflict.value = false
     try {
       await command.submit(input)
       ticket.value = await adapter.getDetail(input.ticketId)
     } catch (failure) {
+      apiError.value = failure instanceof ApiError ? failure : null
       hasConflict.value = failure instanceof ApiError && failure.status === 409
       error.value = failure instanceof Error ? failure.message : '反馈操作失败'
       throw failure
@@ -125,6 +129,7 @@ export function useFeedbackCommand(
   }
 
   return {
+    apiError: readonly(apiError),
     close,
     error: readonly(error),
     hasConflict: readonly(hasConflict),

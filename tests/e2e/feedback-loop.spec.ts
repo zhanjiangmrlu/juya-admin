@@ -34,8 +34,13 @@ test('反馈列表支持筛选分页并进入完整详情', async ({ adminApi, p
   expect(secondPage?.url).toContain('keyword=USER-1')
 
   await page.getByRole('link', { name: 'FB-1' }).click()
-  await expect(page).toHaveURL(/\/feedback\/FB-1$/)
+  await expect(page).toHaveURL(/\/feedback\/FB-1\?/)
   await expect(page.getByText('开始处理')).toBeVisible()
+  await page.getByRole('button', { name: '返回反馈列表' }).click()
+  await expect(page).toHaveURL(/\/feedback\?/)
+  await expect(page).toHaveURL(/keyword=USER-1/)
+  await expect(page).toHaveURL(/status=PROCESSING/)
+  await expect(page).toHaveURL(/page=2/)
 })
 
 test('反馈截图每次重新签发且地址不进入浏览器持久化', async ({ adminApi, page }) => {

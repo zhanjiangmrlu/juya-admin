@@ -115,6 +115,11 @@ describe('feedback pages', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('<b>原样反馈</b>'))
     expect(wrapper.find('b').exists()).toBe(false)
     expect(wrapper.text()).toContain('开始处理')
+    expect(wrapper.text()).toContain('请补充页面截图')
+    expect(wrapper.text()).toContain('<b>已修复字幕</b>')
+    expect(wrapper.text()).toContain('<i>再次出现</i>')
+    expect(wrapper.html()).not.toContain('<b>已修复字幕</b>')
+    expect(wrapper.html()).not.toContain('<i>再次出现</i>')
     expect(wrapper.text()).not.toContain('时间线接口待接入')
     wrapper.get('button[aria-label="查看反馈截图"]')
     await wrapper.get('button[aria-label="查看反馈截图"]').trigger('click')
@@ -136,7 +141,14 @@ const ticketResponse = {
   id: 'FB-1',
   internal_notes: [],
   reopen_count: 0,
-  replies: [],
+  replies: [
+    {
+      admin_id: 'ADMIN-1',
+      note: '<b>已修复字幕</b>',
+      sent_at: '2026-09-29T08:40:00Z',
+      template: 'RESOLVED'
+    }
+  ],
   resolved_at: null,
   rounds: [],
   screenshots: [{ delete_after: null, deleted_at: null, security_status: 'PASSED' }],
@@ -151,6 +163,22 @@ const ticketResponse = {
       event_type: 'PROCESSING_STARTED',
       occurred_at: '2026-09-29T08:30:00Z',
       payload: {},
+      visibility: 'BOTH'
+    },
+    {
+      actor_id: 'ADMIN-1',
+      actor_type: 'ADMIN',
+      event_type: 'NEED_MORE',
+      occurred_at: '2026-09-29T08:35:00Z',
+      payload: { request_text: '请补充页面截图' },
+      visibility: 'BOTH'
+    },
+    {
+      actor_id: 'USER-1',
+      actor_type: 'USER',
+      event_type: 'REOPENED',
+      occurred_at: '2026-09-29T08:50:00Z',
+      payload: { reason: '<i>再次出现</i>' },
       visibility: 'BOTH'
     }
   ],

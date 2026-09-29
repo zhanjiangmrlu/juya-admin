@@ -22,5 +22,6 @@ describe('feedback internal note controller', () => {
 
     expect(controller.draft.value).toBe('需要继续排查')
     expect(controller.error.value).toBe('暂时无法保存')
+    expect(controller.apiError.value).toBe(failure)
   })
 })

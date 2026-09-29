@@ -3,6 +3,7 @@ import { ElMessage } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, reactive, shallowRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import PlainTextContent from '@/components/plain-text-content/plain-text-content.vue'
 import StatusTag from '@/components/status-tag/status-tag.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
@@ -15,6 +16,7 @@ import { getFeedbackOperations } from '@/features/feedback/feedback-model'
 import { useFeedbackCommand } from '@/features/feedback/use-feedback-command'
 import { useFeedbackNote } from '@/features/feedback/use-feedback-note'
 import { createApiClient } from '@/services/api/api-client'
+import { ApiError } from '@/shared/errors/api-error'
 
 import type { FeedbackTicket } from '@/features/feedback/feedback-adapter'
 
@@ -25,6 +27,7 @@ const ticketId = computed(() => String(route.params.id))
 const ticket = shallowRef<FeedbackTicket | null>(null)
 const isLoading = shallowRef(true)
 const loadError = shallowRef<string | null>(null)
+const loadApiError = shallowRef<ApiError | null>(null)
 const form = reactive({
   closeReason: '',
   replyNote: '',
@@ -66,9 +69,11 @@ onBeforeUnmount(() => {
 async function loadTicket(): Promise<void> {
   isLoading.value = true
   loadError.value = null
+  loadApiError.value = null
   try {
     ticket.value = await adapter.getDetail(ticketId.value)
   } catch (failure) {
+    loadApiError.value = failure instanceof ApiError ? failure : null
     loadError.value = failure instanceof Error ? failure.message : '反馈详情加载失败'
   } finally {
     isLoading.value = false
@@ -143,7 +148,9 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
 
 <template>
   <section class="feedback-respond-page">
-    <ElAlert v-if="loadError" :closable="false" :title="loadError" type="error" show-icon />
+    <ElAlert v-if="loadError" :closable="false" :title="loadError" type="error" show-icon>
+      <ApiErrorDetails :error="loadApiError" />
+    </ElAlert>
     <ElSkeleton v-else-if="isLoading" :rows="9" animated />
 
     <template v-else-if="ticket">
@@ -155,7 +162,7 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
         <RouterLink
           v-slot="{ navigate }"
           custom
-          :to="{ name: 'feedback-detail', params: { id: ticket.id } }"
+          :to="{ name: 'feedback-detail', params: { id: ticket.id }, query: route.query }"
         >
           <ElButton @click="navigate">返回反馈详情</ElButton>
         </RouterLink>
@@ -190,9 +197,10 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
             type="error"
             show-icon
           >
-            <template v-if="command.hasConflict.value" #default>
+            <ApiErrorDetails :error="command.apiError.value" />
+            <p v-if="command.hasConflict.value">
               当前表单输入已保留，请返回详情核对最新状态后再决定是否重试
-            </template>
+            </p>
           </ElAlert>
 
           <ElEmpty v-if="operations.length === 0" description="当前反馈已结束，无可执行操作" />
@@ -297,7 +305,9 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
               :title="note.error.value"
               type="error"
               show-icon
-            />
+            >
+              <ApiErrorDetails :error="note.apiError.value" />
+            </ElAlert>
             <ElFormItem label="内部备注（仅管理员可见）">
               <ElInput
                 :model-value="note.draft.value"

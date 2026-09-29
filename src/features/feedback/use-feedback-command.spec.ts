@@ -48,9 +48,11 @@ describe('feedback command controller', () => {
 
     await expect(controller.requestSupplement('请补充操作步骤')).rejects.toBe(conflict)
     expect(controller.hasConflict.value).toBe(true)
+    expect(controller.apiError.value).toBe(conflict)
     expect(controller.lastInput.value?.payload).toEqual({ request_text: '请补充操作步骤' })
 
     await controller.requestSupplement('请补充操作步骤')
+    expect(controller.apiError.value).toBeNull()
     expect(getDetail).toHaveBeenCalledWith('FB-1')
     expect(ticketRef.value.status).toBe('NEED_MORE')
   })

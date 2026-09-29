@@ -6,6 +6,7 @@ import type { FeedbackAdapter, FeedbackDetail } from './feedback-adapter'
 import type { DeepReadonly, MaybeRef, Ref } from 'vue'
 
 export interface FeedbackDetailController {
+  apiError: Readonly<Ref<ApiError | null>>
   dispose(): void
   error: Readonly<Ref<string | null>>
   isLoading: Readonly<Ref<boolean>>
@@ -29,6 +30,7 @@ export function useFeedbackDetail(
 ): FeedbackDetailController {
   const ticket = shallowRef<FeedbackDetail | null>(null)
   const error = ref<string | null>(null)
+  const apiError = shallowRef<ApiError | null>(null)
   const isLoading = ref(false)
   const screenshotUrl = ref<string | null>(null)
   const screenshotExpiresAt = ref<string | null>(null)
@@ -44,11 +46,13 @@ export function useFeedbackDetail(
     controller = new AbortController()
     isLoading.value = true
     error.value = null
+    apiError.value = null
     try {
       ticket.value = await adapter.getDetail(toValue(ticketId), controller.signal)
     } catch (failure) {
       if (!controller.signal.aborted)
         error.value = failure instanceof ApiError ? failure.message : '反馈详情加载失败'
+      if (!controller.signal.aborted) apiError.value = failure instanceof ApiError ? failure : null
     } finally {
       if (!controller.signal.aborted) isLoading.value = false
     }
@@ -57,11 +61,13 @@ export function useFeedbackDetail(
   /** 每次按需向服务端重新签发截图临时地址，地址只保存在内存。 */
   async function loadScreenshot(): Promise<void> {
     error.value = null
+    apiError.value = null
     try {
       const signed = await adapter.getScreenshotUrl(toValue(ticketId))
       screenshotUrl.value = signed.url
       screenshotExpiresAt.value = signed.expiresAt
     } catch (failure) {
+      apiError.value = failure instanceof ApiError ? failure : null
       error.value = failure instanceof ApiError ? failure.message : '反馈截图加载失败'
       throw failure
     }
@@ -81,6 +87,7 @@ export function useFeedbackDetail(
   }
 
   return {
+    apiError: readonly(apiError),
     dispose,
     error: readonly(error),
     isLoading: readonly(isLoading),

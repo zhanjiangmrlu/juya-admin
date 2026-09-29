@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import AuditTimeline from '@/components/audit-timeline/audit-timeline.vue'
 import PlainTextContent from '@/components/plain-text-content/plain-text-content.vue'
 import StatusTag from '@/components/status-tag/status-tag.vue'
@@ -54,7 +55,7 @@ const timeline = computed(() =>
   (controller.ticket.value?.timeline ?? []).map((event, index) => ({
     actor: `${event.actorType === 'ADMIN' ? '管理员' : '用户'} · ${event.actorId}`,
     at: formatDateTime(event.occurredAt),
-    content: timelineLabel(event),
+    content: timelineContent(event),
     id: `${event.occurredAt}-${event.eventType}-${index}`
   }))
 )
@@ -82,12 +83,25 @@ function timelineLabel(event: FeedbackTimelineEvent): string {
     CREATED: '提交反馈',
     INTERNAL_NOTE_ADDED: '添加内部备注',
     PROCESSING_STARTED: '开始处理',
-    REPLIED: '回复并解决',
     RESOLVED: '反馈已解决',
-    SUPPLEMENT_REQUESTED: '要求补充信息',
+    NEED_MORE: '要求补充信息',
+    REOPENED: '用户重开反馈',
     USER_SUPPLIED: '用户已补充信息'
   }
   return labels[event.eventType] ?? event.eventType
+}
+
+/**
+ * 拼接事件标签与服务端记录的业务说明。
+ * @param event - 反馈时间线事件
+ * @returns 完整事件文案
+ */
+function timelineContent(event: FeedbackTimelineEvent): string {
+  const payloadKeys = ['request_text', 'supplement_text', 'reason', 'template']
+  const detail = payloadKeys
+    .map((key) => event.payload[key])
+    .find((value): value is string => typeof value === 'string' && value.length > 0)
+  return detail ? `${timelineLabel(event)}：${detail}` : timelineLabel(event)
 }
 
 /** 按需重新签发并展示截图临时地址。 */
@@ -123,7 +137,9 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
       :title="controller.error.value"
       type="error"
       show-icon
-    />
+    >
+      <ApiErrorDetails :error="controller.apiError.value" />
+    </ElAlert>
     <ElSkeleton v-if="controller.isLoading.value" :rows="9" animated />
 
     <template v-else-if="controller.ticket.value">
@@ -133,14 +149,18 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
           <h2>问题反馈详情 · {{ controller.ticket.value.id }}</h2>
         </div>
         <div class="heading-actions">
-          <RouterLink v-slot="{ navigate }" custom :to="{ name: 'feedback' }">
+          <RouterLink v-slot="{ navigate }" custom :to="{ name: 'feedback', query: route.query }">
             <ElButton @click="navigate">返回反馈列表</ElButton>
           </RouterLink>
           <RouterLink
             v-if="operations.length"
             v-slot="{ navigate }"
             custom
-            :to="{ name: 'feedback-respond', params: { id: controller.ticket.value.id } }"
+            :to="{
+              name: 'feedback-respond',
+              params: { id: controller.ticket.value.id },
+              query: route.query
+            }"
           >
             <ElButton type="primary" @click="navigate">处理反馈</ElButton>
           </RouterLink>
@@ -172,6 +192,19 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
               <strong>第 {{ round.roundNumber }} 轮</strong>
               <PlainTextContent :content="round.requestText ?? '未记录补充要求'" />
               <PlainTextContent :content="round.supplementText ?? '等待用户补充'" />
+            </div>
+          </ElCard>
+
+          <ElCard v-if="controller.ticket.value.replies.length" shadow="never">
+            <template #header><h3 class="panel-title">回复记录</h3></template>
+            <div
+              v-for="reply in controller.ticket.value.replies"
+              :key="`${reply.sentAt}-${reply.adminId}`"
+              class="record-block"
+            >
+              <strong>{{ reply.template }}</strong>
+              <PlainTextContent :content="reply.note ?? '未填写补充说明'" />
+              <small>{{ reply.adminId }} · {{ formatDateTime(reply.sentAt) }}</small>
             </div>
           </ElCard>
 

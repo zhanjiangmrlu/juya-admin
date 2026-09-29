@@ -204,7 +204,7 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
         type="error"
         show-icon
       >
-        <ApiErrorDetails :error="null" />
+        <ApiErrorDetails :error="controller.apiError.value" />
         <ElButton size="small" @click="load">重试</ElButton>
       </ElAlert>
       <ElEmpty
@@ -214,7 +214,9 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
       <ElTable v-else :data="controller.page.value.items" stripe class="feedback-table">
         <ElTableColumn label="反馈编号" min-width="112">
           <template #default="scope">
-            <RouterLink :to="{ name: 'feedback-detail', params: { id: scope.row.id } }">
+            <RouterLink
+              :to="{ name: 'feedback-detail', params: { id: scope.row.id }, query: route.query }"
+            >
               {{ scope.row.id }}
             </RouterLink>
           </template>
