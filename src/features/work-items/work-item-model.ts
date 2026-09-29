@@ -68,10 +68,10 @@ const itemPresentation: Readonly<Record<string, WorkItemViewModel>> = {
 }
 
 /**
- * 按展示区域分组待办，并保持服务端返回顺序。
+ * 按展示区域分组待办，并保持服务端返回顺序
  *
- * @param items - 服务端已排序的待办数组。
- * @returns 紧急待办和普通信息提醒分组。
+ * @param items - 服务端已排序的待办数组
+ * @returns 紧急待办和普通信息提醒分组
  */
 export function groupWorkItems(items: WorkItemDto[]): WorkItemGroups {
   return {
@@ -81,10 +81,10 @@ export function groupWorkItems(items: WorkItemDto[]): WorkItemGroups {
 }
 
 /**
- * 将服务端待办转换为页面展示文案和目标地址。
+ * 将服务端待办转换为页面展示文案和目标地址
  *
- * @param item - 单条服务端待办。
- * @returns 稳定的页面展示模型。
+ * @param item - 单条服务端待办
+ * @returns 稳定的页面展示模型
  */
 export function toWorkItemViewModel(item: WorkItemDto): WorkItemViewModel {
   return (

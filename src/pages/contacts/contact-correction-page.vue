@@ -16,7 +16,7 @@ const capabilities = createContactCapabilities(
 
 <template>
   <section class="contact-correction-page">
-    <div class="contact-correction-page__heading">
+    <div class="heading">
       <div>
         <span>A04</span>
         <h2>联系资料更正申请</h2>
@@ -33,7 +33,7 @@ const capabilities = createContactCapabilities(
       show-icon
     />
 
-    <div class="contact-correction-page__grid">
+    <div class="grid">
       <ElCard shadow="never">
         <template #header><h3>申请信息</h3></template>
         <ElDescriptions :column="1" border>
@@ -46,14 +46,14 @@ const capabilities = createContactCapabilities(
         <PendingCapability description="缺少更正申请详情接口，未展示任何模拟用户或联系方式。" />
       </ElCard>
 
-      <ElCard class="contact-correction-page__audit" shadow="never">
+      <ElCard class="audit" shadow="never">
         <template #header><h3>联系与审计</h3></template>
-        <div class="contact-correction-page__empty-audit">
+        <div class="empty-audit">
           <ElIcon><WarningFilled /></ElIcon>
           <strong>审计时间线待接入</strong>
           <span>批准、拒绝、敏感复制审计和联系状态命令均缺少后端接口。</span>
         </div>
-        <div class="contact-correction-page__actions">
+        <div class="actions">
           <ElTooltip content="拒绝命令接口待接入">
             <span><ElButton disabled>拒绝</ElButton></span>
           </ElTooltip>
@@ -61,7 +61,7 @@ const capabilities = createContactCapabilities(
             <span><ElButton disabled type="primary">批准并重置修改机会</ElButton></span>
           </ElTooltip>
         </div>
-        <p class="contact-correction-page__request-state">
+        <p class="request-state">
           网络请求状态：{{ capabilities.canCopySensitiveValue ? '可用' : '0 个未知请求' }}
         </p>
       </ElCard>
@@ -71,26 +71,26 @@ const capabilities = createContactCapabilities(
 
 <style scoped lang="scss">
 .contact-correction-page {
-  &__heading {
+  .heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     margin-bottom: 14px;
   }
 
-  &__heading span {
+  .heading span {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
     font-weight: 700;
   }
 
-  &__heading h2,
+  .heading h2,
   h3 {
     margin: 0;
     color: var(--juya-color-sidebar);
   }
 
-  &__heading h2 {
+  .heading h2 {
     margin-top: 3px;
     font-size: 18px;
   }
@@ -99,18 +99,18 @@ const capabilities = createContactCapabilities(
     font-size: 15px;
   }
 
-  &__grid {
+  .grid {
     display: grid;
     grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr);
     gap: 14px;
     margin-top: 14px;
   }
 
-  &__audit {
+  .audit {
     min-height: 390px;
   }
 
-  &__empty-audit {
+  .empty-audit {
     display: grid;
     min-height: 205px;
     color: var(--juya-color-text-secondary);
@@ -120,27 +120,27 @@ const capabilities = createContactCapabilities(
     text-align: center;
   }
 
-  &__empty-audit .el-icon {
+  .empty-audit .el-icon {
     color: var(--juya-color-warning);
     font-size: 28px;
   }
 
-  &__empty-audit strong {
+  .empty-audit strong {
     color: var(--juya-color-text-primary);
   }
 
-  &__actions {
+  .actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
 
-  &__actions .el-button,
-  &__actions span {
+  .actions .el-button,
+  .actions span {
     width: 100%;
   }
 
-  &__request-state {
+  .request-state {
     margin: 14px 0 0;
     color: var(--juya-color-text-secondary);
     font-size: 11px;
@@ -150,7 +150,7 @@ const capabilities = createContactCapabilities(
 
 @media (width <= 1100px) {
   .contact-correction-page {
-    &__grid {
+    .grid {
       grid-template-columns: 1fr;
     }
   }

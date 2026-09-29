@@ -14,7 +14,7 @@ const fieldAccess = getCampaignFieldAccess({ hasGrantedEntitlements: true })
 
 <template>
   <section class="campaign-edit-page">
-    <div class="campaign-edit-page__heading">
+    <div class="heading">
       <div>
         <span>A11</span>
         <h2>限时活动编辑 · {{ campaignId }}</h2>
@@ -29,9 +29,9 @@ const fieldAccess = getCampaignFieldAccess({ hasGrantedEntitlements: true })
       type="warning"
       show-icon
     />
-    <ElCard class="campaign-edit-page__card" shadow="never">
+    <ElCard class="card" shadow="never">
       <ElForm label-position="top">
-        <div class="campaign-edit-page__grid">
+        <div class="grid">
           <ElFormItem label="活动名称"><ElInput disabled placeholder="接口待接入" /></ElFormItem>
           <ElFormItem label="学习时长"
             ><ElInput
@@ -61,30 +61,30 @@ const fieldAccess = getCampaignFieldAccess({ hasGrantedEntitlements: true })
 
 <style scoped lang="scss">
 .campaign-edit-page {
-  &__heading {
+  .heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     margin-bottom: 14px;
   }
 
-  &__heading span {
+  .heading span {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
     font-weight: 700;
   }
 
-  &__heading h2 {
+  .heading h2 {
     margin: 3px 0 0;
     color: var(--juya-color-sidebar);
     font-size: 18px;
   }
 
-  &__card {
+  .card {
     margin-top: 14px;
   }
 
-  &__grid {
+  .grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0 14px;

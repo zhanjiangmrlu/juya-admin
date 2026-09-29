@@ -12,18 +12,18 @@ export interface WorkItemAdapter {
 }
 
 /**
- * 创建保持服务端排序的待办接口适配器。
+ * 创建保持服务端排序的待办接口适配器
  *
- * @param client - 统一 API 客户端。
- * @returns 待办查询适配器。
+ * @param client - 统一 API 客户端
+ * @returns 待办查询适配器
  */
 export function createWorkItemAdapter(client: ApiClient): WorkItemAdapter {
   return {
     /**
-     * 读取服务端按 priority_rank、due_at、key 排序的待办。
+     * 读取服务端按 priority_rank、due_at、key 排序的待办
      *
-     * @param signal - 可选请求取消信号。
-     * @returns 不改变顺序的待办数组。
+     * @param signal - 可选请求取消信号
+     * @returns 不改变顺序的待办数组
      */
     async getWorkItems(signal?: AbortSignal): Promise<WorkItemDto[]> {
       const response = await client.request<unknown>({
@@ -38,10 +38,10 @@ export function createWorkItemAdapter(client: ApiClient): WorkItemAdapter {
 }
 
 /**
- * 校验并转换单条待办响应。
+ * 校验并转换单条待办响应
  *
- * @param source - 待办数组中的未知元素。
- * @returns 字段完整的待办对象。
+ * @param source - 待办数组中的未知元素
+ * @returns 字段完整的待办对象
  */
 function parseWorkItem(source: unknown): WorkItemDto {
   if (!isRecord(source)) throw new Error('待办接口响应格式不正确')
@@ -54,11 +54,11 @@ function parseWorkItem(source: unknown): WorkItemDto {
 }
 
 /**
- * 从待办对象读取非空字符串。
+ * 从待办对象读取非空字符串
  *
- * @param source - 待办响应对象。
- * @param key - 字符串字段名。
- * @returns 非空字符串字段。
+ * @param source - 待办响应对象
+ * @param key - 字符串字段名
+ * @returns 非空字符串字段
  */
 function requireString(source: Record<string, unknown>, key: string): string {
   const value = source[key]
@@ -67,11 +67,11 @@ function requireString(source: Record<string, unknown>, key: string): string {
 }
 
 /**
- * 从待办对象读取有限数字。
+ * 从待办对象读取有限数字
  *
- * @param source - 待办响应对象。
- * @param key - 数字字段名。
- * @returns 有限数字字段。
+ * @param source - 待办响应对象
+ * @param key - 数字字段名
+ * @returns 有限数字字段
  */
 function requireNumber(source: Record<string, unknown>, key: string): number {
   const value = source[key]
@@ -81,10 +81,10 @@ function requireNumber(source: Record<string, unknown>, key: string): number {
 }
 
 /**
- * 判断未知值是否为普通记录对象。
+ * 判断未知值是否为普通记录对象
  *
- * @param value - 需要判断的未知值。
- * @returns 值是否为非空且非数组对象。
+ * @param value - 需要判断的未知值
+ * @returns 值是否为非空且非数组对象
  */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

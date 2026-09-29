@@ -17,7 +17,7 @@ const capacityValidation = computed(() =>
 
 <template>
   <section class="campaign-version-page">
-    <div class="campaign-version-page__heading">
+    <div class="heading">
       <div>
         <span>A12</span>
         <h2>活动版本与容量 · {{ campaignId }}</h2>
@@ -26,7 +26,7 @@ const capacityValidation = computed(() =>
         ><ElButton @click="navigate">返回活动列表</ElButton></RouterLink
       >
     </div>
-    <div class="campaign-version-page__grid">
+    <div class="grid">
       <ElCard shadow="never">
         <template #header><h3>版本记录</h3></template>
         <PendingCapability description="活动版本列表接口待接入，未展示模拟版本。" />
@@ -39,7 +39,7 @@ const capacityValidation = computed(() =>
           type="info"
           show-icon
         />
-        <ElFormItem class="campaign-version-page__capacity" label="新容量">
+        <ElFormItem class="capacity" label="新容量">
           <ElInputNumber v-model="capacity" :disabled="!capabilities.canChangeCapacity" :min="1" />
         </ElFormItem>
         <ElAlert
@@ -57,26 +57,26 @@ const capacityValidation = computed(() =>
 
 <style scoped lang="scss">
 .campaign-version-page {
-  &__heading {
+  .heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     margin-bottom: 14px;
   }
 
-  &__heading span {
+  .heading span {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
     font-weight: 700;
   }
 
-  &__heading h2,
+  .heading h2,
   h3 {
     margin: 3px 0 0;
     color: var(--juya-color-sidebar);
   }
 
-  &__heading h2 {
+  .heading h2 {
     font-size: 18px;
   }
 
@@ -84,13 +84,13 @@ const capacityValidation = computed(() =>
     font-size: 15px;
   }
 
-  &__grid {
+  .grid {
     display: grid;
     grid-template-columns: minmax(0, 3fr) minmax(340px, 2fr);
     gap: 14px;
   }
 
-  &__capacity {
+  .capacity {
     margin-top: 18px;
   }
 

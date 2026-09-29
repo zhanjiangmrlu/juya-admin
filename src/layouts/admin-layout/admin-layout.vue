@@ -39,18 +39,18 @@ const isCollapsed = ref(false)
 const activeNavigationPath = computed(() => String(route.meta.navigationPath ?? route.path))
 
 /**
- * 切换管理端侧栏折叠状态。
+ * 切换管理端侧栏折叠状态
  *
- * @returns 无返回值。
+ * @returns 无返回值
  */
 function toggleAside(): void {
   isCollapsed.value = !isCollapsed.value
 }
 
 /**
- * 注销当前管理员并跳转登录页。
+ * 注销当前管理员并跳转登录页
  *
- * @returns 退出流程完成后的 Promise。
+ * @returns 退出流程完成后的 Promise
  */
 async function logout(): Promise<void> {
   await authStore.logout()
@@ -61,34 +61,27 @@ async function logout(): Promise<void> {
 <template>
   <ElContainer class="admin-layout">
     <ElAside
-      class="admin-layout__aside"
-      :class="{ 'admin-layout__aside--collapsed': isCollapsed }"
+      class="aside"
+      :class="{ collapsed: isCollapsed }"
       :width="isCollapsed ? '72px' : 'var(--juya-sidebar-width)'"
     >
-      <div class="admin-layout__brand">
-        <span class="admin-layout__logo"
+      <div class="brand">
+        <span class="logo"
           ><ElIcon><Reading /></ElIcon
         ></span>
-        <div v-if="!isCollapsed" class="admin-layout__brand-copy">
+        <div v-if="!isCollapsed" class="brand-copy">
           <strong>句芽英语</strong>
           <span>单管理员后台</span>
         </div>
       </div>
 
-      <ElMenu
-        class="admin-layout__menu"
-        :collapse="isCollapsed"
-        :default-active="activeNavigationPath"
-        router
-      >
+      <ElMenu class="menu" :collapse="isCollapsed" :default-active="activeNavigationPath" router>
         <ElMenuItem v-for="item in PRIMARY_NAVIGATION" :key="item.path" :index="item.path">
           <ElIcon><component :is="navigationIconMap[item.icon]" /></ElIcon>
           <template #title>{{ item.label }}</template>
         </ElMenuItem>
 
-        <li v-if="!isCollapsed" class="admin-layout__section-label" role="presentation">
-          基础能力
-        </li>
+        <li v-if="!isCollapsed" class="section-label" role="presentation">基础能力</li>
 
         <ElMenuItem v-for="item in BASIC_NAVIGATION" :key="item.path" :index="item.path">
           <ElIcon><component :is="navigationIconMap[item.icon]" /></ElIcon>
@@ -97,9 +90,9 @@ async function logout(): Promise<void> {
       </ElMenu>
     </ElAside>
 
-    <ElContainer class="admin-layout__workspace">
-      <ElHeader class="admin-layout__header">
-        <div class="admin-layout__title-group">
+    <ElContainer class="workspace">
+      <ElHeader class="header">
+        <div class="title-group">
           <ElButton
             :aria-label="isCollapsed ? '展开侧栏' : '折叠侧栏'"
             circle
@@ -108,13 +101,13 @@ async function logout(): Promise<void> {
           >
             <ElIcon><Expand v-if="isCollapsed" /><Fold v-else /></ElIcon>
           </ElButton>
-          <h1 class="admin-layout__title">{{ route.meta.title }}</h1>
+          <h1 class="title">{{ route.meta.title }}</h1>
         </div>
 
         <ElDropdown trigger="click">
-          <button class="admin-layout__admin" type="button">
-            <span class="admin-layout__admin-badge">管理员 · 已认证</span>
-            <span class="admin-layout__avatar"
+          <button class="admin" type="button">
+            <span class="admin-badge">管理员 · 已认证</span>
+            <span class="avatar"
               ><ElIcon><UserFilled /></ElIcon
             ></span>
           </button>
@@ -126,7 +119,7 @@ async function logout(): Promise<void> {
         </ElDropdown>
       </ElHeader>
 
-      <ElMain class="admin-layout__main">
+      <ElMain class="main">
         <RouterView />
       </ElMain>
     </ElContainer>
@@ -140,13 +133,13 @@ async function logout(): Promise<void> {
   overflow: hidden;
   background: var(--juya-color-page);
 
-  &__aside {
+  .aside {
     overflow-x: hidden;
     background: var(--juya-color-sidebar);
     transition: width 180ms ease;
   }
 
-  &__brand {
+  .brand {
     display: flex;
     height: var(--juya-header-height);
     align-items: center;
@@ -155,7 +148,7 @@ async function logout(): Promise<void> {
     color: #fff;
   }
 
-  &__logo {
+  .logo {
     display: grid;
     flex: 0 0 48px;
     width: 48px;
@@ -167,29 +160,29 @@ async function logout(): Promise<void> {
     place-items: center;
   }
 
-  &__brand-copy {
+  .brand-copy {
     display: grid;
     min-width: 0;
     gap: 2px;
     white-space: nowrap;
   }
 
-  &__brand-copy strong {
+  .brand-copy strong {
     font-size: 16px;
   }
 
-  &__brand-copy span {
+  .brand-copy span {
     color: rgb(255 255 255 / 62%);
     font-size: 11px;
   }
 
-  &__menu {
+  .menu {
     width: 100%;
     border-right: 0;
     background: transparent;
   }
 
-  &__section-label {
+  .section-label {
     padding: 24px 26px 10px;
     color: rgb(255 255 255 / 66%);
     font-size: 11px;
@@ -197,11 +190,11 @@ async function logout(): Promise<void> {
     list-style: none;
   }
 
-  &__workspace {
+  .workspace {
     min-width: 0;
   }
 
-  &__header {
+  .header {
     display: flex;
     height: var(--juya-header-height);
     flex: 0 0 var(--juya-header-height);
@@ -212,23 +205,23 @@ async function logout(): Promise<void> {
     padding-inline: 24px;
   }
 
-  &__title-group,
-  &__admin {
+  .title-group,
+  .admin {
     display: flex;
     align-items: center;
   }
 
-  &__title-group {
+  .title-group {
     gap: 10px;
   }
 
-  &__title {
+  .title {
     margin: 0;
     color: var(--juya-color-sidebar);
     font-size: 20px;
   }
 
-  &__admin {
+  .admin {
     gap: 12px;
     border: 0;
     background: transparent;
@@ -236,7 +229,7 @@ async function logout(): Promise<void> {
     cursor: pointer;
   }
 
-  &__admin-badge {
+  .admin-badge {
     padding: 4px 10px;
     border-radius: 999px;
     background: var(--juya-color-primary-soft);
@@ -245,7 +238,7 @@ async function logout(): Promise<void> {
     font-weight: 600;
   }
 
-  &__avatar {
+  .avatar {
     display: grid;
     width: 40px;
     height: 40px;
@@ -256,27 +249,27 @@ async function logout(): Promise<void> {
     place-items: center;
   }
 
-  &__main {
+  .main {
     min-width: 0;
     overflow: auto;
     padding: 22px 24px 32px;
   }
 
-  &__menu.el-menu {
+  .menu.el-menu {
     --el-menu-bg-color: transparent;
     --el-menu-text-color: rgb(255 255 255 / 72%);
     --el-menu-hover-bg-color: var(--juya-color-sidebar-hover);
     --el-menu-active-color: var(--juya-color-primary);
   }
 
-  &__menu .el-menu-item {
+  .menu .el-menu-item {
     height: 44px;
     margin: 4px 14px;
     border-radius: 8px;
     padding-inline: 12px;
   }
 
-  &__menu .is-active {
+  .menu .is-active {
     background: #fbfcfb;
     font-weight: 600;
   }

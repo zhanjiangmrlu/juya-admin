@@ -6,12 +6,12 @@ import { Tickets } from '@element-plus/icons-vue'
   <section class="entitlement-center-page">
     <ElCard shadow="never">
       <template #header>
-        <div class="entitlement-center-page__heading">
+        <div class="heading">
           <div>
             <span>A05</span>
             <h2>统一权益中心</h2>
           </div>
-          <div class="entitlement-center-page__actions">
+          <div class="actions">
             <RouterLink v-slot="{ navigate }" custom :to="{ name: 'formal-entitlement-grant' }">
               <ElButton type="primary" @click="navigate">授予正式权益</ElButton>
             </RouterLink>
@@ -29,13 +29,13 @@ import { Tickets } from '@element-plus/icons-vue'
         show-icon
       />
 
-      <div class="entitlement-center-page__filters">
+      <div class="filters">
         <ElInput disabled placeholder="用户编号、昵称、微信号" />
         <ElSelect aria-label="权益类型筛选（待接入）" disabled placeholder="正式包 / 限时包" />
         <ElSelect aria-label="权益状态筛选（待接入）" disabled placeholder="全部状态" />
       </div>
 
-      <div class="entitlement-center-page__table-shell" role="status">
+      <div class="table-shell" role="status">
         <ElIcon><Tickets /></ElIcon>
         <strong>权益列表待接入</strong>
         <span>未使用本地模拟数据生成用户权益或成功状态。</span>
@@ -46,44 +46,44 @@ import { Tickets } from '@element-plus/icons-vue'
 
 <style scoped lang="scss">
 .entitlement-center-page {
-  &__heading {
+  .heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 20px;
   }
 
-  &__heading span {
+  .heading span {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
     font-weight: 700;
   }
 
-  &__heading h2 {
+  .heading h2 {
     margin: 3px 0 0;
     color: var(--juya-color-sidebar);
     font-size: 16px;
   }
 
-  &__actions,
-  &__filters {
+  .actions,
+  .filters {
     display: flex;
     gap: 10px;
   }
 
-  &__filters {
+  .filters {
     margin: 18px 0;
   }
 
-  &__filters .el-input {
+  .filters .el-input {
     width: 230px;
   }
 
-  &__filters .el-select {
+  .filters .el-select {
     width: 160px;
   }
 
-  &__table-shell {
+  .table-shell {
     display: grid;
     min-height: 240px;
     border: 1px solid var(--juya-color-border-light);
@@ -94,12 +94,12 @@ import { Tickets } from '@element-plus/icons-vue'
     text-align: center;
   }
 
-  &__table-shell .el-icon {
+  .table-shell .el-icon {
     color: var(--juya-color-primary);
     font-size: 30px;
   }
 
-  &__table-shell strong {
+  .table-shell strong {
     color: var(--juya-color-text-primary);
   }
 }

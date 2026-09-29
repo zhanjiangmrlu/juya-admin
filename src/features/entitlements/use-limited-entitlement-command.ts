@@ -21,10 +21,10 @@ export interface LimitedEntitlementCommandController {
 }
 
 /**
- * 创建限时权益幂等命令控制器。
+ * 创建限时权益幂等命令控制器
  *
- * @param adapter - 限时权益命令适配器。
- * @returns 限时权益命令控制器。
+ * @param adapter - 限时权益命令适配器
+ * @returns 限时权益命令控制器
  */
 export function useLimitedEntitlementCommand(
   adapter: LimitedEntitlementAdapter
@@ -38,10 +38,10 @@ export function useLimitedEntitlementCommand(
   )
 
   /**
-   * 替换命令输入并生成新的幂等键。
+   * 替换命令输入并生成新的幂等键
    *
-   * @param nextDraft - 最新限时权益命令输入。
-   * @returns 无返回值。
+   * @param nextDraft - 最新限时权益命令输入
+   * @returns 无返回值
    */
   function setDraft(nextDraft: LimitedEntitlementCommandInput): void {
     draft.value = { ...nextDraft }
@@ -52,10 +52,10 @@ export function useLimitedEntitlementCommand(
   }
 
   /**
-   * 使用管理员原因提交当前限时权益命令。
+   * 使用管理员原因提交当前限时权益命令
    *
-   * @param reason - 二次确认中填写的审计原因。
-   * @returns 服务端持久化后的限时权益。
+   * @param reason - 二次确认中填写的审计原因
+   * @returns 服务端持久化后的限时权益
    */
   async function submit(reason: string): Promise<LimitedEntitlement> {
     if (draft.value === null) throw new Error('请先填写限时权益操作信息')
@@ -85,10 +85,10 @@ export function useLimitedEntitlementCommand(
 }
 
 /**
- * 将服务端业务冲突映射为可见的禁用原因。
+ * 将服务端业务冲突映射为可见的禁用原因
  *
- * @param failure - 捕获到的命令异常。
- * @returns 需要阻止继续提交时的原因，否则返回空值。
+ * @param failure - 捕获到的命令异常
+ * @returns 需要阻止继续提交时的原因，否则返回空值
  */
 function mapDisabledReason(failure: unknown): string | null {
   if (!(failure instanceof ApiError) || failure.status !== 409) return null

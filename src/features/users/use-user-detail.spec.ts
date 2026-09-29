@@ -16,9 +16,9 @@ const degradedDetail: UserDetailDto = {
 }
 
 /**
- * 创建用户详情测试使用的适配器。
+ * 创建用户详情测试使用的适配器
  *
- * @returns 返回联系方式降级详情的适配器桩。
+ * @returns 返回联系方式降级详情的适配器桩
  */
 function createAdapter(): UserAdapter {
   return {

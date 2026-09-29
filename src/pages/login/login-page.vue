@@ -12,24 +12,24 @@ const passwordForm = reactive({ password: '', username: '' })
 const totpForm = reactive({ code: '', deviceSummary: globalThis.navigator.userAgent.slice(0, 200) })
 
 /**
- * 提交账号密码并清除页面中的明文密码。
+ * 提交账号密码并清除页面中的明文密码
  *
- * @returns 密码步骤完成后的 Promise。
+ * @returns 密码步骤完成后的 Promise
  */
 async function submitPassword(): Promise<void> {
   try {
     await authStore.submitPassword({ ...passwordForm })
   } catch {
-    // 错误提示由 Store 统一提供。
+    // 错误提示由 Store 统一提供
   } finally {
     passwordForm.password = ''
   }
 }
 
 /**
- * 提交 TOTP 并进入原目标页或工作台。
+ * 提交 TOTP 并进入原目标页或工作台
  *
- * @returns 登录跳转完成后的 Promise。
+ * @returns 登录跳转完成后的 Promise
  */
 async function submitTotp(): Promise<void> {
   try {
@@ -44,27 +44,27 @@ async function submitTotp(): Promise<void> {
 
 <template>
   <main class="login-page">
-    <section class="login-page__brand" aria-label="句芽英语管理后台介绍">
-      <div class="login-page__brand-content">
-        <span class="login-page__logo"
+    <section class="brand" aria-label="句芽英语管理后台介绍">
+      <div class="brand-content">
+        <span class="logo"
           ><ElIcon><Reading /></ElIcon
         ></span>
-        <p class="login-page__eyebrow">JUYA ENGLISH</p>
-        <h1 class="login-page__brand-title">让内容与体验运营<br />清晰、有序、可追踪</h1>
-        <p class="login-page__brand-description">
+        <p class="eyebrow">JUYA ENGLISH</p>
+        <h1 class="brand-title">让内容与体验运营<br />清晰、有序、可追踪</h1>
+        <p class="brand-description">
           句芽英语单管理员后台，覆盖用户、权益、反馈与内容生产全流程。
         </p>
       </div>
     </section>
 
-    <section class="login-page__form-area">
-      <div class="login-page__form-card">
-        <div class="login-page__form-heading">
-          <p class="login-page__eyebrow">ADMIN CONSOLE</p>
-          <h2 class="login-page__form-title">
+    <section class="form-area">
+      <div class="form-card">
+        <div class="form-heading">
+          <p class="eyebrow">ADMIN CONSOLE</p>
+          <h2 class="form-title">
             {{ authStore.step === 'password' ? '登录管理后台' : '输入安全验证码' }}
           </h2>
-          <p class="login-page__form-description">
+          <p class="form-description">
             {{
               authStore.step === 'password'
                 ? '请使用管理员账号继续'
@@ -83,7 +83,7 @@ async function submitTotp(): Promise<void> {
 
         <ElForm
           v-if="authStore.step === 'password'"
-          class="login-page__form"
+          class="form"
           label-position="top"
           :model="passwordForm"
           @submit.prevent="submitPassword"
@@ -106,7 +106,7 @@ async function submitTotp(): Promise<void> {
             />
           </ElFormItem>
           <ElButton
-            class="login-page__submit"
+            class="submit"
             :disabled="!passwordForm.username || !passwordForm.password"
             :loading="authStore.status === 'loading'"
             native-type="submit"
@@ -118,7 +118,7 @@ async function submitTotp(): Promise<void> {
 
         <ElForm
           v-else
-          class="login-page__form"
+          class="form"
           label-position="top"
           :model="totpForm"
           @submit.prevent="submitTotp"
@@ -134,7 +134,7 @@ async function submitTotp(): Promise<void> {
             />
           </ElFormItem>
           <ElButton
-            class="login-page__submit"
+            class="submit"
             :disabled="!/^[0-9]{6}$/.test(totpForm.code)"
             :loading="authStore.status === 'loading'"
             native-type="submit"
@@ -142,7 +142,7 @@ async function submitTotp(): Promise<void> {
           >
             安全登录
           </ElButton>
-          <ElButton class="login-page__back" text @click="authStore.clearSensitiveState">
+          <ElButton class="back" text @click="authStore.clearSensitiveState">
             返回账号密码登录
           </ElButton>
         </ElForm>
@@ -158,21 +158,21 @@ async function submitTotp(): Promise<void> {
   min-height: 100vh;
   background: var(--juya-color-surface);
 
-  &__brand,
-  &__form-area {
+  .brand,
+  .form-area {
     display: grid;
     place-items: center;
     padding: 64px;
   }
 
-  &__brand {
+  .brand {
     position: relative;
     overflow: hidden;
     background: var(--juya-color-sidebar);
     color: #fff;
   }
 
-  &__brand::after {
+  .brand::after {
     position: absolute;
     right: -120px;
     bottom: -140px;
@@ -184,12 +184,12 @@ async function submitTotp(): Promise<void> {
     content: '';
   }
 
-  &__brand-content {
+  .brand-content {
     z-index: 1;
     max-width: 520px;
   }
 
-  &__logo {
+  .logo {
     display: grid;
     width: 56px;
     height: 56px;
@@ -201,7 +201,7 @@ async function submitTotp(): Promise<void> {
     place-items: center;
   }
 
-  &__eyebrow {
+  .eyebrow {
     margin: 0 0 12px;
     color: #75ad98;
     font-size: 12px;
@@ -209,13 +209,13 @@ async function submitTotp(): Promise<void> {
     letter-spacing: 0.14em;
   }
 
-  &__brand-title {
+  .brand-title {
     margin: 0;
     font-size: clamp(34px, 4vw, 52px);
     line-height: 1.28;
   }
 
-  &__brand-description {
+  .brand-description {
     max-width: 440px;
     margin: 28px 0 0;
     color: rgb(255 255 255 / 68%);
@@ -223,37 +223,37 @@ async function submitTotp(): Promise<void> {
     line-height: 1.8;
   }
 
-  &__form-card {
+  .form-card {
     width: min(100%, 420px);
   }
 
-  &__form-heading {
+  .form-heading {
     margin-bottom: 32px;
   }
 
-  &__form-title {
+  .form-title {
     margin: 0;
     color: var(--juya-color-text-primary);
     font-size: 30px;
     line-height: 1.3;
   }
 
-  &__form-description {
+  .form-description {
     margin: 10px 0 0;
     color: var(--juya-color-text-secondary);
   }
 
-  &__form {
+  .form {
     margin-top: 24px;
   }
 
-  &__submit {
+  .submit {
     width: 100%;
     height: 44px;
     margin-top: 8px;
   }
 
-  &__back {
+  .back {
     width: 100%;
     margin-top: 12px;
   }
@@ -263,11 +263,11 @@ async function submitTotp(): Promise<void> {
   .login-page {
     grid-template-columns: 1fr;
 
-    &__brand {
+    .brand {
       display: none;
     }
 
-    &__form-area {
+    .form-area {
       padding: 32px;
     }
   }

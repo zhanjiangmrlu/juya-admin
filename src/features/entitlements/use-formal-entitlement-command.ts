@@ -29,10 +29,10 @@ export interface FormalEntitlementCommandController {
 }
 
 /**
- * 创建正式权益预览、确认和幂等提交控制器。
+ * 创建正式权益预览、确认和幂等提交控制器
  *
- * @param adapter - 正式权益接口适配器。
- * @returns 正式权益命令控制器。
+ * @param adapter - 正式权益接口适配器
+ * @returns 正式权益命令控制器
  */
 export function useFormalEntitlementCommand(
   adapter: FormalEntitlementAdapter
@@ -48,10 +48,10 @@ export function useFormalEntitlementCommand(
   const canConfirm = computed(() => draft.value !== null && previewResult.value !== null)
 
   /**
-   * 替换当前表单输入并使旧预览失效。
+   * 替换当前表单输入并使旧预览失效
    *
-   * @param nextDraft - 最新的完整正式权益表单。
-   * @returns 无返回值。
+   * @param nextDraft - 最新的完整正式权益表单
+   * @returns 无返回值
    */
   function setDraft(nextDraft: FormalEntitlementDraft): void {
     draft.value = { ...nextDraft }
@@ -62,9 +62,9 @@ export function useFormalEntitlementCommand(
   }
 
   /**
-   * 请求服务端计算正式权益操作结果。
+   * 请求服务端计算正式权益操作结果
    *
-   * @returns 服务端返回的预览权益。
+   * @returns 服务端返回的预览权益
    */
   async function preview(): Promise<FormalEntitlement> {
     if (draft.value === null) throw new Error('请先填写正式权益操作信息')
@@ -82,19 +82,19 @@ export function useFormalEntitlementCommand(
   }
 
   /**
-   * 在状态冲突后使用原表单重新获取服务端预览。
+   * 在状态冲突后使用原表单重新获取服务端预览
    *
-   * @returns 刷新后的服务端预览权益。
+   * @returns 刷新后的服务端预览权益
    */
   async function refreshPreview(): Promise<FormalEntitlement> {
     return preview()
   }
 
   /**
-   * 使用确认原因提交正式权益命令。
+   * 使用确认原因提交正式权益命令
    *
-   * @param reason - 管理员在二次确认中填写的审计原因。
-   * @returns 服务端持久化后的正式权益。
+   * @param reason - 管理员在二次确认中填写的审计原因
+   * @returns 服务端持久化后的正式权益
    */
   async function submit(reason: string): Promise<FormalEntitlement> {
     if (!canConfirm.value || draft.value === null) throw new Error('请先完成服务端预览')
@@ -124,10 +124,10 @@ export function useFormalEntitlementCommand(
 }
 
 /**
- * 去除命令操作字段并构造接口负载。
+ * 去除命令操作字段并构造接口负载
  *
- * @param draft - 完整正式权益命令草稿。
- * @returns 正式权益接口负载。
+ * @param draft - 完整正式权益命令草稿
+ * @returns 正式权益接口负载
  */
 function toPayload(draft: FormalEntitlementDraft): FormalEntitlementPayload {
   return {
@@ -139,11 +139,11 @@ function toPayload(draft: FormalEntitlementDraft): FormalEntitlementPayload {
 }
 
 /**
- * 将未知异常映射为可展示的安全错误文案。
+ * 将未知异常映射为可展示的安全错误文案
  *
- * @param failure - 捕获的未知异常。
- * @param fallback - 非接口异常时使用的兜底文案。
- * @returns 可展示的错误文案。
+ * @param failure - 捕获的未知异常
+ * @param fallback - 非接口异常时使用的兜底文案
+ * @returns 可展示的错误文案
  */
 function toErrorMessage(failure: unknown, fallback: string): string {
   return failure instanceof ApiError ? failure.message : fallback

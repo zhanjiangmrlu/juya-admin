@@ -31,11 +31,11 @@ export const FORMAL_OPERATION_LABELS: Readonly<Record<FormalEntitlementOperation
 }
 
 /**
- * 根据当前正式权益状态和期限返回前端可展示的操作。
+ * 根据当前正式权益状态和期限返回前端可展示的操作
  *
- * @param status - 当前正式权益状态。
- * @param term - 当前正式权益期限档位。
- * @returns 按业务优先级排列的可用操作数组。
+ * @param status - 当前正式权益状态
+ * @param term - 当前正式权益期限档位
+ * @returns 按业务优先级排列的可用操作数组
  */
 export function getFormalOperations(
   status: FormalEntitlementStatus,

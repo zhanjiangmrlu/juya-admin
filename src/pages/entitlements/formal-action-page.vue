@@ -65,9 +65,9 @@ watch(
 )
 
 /**
- * 获取服务端操作预览并打开正式权益二次确认。
+ * 获取服务端操作预览并打开正式权益二次确认
  *
- * @returns 预览流程完成后的 Promise。
+ * @returns 预览流程完成后的 Promise
  */
 async function handlePreview(): Promise<void> {
   if (!form.userId.trim() || !form.packageId.trim()) return
@@ -75,15 +75,15 @@ async function handlePreview(): Promise<void> {
     await controller.preview()
     isConfirmVisible.value = true
   } catch {
-    // 控制器负责提供可展示错误文案。
+    // 控制器负责提供可展示错误文案
   }
 }
 
 /**
- * 提交管理员确认后的正式权益状态操作。
+ * 提交管理员确认后的正式权益状态操作
  *
- * @param reason - 必填审计原因。
- * @returns 命令提交完成后的 Promise。
+ * @param reason - 必填审计原因
+ * @returns 命令提交完成后的 Promise
  */
 async function handleConfirm(reason: string): Promise<void> {
   try {
@@ -100,7 +100,7 @@ async function handleConfirm(reason: string): Promise<void> {
   <section class="formal-action-page">
     <ElCard shadow="never">
       <template #header>
-        <div class="formal-action-page__heading">
+        <div class="heading">
           <div>
             <span>A08</span>
             <h2>正式权益操作 · {{ entitlementId }}</h2>
@@ -112,7 +112,7 @@ async function handleConfirm(reason: string): Promise<void> {
       </template>
 
       <ElAlert
-        class="formal-action-page__notice"
+        class="notice"
         :closable="false"
         title="单条权益详情接口待接入，请以后台记录核对用户、内容包、当前状态和期限；提交前服务端会再次校验"
         type="warning"
@@ -120,7 +120,7 @@ async function handleConfirm(reason: string): Promise<void> {
       />
 
       <ElForm label-position="top" @submit.prevent="handlePreview">
-        <div class="formal-action-page__grid">
+        <div class="grid">
           <ElFormItem label="用户编号" required
             ><ElInput v-model="form.userId" maxlength="64"
           /></ElFormItem>
@@ -171,7 +171,7 @@ async function handleConfirm(reason: string): Promise<void> {
 
         <ElAlert
           v-if="controller.errorMessage.value"
-          class="formal-action-page__notice"
+          class="notice"
           :closable="false"
           :title="controller.errorMessage.value"
           type="error"
@@ -195,7 +195,7 @@ async function handleConfirm(reason: string): Promise<void> {
         </ElDescriptions>
 
         <ElButton
-          class="formal-action-page__submit"
+          class="submit"
           :disabled="!form.userId.trim() || !form.packageId.trim()"
           native-type="submit"
           type="primary"
@@ -220,35 +220,35 @@ async function handleConfirm(reason: string): Promise<void> {
 
 <style scoped lang="scss">
 .formal-action-page {
-  &__heading {
+  .heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
   }
 
-  &__heading span {
+  .heading span {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
     font-weight: 700;
   }
 
-  &__heading h2 {
+  .heading h2 {
     margin: 3px 0 0;
     color: var(--juya-color-sidebar);
     font-size: 16px;
   }
 
-  &__notice {
+  .notice {
     margin-bottom: 16px;
   }
 
-  &__grid {
+  .grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0 14px;
   }
 
-  &__submit {
+  .submit {
     margin-top: 16px;
   }
 }

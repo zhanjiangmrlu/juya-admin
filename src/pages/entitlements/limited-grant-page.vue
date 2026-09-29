@@ -8,7 +8,7 @@ const form = reactive({ campaignVersionId: '', userId: '' })
   <section class="limited-grant-page">
     <ElCard shadow="never">
       <template #header>
-        <div class="limited-grant-page__heading">
+        <div class="heading">
           <div>
             <span>A07</span>
             <h2>开通限时学习权益</h2>
@@ -27,13 +27,13 @@ const form = reactive({ campaignVersionId: '', userId: '' })
           <ElInput v-model="form.campaignVersionId" disabled placeholder="活动版本查询接口待接入" />
         </ElFormItem>
         <ElAlert
-          class="limited-grant-page__notice"
+          class="notice"
           :closable="false"
           title="活动版本、开放状态、容量、首次开通时长和启动截止信息无法查询，暂不允许提交开通命令"
           type="warning"
           show-icon
         />
-        <div class="limited-grant-page__capacity">
+        <div class="capacity">
           <span>容量</span><strong>接口待接入</strong><span>启动截止</span
           ><strong>接口待接入</strong>
         </div>
@@ -47,29 +47,29 @@ const form = reactive({ campaignVersionId: '', userId: '' })
 
 <style scoped lang="scss">
 .limited-grant-page {
-  &__heading {
+  .heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
   }
 
-  &__heading span {
+  .heading span {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
     font-weight: 700;
   }
 
-  &__heading h2 {
+  .heading h2 {
     margin: 3px 0 0;
     color: var(--juya-color-sidebar);
     font-size: 16px;
   }
 
-  &__notice {
+  .notice {
     margin-bottom: 16px;
   }
 
-  &__capacity {
+  .capacity {
     display: grid;
     grid-template-columns: auto 1fr auto 1fr;
     gap: 10px;
@@ -79,7 +79,7 @@ const form = reactive({ campaignVersionId: '', userId: '' })
     background: #fbebcf;
   }
 
-  &__capacity span {
+  .capacity span {
     color: var(--juya-color-text-secondary);
   }
 }

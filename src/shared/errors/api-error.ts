@@ -13,9 +13,9 @@ export class ApiError extends Error {
   readonly status: number
 
   /**
-   * 创建包含 HTTP 状态与请求追踪信息的统一接口错误。
+   * 创建包含 HTTP 状态与请求追踪信息的统一接口错误
    *
-   * @param options - 服务端错误与客户端补全的安全错误信息。
+   * @param options - 服务端错误与客户端补全的安全错误信息
    */
   constructor(options: ApiErrorOptions) {
     super(options.message)

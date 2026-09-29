@@ -40,10 +40,10 @@ const capabilityRegistry = {
 } as const satisfies Record<string, CapabilityState>
 
 /**
- * 返回指定管理端能力的当前接入状态。
+ * 返回指定管理端能力的当前接入状态
  *
- * @param key - 需要查询的能力标识。
- * @returns 能力已接入或待接入状态。
+ * @param key - 需要查询的能力标识
+ * @returns 能力已接入或待接入状态
  */
 export function getCapability(key: CapabilityKey): CapabilityState {
   return capabilityRegistry[key]

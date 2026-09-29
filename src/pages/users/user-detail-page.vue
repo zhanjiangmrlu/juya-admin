@@ -31,10 +31,10 @@ onMounted(() => void controller.load())
 onBeforeUnmount(controller.dispose)
 
 /**
- * 格式化最近活跃时间。
+ * 格式化最近活跃时间
  *
- * @param value - ISO 8601 时间或空值。
- * @returns 管理端日期时间文案。
+ * @param value - ISO 8601 时间或空值
+ * @returns 管理端日期时间文案
  */
 function formatDateTime(value: string | null): string {
   return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '暂无记录'
@@ -53,7 +53,7 @@ function formatDateTime(value: string | null): string {
     <ElSkeleton v-else-if="controller.state.value === 'loading'" :rows="8" animated />
 
     <template v-else-if="controller.detail.value">
-      <div class="user-detail-page__toolbar">
+      <div class="toolbar">
         <div>
           <span>A03</span>
           <h2>用户详情 · {{ controller.detail.value.user_id }}</h2>
@@ -63,15 +63,15 @@ function formatDateTime(value: string | null): string {
         </RouterLink>
       </div>
 
-      <div class="user-detail-page__grid">
-        <div class="user-detail-page__column">
+      <div class="grid">
+        <div class="column">
           <ElCard shadow="never">
-            <template #header><h3 class="user-detail-page__panel-title">基本身份</h3></template>
-            <div class="user-detail-page__profile">
-              <span class="user-detail-page__avatar"
+            <template #header><h3 class="panel-title">基本身份</h3></template>
+            <div class="profile">
+              <span class="avatar"
                 ><ElIcon><UserFilled /></ElIcon
               ></span>
-              <div class="user-detail-page__profile-copy">
+              <div class="profile-copy">
                 <strong>{{ controller.detail.value.user_id }}</strong>
                 <StatusTag
                   :label="getAccountStatusLabel(controller.detail.value.account_status)"
@@ -83,10 +83,8 @@ function formatDateTime(value: string | null): string {
           </ElCard>
 
           <ElCard shadow="never">
-            <template #header
-              ><h3 class="user-detail-page__panel-title">学习与运营概况</h3></template
-            >
-            <div class="user-detail-page__metrics">
+            <template #header><h3 class="panel-title">学习与运营概况</h3></template>
+            <div class="metrics">
               <div>
                 <span>正式权益</span
                 ><strong>{{ controller.detail.value.formal_entitlement_count }}</strong>
@@ -102,7 +100,7 @@ function formatDateTime(value: string | null): string {
               <div><span>学习数据</span><strong>待接入</strong></div>
             </div>
             <ElAlert
-              class="user-detail-page__pending"
+              class="pending"
               :closable="false"
               title="开放场景、学习天数与收藏统计接口待接入"
               type="warning"
@@ -111,8 +109,8 @@ function formatDateTime(value: string | null): string {
           </ElCard>
         </div>
 
-        <ElCard class="user-detail-page__contact" shadow="never">
-          <template #header><h3 class="user-detail-page__panel-title">联系与审计</h3></template>
+        <ElCard class="contact" shadow="never">
+          <template #header><h3 class="panel-title">联系与审计</h3></template>
           <ElAlert
             v-if="controller.sectionStates.value.contact === 'error'"
             :closable="false"
@@ -121,26 +119,26 @@ function formatDateTime(value: string | null): string {
             show-icon
           />
           <template v-else>
-            <div class="user-detail-page__contact-row">
+            <div class="contact-row">
               <span>微信号</span>
               <SensitiveValue
                 :can-copy="contactCapabilities.canCopySensitiveValue"
                 :value="controller.detail.value.contact?.wechat_id ?? null"
               />
             </div>
-            <div class="user-detail-page__contact-row">
+            <div class="contact-row">
               <span>联系状态</span>
               <strong>{{ controller.detail.value.contact?.contact_status ?? '未提供' }}</strong>
             </div>
           </template>
           <ElAlert
-            class="user-detail-page__pending"
+            class="pending"
             :closable="false"
             title="联系状态更新、敏感复制审计和更正命令接口待接入"
             type="info"
             show-icon
           />
-          <div class="user-detail-page__actions">
+          <div class="actions">
             <ElButton disabled>更新状态</ElButton>
             <ElButton disabled type="primary">已核对新微信号</ElButton>
           </div>
@@ -152,53 +150,53 @@ function formatDateTime(value: string | null): string {
 
 <style scoped lang="scss">
 .user-detail-page {
-  &__toolbar {
+  .toolbar {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     margin-bottom: 14px;
   }
 
-  &__toolbar span {
+  .toolbar span {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.08em;
   }
 
-  &__toolbar h2,
-  &__panel-title {
+  .toolbar h2,
+  .panel-title {
     margin: 0;
     color: var(--juya-color-sidebar);
   }
 
-  &__toolbar h2 {
+  .toolbar h2 {
     margin-top: 3px;
     font-size: 18px;
   }
 
-  &__panel-title {
+  .panel-title {
     font-size: 15px;
   }
 
-  &__grid {
+  .grid {
     display: grid;
     grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr);
     gap: 14px;
   }
 
-  &__column {
+  .column {
     display: grid;
     gap: 14px;
   }
 
-  &__profile {
+  .profile {
     display: flex;
     align-items: center;
     gap: 14px;
   }
 
-  &__avatar {
+  .avatar {
     display: grid;
     width: 58px;
     height: 58px;
@@ -209,72 +207,72 @@ function formatDateTime(value: string | null): string {
     place-items: center;
   }
 
-  &__profile-copy {
+  .profile-copy {
     display: flex;
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
   }
 
-  &__profile-copy strong {
+  .profile-copy strong {
     width: 100%;
     font-size: 17px;
   }
 
-  &__profile-copy span {
+  .profile-copy span {
     color: var(--juya-color-text-secondary);
     font-size: 12px;
   }
 
-  &__metrics {
+  .metrics {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
   }
 
-  &__metrics div {
+  .metrics div {
     min-height: 92px;
     padding: 16px;
     border: 1px solid var(--juya-color-border);
     border-radius: var(--juya-panel-radius);
   }
 
-  &__metrics span,
-  &__metrics strong {
+  .metrics span,
+  .metrics strong {
     display: block;
   }
 
-  &__metrics span {
+  .metrics span {
     margin-bottom: 8px;
     color: var(--juya-color-text-secondary);
     font-size: 12px;
   }
 
-  &__metrics strong {
+  .metrics strong {
     color: var(--juya-color-sidebar);
     font-size: 24px;
   }
 
-  &__pending {
+  .pending {
     margin-top: 16px;
   }
 
-  &__contact {
+  .contact {
     min-height: 390px;
   }
 
-  &__contact-row {
+  .contact-row {
     display: grid;
     gap: 7px;
     margin-bottom: 20px;
   }
 
-  &__contact-row > span {
+  .contact-row > span {
     color: var(--juya-color-text-secondary);
     font-size: 12px;
   }
 
-  &__actions {
+  .actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
@@ -284,7 +282,7 @@ function formatDateTime(value: string | null): string {
 
 @media (width <= 1100px) {
   .user-detail-page {
-    &__grid {
+    .grid {
       grid-template-columns: 1fr;
     }
   }

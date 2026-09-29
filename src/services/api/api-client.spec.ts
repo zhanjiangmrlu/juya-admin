@@ -5,11 +5,11 @@ import { ApiError } from '@/shared/errors/api-error'
 import { createApiClient } from './api-client'
 
 /**
- * 创建测试使用的 JSON 响应。
+ * 创建测试使用的 JSON 响应
  *
- * @param body - 需要序列化的响应体。
- * @param status - HTTP 状态码。
- * @returns 包含 JSON 内容类型的响应对象。
+ * @param body - 需要序列化的响应体
+ * @param status - HTTP 状态码
+ * @returns 包含 JSON 内容类型的响应对象
  */
 const jsonResponse = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {

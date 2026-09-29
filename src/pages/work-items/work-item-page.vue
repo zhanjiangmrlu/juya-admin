@@ -30,7 +30,7 @@ onBeforeUnmount(controller.dispose)
 
 <template>
   <section class="work-item-page">
-    <div class="work-item-page__heading">
+    <div class="heading">
       <div>
         <span>A13</span>
         <h2>消息中心</h2>
@@ -44,10 +44,10 @@ onBeforeUnmount(controller.dispose)
       type="error"
       show-icon
     />
-    <div class="work-item-page__grid">
+    <div class="grid">
       <ElCard shadow="never">
         <template #header
-          ><div class="work-item-page__panel-title">
+          ><div class="panel-title">
             <h3>优先处理</h3>
             <StatusTag
               :label="`${controller.actionable.value.length} 项`"
@@ -55,8 +55,8 @@ onBeforeUnmount(controller.dispose)
             /></div
         ></template>
         <ElEmpty v-if="controller.actionable.value.length === 0" description="暂无优先待办" />
-        <ul v-else class="work-item-page__list">
-          <li v-for="item in controller.actionable.value" :key="item.key">
+        <ul v-else class="list">
+          <li v-for="item in controller.actionable.value" :key="item.key" class="item">
             <div>
               <strong>{{ toWorkItemViewModel(item).title }}</strong
               ><span
@@ -74,13 +74,13 @@ onBeforeUnmount(controller.dispose)
       </ElCard>
       <ElCard shadow="never">
         <template #header
-          ><div class="work-item-page__panel-title">
+          ><div class="panel-title">
             <h3>信息提醒</h3>
             <StatusTag :label="`${controller.informational.value.length} 项`" /></div
         ></template>
         <ElEmpty v-if="controller.informational.value.length === 0" description="暂无信息提醒" />
-        <ul v-else class="work-item-page__list">
-          <li v-for="item in controller.informational.value" :key="item.key">
+        <ul v-else class="list">
+          <li v-for="item in controller.informational.value" :key="item.key" class="item">
             <div>
               <strong>{{ toWorkItemViewModel(item).title }}</strong
               ><span>{{ dayjs(item.due_at).format('YYYY-MM-DD HH:mm') }}</span>
@@ -94,72 +94,72 @@ onBeforeUnmount(controller.dispose)
 
 <style scoped lang="scss">
 .work-item-page {
-  &__heading,
-  &__panel-title,
-  &__list li {
+  .heading,
+  .panel-title,
+  .item {
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
 
-  &__heading {
+  .heading {
     margin-bottom: 14px;
   }
 
-  &__heading span {
+  .heading span {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
     font-weight: 700;
   }
 
-  &__heading h2,
-  &__panel-title h3 {
+  .heading h2,
+  .panel-title h3 {
     margin: 3px 0 0;
     color: var(--juya-color-sidebar);
   }
 
-  &__heading h2 {
+  .heading h2 {
     font-size: 18px;
   }
 
-  &__panel-title h3 {
+  .panel-title h3 {
     font-size: 15px;
   }
 
-  &__grid {
+  .grid {
     display: grid;
     grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
     gap: 14px;
     margin-top: 14px;
   }
 
-  &__list {
+  .list {
     margin: 0;
     padding: 0;
     list-style: none;
   }
 
-  &__list li {
+  .item {
     min-height: 72px;
     gap: 14px;
     border-bottom: 1px solid var(--juya-color-border-light);
+
+    &:last-child {
+      border-bottom: 0;
+    }
   }
 
-  &__list li:last-child {
-    border-bottom: 0;
-  }
-
-  &__list div {
+  .list div {
     display: grid;
     gap: 4px;
   }
 
-  &__list strong {
+  .list strong {
     color: var(--juya-color-text-primary);
     font-size: 13px;
   }
 
-  &__list span {
+  .list span {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
   }

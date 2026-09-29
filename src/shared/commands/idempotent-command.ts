@@ -22,10 +22,10 @@ export interface IdempotentCommandController<TInput, TResult> {
 }
 
 /**
- * 创建在同一逻辑操作内复用幂等键的命令控制器。
+ * 创建在同一逻辑操作内复用幂等键的命令控制器
  *
- * @param execute - 接收业务输入和幂等键的异步命令执行器。
- * @returns 可提交、重试和重置的幂等命令控制器。
+ * @param execute - 接收业务输入和幂等键的异步命令执行器
+ * @returns 可提交、重试和重置的幂等命令控制器
  */
 export function useIdempotentCommand<TInput, TResult>(
   execute: CommandExecutor<TInput, TResult>
@@ -38,9 +38,9 @@ export function useIdempotentCommand<TInput, TResult>(
   let inputFingerprint: string | null = null
 
   /**
-   * 使用当前输入和当前幂等键执行一次命令。
+   * 使用当前输入和当前幂等键执行一次命令
    *
-   * @returns 命令返回的业务结果。
+   * @returns 命令返回的业务结果
    */
   async function executeCurrent(): Promise<TResult> {
     if (input.value === null) throw new Error('没有可重试的命令')
@@ -59,10 +59,10 @@ export function useIdempotentCommand<TInput, TResult>(
   }
 
   /**
-   * 为新的业务输入生成幂等键并清理上一次执行状态。
+   * 为新的业务输入生成幂等键并清理上一次执行状态
    *
-   * @param nextInput - 可选的新业务输入。
-   * @returns 无返回值。
+   * @param nextInput - 可选的新业务输入
+   * @returns 无返回值
    */
   function reset(nextInput?: TInput): void {
     idempotencyKey.value = createIdempotencyKey()
@@ -74,10 +74,10 @@ export function useIdempotentCommand<TInput, TResult>(
   }
 
   /**
-   * 提交业务输入，输入实质变化时自动开启新的幂等操作。
+   * 提交业务输入，输入实质变化时自动开启新的幂等操作
    *
-   * @param nextInput - 本次命令的完整业务输入。
-   * @returns 命令返回的业务结果。
+   * @param nextInput - 本次命令的完整业务输入
+   * @returns 命令返回的业务结果
    */
   async function submit(nextInput: TInput): Promise<TResult> {
     const nextFingerprint = fingerprintInput(nextInput)
@@ -90,9 +90,9 @@ export function useIdempotentCommand<TInput, TResult>(
   }
 
   /**
-   * 以原输入和原幂等键重试最近一次逻辑操作。
+   * 以原输入和原幂等键重试最近一次逻辑操作
    *
-   * @returns 命令返回的业务结果。
+   * @returns 命令返回的业务结果
    */
   async function retry(): Promise<TResult> {
     return executeCurrent()
@@ -111,21 +111,21 @@ export function useIdempotentCommand<TInput, TResult>(
 }
 
 /**
- * 将业务输入转换为稳定的结构指纹用于识别表单实质变化。
+ * 将业务输入转换为稳定的结构指纹用于识别表单实质变化
  *
- * @param input - 需要比较的业务输入。
- * @returns 可比较的 JSON 字符串。
+ * @param input - 需要比较的业务输入
+ * @returns 可比较的 JSON 字符串
  */
 function fingerprintInput<TInput>(input: TInput): string {
   return JSON.stringify(input, objectKeySorter)
 }
 
 /**
- * 在 JSON 序列化期间按键名排序普通对象。
+ * 在 JSON 序列化期间按键名排序普通对象
  *
- * @param _key - 当前字段名，排序逻辑无需使用。
- * @param value - 当前字段值。
- * @returns 键名已排序的普通对象或原值。
+ * @param _key - 当前字段名，排序逻辑无需使用
+ * @param value - 当前字段值
+ * @returns 键名已排序的普通对象或原值
  */
 function objectKeySorter(_key: string, value: unknown): unknown {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return value

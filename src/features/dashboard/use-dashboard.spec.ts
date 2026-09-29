@@ -14,9 +14,9 @@ const snapshot: DashboardSnapshotDto = {
 }
 
 /**
- * 创建工作台测试使用的成功适配器。
+ * 创建工作台测试使用的成功适配器
  *
- * @returns 返回固定快照和空待办的适配器。
+ * @returns 返回固定快照和空待办的适配器
  */
 function createAdapter(): DashboardAdapter {
   return {
@@ -26,9 +26,9 @@ function createAdapter(): DashboardAdapter {
 }
 
 /**
- * 等待当前微任务队列完成。
+ * 等待当前微任务队列完成
  *
- * @returns 微任务完成后的 Promise。
+ * @returns 微任务完成后的 Promise
  */
 async function flushPromises(): Promise<void> {
   await Promise.resolve()

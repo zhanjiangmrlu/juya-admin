@@ -24,11 +24,11 @@ export interface DashboardOptions {
 }
 
 /**
- * 创建带轮询、取消和页面可见性控制的工作台状态。
+ * 创建带轮询、取消和页面可见性控制的工作台状态
  *
- * @param adapter - 工作台 API 适配器。
- * @param options - 可选文档对象和轮询周期。
- * @returns 工作台响应式控制器。
+ * @param adapter - 工作台 API 适配器
+ * @param options - 可选文档对象和轮询周期
+ * @returns 工作台响应式控制器
  */
 export function useDashboard(
   adapter: DashboardAdapter,
@@ -48,9 +48,9 @@ export function useDashboard(
   let started = false
 
   /**
-   * 同时刷新工作台快照与待办，新的刷新会取消旧请求。
+   * 同时刷新工作台快照与待办，新的刷新会取消旧请求
    *
-   * @returns 刷新完成后的 Promise。
+   * @returns 刷新完成后的 Promise
    */
   async function load(): Promise<void> {
     abortController?.abort()
@@ -77,9 +77,9 @@ export function useDashboard(
   }
 
   /**
-   * 清除现有轮询定时器。
+   * 清除现有轮询定时器
    *
-   * @returns 无返回值。
+   * @returns 无返回值
    */
   function clearPolling(): void {
     if (intervalId === null) return
@@ -88,9 +88,9 @@ export function useDashboard(
   }
 
   /**
-   * 在页面可见时创建 30 秒轮询。
+   * 在页面可见时创建 30 秒轮询
    *
-   * @returns 无返回值。
+   * @returns 无返回值
    */
   function schedulePolling(): void {
     clearPolling()
@@ -99,9 +99,9 @@ export function useDashboard(
   }
 
   /**
-   * 根据页面可见性暂停或恢复请求与轮询。
+   * 根据页面可见性暂停或恢复请求与轮询
    *
-   * @returns 无返回值。
+   * @returns 无返回值
    */
   function handleVisibilityChange(): void {
     if (activeDocument.hidden) {
@@ -114,9 +114,9 @@ export function useDashboard(
   }
 
   /**
-   * 启动工作台首次加载、可见性监听和轮询。
+   * 启动工作台首次加载、可见性监听和轮询
    *
-   * @returns 无返回值。
+   * @returns 无返回值
    */
   function start(): void {
     if (started) return
@@ -129,9 +129,9 @@ export function useDashboard(
   }
 
   /**
-   * 停止工作台轮询并取消当前请求。
+   * 停止工作台轮询并取消当前请求
    *
-   * @returns 无返回值。
+   * @returns 无返回值
    */
   function stop(): void {
     if (!started) return
@@ -155,10 +155,10 @@ export function useDashboard(
 }
 
 /**
- * 判断未知异常是否为浏览器请求取消异常。
+ * 判断未知异常是否为浏览器请求取消异常
  *
- * @param error - 捕获到的未知异常。
- * @returns 异常名称是否为 AbortError。
+ * @param error - 捕获到的未知异常
+ * @returns 异常名称是否为 AbortError
  */
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'

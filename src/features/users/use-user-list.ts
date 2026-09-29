@@ -16,11 +16,11 @@ export interface UserListController {
 }
 
 /**
- * 创建用户列表查询与敏感搜索控制器。
+ * 创建用户列表查询与敏感搜索控制器
  *
- * @param adapter - 用户接口适配器。
- * @param router - 用于同步非敏感筛选标记的路由器。
- * @returns 用户列表响应式控制器。
+ * @param adapter - 用户接口适配器
+ * @param router - 用于同步非敏感筛选标记的路由器
+ * @returns 用户列表响应式控制器
  */
 export function useUserList(adapter: UserAdapter, router: Router): UserListController {
   const error = ref<string | null>(null)
@@ -30,10 +30,10 @@ export function useUserList(adapter: UserAdapter, router: Router): UserListContr
   let requestSequence = 0
 
   /**
-   * 执行普通非敏感用户搜索并同步 URL query。
+   * 执行普通非敏感用户搜索并同步 URL query
    *
-   * @param query - 用户编号等普通搜索条件。
-   * @returns 搜索完成后的 Promise。
+   * @param query - 用户编号等普通搜索条件
+   * @returns 搜索完成后的 Promise
    */
   async function search(query = ''): Promise<void> {
     const normalizedQuery = query.trim()
@@ -44,10 +44,10 @@ export function useUserList(adapter: UserAdapter, router: Router): UserListContr
   }
 
   /**
-   * 执行完整微信号 POST 搜索且仅在 URL 记录布尔标记。
+   * 执行完整微信号 POST 搜索且仅在 URL 记录布尔标记
    *
-   * @param value - 完整微信号输入值。
-   * @returns 搜索完成后的 Promise；输入无效时不发请求。
+   * @param value - 完整微信号输入值
+   * @returns 搜索完成后的 Promise；输入无效时不发请求
    */
   async function searchByWechat(value: string): Promise<void> {
     try {
@@ -62,11 +62,11 @@ export function useUserList(adapter: UserAdapter, router: Router): UserListContr
   }
 
   /**
-   * 取消旧请求并执行新的列表查询。
+   * 取消旧请求并执行新的列表查询
    *
-   * @param request - 接收取消信号并返回用户数组的请求函数。
-   * @param query - 查询完成后写入 URL 的非敏感参数。
-   * @returns 查询和路由同步完成后的 Promise。
+   * @param request - 接收取消信号并返回用户数组的请求函数
+   * @param query - 查询完成后写入 URL 的非敏感参数
+   * @returns 查询和路由同步完成后的 Promise
    */
   async function runSearch(
     request: (signal: AbortSignal) => Promise<UserProjectionDto[]>,
@@ -91,9 +91,9 @@ export function useUserList(adapter: UserAdapter, router: Router): UserListContr
   }
 
   /**
-   * 取消页面离开时仍在进行的用户查询。
+   * 取消页面离开时仍在进行的用户查询
    *
-   * @returns 无返回值。
+   * @returns 无返回值
    */
   function dispose(): void {
     abortController?.abort()
@@ -103,10 +103,10 @@ export function useUserList(adapter: UserAdapter, router: Router): UserListContr
 }
 
 /**
- * 校验完整微信号并创建敏感搜索请求体。
+ * 校验完整微信号并创建敏感搜索请求体
  *
- * @param value - 管理员输入的完整微信号。
- * @returns 只用于 POST 正文的微信号搜索对象。
+ * @param value - 管理员输入的完整微信号
+ * @returns 只用于 POST 正文的微信号搜索对象
  */
 export function createSensitiveSearchPayload(value: string): WechatSearchRequest {
   if (value.length === 0) throw new Error('请输入完整微信号')
@@ -116,10 +116,10 @@ export function createSensitiveSearchPayload(value: string): WechatSearchRequest
 }
 
 /**
- * 判断未知异常是否为浏览器取消请求异常。
+ * 判断未知异常是否为浏览器取消请求异常
  *
- * @param error - 捕获到的未知异常。
- * @returns 异常是否为 AbortError。
+ * @param error - 捕获到的未知异常
+ * @returns 异常是否为 AbortError
  */
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'

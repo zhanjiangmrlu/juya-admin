@@ -6,9 +6,9 @@ import type { AuthAdapter } from './auth-adapter'
 import { createUseAuthStore } from './auth-store'
 
 /**
- * 创建认证 Store 测试使用的适配器桩。
+ * 创建认证 Store 测试使用的适配器桩
  *
- * @returns 所有认证步骤默认成功的适配器。
+ * @returns 所有认证步骤默认成功的适配器
  */
 const createAdapter = (): AuthAdapter => ({
   logout: vi.fn().mockResolvedValue(undefined),

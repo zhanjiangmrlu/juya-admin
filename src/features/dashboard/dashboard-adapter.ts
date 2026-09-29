@@ -19,19 +19,19 @@ export interface DashboardAdapter {
 }
 
 /**
- * 创建工作台快照与待办接口适配器。
+ * 创建工作台快照与待办接口适配器
  *
- * @param client - 统一 API 客户端。
- * @returns 提供快照和待办查询的适配器。
+ * @param client - 统一 API 客户端
+ * @returns 提供快照和待办查询的适配器
  */
 export function createDashboardAdapter(client: ApiClient): DashboardAdapter {
   const workItemAdapter = createWorkItemAdapter(client)
   return {
     /**
-     * 读取当前工作台汇总指标。
+     * 读取当前工作台汇总指标
      *
-     * @param signal - 可选请求取消信号。
-     * @returns 已校验的工作台快照。
+     * @param signal - 可选请求取消信号
+     * @returns 已校验的工作台快照
      */
     async getSnapshot(signal?: AbortSignal): Promise<DashboardSnapshotDto> {
       const response = await client.request<Record<string, unknown>>({
@@ -43,10 +43,10 @@ export function createDashboardAdapter(client: ApiClient): DashboardAdapter {
     },
 
     /**
-     * 读取服务端已按 priority_rank 排序的活动待办。
+     * 读取服务端已按 priority_rank 排序的活动待办
      *
-     * @param signal - 可选请求取消信号。
-     * @returns 不改变服务端顺序的待办数组。
+     * @param signal - 可选请求取消信号
+     * @returns 不改变服务端顺序的待办数组
      */
     async getWorkItems(signal?: AbortSignal): Promise<WorkItemDto[]> {
       return workItemAdapter.getWorkItems(signal)
@@ -55,10 +55,10 @@ export function createDashboardAdapter(client: ApiClient): DashboardAdapter {
 }
 
 /**
- * 校验并转换工作台快照响应。
+ * 校验并转换工作台快照响应
  *
- * @param source - 后端返回的未知对象。
- * @returns 字段完整的工作台快照。
+ * @param source - 后端返回的未知对象
+ * @returns 字段完整的工作台快照
  */
 function parseDashboardSnapshot(source: Record<string, unknown>): DashboardSnapshotDto {
   return {
@@ -71,11 +71,11 @@ function parseDashboardSnapshot(source: Record<string, unknown>): DashboardSnaps
 }
 
 /**
- * 从接口对象读取有限数字字段。
+ * 从接口对象读取有限数字字段
  *
- * @param source - 接口响应对象。
- * @param key - 数字字段名。
- * @returns 对应数字值。
+ * @param source - 接口响应对象
+ * @param key - 数字字段名
+ * @returns 对应数字值
  */
 function requireNumber(source: Record<string, unknown>, key: string): number {
   const value = source[key]

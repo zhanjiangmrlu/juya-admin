@@ -15,10 +15,10 @@ export interface WorkItemController {
 }
 
 /**
- * 创建待办加载与分组控制器，并保持服务端原始顺序。
+ * 创建待办加载与分组控制器，并保持服务端原始顺序
  *
- * @param adapter - 待办接口适配器。
- * @returns 待办页面控制器。
+ * @param adapter - 待办接口适配器
+ * @returns 待办页面控制器
  */
 export function useWorkItems(adapter: WorkItemAdapter): WorkItemController {
   const items = ref<WorkItemDto[]>([])
@@ -33,9 +33,9 @@ export function useWorkItems(adapter: WorkItemAdapter): WorkItemController {
   let controller: AbortController | null = null
 
   /**
-   * 加载最新待办并以服务端顺序保存。
+   * 加载最新待办并以服务端顺序保存
    *
-   * @returns 加载完成后的 Promise。
+   * @returns 加载完成后的 Promise
    */
   async function load(): Promise<void> {
     controller?.abort()
@@ -53,9 +53,9 @@ export function useWorkItems(adapter: WorkItemAdapter): WorkItemController {
   }
 
   /**
-   * 取消页面离开时仍在进行的待办请求。
+   * 取消页面离开时仍在进行的待办请求
    *
-   * @returns 无返回值。
+   * @returns 无返回值
    */
   function dispose(): void {
     controller?.abort()

@@ -61,19 +61,19 @@ watch(
 )
 
 /**
- * 打开限时权益高风险操作确认弹窗。
+ * 打开限时权益高风险操作确认弹窗
  *
- * @returns 无返回值。
+ * @returns 无返回值
  */
 function openConfirmation(): void {
   isConfirmVisible.value = true
 }
 
 /**
- * 提交限时权益状态操作并展示服务端结果。
+ * 提交限时权益状态操作并展示服务端结果
  *
- * @param reason - 管理员填写的审计原因。
- * @returns 命令提交完成后的 Promise。
+ * @param reason - 管理员填写的审计原因
+ * @returns 命令提交完成后的 Promise
  */
 async function handleConfirm(reason: string): Promise<void> {
   try {
@@ -86,10 +86,10 @@ async function handleConfirm(reason: string): Promise<void> {
 }
 
 /**
- * 根据操作给出确认后的目标状态说明。
+ * 根据操作给出确认后的目标状态说明
  *
- * @param operation - 当前选择的限时权益操作。
- * @returns 面向管理员的目标状态文案。
+ * @param operation - 当前选择的限时权益操作
+ * @returns 面向管理员的目标状态文案
  */
 function getTargetStatus(operation: LimitedEntitlementOperation): string {
   const statuses: Readonly<Record<LimitedEntitlementOperation, string>> = {
@@ -108,7 +108,7 @@ function getTargetStatus(operation: LimitedEntitlementOperation): string {
   <section class="limited-action-page">
     <ElCard shadow="never">
       <template #header>
-        <div class="limited-action-page__heading">
+        <div class="heading">
           <div>
             <span>A09</span>
             <h2>限时权益操作 · {{ entitlementId }}</h2>
@@ -120,14 +120,14 @@ function getTargetStatus(operation: LimitedEntitlementOperation): string {
       </template>
 
       <ElAlert
-        class="limited-action-page__notice"
+        class="notice"
         :closable="false"
         title="单条限时权益详情接口待接入；请先核对当前状态与补救次数，提交时服务端会重新校验"
         type="warning"
         show-icon
       />
 
-      <div class="limited-action-page__grid">
+      <div class="grid">
         <ElFormItem label="已核对当前状态">
           <ElSelect v-model="form.status">
             <ElOption label="待开始" value="PENDING" /><ElOption label="学习中" value="ACTIVE" />
@@ -155,7 +155,7 @@ function getTargetStatus(operation: LimitedEntitlementOperation): string {
 
       <ElAlert
         v-if="controller.disabledReason.value || controller.errorMessage.value"
-        class="limited-action-page__notice"
+        class="notice"
         :closable="false"
         :title="controller.disabledReason.value ?? controller.errorMessage.value ?? ''"
         type="error"
@@ -175,7 +175,7 @@ function getTargetStatus(operation: LimitedEntitlementOperation): string {
       </ElDescriptions>
 
       <ElButton
-        class="limited-action-page__submit"
+        class="submit"
         :disabled="allowedOperations.length === 0 || Boolean(controller.disabledReason.value)"
         :loading="controller.commandState.value === 'submitting'"
         type="primary"
@@ -199,35 +199,35 @@ function getTargetStatus(operation: LimitedEntitlementOperation): string {
 
 <style scoped lang="scss">
 .limited-action-page {
-  &__heading {
+  .heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
   }
 
-  &__heading span {
+  .heading span {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
     font-weight: 700;
   }
 
-  &__heading h2 {
+  .heading h2 {
     margin: 3px 0 0;
     color: var(--juya-color-sidebar);
     font-size: 16px;
   }
 
-  &__notice {
+  .notice {
     margin-bottom: 16px;
   }
 
-  &__grid {
+  .grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
   }
 
-  &__submit {
+  .submit {
     margin-top: 16px;
   }
 }

@@ -30,19 +30,19 @@ export interface LimitedEntitlementAdapter {
 }
 
 /**
- * 创建限时权益授予与状态命令适配器。
+ * 创建限时权益授予与状态命令适配器
  *
- * @param client - 统一 API 客户端。
- * @returns 限时权益命令适配器。
+ * @param client - 统一 API 客户端
+ * @returns 限时权益命令适配器
  */
 export function createLimitedEntitlementAdapter(client: ApiClient): LimitedEntitlementAdapter {
   return {
     /**
-     * 根据操作类型调用对应限时权益命令接口。
+     * 根据操作类型调用对应限时权益命令接口
      *
-     * @param input - 权益编号、开通字段、操作和可选原因。
-     * @param idempotencyKey - 当前逻辑操作复用的幂等键。
-     * @returns 服务端持久化后的限时权益。
+     * @param input - 权益编号、开通字段、操作和可选原因
+     * @param idempotencyKey - 当前逻辑操作复用的幂等键
+     * @returns 服务端持久化后的限时权益
      */
     async execute(input, idempotencyKey) {
       const request = toRequest(input)
@@ -58,10 +58,10 @@ export function createLimitedEntitlementAdapter(client: ApiClient): LimitedEntit
 }
 
 /**
- * 将限时权益命令映射为真实接口路径和请求体。
+ * 将限时权益命令映射为真实接口路径和请求体
  *
- * @param input - 限时权益命令输入。
- * @returns API 请求路径和请求体。
+ * @param input - 限时权益命令输入
+ * @returns API 请求路径和请求体
  */
 function toRequest(input: LimitedEntitlementCommandInput): { body?: unknown; path: string } {
   if (input.operation === 'GRANT') {
@@ -84,10 +84,10 @@ function toRequest(input: LimitedEntitlementCommandInput): { body?: unknown; pat
 }
 
 /**
- * 校验并映射限时权益接口响应。
+ * 校验并映射限时权益接口响应
  *
- * @param source - 接口返回的未知值。
- * @returns 字段完整的限时权益视图模型。
+ * @param source - 接口返回的未知值
+ * @returns 字段完整的限时权益视图模型
  */
 function parseLimitedEntitlement(source: unknown): LimitedEntitlement {
   if (!isRecord(source)) throw new Error('限时权益接口响应格式不正确')
@@ -106,22 +106,22 @@ function parseLimitedEntitlement(source: unknown): LimitedEntitlement {
 }
 
 /**
- * 读取可为空的字符串字段。
+ * 读取可为空的字符串字段
  *
- * @param source - 接口响应对象。
- * @param key - 字段名。
- * @returns 字符串字段或空值。
+ * @param source - 接口响应对象
+ * @param key - 字段名
+ * @returns 字符串字段或空值
  */
 function nullableString(source: Record<string, unknown>, key: string): string | null {
   return source[key] === null ? null : requireString(source, key)
 }
 
 /**
- * 读取必需字符串字段。
+ * 读取必需字符串字段
  *
- * @param source - 接口响应对象。
- * @param key - 字段名。
- * @returns 非空字符串字段。
+ * @param source - 接口响应对象
+ * @param key - 字段名
+ * @returns 非空字符串字段
  */
 function requireString(source: Record<string, unknown>, key: string): string {
   const value = source[key]
@@ -130,11 +130,11 @@ function requireString(source: Record<string, unknown>, key: string): string {
 }
 
 /**
- * 读取必需有限数字字段。
+ * 读取必需有限数字字段
  *
- * @param source - 接口响应对象。
- * @param key - 字段名。
- * @returns 有限数字字段。
+ * @param source - 接口响应对象
+ * @param key - 字段名
+ * @returns 有限数字字段
  */
 function requireNumber(source: Record<string, unknown>, key: string): number {
   const value = source[key]
@@ -144,10 +144,10 @@ function requireNumber(source: Record<string, unknown>, key: string): number {
 }
 
 /**
- * 判断未知值是否为普通记录对象。
+ * 判断未知值是否为普通记录对象
  *
- * @param value - 需要判断的未知值。
- * @returns 值是否为非空且非数组对象。
+ * @param value - 需要判断的未知值
+ * @returns 值是否为非空且非数组对象
  */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

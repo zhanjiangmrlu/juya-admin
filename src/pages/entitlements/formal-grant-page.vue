@@ -60,9 +60,9 @@ watch(
 )
 
 /**
- * 请求服务端预览授予或续期结果并打开二次确认。
+ * 请求服务端预览授予或续期结果并打开二次确认
  *
- * @returns 预览流程完成后的 Promise。
+ * @returns 预览流程完成后的 Promise
  */
 async function handlePreview(): Promise<void> {
   if (!form.userId.trim() || !form.packageId.trim()) return
@@ -70,15 +70,15 @@ async function handlePreview(): Promise<void> {
     await controller.preview()
     isConfirmVisible.value = true
   } catch {
-    // 控制器已提供安全错误文案，页面不重复弹出异常细节。
+    // 控制器已提供安全错误文案，页面不重复弹出异常细节
   }
 }
 
 /**
- * 使用管理员填写的审计原因提交正式权益命令。
+ * 使用管理员填写的审计原因提交正式权益命令
  *
- * @param reason - 二次确认弹窗中的必填原因。
- * @returns 命令提交完成后的 Promise。
+ * @param reason - 二次确认弹窗中的必填原因
+ * @returns 命令提交完成后的 Promise
  */
 async function handleConfirm(reason: string): Promise<void> {
   try {
@@ -91,10 +91,10 @@ async function handleConfirm(reason: string): Promise<void> {
 }
 
 /**
- * 格式化服务端返回的时间，不执行任何到期时间计算。
+ * 格式化服务端返回的时间，不执行任何到期时间计算
  *
- * @param value - ISO 8601 时间或永久权益的空值。
- * @returns 本地展示时间或“永久有效”。
+ * @param value - ISO 8601 时间或永久权益的空值
+ * @returns 本地展示时间或“永久有效”
  */
 function formatServerTime(value: string | null): string {
   return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '永久有效'
@@ -105,7 +105,7 @@ function formatServerTime(value: string | null): string {
   <section class="formal-grant-page">
     <ElCard shadow="never">
       <template #header>
-        <div class="formal-grant-page__heading">
+        <div class="heading">
           <div>
             <span>A06</span>
             <h2>授予正式内容包</h2>
@@ -117,7 +117,7 @@ function formatServerTime(value: string | null): string {
       </template>
 
       <ElForm label-position="top" @submit.prevent="handlePreview">
-        <div class="formal-grant-page__form-grid">
+        <div class="form-grid">
           <ElFormItem label="操作类型" required>
             <ElSelect v-model="form.operation">
               <ElOption label="首次授予或重新授予" value="GRANT" />
@@ -144,7 +144,7 @@ function formatServerTime(value: string | null): string {
 
         <ElAlert
           v-if="controller.errorMessage.value"
-          class="formal-grant-page__alert"
+          class="alert"
           :closable="false"
           :title="controller.errorMessage.value"
           type="error"
@@ -155,7 +155,7 @@ function formatServerTime(value: string | null): string {
           </template>
         </ElAlert>
 
-        <div v-if="controller.previewResult.value" class="formal-grant-page__preview">
+        <div v-if="controller.previewResult.value" class="preview">
           <div><span>当前期限</span><strong>由服务端当前状态校验</strong></div>
           <div>
             <span>生效时间</span
@@ -193,59 +193,59 @@ function formatServerTime(value: string | null): string {
 
 <style scoped lang="scss">
 .formal-grant-page {
-  &__heading {
+  .heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
   }
 
-  &__heading span {
+  .heading span {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
     font-weight: 700;
   }
 
-  &__heading h2 {
+  .heading h2 {
     margin: 3px 0 0;
     color: var(--juya-color-sidebar);
     font-size: 16px;
   }
 
-  &__form-grid {
+  .form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0 14px;
   }
 
-  &__alert {
+  .alert {
     margin-bottom: 16px;
   }
 
-  &__preview {
+  .preview {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
     margin-bottom: 16px;
   }
 
-  &__preview div {
+  .preview div {
     padding: 12px;
     border-radius: var(--juya-control-radius);
     background: #f4f5f1;
   }
 
-  &__preview span,
-  &__preview strong {
+  .preview span,
+  .preview strong {
     display: block;
   }
 
-  &__preview span {
+  .preview span {
     margin-bottom: 6px;
     color: var(--juya-color-text-secondary);
     font-size: 11px;
   }
 
-  &__preview strong {
+  .preview strong {
     color: var(--juya-color-sidebar);
     font-size: 13px;
   }

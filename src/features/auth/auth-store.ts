@@ -15,11 +15,11 @@ export type AuthStep = 'password' | 'totp'
 export type AuthStatus = 'error' | 'idle' | 'loading'
 
 /**
- * 创建绑定指定认证适配器的 Pinia Store 定义。
+ * 创建绑定指定认证适配器的 Pinia Store 定义
  *
- * @param adapter - 认证接口适配器。
- * @param storeId - Pinia Store 唯一标识，测试可使用独立标识隔离状态。
- * @returns 可由 Pinia 实例化的认证 Store 定义。
+ * @param adapter - 认证接口适配器
+ * @param storeId - Pinia Store 唯一标识，测试可使用独立标识隔离状态
+ * @returns 可由 Pinia 实例化的认证 Store 定义
  */
 export function createUseAuthStore(adapter: AuthAdapter, storeId = 'auth') {
   return defineStore(storeId, () => {
@@ -34,10 +34,10 @@ export function createUseAuthStore(adapter: AuthAdapter, storeId = 'auth') {
     const isAuthenticated = computed(() => hasSession.value)
 
     /**
-     * 提交账号密码并进入 TOTP 步骤，密码不会写入 Store。
+     * 提交账号密码并进入 TOTP 步骤，密码不会写入 Store
      *
-     * @param credentials - 管理员账号和密码。
-     * @returns 密码验证完成后的 Promise。
+     * @param credentials - 管理员账号和密码
+     * @returns 密码验证完成后的 Promise
      */
     async function submitPassword(credentials: PasswordCredentials): Promise<void> {
       status.value = 'loading'
@@ -56,10 +56,10 @@ export function createUseAuthStore(adapter: AuthAdapter, storeId = 'auth') {
     }
 
     /**
-     * 提交六位 TOTP 并将 CSRF token 保存到内存状态。
+     * 提交六位 TOTP 并将 CSRF token 保存到内存状态
      *
-     * @param credentials - TOTP 验证码和设备说明。
-     * @returns TOTP 验证完成后的 Promise。
+     * @param credentials - TOTP 验证码和设备说明
+     * @returns TOTP 验证完成后的 Promise
      */
     async function submitTotp(credentials: TotpCredentials): Promise<void> {
       if (!challengeId.value) throw new Error('请先完成账号密码验证')
@@ -82,9 +82,9 @@ export function createUseAuthStore(adapter: AuthAdapter, storeId = 'auth') {
     }
 
     /**
-     * 探测现有 Cookie 会话是否仍有效。
+     * 探测现有 Cookie 会话是否仍有效
      *
-     * @returns 会话有效时返回 true，否则清理敏感状态并返回 false。
+     * @returns 会话有效时返回 true，否则清理敏感状态并返回 false
      */
     async function probeSession(): Promise<boolean> {
       try {
@@ -98,9 +98,9 @@ export function createUseAuthStore(adapter: AuthAdapter, storeId = 'auth') {
     }
 
     /**
-     * 注销当前会话并始终清理内存敏感状态。
+     * 注销当前会话并始终清理内存敏感状态
      *
-     * @returns 注销流程完成后的 Promise。
+     * @returns 注销流程完成后的 Promise
      */
     async function logout(): Promise<void> {
       try {
@@ -111,9 +111,9 @@ export function createUseAuthStore(adapter: AuthAdapter, storeId = 'auth') {
     }
 
     /**
-     * 清除挑战、CSRF token 和会话状态。
+     * 清除挑战、CSRF token 和会话状态
      *
-     * @returns 无返回值。
+     * @returns 无返回值
      */
     function clearSensitiveState(): void {
       challengeId.value = null
@@ -145,10 +145,10 @@ export function createUseAuthStore(adapter: AuthAdapter, storeId = 'auth') {
 }
 
 /**
- * 将认证异常转换为登录页可展示的安全提示。
+ * 将认证异常转换为登录页可展示的安全提示
  *
- * @param error - 捕获到的未知异常。
- * @returns 面向管理员的简洁错误提示。
+ * @param error - 捕获到的未知异常
+ * @returns 面向管理员的简洁错误提示
  */
 function toAuthErrorMessage(error: unknown): string {
   return error instanceof ApiError ? error.message : '认证请求失败，请稍后重试'

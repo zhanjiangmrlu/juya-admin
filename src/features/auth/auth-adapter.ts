@@ -26,18 +26,18 @@ export interface AuthAdapter {
 }
 
 /**
- * 创建管理员认证接口适配器。
+ * 创建管理员认证接口适配器
  *
- * @param client - 统一 API 客户端。
- * @returns 提供密码、TOTP、探测和退出能力的认证适配器。
+ * @param client - 统一 API 客户端
+ * @returns 提供密码、TOTP、探测和退出能力的认证适配器
  */
 export function createAuthAdapter(client: ApiClient): AuthAdapter {
   return {
     /**
-     * 注销当前管理员会话。
+     * 注销当前管理员会话
      *
-     * @param csrfToken - 当前内存中的 CSRF token。
-     * @returns 注销命令完成后的 Promise。
+     * @param csrfToken - 当前内存中的 CSRF token
+     * @returns 注销命令完成后的 Promise
      */
     async logout(csrfToken: string | null): Promise<void> {
       await client.request<void>({
@@ -48,19 +48,19 @@ export function createAuthAdapter(client: ApiClient): AuthAdapter {
     },
 
     /**
-     * 通过受保护的只读配置接口探测 Cookie 会话。
+     * 通过受保护的只读配置接口探测 Cookie 会话
      *
-     * @returns 探测成功后的 Promise。
+     * @returns 探测成功后的 Promise
      */
     async probeSession(): Promise<void> {
       await client.request({ method: 'GET', path: '/api/v1/admin/settings' })
     },
 
     /**
-     * 验证管理员账号密码并获取短期挑战。
+     * 验证管理员账号密码并获取短期挑战
      *
-     * @param credentials - 管理员账号和密码。
-     * @returns TOTP 挑战编号和过期时间。
+     * @param credentials - 管理员账号和密码
+     * @returns TOTP 挑战编号和过期时间
      */
     async submitPassword(credentials: PasswordCredentials): Promise<PasswordChallenge> {
       const response = await client.request<Record<string, unknown>>({
@@ -76,11 +76,11 @@ export function createAuthAdapter(client: ApiClient): AuthAdapter {
     },
 
     /**
-     * 验证 TOTP 并建立浏览器 Cookie 会话。
+     * 验证 TOTP 并建立浏览器 Cookie 会话
      *
-     * @param challengeId - 密码步骤返回的挑战编号。
-     * @param credentials - 六位 TOTP 和设备说明。
-     * @returns 仅保存在内存中的 CSRF token 和过期时间。
+     * @param challengeId - 密码步骤返回的挑战编号
+     * @param credentials - 六位 TOTP 和设备说明
+     * @returns 仅保存在内存中的 CSRF token 和过期时间
      */
     async submitTotp(challengeId: string, credentials: TotpCredentials): Promise<AuthSession> {
       const payload: components['schemas']['TotpLoginRequest'] = {
@@ -103,11 +103,11 @@ export function createAuthAdapter(client: ApiClient): AuthAdapter {
 }
 
 /**
- * 从未知接口对象读取必需字符串字段。
+ * 从未知接口对象读取必需字符串字段
  *
- * @param source - 接口响应对象。
- * @param key - 需要读取的字段名。
- * @returns 非空字符串字段值。
+ * @param source - 接口响应对象
+ * @param key - 需要读取的字段名
+ * @returns 非空字符串字段值
  */
 function requireString(source: Record<string, unknown>, key: string): string {
   const value = source[key]

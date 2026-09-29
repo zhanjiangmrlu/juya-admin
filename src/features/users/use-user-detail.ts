@@ -31,11 +31,11 @@ const initialSections: UserDetailSectionStates = {
 }
 
 /**
- * 创建用户详情控制器并保持各业务区块独立状态。
+ * 创建用户详情控制器并保持各业务区块独立状态
  *
- * @param adapter - 用户接口适配器。
- * @param userId - 用户公开编号或响应式编号。
- * @returns 用户详情响应式控制器。
+ * @param adapter - 用户接口适配器
+ * @param userId - 用户公开编号或响应式编号
+ * @returns 用户详情响应式控制器
  */
 export function useUserDetail(
   adapter: UserAdapter,
@@ -48,9 +48,9 @@ export function useUserDetail(
   let abortController: AbortController | null = null
 
   /**
-   * 加载当前用户详情并分别计算区块状态。
+   * 加载当前用户详情并分别计算区块状态
    *
-   * @returns 详情加载完成后的 Promise。
+   * @returns 详情加载完成后的 Promise
    */
   async function load(): Promise<void> {
     abortController?.abort()
@@ -76,9 +76,9 @@ export function useUserDetail(
   }
 
   /**
-   * 取消页面离开时仍在进行的详情请求。
+   * 取消页面离开时仍在进行的详情请求
    *
-   * @returns 无返回值。
+   * @returns 无返回值
    */
   function dispose(): void {
     abortController?.abort()
@@ -88,10 +88,10 @@ export function useUserDetail(
 }
 
 /**
- * 判断未知异常是否为浏览器取消请求异常。
+ * 判断未知异常是否为浏览器取消请求异常
  *
- * @param error - 捕获到的未知异常。
- * @returns 异常是否为 AbortError。
+ * @param error - 捕获到的未知异常
+ * @returns 异常是否为 AbortError
  */
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'

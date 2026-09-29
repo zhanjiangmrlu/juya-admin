@@ -35,9 +35,9 @@ watch(
 )
 
 /**
- * 关闭确认弹窗并通知调用方取消操作。
+ * 关闭确认弹窗并通知调用方取消操作
  *
- * @returns 无返回值。
+ * @returns 无返回值
  */
 function cancel(): void {
   emit('update:modelValue', false)
@@ -45,9 +45,9 @@ function cancel(): void {
 }
 
 /**
- * 校验操作原因后向调用方提交确认事件。
+ * 校验操作原因后向调用方提交确认事件
  *
- * @returns 无返回值。
+ * @returns 无返回值
  */
 function confirm(): void {
   if (isConfirmDisabled.value) return
@@ -71,11 +71,11 @@ function confirm(): void {
       show-icon
     />
 
-    <ElDescriptions class="confirm-dialog__summary" :column="1" border>
+    <ElDescriptions class="summary" :column="1" border>
       <ElDescriptionsItem label="对象编号">{{ objectId }}</ElDescriptionsItem>
       <ElDescriptionsItem label="状态变化">
         <span>{{ beforeStatus }}</span>
-        <span class="confirm-dialog__arrow">→</span>
+        <span class="arrow">→</span>
         <strong>{{ afterStatus }}</strong>
       </ElDescriptionsItem>
       <ElDescriptionsItem label="影响范围">{{ impactScope }}</ElDescriptionsItem>
@@ -105,11 +105,11 @@ function confirm(): void {
 
 <style scoped lang="scss">
 .confirm-dialog {
-  &__summary {
+  .summary {
     margin: 16px 0;
   }
 
-  &__arrow {
+  .arrow {
     margin: 0 10px;
     color: var(--juya-color-text-secondary);
   }

@@ -19,10 +19,10 @@ export const LIMITED_OPERATION_LABELS: Readonly<Record<LimitedEntitlementOperati
 }
 
 /**
- * 根据限时权益状态与补救次数返回可展示操作。
+ * 根据限时权益状态与补救次数返回可展示操作
  *
- * @param entitlement - 当前状态和已使用补救次数。
- * @returns 按业务优先级排列的可用操作数组。
+ * @param entitlement - 当前状态和已使用补救次数
+ * @returns 按业务优先级排列的可用操作数组
  */
 export function getLimitedOperations(
   entitlement: LimitedOperationSource

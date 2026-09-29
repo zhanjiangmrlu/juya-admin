@@ -6,9 +6,9 @@ import type { UserAdapter } from './user-adapter'
 import { useUserList } from './use-user-list'
 
 /**
- * 创建用户列表测试使用的适配器。
+ * 创建用户列表测试使用的适配器
  *
- * @returns 默认返回空用户数组的适配器桩。
+ * @returns 默认返回空用户数组的适配器桩
  */
 function createAdapter(): UserAdapter {
   return {
@@ -19,9 +19,9 @@ function createAdapter(): UserAdapter {
 }
 
 /**
- * 创建用户列表测试使用的内存路由器。
+ * 创建用户列表测试使用的内存路由器
  *
- * @returns 已进入用户列表页的路由器。
+ * @returns 已进入用户列表页的路由器
  */
 async function createUserRouter() {
   const router = createRouter({

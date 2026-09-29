@@ -28,9 +28,9 @@ onMounted(() => void controller.search())
 onBeforeUnmount(controller.dispose)
 
 /**
- * 根据当前搜索模式提交普通查询或完整微信号查询。
+ * 根据当前搜索模式提交普通查询或完整微信号查询
  *
- * @returns 搜索完成后的 Promise。
+ * @returns 搜索完成后的 Promise
  */
 async function submitSearch(): Promise<void> {
   if (filters.mode === 'wechat') {
@@ -41,10 +41,10 @@ async function submitSearch(): Promise<void> {
 }
 
 /**
- * 格式化用户最近活跃时间。
+ * 格式化用户最近活跃时间
  *
- * @param value - ISO 8601 时间或空值。
- * @returns 管理端日期时间文案。
+ * @param value - ISO 8601 时间或空值
+ * @returns 管理端日期时间文案
  */
 function formatLastActive(value: string | null): string {
   return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '暂无记录'
@@ -53,9 +53,9 @@ function formatLastActive(value: string | null): string {
 
 <template>
   <section class="user-list-page">
-    <ElCard class="user-list-page__panel" shadow="never">
+    <ElCard class="panel" shadow="never">
       <template #header>
-        <div class="user-list-page__heading">
+        <div class="heading">
           <div>
             <h2>用户管理</h2>
             <p>普通条件使用 GET；完整微信号使用 POST 且不写入地址栏。</p>
@@ -64,9 +64,9 @@ function formatLastActive(value: string | null): string {
         </div>
       </template>
 
-      <ElForm class="user-list-page__filters" inline @submit.prevent="submitSearch">
+      <ElForm class="filters" inline @submit.prevent="submitSearch">
         <ElFormItem>
-          <ElSelect v-model="filters.mode" aria-label="搜索方式" class="user-list-page__mode">
+          <ElSelect v-model="filters.mode" aria-label="搜索方式" class="mode">
             <ElOption label="编号 / 普通条件" value="normal" />
             <ElOption label="完整微信号" value="wechat" />
           </ElSelect>
@@ -85,7 +85,7 @@ function formatLastActive(value: string | null): string {
         <ElFormItem>
           <ElSelect
             aria-label="联系状态筛选（待接入）"
-            class="user-list-page__pending-filter"
+            class="pending-filter"
             disabled
             model-value=""
             placeholder="全部联系状态"
@@ -94,7 +94,7 @@ function formatLastActive(value: string | null): string {
         <ElFormItem>
           <ElSelect
             aria-label="权益筛选（待接入）"
-            class="user-list-page__pending-filter"
+            class="pending-filter"
             disabled
             model-value=""
             placeholder="全部权益"
@@ -104,7 +104,7 @@ function formatLastActive(value: string | null): string {
 
       <ElAlert
         v-if="filters.mode === 'wechat'"
-        class="user-list-page__notice"
+        class="notice"
         :closable="false"
         title="敏感搜索不会进入 URL、浏览器存储或普通错误日志"
         type="info"
@@ -112,7 +112,7 @@ function formatLastActive(value: string | null): string {
       />
       <ElAlert
         v-if="controller.error.value"
-        class="user-list-page__notice"
+        class="notice"
         :closable="false"
         :title="controller.error.value"
         type="error"
@@ -127,7 +127,7 @@ function formatLastActive(value: string | null): string {
       >
         <ElTableColumn label="对象" min-width="260">
           <template #default="{ row }">
-            <div class="user-list-page__identity">
+            <div class="identity">
               <strong>{{ row.user_id }}</strong>
               <span>昵称与头像接口未提供</span>
             </div>
@@ -168,53 +168,53 @@ function formatLastActive(value: string | null): string {
 
 <style scoped lang="scss">
 .user-list-page {
-  &__heading {
+  .heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 24px;
   }
 
-  &__heading h2 {
+  .heading h2 {
     margin: 0;
     color: var(--juya-color-sidebar);
     font-size: 16px;
   }
 
-  &__heading p {
+  .heading p {
     margin: 5px 0 0;
     color: var(--juya-color-text-secondary);
     font-size: 12px;
   }
 
-  &__filters {
+  .filters {
     display: flex;
     flex-wrap: wrap;
   }
 
-  &__mode {
+  .mode {
     width: 148px;
   }
 
-  &__pending-filter {
+  .pending-filter {
     width: 132px;
   }
 
-  &__notice {
+  .notice {
     margin-bottom: 16px;
   }
 
-  &__identity {
+  .identity {
     display: grid;
     gap: 3px;
   }
 
-  &__identity strong {
+  .identity strong {
     color: var(--juya-color-text-primary);
     font-size: 13px;
   }
 
-  &__identity span {
+  .identity span {
     color: var(--juya-color-text-secondary);
     font-size: 11px;
   }

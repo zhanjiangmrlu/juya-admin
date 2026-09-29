@@ -11,10 +11,10 @@ export interface CampaignAdapter {
 }
 
 /**
- * 创建只暴露已声明能力边界的活动管理适配器。
+ * 创建只暴露已声明能力边界的活动管理适配器
  *
- * @param lookup - 能力注册表查询函数。
- * @returns 不发送未知请求的活动管理能力描述。
+ * @param lookup - 能力注册表查询函数
+ * @returns 不发送未知请求的活动管理能力描述
  */
 export function createCampaignAdapter(lookup: CapabilityLookup = getCapability): CampaignAdapter {
   return {

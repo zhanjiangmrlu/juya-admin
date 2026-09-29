@@ -32,20 +32,20 @@ export interface FormalEntitlementAdapter {
 }
 
 /**
- * 创建正式权益预览与命令接口适配器。
+ * 创建正式权益预览与命令接口适配器
  *
- * @param client - 统一 API 客户端。
- * @returns 正式权益接口适配器。
+ * @param client - 统一 API 客户端
+ * @returns 正式权益接口适配器
  */
 export function createFormalEntitlementAdapter(client: ApiClient): FormalEntitlementAdapter {
   return {
     /**
-     * 执行正式权益写命令。
+     * 执行正式权益写命令
      *
-     * @param operation - 授予、续期、暂停、恢复或撤销操作。
-     * @param payload - 用户、内容包、期限和可选原因。
-     * @param idempotencyKey - 当前逻辑操作复用的幂等键。
-     * @returns 服务端持久化后的正式权益。
+     * @param operation - 授予、续期、暂停、恢复或撤销操作
+     * @param payload - 用户、内容包、期限和可选原因
+     * @param idempotencyKey - 当前逻辑操作复用的幂等键
+     * @returns 服务端持久化后的正式权益
      */
     async execute(operation, payload, idempotencyKey) {
       const response = await client.request<unknown>({
@@ -58,11 +58,11 @@ export function createFormalEntitlementAdapter(client: ApiClient): FormalEntitle
     },
 
     /**
-     * 从服务端预览正式权益操作结果且不落库。
+     * 从服务端预览正式权益操作结果且不落库
      *
-     * @param operation - 需要预览的权益操作。
-     * @param payload - 用户、内容包、期限和可选原因。
-     * @returns 服务端计算的生效时间、到期时间与目标状态。
+     * @param operation - 需要预览的权益操作
+     * @param payload - 用户、内容包、期限和可选原因
+     * @returns 服务端计算的生效时间、到期时间与目标状态
      */
     async preview(operation, payload) {
       const response = await client.request<unknown>({
@@ -77,10 +77,10 @@ export function createFormalEntitlementAdapter(client: ApiClient): FormalEntitle
 }
 
 /**
- * 将前端正式权益输入映射为接口字段。
+ * 将前端正式权益输入映射为接口字段
  *
- * @param payload - 前端正式权益输入。
- * @returns 符合接口契约的下划线字段对象。
+ * @param payload - 前端正式权益输入
+ * @returns 符合接口契约的下划线字段对象
  */
 function toApiPayload(payload: FormalEntitlementPayload): Record<string, unknown> {
   return {
@@ -92,10 +92,10 @@ function toApiPayload(payload: FormalEntitlementPayload): Record<string, unknown
 }
 
 /**
- * 校验并映射服务端正式权益响应。
+ * 校验并映射服务端正式权益响应
  *
- * @param source - 接口返回的未知值。
- * @returns 字段完整的正式权益视图模型。
+ * @param source - 接口返回的未知值
+ * @returns 字段完整的正式权益视图模型
  */
 function parseFormalEntitlement(source: unknown): FormalEntitlement {
   if (!isRecord(source)) throw new Error('正式权益接口响应格式不正确')
@@ -112,10 +112,10 @@ function parseFormalEntitlement(source: unknown): FormalEntitlement {
 }
 
 /**
- * 校验正式权益期限枚举。
+ * 校验正式权益期限枚举
  *
- * @param value - 接口返回的期限字段。
- * @returns 已校验的正式权益期限。
+ * @param value - 接口返回的期限字段
+ * @returns 已校验的正式权益期限
  */
 function requireTerm(value: unknown): FormalEntitlementTerm {
   const terms: readonly string[] = [
@@ -133,11 +133,11 @@ function requireTerm(value: unknown): FormalEntitlementTerm {
 }
 
 /**
- * 从接口对象读取必需字符串。
+ * 从接口对象读取必需字符串
  *
- * @param source - 接口响应对象。
- * @param key - 字符串字段名。
- * @returns 非空字符串字段值。
+ * @param source - 接口响应对象
+ * @param key - 字符串字段名
+ * @returns 非空字符串字段值
  */
 function requireString(source: Record<string, unknown>, key: string): string {
   const value = source[key]
@@ -146,11 +146,11 @@ function requireString(source: Record<string, unknown>, key: string): string {
 }
 
 /**
- * 从接口对象读取有限数字。
+ * 从接口对象读取有限数字
  *
- * @param source - 接口响应对象。
- * @param key - 数字字段名。
- * @returns 有限数字字段值。
+ * @param source - 接口响应对象
+ * @param key - 数字字段名
+ * @returns 有限数字字段值
  */
 function requireNumber(source: Record<string, unknown>, key: string): number {
   const value = source[key]
@@ -161,10 +161,10 @@ function requireNumber(source: Record<string, unknown>, key: string): number {
 }
 
 /**
- * 判断未知值是否为普通记录对象。
+ * 判断未知值是否为普通记录对象
  *
- * @param value - 需要判断的未知值。
- * @returns 值是否为非空且非数组对象。
+ * @param value - 需要判断的未知值
+ * @returns 值是否为非空且非数组对象
  */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

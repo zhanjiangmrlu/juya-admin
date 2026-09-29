@@ -18,9 +18,9 @@ const displayValue = computed(() => {
 })
 
 /**
- * 切换敏感值的遮罩显示状态。
+ * 切换敏感值的遮罩显示状态
  *
- * @returns 无返回值。
+ * @returns 无返回值
  */
 function toggleReveal(): void {
   revealed.value = !revealed.value
@@ -29,7 +29,7 @@ function toggleReveal(): void {
 
 <template>
   <span class="sensitive-value">
-    <code class="sensitive-value__text">{{ displayValue }}</code>
+    <code class="text">{{ displayValue }}</code>
     <ElButton
       :aria-label="revealed ? '隐藏敏感值' : '显示敏感值'"
       circle
@@ -50,7 +50,7 @@ function toggleReveal(): void {
   align-items: center;
   gap: 6px;
 
-  &__text {
+  .text {
     background: transparent;
     color: var(--juya-color-text-primary);
     font-family: inherit;
