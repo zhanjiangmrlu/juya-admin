@@ -9,35 +9,21 @@ const authStore = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const passwordForm = reactive({ password: '', username: '' })
-const totpForm = reactive({ code: '', deviceSummary: globalThis.navigator.userAgent.slice(0, 200) })
 
 /**
- * 提交账号密码并清除页面中的明文密码
+ * 提交账号密码、进入原目标页并清除页面中的明文密码
  *
  * @returns 密码步骤完成后的 Promise
  */
 async function submitPassword(): Promise<void> {
   try {
     await authStore.submitPassword({ ...passwordForm })
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
+    await router.replace(redirect)
   } catch {
     // 错误提示由 Store 统一提供
   } finally {
     passwordForm.password = ''
-  }
-}
-
-/**
- * 提交 TOTP 并进入原目标页或工作台
- *
- * @returns 登录跳转完成后的 Promise
- */
-async function submitTotp(): Promise<void> {
-  try {
-    await authStore.submitTotp({ ...totpForm })
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
-    await router.replace(redirect)
-  } catch {
-    totpForm.code = ''
   }
 }
 </script>
@@ -61,16 +47,8 @@ async function submitTotp(): Promise<void> {
       <div class="form-card">
         <div class="form-heading">
           <p class="eyebrow">ADMIN CONSOLE</p>
-          <h2 class="form-title">
-            {{ authStore.step === 'password' ? '登录管理后台' : '输入安全验证码' }}
-          </h2>
-          <p class="form-description">
-            {{
-              authStore.step === 'password'
-                ? '请使用管理员账号继续'
-                : '请输入验证器应用生成的 6 位验证码'
-            }}
-          </p>
+          <h2 class="form-title">登录管理后台</h2>
+          <p class="form-description">请使用管理员账号和密码继续</p>
         </div>
 
         <ElAlert
@@ -82,7 +60,6 @@ async function submitTotp(): Promise<void> {
         />
 
         <ElForm
-          v-if="authStore.step === 'password'"
           class="form"
           label-position="top"
           :model="passwordForm"
@@ -112,38 +89,7 @@ async function submitTotp(): Promise<void> {
             native-type="submit"
             type="primary"
           >
-            下一步
-          </ElButton>
-        </ElForm>
-
-        <ElForm
-          v-else
-          class="form"
-          label-position="top"
-          :model="totpForm"
-          @submit.prevent="submitTotp"
-        >
-          <ElFormItem label="6 位验证码" required>
-            <ElInput
-              v-model="totpForm.code"
-              autocomplete="one-time-code"
-              inputmode="numeric"
-              maxlength="6"
-              placeholder="000000"
-              @keyup.enter="submitTotp"
-            />
-          </ElFormItem>
-          <ElButton
-            class="submit"
-            :disabled="!/^[0-9]{6}$/.test(totpForm.code)"
-            :loading="authStore.status === 'loading'"
-            native-type="submit"
-            type="primary"
-          >
-            安全登录
-          </ElButton>
-          <ElButton class="back" text @click="authStore.clearSensitiveState">
-            返回账号密码登录
+            登录
           </ElButton>
         </ElForm>
       </div>
@@ -251,11 +197,6 @@ async function submitTotp(): Promise<void> {
     width: 100%;
     height: 44px;
     margin-top: 8px;
-  }
-
-  .back {
-    width: 100%;
-    margin-top: 12px;
   }
 }
 

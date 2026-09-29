@@ -14,10 +14,6 @@ const createAdapter = (): AuthAdapter => ({
   logout: vi.fn().mockResolvedValue(undefined),
   probeSession: vi.fn().mockResolvedValue(undefined),
   submitPassword: vi.fn().mockResolvedValue({
-    challengeId: '01JTESTCHALLENGE00000000000',
-    expiresAt: '2026-09-29T12:00:00Z'
-  }),
-  submitTotp: vi.fn().mockResolvedValue({
     csrfToken: 'csrf-1',
     expiresAt: '2026-09-29T20:00:00Z'
   })
@@ -28,26 +24,16 @@ describe('auth store', () => {
     setActivePinia(createPinia())
   })
 
-  it('moves to the TOTP step without retaining the password', async () => {
+  it('creates an authenticated session from username and password without retaining the password', async () => {
     const useTestAuthStore = createUseAuthStore(createAdapter(), 'auth-password-test')
     const store = useTestAuthStore()
 
     await store.submitPassword({ password: 'secret', username: 'admin' })
 
-    expect(store.step).toBe('totp')
-    expect(JSON.stringify(store.$state)).not.toContain('secret')
-  })
-
-  it('keeps the CSRF token in memory after TOTP succeeds', async () => {
-    const useTestAuthStore = createUseAuthStore(createAdapter(), 'auth-totp-test')
-    const store = useTestAuthStore()
-    await store.submitPassword({ password: 'secret', username: 'admin' })
-
-    await store.submitTotp({ code: '123456', deviceSummary: 'Chrome on Windows' })
-
     expect(store.isAuthenticated).toBe(true)
     expect(store.csrfToken).toBe('csrf-1')
-    expect(store.step).toBe('password')
+    expect(store.sessionExpiresAt).toBe('2026-09-29T20:00:00Z')
+    expect(JSON.stringify(store.$state)).not.toContain('secret')
   })
 
   it('clears sensitive state when the session probe fails', async () => {
@@ -59,7 +45,6 @@ describe('auth store', () => {
     await expect(store.probeSession()).resolves.toBe(false)
 
     expect(store.csrfToken).toBeNull()
-    expect(store.challengeId).toBeNull()
     expect(store.isAuthenticated).toBe(false)
   })
 })

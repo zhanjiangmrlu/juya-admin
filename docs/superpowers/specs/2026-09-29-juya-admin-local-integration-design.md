@@ -4,7 +4,7 @@
 
 当前 `juya-admin` 在未配置 API 地址时会把 `/api/v1/admin/**` 请求发送给 Vite 开发服务器。Vite 未配置代理，因此登录请求由 `localhost:5173` 返回 404。同时本机没有 Docker、MySQL 或 Redis，`juya-admin-api` 的 8000 端口也没有服务。
 
-本次改造的目标是提供一条可重复执行的本地真实联调路径：使用 Docker Compose 启动管理 API 及其真实 MySQL、Redis 和迁移流程，自动初始化仅限本地使用的管理员，通过 Vite 同源代理访问 API，并以真实 HTTP 完成密码与 TOTP 登录验证。
+本次改造的目标是提供一条可重复执行的本地真实联调路径：使用 Docker Compose 启动管理 API 及其真实 MySQL、Redis 和迁移流程，自动初始化仅限本地使用的管理员，通过 Vite 同源代理访问 API，并以真实 HTTP 完成账号密码登录验证。
 
 ## 2. 已确认方案
 
@@ -40,17 +40,16 @@ Compose 本地环境使用以下可覆盖变量：
 
 - `JUYA_LOCAL_ADMIN_USERNAME`：默认 `admin`
 - `JUYA_LOCAL_ADMIN_PASSWORD`：默认 `JuyaLocal@2026`
-- `JUYA_LOCAL_ADMIN_TOTP_SECRET`：默认测试专用 Base32 密钥 `JBSWY3DPEHPK3PXP`
 
 初始化命令必须满足：
 
 1. 仅允许 `JUYA_ENVIRONMENT` 为 `local` 或 `test`
-2. 缺少数据库地址、用户名、密码或 TOTP 密钥时直接失败
-3. 首次执行创建管理员，再次执行更新密码、TOTP 和启用状态，不创建重复账号
-4. 日志只显示用户名和本地 TOTP 配置说明，不输出密码哈希或数据库连接密钥
+2. 缺少数据库地址、用户名或密码时直接失败
+3. 首次执行创建管理员，再次执行更新密码和启用状态，不创建重复账号
+4. 日志只显示用户名，不输出密码哈希或数据库连接密钥
 5. 生产 Compose 和 ECS 部署不包含该进程
 
-TOTP 密钥在本地环境允许按现有运行时规则明文保存；生产环境仍要求加密密钥，不复用本地默认值。
+现有数据库中的 TOTP 字段仅为兼容旧表结构保留固定占位值，不参与登录验证，也不再要求运行时加密密钥。
 
 ## 5. 请求与认证数据流
 
@@ -91,8 +90,7 @@ Docker Desktop 未安装、Engine 未启动、端口 3306/6379/8000 冲突、迁
 - 最终启动真实容器并验证：
   - `GET /health/ready` 返回 200 且依赖均就绪
   - `POST http://localhost:5173/api/v1/admin/session` 不再返回 Vite 404
-  - 密码验证返回 challenge
-  - 使用当前 TOTP 完成登录并取得 CSRF token
+  - 账号密码验证成功后直接建立 Cookie 会话并取得 CSRF token
 
 ## 8. 安装与系统影响
 
@@ -105,6 +103,6 @@ Docker Desktop 通过 `winget` 安装。安装属于本机系统变更，可能�
 - `juya-admin` 与 `juya-admin-api` 均在各自 `main` 分支形成中文 Conventional Commit
 - 前端开发请求通过同源代理进入 8000 端口
 - 一条 PowerShell 命令可以启动完整本地后端
-- 本地管理员可完成密码与 TOTP 登录
+- 本地管理员可完成账号密码登录
 - 健康检查、前端检查、后端检查及真实 HTTP 验证有新鲜通过证据
 - 两个仓库工作树干净，后台长期服务保持运行供继续调试

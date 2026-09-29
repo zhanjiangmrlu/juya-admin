@@ -17,7 +17,7 @@ import {
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { BASIC_NAVIGATION, PRIMARY_NAVIGATION } from '@/app/admin-navigation'
+import { ADMIN_NAVIGATION_GROUPS } from '@/app/admin-navigation'
 import { useAuthStore } from '@/features/auth/auth-store'
 
 const navigationIconMap = {
@@ -36,7 +36,33 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const isCollapsed = ref(false)
-const activeNavigationPath = computed(() => String(route.meta.navigationPath ?? route.path))
+const activePageNumber = computed(() => String(route.meta.pageNumber ?? ''))
+const defaultOpenGroups = ADMIN_NAVIGATION_GROUPS.map((item) => item.path)
+
+/**
+ * 判断页面是否缺少从业务列表获得的上下文标识
+ *
+ * @param pageNumber - A01-A26 页面编号
+ * @param requiresContext - 路由是否包含业务对象参数
+ * @returns 当前页面可用时返回 false，否则返回 true
+ */
+function isContextUnavailable(pageNumber: string, requiresContext: boolean): boolean {
+  return requiresContext && activePageNumber.value !== pageNumber
+}
+
+/**
+ * 从 Element Plus 菜单切换到无需业务上下文的页面
+ *
+ * @param pageNumber - 被选中的 A01-A26 页面编号
+ * @returns 路由切换完成后的 Promise
+ */
+async function navigateToPage(pageNumber: string): Promise<void> {
+  const page = ADMIN_NAVIGATION_GROUPS.flatMap((item) => item.pages).find(
+    (item) => item.pageNumber === pageNumber
+  )
+  if (!page || page.requiresContext) return
+  await router.push(page.path)
+}
 
 /**
  * 切换管理端侧栏折叠状态
@@ -75,18 +101,36 @@ async function logout(): Promise<void> {
         </div>
       </div>
 
-      <ElMenu class="menu" :collapse="isCollapsed" :default-active="activeNavigationPath" router>
-        <ElMenuItem v-for="item in PRIMARY_NAVIGATION" :key="item.path" :index="item.path">
-          <ElIcon><component :is="navigationIconMap[item.icon]" /></ElIcon>
-          <template #title>{{ item.label }}</template>
-        </ElMenuItem>
-
-        <li v-if="!isCollapsed" class="section-label" role="presentation">基础能力</li>
-
-        <ElMenuItem v-for="item in BASIC_NAVIGATION" :key="item.path" :index="item.path">
-          <ElIcon><component :is="navigationIconMap[item.icon]" /></ElIcon>
-          <template #title>{{ item.label }}</template>
-        </ElMenuItem>
+      <ElMenu
+        class="menu"
+        :collapse="isCollapsed"
+        :default-active="activePageNumber"
+        :default-openeds="defaultOpenGroups"
+        @select="navigateToPage"
+      >
+        <template v-for="(group, groupIndex) in ADMIN_NAVIGATION_GROUPS" :key="group.path">
+          <li v-if="groupIndex === 6 && !isCollapsed" class="section-label" role="presentation">
+            基础能力
+          </li>
+          <ElSubMenu :index="group.path">
+            <template #title>
+              <ElIcon><component :is="navigationIconMap[group.icon]" /></ElIcon>
+              <span>{{ group.label }}</span>
+            </template>
+            <ElMenuItemGroup>
+              <ElMenuItem
+                v-for="page in group.pages"
+                :key="page.pageNumber"
+                :disabled="isContextUnavailable(page.pageNumber, page.requiresContext)"
+                :index="page.pageNumber"
+                :title="page.requiresContext ? '请从所属列表选择具体对象后进入' : page.label"
+              >
+                <span class="page-number">{{ page.pageNumber }}</span>
+                <span class="page-label">{{ page.label }}</span>
+              </ElMenuItem>
+            </ElMenuItemGroup>
+          </ElSubMenu>
+        </template>
       </ElMenu>
     </ElAside>
 
@@ -134,6 +178,8 @@ async function logout(): Promise<void> {
   background: var(--juya-color-page);
 
   .aside {
+    display: flex;
+    flex-direction: column;
     overflow-x: hidden;
     background: var(--juya-color-sidebar);
   }
@@ -176,9 +222,11 @@ async function logout(): Promise<void> {
   }
 
   .menu {
+    flex: 1;
     width: 100%;
     border-right: 0;
     background: transparent;
+    overflow: hidden auto;
   }
 
   .section-label {
@@ -261,16 +309,53 @@ async function logout(): Promise<void> {
     --el-menu-active-color: var(--juya-color-primary);
   }
 
-  .menu .el-menu-item {
+  .menu :deep(.el-menu) {
+    background: transparent;
+  }
+
+  /* stylelint-disable-next-line selector-class-pattern -- Element Plus 外部组件类名 */
+  .menu :deep(.el-sub-menu__title) {
     height: 44px;
     margin: 4px 14px;
     border-radius: 8px;
     padding-inline: 12px;
   }
 
-  .menu .is-active {
+  /* stylelint-disable-next-line selector-class-pattern -- Element Plus 外部组件类名 */
+  .menu :deep(.el-sub-menu__title:hover) {
+    background: var(--juya-color-sidebar-hover);
+  }
+
+  .menu :deep(.el-menu-item) {
+    height: 36px;
+    margin: 2px 14px 2px 24px;
+    border-radius: 6px;
+    padding-inline: 12px;
+  }
+
+  .menu :deep(.el-menu-item.is-active) {
     background: #fbfcfb;
     font-weight: 600;
+  }
+
+  .menu :deep(.el-menu-item.is-disabled) {
+    color: rgb(255 255 255 / 52%);
+    cursor: not-allowed;
+    opacity: 1;
+  }
+
+  .page-number {
+    flex: 0 0 30px;
+    color: var(--juya-color-brand-accent);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .page-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 </style>

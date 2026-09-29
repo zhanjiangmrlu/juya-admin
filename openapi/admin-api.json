@@ -90,47 +90,6 @@
         }
       }
     },
-    "/api/v1/admin/session/totp": {
-      "post": {
-        "tags": ["admin-security"],
-        "summary": "Verify Totp Session",
-        "operationId": "verify_totp_session_api_v1_admin_session_totp_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TotpLoginRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Verify Totp Session Api V1 Admin Session Totp Post"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/admin/session/logout": {
       "post": {
         "tags": ["admin-security"],
@@ -3280,31 +3239,6 @@
         "type": "object",
         "required": ["user_id", "text"],
         "title": "SupplementRequest"
-      },
-      "TotpLoginRequest": {
-        "properties": {
-          "challenge_id": {
-            "type": "string",
-            "maxLength": 26,
-            "minLength": 26,
-            "title": "Challenge Id"
-          },
-          "code": {
-            "type": "string",
-            "pattern": "^\\d{6}$",
-            "title": "Code"
-          },
-          "device_summary": {
-            "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Device Summary"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": ["challenge_id", "code", "device_summary"],
-        "title": "TotpLoginRequest"
       },
       "UploadPolicyRequest": {
         "properties": {

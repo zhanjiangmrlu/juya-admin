@@ -3,16 +3,6 @@ import type { components } from '@/shared/contracts/generated/admin-api'
 
 export type PasswordCredentials = components['schemas']['PasswordLoginRequest']
 
-export interface PasswordChallenge {
-  challengeId: string
-  expiresAt: string
-}
-
-export interface TotpCredentials {
-  code: string
-  deviceSummary: string
-}
-
 export interface AuthSession {
   csrfToken: string
   expiresAt: string
@@ -21,15 +11,14 @@ export interface AuthSession {
 export interface AuthAdapter {
   logout(csrfToken: string | null): Promise<void>
   probeSession(): Promise<void>
-  submitPassword(credentials: PasswordCredentials): Promise<PasswordChallenge>
-  submitTotp(challengeId: string, credentials: TotpCredentials): Promise<AuthSession>
+  submitPassword(credentials: PasswordCredentials): Promise<AuthSession>
 }
 
 /**
  * 创建管理员认证接口适配器
  *
  * @param client - 统一 API 客户端
- * @returns 提供密码、TOTP、探测和退出能力的认证适配器
+ * @returns 提供密码登录、探测和退出能力的认证适配器
  */
 export function createAuthAdapter(client: ApiClient): AuthAdapter {
   return {
@@ -57,41 +46,16 @@ export function createAuthAdapter(client: ApiClient): AuthAdapter {
     },
 
     /**
-     * 验证管理员账号密码并获取短期挑战
+     * 验证管理员账号密码并建立浏览器 Cookie 会话
      *
      * @param credentials - 管理员账号和密码
-     * @returns TOTP 挑战编号和过期时间
+     * @returns 仅保存在内存中的 CSRF token 和过期时间
      */
-    async submitPassword(credentials: PasswordCredentials): Promise<PasswordChallenge> {
+    async submitPassword(credentials: PasswordCredentials): Promise<AuthSession> {
       const response = await client.request<Record<string, unknown>>({
         body: credentials,
         method: 'POST',
         path: '/api/v1/admin/session'
-      })
-
-      return {
-        challengeId: requireString(response, 'challenge_id'),
-        expiresAt: requireString(response, 'expires_at')
-      }
-    },
-
-    /**
-     * 验证 TOTP 并建立浏览器 Cookie 会话
-     *
-     * @param challengeId - 密码步骤返回的挑战编号
-     * @param credentials - 六位 TOTP 和设备说明
-     * @returns 仅保存在内存中的 CSRF token 和过期时间
-     */
-    async submitTotp(challengeId: string, credentials: TotpCredentials): Promise<AuthSession> {
-      const payload: components['schemas']['TotpLoginRequest'] = {
-        challenge_id: challengeId,
-        code: credentials.code,
-        device_summary: credentials.deviceSummary
-      }
-      const response = await client.request<Record<string, unknown>>({
-        body: payload,
-        method: 'POST',
-        path: '/api/v1/admin/session/totp'
       })
 
       return {

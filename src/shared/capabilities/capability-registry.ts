@@ -8,7 +8,6 @@ const capabilityRegistry = {
   'auth.logout': 'available',
   'auth.password': 'available',
   'auth.session-probe': 'available',
-  'auth.totp': 'available',
   'campaigns.capacity': 'pending',
   'campaigns.manage': 'pending',
   'contacts.copy-audit': 'pending',

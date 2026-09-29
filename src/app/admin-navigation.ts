@@ -17,6 +17,17 @@ export interface NavigationItem {
   path: string
 }
 
+export interface NavigationPage {
+  label: string
+  pageNumber: string
+  path: string
+  requiresContext: boolean
+}
+
+export interface NavigationGroup extends NavigationItem {
+  pages: readonly NavigationPage[]
+}
+
 export interface AdminPageDefinition {
   capability: CapabilityKey
   name: string
@@ -263,3 +274,30 @@ export const ADMIN_PAGE_DEFINITIONS: readonly AdminPageDefinition[] = [
     title: '系统配置'
   }
 ]
+
+/**
+ * 将顶级导航项与对应页面组合为菜单分组
+ *
+ * @param items - 顶级导航项
+ * @returns 包含子页面的导航分组
+ */
+function createNavigationGroups(items: readonly NavigationItem[]): readonly NavigationGroup[] {
+  return items.map((item) => ({
+    ...item,
+    pages: ADMIN_PAGE_DEFINITIONS.filter((page) => page.navigationPath === item.path).map(
+      (page) => ({
+        label: page.title,
+        pageNumber: page.pageNumber,
+        path: page.path,
+        requiresContext: page.path.includes(':')
+      })
+    )
+  }))
+}
+
+export const PRIMARY_NAVIGATION_GROUPS = createNavigationGroups(PRIMARY_NAVIGATION)
+export const BASIC_NAVIGATION_GROUPS = createNavigationGroups(BASIC_NAVIGATION)
+export const ADMIN_NAVIGATION_GROUPS = [
+  ...PRIMARY_NAVIGATION_GROUPS,
+  ...BASIC_NAVIGATION_GROUPS
+] as const

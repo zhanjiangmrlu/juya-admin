@@ -59,9 +59,7 @@ export async function loginAsAdmin(page: Page): Promise<void> {
   await page.goto('/login')
   await page.getByLabel('管理员账号').fill('admin')
   await page.getByLabel('密码').fill('Admin-pass-2026')
-  await page.getByRole('button', { name: '下一步' }).click()
-  await page.getByLabel('6 位验证码').fill('123456')
-  await page.getByRole('button', { name: '安全登录' }).click()
+  await page.getByRole('button', { name: '登录', exact: true }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
 }
 
@@ -120,10 +118,6 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
   }
 
   if (url.pathname === '/api/v1/admin/session' && request.method() === 'POST') {
-    await replyJson(route, { challenge_id: 'challenge-e2e', expires_at: '2026-09-29T12:00:00Z' })
-    return
-  }
-  if (url.pathname === '/api/v1/admin/session/totp' && request.method() === 'POST') {
     await replyJson(route, { csrf_token: 'csrf-e2e', expires_at: '2026-09-29T20:00:00Z' })
     return
   }

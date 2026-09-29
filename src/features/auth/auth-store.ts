@@ -4,14 +4,8 @@ import { computed, ref } from 'vue'
 import { createApiClient } from '@/services/api/api-client'
 import { ApiError } from '@/shared/errors/api-error'
 
-import {
-  type AuthAdapter,
-  createAuthAdapter,
-  type PasswordCredentials,
-  type TotpCredentials
-} from './auth-adapter'
+import { type AuthAdapter, createAuthAdapter, type PasswordCredentials } from './auth-adapter'
 
-export type AuthStep = 'password' | 'totp'
 export type AuthStatus = 'error' | 'idle' | 'loading'
 
 /**
@@ -23,18 +17,15 @@ export type AuthStatus = 'error' | 'idle' | 'loading'
  */
 export function createUseAuthStore(adapter: AuthAdapter, storeId = 'auth') {
   return defineStore(storeId, () => {
-    const challengeId = ref<string | null>(null)
-    const challengeExpiresAt = ref<string | null>(null)
     const csrfToken = ref<string | null>(null)
     const errorMessage = ref<string | null>(null)
     const hasSession = ref(false)
     const sessionExpiresAt = ref<string | null>(null)
     const status = ref<AuthStatus>('idle')
-    const step = ref<AuthStep>('password')
     const isAuthenticated = computed(() => hasSession.value)
 
     /**
-     * 提交账号密码并进入 TOTP 步骤，密码不会写入 Store
+     * 提交账号密码并将会话信息保存到内存状态，密码不会写入 Store
      *
      * @param credentials - 管理员账号和密码
      * @returns 密码验证完成后的 Promise
@@ -43,36 +34,10 @@ export function createUseAuthStore(adapter: AuthAdapter, storeId = 'auth') {
       status.value = 'loading'
       errorMessage.value = null
       try {
-        const challenge = await adapter.submitPassword(credentials)
-        challengeId.value = challenge.challengeId
-        challengeExpiresAt.value = challenge.expiresAt
-        step.value = 'totp'
-        status.value = 'idle'
-      } catch (error) {
-        status.value = 'error'
-        errorMessage.value = toAuthErrorMessage(error)
-        throw error
-      }
-    }
-
-    /**
-     * 提交六位 TOTP 并将 CSRF token 保存到内存状态
-     *
-     * @param credentials - TOTP 验证码和设备说明
-     * @returns TOTP 验证完成后的 Promise
-     */
-    async function submitTotp(credentials: TotpCredentials): Promise<void> {
-      if (!challengeId.value) throw new Error('请先完成账号密码验证')
-      status.value = 'loading'
-      errorMessage.value = null
-      try {
-        const session = await adapter.submitTotp(challengeId.value, credentials)
+        const session = await adapter.submitPassword(credentials)
         csrfToken.value = session.csrfToken
         sessionExpiresAt.value = session.expiresAt
         hasSession.value = true
-        challengeId.value = null
-        challengeExpiresAt.value = null
-        step.value = 'password'
         status.value = 'idle'
       } catch (error) {
         status.value = 'error'
@@ -111,24 +76,19 @@ export function createUseAuthStore(adapter: AuthAdapter, storeId = 'auth') {
     }
 
     /**
-     * 清除挑战、CSRF token 和会话状态
+     * 清除 CSRF token 和会话状态
      *
      * @returns 无返回值
      */
     function clearSensitiveState(): void {
-      challengeId.value = null
-      challengeExpiresAt.value = null
       csrfToken.value = null
       errorMessage.value = null
       hasSession.value = false
       sessionExpiresAt.value = null
       status.value = 'idle'
-      step.value = 'password'
     }
 
     return {
-      challengeExpiresAt,
-      challengeId,
       clearSensitiveState,
       csrfToken,
       errorMessage,
@@ -137,9 +97,7 @@ export function createUseAuthStore(adapter: AuthAdapter, storeId = 'auth') {
       probeSession,
       sessionExpiresAt,
       status,
-      step,
-      submitPassword,
-      submitTotp
+      submitPassword
     }
   })
 }

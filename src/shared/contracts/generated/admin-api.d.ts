@@ -55,23 +55,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/session/totp': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Verify Totp Session */
-    post: operations['verify_totp_session_api_v1_admin_session_totp_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/api/v1/admin/session/logout': {
     parameters: {
       query?: never
@@ -913,15 +896,6 @@ export interface components {
       /** Text */
       text: string
     }
-    /** TotpLoginRequest */
-    TotpLoginRequest: {
-      /** Challenge Id */
-      challenge_id: string
-      /** Code */
-      code: string
-      /** Device Summary */
-      device_summary: string
-    }
     /** UploadPolicyRequest */
     UploadPolicyRequest: {
       /** Asset Type */
@@ -1022,41 +996,6 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['PasswordLoginRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  verify_totp_session_api_v1_admin_session_totp_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['TotpLoginRequest']
       }
     }
     responses: {
