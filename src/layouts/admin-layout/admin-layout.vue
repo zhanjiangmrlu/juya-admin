@@ -37,7 +37,9 @@ const router = useRouter()
 const authStore = useAuthStore()
 const isCollapsed = ref(false)
 const activePageNumber = computed(() => String(route.meta.pageNumber ?? ''))
-const defaultOpenGroups = ADMIN_NAVIGATION_GROUPS.map((item) => item.path)
+const defaultOpenGroups = ADMIN_NAVIGATION_GROUPS.filter((item) => item.pages.length > 1).map(
+  (item) => item.path
+)
 
 /**
  * 判断页面是否缺少从业务列表获得的上下文标识
@@ -101,37 +103,53 @@ async function logout(): Promise<void> {
         </div>
       </div>
 
-      <ElMenu
-        class="menu"
-        :collapse="isCollapsed"
-        :default-active="activePageNumber"
-        :default-openeds="defaultOpenGroups"
-        @select="navigateToPage"
+      <ElScrollbar
+        aria-label="后台功能导航"
+        class="menu-scrollbar"
+        :always="true"
+        :tabindex="0"
+        wrap-class="menu-scrollbar-wrap"
       >
-        <template v-for="(group, groupIndex) in ADMIN_NAVIGATION_GROUPS" :key="group.path">
-          <li v-if="groupIndex === 6 && !isCollapsed" class="section-label" role="presentation">
-            基础能力
-          </li>
-          <ElSubMenu :index="group.path">
-            <template #title>
+        <ElMenu
+          class="menu"
+          :collapse="isCollapsed"
+          :default-active="activePageNumber"
+          :default-openeds="defaultOpenGroups"
+          @select="navigateToPage"
+        >
+          <template v-for="(group, groupIndex) in ADMIN_NAVIGATION_GROUPS" :key="group.path">
+            <li v-if="groupIndex === 6 && !isCollapsed" class="section-label" role="presentation">
+              基础能力
+            </li>
+            <ElMenuItem
+              v-if="group.pages.length === 1"
+              class="top-level-item"
+              :index="group.pages[0]?.pageNumber"
+            >
               <ElIcon><component :is="navigationIconMap[group.icon]" /></ElIcon>
               <span>{{ group.label }}</span>
-            </template>
-            <ElMenuItemGroup>
-              <ElMenuItem
-                v-for="page in group.pages"
-                :key="page.pageNumber"
-                :disabled="isContextUnavailable(page.pageNumber, page.requiresContext)"
-                :index="page.pageNumber"
-                :title="page.requiresContext ? '请从所属列表选择具体对象后进入' : page.label"
-              >
-                <span class="page-number">{{ page.pageNumber }}</span>
-                <span class="page-label">{{ page.label }}</span>
-              </ElMenuItem>
-            </ElMenuItemGroup>
-          </ElSubMenu>
-        </template>
-      </ElMenu>
+            </ElMenuItem>
+            <ElSubMenu v-else :index="group.path">
+              <template #title>
+                <ElIcon><component :is="navigationIconMap[group.icon]" /></ElIcon>
+                <span>{{ group.label }}</span>
+              </template>
+              <ElMenuItemGroup>
+                <ElMenuItem
+                  v-for="page in group.pages"
+                  :key="page.pageNumber"
+                  :disabled="isContextUnavailable(page.pageNumber, page.requiresContext)"
+                  :index="page.pageNumber"
+                  :title="page.requiresContext ? '请从所属列表选择具体对象后进入' : page.label"
+                >
+                  <span class="page-number">{{ page.pageNumber }}</span>
+                  <span class="page-label">{{ page.label }}</span>
+                </ElMenuItem>
+              </ElMenuItemGroup>
+            </ElSubMenu>
+          </template>
+        </ElMenu>
+      </ElScrollbar>
     </ElAside>
 
     <ElContainer class="workspace">
@@ -221,12 +239,30 @@ async function logout(): Promise<void> {
     font-size: 11px;
   }
 
-  .menu {
+  .menu-scrollbar {
+    --el-scrollbar-bg-color: rgb(255 255 255 / 32%);
+    --el-scrollbar-hover-bg-color: rgb(255 255 255 / 46%);
+    --el-scrollbar-hover-opacity: 1;
+    --el-scrollbar-opacity: 1;
+
     flex: 1;
+    min-height: 0;
+    width: 100%;
+  }
+
+  :deep(.menu-scrollbar-wrap) {
+    overflow-x: hidden;
+  }
+
+  :deep(.menu-scrollbar-wrap:focus-visible) {
+    outline: 2px solid var(--juya-color-brand-accent);
+    outline-offset: -2px;
+  }
+
+  .menu {
     width: 100%;
     border-right: 0;
     background: transparent;
-    overflow: hidden auto;
   }
 
   .section-label {
@@ -330,6 +366,13 @@ async function logout(): Promise<void> {
     height: 36px;
     margin: 2px 14px 2px 24px;
     border-radius: 6px;
+    padding-inline: 12px;
+  }
+
+  .menu :deep(.el-menu-item.top-level-item) {
+    height: 44px;
+    margin: 4px 14px;
+    border-radius: 8px;
     padding-inline: 12px;
   }
 

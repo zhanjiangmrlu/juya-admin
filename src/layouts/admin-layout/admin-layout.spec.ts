@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import { createPinia } from 'pinia'
 import { describe, expect, it } from 'vitest'
@@ -53,6 +53,12 @@ describe('admin layout', () => {
               component: defineComponent({ template: '<div>Dashboard</div>' }),
               meta: { pageNumber: 'A01', title: '工作台' },
               path: 'dashboard'
+            },
+            {
+              // eslint-disable-next-line vue/one-component-per-file -- 路由测试使用最小内联页面组件
+              component: defineComponent({ template: '<div>Work Items</div>' }),
+              meta: { pageNumber: 'A13', title: '消息中心' },
+              path: 'work-items'
             }
           ]
         }
@@ -67,16 +73,24 @@ describe('admin layout', () => {
     })
 
     expect(wrapper.find('.admin-layout').exists()).toBe(true)
+    expect(wrapper.find('.menu-scrollbar').exists()).toBe(true)
     expect(wrapper.findComponent({ name: 'ElMenu' }).exists()).toBe(true)
-    expect(wrapper.findAll('.el-sub-menu__title')).toHaveLength(9)
-    expect(
-      wrapper
-        .findAll('.el-menu-item')
-        .some((item) => item.text().includes('A26') && item.text().includes('系统配置'))
-    ).toBe(true)
+    expect(wrapper.findAll('.el-sub-menu__title')).toHaveLength(5)
+    const directItems = wrapper.findAll('.top-level-item')
+    expect(directItems.map((item) => item.text())).toEqual([
+      '工作台',
+      '消息中心',
+      '系统配置',
+      '汇总统计'
+    ])
+    expect(wrapper.findAll('.el-menu-item')).toHaveLength(26)
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
       document.documentElement.clientWidth
     )
+
+    await directItems[1]?.trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/work-items')
     wrapper.unmount()
   })
 })
