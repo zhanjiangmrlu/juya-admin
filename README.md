@@ -42,6 +42,28 @@ pnpm test:e2e            # Playwright 主链路与 A01-A26 双视口验收
 pnpm generate:api        # 根据固定 OpenAPI 快照重新生成类型
 ```
 
+## 云效测试环境部署
+
+代码托管在 GitHub，云效 Flow 按分支隔离环境：
+
+| GitHub 分支 | 目标环境 | ECS 发布目录                 | 当前状态                   |
+| ----------- | -------- | ---------------------------- | -------------------------- |
+| `test`      | 测试     | `/opt/juya-admin/test`       | 本次启用                   |
+| `main`      | 生产     | `/opt/juya-admin/production` | 尚未配置、脚本主动拒绝发布 |
+
+本次流水线定义在 `.aliyun-ci.yml`，只允许 `test` 分支构建。质量门禁固定使用 Node.js 22.22.0 与 pnpm 11.22.0，依次执行依赖锁定安装、静态检查、测试和构建，然后把 `dist/` 与 `deploy/` 作为 `juya_admin_test_web` 制品发布到测试主机组。
+
+首次配置云效前需要准备：
+
+- 已授权访问本 GitHub 仓库的云效代码源服务连接，并把 Flow 代码源分支限定为 `test`
+- 包含测试 ECS `8.163.84.24` 的云效主机组，把主机组 ID 配置为流水线变量 `ECS_TEST_MACHINE_GROUP_ID`
+- ECS 安全组允许入方向 TCP 80；操作系统已安装并启用 Nginx
+- 云效主机部署使用 `root`，或等价的最小权限账号：可写 `/opt/juya-admin/test` 和 Nginx 站点配置，并可执行 `nginx -t` 与平滑重载
+
+流水线使用云效内置变量 `CI_COMMIT_REF_NAME`、`CI_COMMIT_SHA` 和 `BUILD_NUMBER` 生成唯一版本号；ECS 发布脚本再次验证 `test → test` 映射，校验 Nginx 配置和 HTTP 健康检查后才切换 `current` 软链接，失败时自动恢复上一版本。
+
+部署成功后前端测试地址为 `http://8.163.84.24/`。`juya-admin-api` 尚未部署时，`/api/` 请求会明确返回 HTTP 503，页面静态资源仍可独立验收。
+
 首次运行 Playwright 前安装项目对应的 Chromium：
 
 ```powershell
