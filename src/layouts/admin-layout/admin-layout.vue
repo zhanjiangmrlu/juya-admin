@@ -123,11 +123,12 @@ async function logout(): Promise<void> {
             </li>
             <ElMenuItem
               v-if="group.pages.length === 1"
+              :aria-label="group.label"
               class="top-level-item"
               :index="group.pages[0]?.pageNumber"
             >
               <ElIcon><component :is="navigationIconMap[group.icon]" /></ElIcon>
-              <span>{{ group.label }}</span>
+              <template #title>{{ group.label }}</template>
             </ElMenuItem>
             <ElSubMenu v-else :index="group.path">
               <template #title>
