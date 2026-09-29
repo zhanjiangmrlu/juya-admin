@@ -20,6 +20,11 @@ for (const adminPage of pageManifest) {
       expect(overflow.scrollWidth).toBe(overflow.clientWidth)
       expect(await findUnnamedIconButtons(page)).toEqual([])
 
+      await page.evaluate(() => {
+        document.scrollingElement?.scrollTo(0, 0)
+        for (const container of document.querySelectorAll<HTMLElement>('.main'))
+          container.scrollTo(0, 0)
+      })
       await page.screenshot({
         animations: 'disabled',
         path: `.impeccable/review/${adminPage.id}-${viewport.width}x${viewport.height}.png`

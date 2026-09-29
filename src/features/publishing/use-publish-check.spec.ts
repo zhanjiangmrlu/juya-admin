@@ -31,6 +31,12 @@ describe('publish check controller', () => {
   })
 })
 
+/**
+ * 创建发布检查测试使用的适配器
+ *
+ * @param overrides - 需要覆盖的适配器方法
+ * @returns 带默认桩函数的发布适配器
+ */
 function adapter(overrides: Record<string, unknown> = {}) {
   return {
     check: vi.fn(),

@@ -42,6 +42,25 @@ describe('api client', () => {
     expect(headers.get('X-Request-ID')).toMatch(/^web-/)
   })
 
+  it('blocks authenticated writes when the in-memory CSRF token is unavailable', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>()
+    const onUnauthorized = vi.fn()
+    const client = createApiClient({
+      fetchImplementation,
+      getCsrfToken: () => null,
+      onUnauthorized
+    })
+
+    await expect(
+      client.request({ method: 'PATCH', path: '/settings/example' })
+    ).rejects.toMatchObject({
+      code: 'CSRF_TOKEN_MISSING',
+      status: 401
+    })
+    expect(fetchImplementation).not.toHaveBeenCalled()
+    expect(onUnauthorized).toHaveBeenCalledOnce()
+  })
+
   it.each([401, 403, 409, 422, 429, 500])('maps HTTP %s responses to ApiError', async (status) => {
     const onUnauthorized = vi.fn()
     const client = createApiClient({

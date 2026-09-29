@@ -136,7 +136,6 @@ async function logout(): Promise<void> {
   .aside {
     overflow-x: hidden;
     background: var(--juya-color-sidebar);
-    transition: width 180ms ease;
   }
 
   .brand {

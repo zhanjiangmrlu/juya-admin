@@ -82,6 +82,15 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
 
     if (isWriteRequest) {
       const csrfToken = options.getCsrfToken?.()
+      if (options.getCsrfToken && !csrfToken) {
+        options.onUnauthorized?.()
+        throw new ApiError({
+          code: 'CSRF_TOKEN_MISSING',
+          message: '安全凭证已失效，请重新登录',
+          requestId,
+          status: 401
+        })
+      }
       if (csrfToken) headers.set('X-CSRF-Token', csrfToken)
       if (requestOptions.idempotencyKey) {
         headers.set('X-Idempotency-Key', requestOptions.idempotencyKey)

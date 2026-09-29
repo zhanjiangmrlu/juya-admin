@@ -169,6 +169,14 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     await replyJson(route, [userProjection])
     return
   }
+  if (url.pathname === '/api/v1/admin/users/USER-1' && request.method() === 'GET') {
+    await replyJson(route, {
+      ...userProjection,
+      contact: { contact_status: 'VERIFIED', wechat_id: 'juya_verified' },
+      contact_degraded: false
+    })
+    return
+  }
   if (url.pathname === '/api/v1/admin/users' && request.method() === 'GET') {
     await replyJson(route, [userProjection])
     return

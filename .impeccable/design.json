@@ -1,0 +1,420 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-29T08:41:56.8769285+08:00",
+  "title": "Design System: 句芽英语管理后台",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "句芽行动绿",
+        "canonical": "#2f7d61",
+        "tonalRamp": [
+          "#102a20",
+          "#183d31",
+          "#245344",
+          "#2f7d61",
+          "#69a58d",
+          "#97c0b0",
+          "#c3dacf",
+          "#eaf3ef"
+        ]
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "深行动绿",
+        "canonical": "#286c54",
+        "tonalRamp": [
+          "#0e251c",
+          "#183d31",
+          "#245344",
+          "#286c54",
+          "#4e8b73",
+          "#82ad9b",
+          "#bad1c7",
+          "#e8f0ed"
+        ]
+      },
+      "primary-soft": {
+        "role": "primary",
+        "displayName": "薄荷提示底",
+        "canonical": "#eaf3ef",
+        "tonalRamp": [
+          "#17352b",
+          "#285446",
+          "#3f7563",
+          "#609685",
+          "#8bb5a5",
+          "#b4d1c5",
+          "#d5e6df",
+          "#eaf3ef"
+        ]
+      },
+      "sidebar": {
+        "role": "secondary",
+        "displayName": "台账深林绿",
+        "canonical": "#183d31",
+        "tonalRamp": [
+          "#0c211a",
+          "#183d31",
+          "#245344",
+          "#366f5d",
+          "#5a917d",
+          "#8bb4a3",
+          "#bfd3ca",
+          "#edf3f0"
+        ]
+      },
+      "sidebar-hover": {
+        "role": "secondary",
+        "displayName": "侧栏悬停绿",
+        "canonical": "#245344",
+        "tonalRamp": [
+          "#0f241d",
+          "#183d31",
+          "#245344",
+          "#3b705e",
+          "#639481",
+          "#91b6a6",
+          "#c2d6cd",
+          "#eef4f1"
+        ]
+      },
+      "brand-accent": {
+        "role": "secondary",
+        "displayName": "品牌柔绿",
+        "canonical": "#75ad98",
+        "tonalRamp": [
+          "#173129",
+          "#295044",
+          "#437464",
+          "#75ad98",
+          "#91bfad",
+          "#b1d3c6",
+          "#d2e7df",
+          "#eef7f3"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "成功绿",
+        "canonical": "#2f8a62",
+        "tonalRamp": [
+          "#102c20",
+          "#194530",
+          "#236344",
+          "#2f8a62",
+          "#62aa86",
+          "#91c5a8",
+          "#c1dfcf",
+          "#edf7f1"
+        ]
+      },
+      "success-soft": {
+        "role": "tertiary",
+        "displayName": "成功浅底",
+        "canonical": "#d8eee3",
+        "tonalRamp": [
+          "#173126",
+          "#2b5140",
+          "#47735e",
+          "#699681",
+          "#91b8a5",
+          "#b6d4c6",
+          "#d8eee3",
+          "#f2faf6"
+        ]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "提醒橙",
+        "canonical": "#d98e2f",
+        "tonalRamp": [
+          "#3a2208",
+          "#654015",
+          "#96621f",
+          "#d98e2f",
+          "#e7ad62",
+          "#efc994",
+          "#f7e1bf",
+          "#fdf5e9"
+        ]
+      },
+      "warning-soft": {
+        "role": "tertiary",
+        "displayName": "提醒浅底",
+        "canonical": "#fbebcf",
+        "tonalRamp": [
+          "#3a2a10",
+          "#65501f",
+          "#927734",
+          "#bd9e52",
+          "#d9bd7b",
+          "#ead5a4",
+          "#fbebcf",
+          "#fff9ef"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "风险红",
+        "canonical": "#c94d48",
+        "tonalRamp": [
+          "#35100f",
+          "#5d211f",
+          "#8d3431",
+          "#c94d48",
+          "#d97975",
+          "#e7a5a2",
+          "#f2cecc",
+          "#fbefee"
+        ]
+      },
+      "info": {
+        "role": "tertiary",
+        "displayName": "信息蓝灰",
+        "canonical": "#64748b",
+        "tonalRamp": [
+          "#1d2530",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#8995a6",
+          "#afb8c4",
+          "#d5dae1",
+          "#f1f3f6"
+        ]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "墨绿正文",
+        "canonical": "#1f2d27",
+        "tonalRamp": [
+          "#151e1a",
+          "#1f2d27",
+          "#35473f",
+          "#52615b",
+          "#7b8882",
+          "#a7b0ac",
+          "#d2d7d5",
+          "#f2f4f3"
+        ]
+      },
+      "text-regular": {
+        "role": "neutral",
+        "displayName": "灰绿正文",
+        "canonical": "#52615b",
+        "tonalRamp": [
+          "#18201d",
+          "#2b3833",
+          "#3f5049",
+          "#52615b",
+          "#7c8984",
+          "#a5afab",
+          "#ced4d1",
+          "#f1f3f2"
+        ]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "次级灰绿",
+        "canonical": "#66736e",
+        "tonalRamp": [
+          "#1c2421",
+          "#313d38",
+          "#4a5852",
+          "#66736e",
+          "#89938f",
+          "#adb5b2",
+          "#d2d7d5",
+          "#f2f4f3"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "结构边框",
+        "canonical": "#dfe5e1",
+        "tonalRamp": [
+          "#27302c",
+          "#45514b",
+          "#66736d",
+          "#89958f",
+          "#adb7b2",
+          "#cad2ce",
+          "#dfe5e1",
+          "#f4f6f5"
+        ]
+      },
+      "border-light": {
+        "role": "neutral",
+        "displayName": "轻分隔线",
+        "canonical": "#e9edea",
+        "tonalRamp": [
+          "#2b332f",
+          "#4b5550",
+          "#6d7973",
+          "#929d97",
+          "#b6bfba",
+          "#d2d8d5",
+          "#e9edea",
+          "#f7f8f7"
+        ]
+      },
+      "page": {
+        "role": "neutral",
+        "displayName": "暖灰工作底",
+        "canonical": "#f4f3ee",
+        "tonalRamp": [
+          "#302f2a",
+          "#535148",
+          "#76736a",
+          "#99968d",
+          "#bcb9b0",
+          "#d8d6cf",
+          "#ebe9e3",
+          "#f4f3ee"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "纯白面板",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#262626",
+          "#4a4a4a",
+          "#707070",
+          "#969696",
+          "#bcbcbc",
+          "#d9d9d9",
+          "#eeeeee",
+          "#ffffff"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "登录品牌主标题" },
+      "form-title": { "displayName": "Form Title", "purpose": "登录表单标题" },
+      "headline": { "displayName": "Headline", "purpose": "顶栏当前模块名称" },
+      "title": { "displayName": "Title", "purpose": "主要卡片标题" },
+      "page-title": { "displayName": "Page Title", "purpose": "业务页面主标题" },
+      "section-title": { "displayName": "Section Title", "purpose": "卡片与表单分区标题" },
+      "body": { "displayName": "Body", "purpose": "表单、表格和主要说明" },
+      "label": { "displayName": "Label", "purpose": "状态、分组和时间" },
+      "compact": { "displayName": "Compact", "purpose": "表格强调值与对象编号" },
+      "micro": { "displayName": "Micro", "purpose": "页面编号与低优先级元数据" },
+      "feature": { "displayName": "Feature", "purpose": "特征化对象名称" },
+      "metric": { "displayName": "Metric", "purpose": "工作台指标值" },
+      "counter": { "displayName": "Counter", "purpose": "大型计数值" },
+      "icon": { "displayName": "Icon", "purpose": "主要功能图标" },
+      "brand-icon": { "displayName": "Brand Icon", "purpose": "侧栏品牌标记" }
+    },
+    "shadows": [
+      {
+        "name": "panel-ambient",
+        "value": "0 1px 3px rgb(31 45 39 / 6%)",
+        "purpose": "白色面板在暖灰工作底上的轻微分层"
+      }
+    ],
+    "motion": [],
+    "breakpoints": [
+      { "name": "login-compact", "value": "900px" },
+      { "name": "content-single-column", "value": "1000px" },
+      { "name": "settings-single-column", "value": "1050px" },
+      { "name": "detail-single-column", "value": "1100px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "页面主操作与确认动作",
+      "html": "<button class=\"ds-button-primary\">保存配置</button>",
+      "css": ".ds-button-primary { height: 32px; border: 0; border-radius: var(--juya-control-radius, 6px); padding: 8px 15px; background: var(--juya-color-primary, #2f7d61); color: #fff; font: 500 14px/1.5 Inter, 'PingFang SC', sans-serif; cursor: pointer; transition: background 160ms ease; } .ds-button-primary:hover { background: var(--juya-color-primary-hover, #286c54); } .ds-button-primary:focus-visible { outline: 2px solid #97c0b0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "description": "返回、查看和非主流程操作",
+      "html": "<button class=\"ds-button-secondary\">返回详情</button>",
+      "css": ".ds-button-secondary { height: 32px; border: 1px solid var(--juya-color-border, #dfe5e1); border-radius: var(--juya-control-radius, 6px); padding: 8px 15px; background: var(--juya-color-surface, #fff); color: var(--juya-color-text-regular, #52615b); font: 400 14px/1.5 Inter, 'PingFang SC', sans-serif; cursor: pointer; } .ds-button-secondary:hover { border-color: var(--juya-color-primary, #2f7d61); color: var(--juya-color-primary, #2f7d61); } .ds-button-secondary:focus-visible { outline: 2px solid #97c0b0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "筛选和业务表单的紧凑输入控件",
+      "html": "<label class=\"ds-field\"><span>用户编号</span><input value=\"USER-1\" /></label>",
+      "css": ".ds-field { display: grid; gap: 8px; color: var(--juya-color-text-regular, #52615b); font: 400 14px/1.5 Inter, 'PingFang SC', sans-serif; } .ds-field input { height: 32px; border: 1px solid var(--juya-color-border, #dfe5e1); border-radius: var(--juya-control-radius, 6px); padding: 6px 12px; background: #fff; color: var(--juya-color-text-primary, #1f2d27); } .ds-field input:focus-visible { border-color: var(--juya-color-primary, #2f7d61); outline: 2px solid #d9e8e1; outline-offset: 1px; }"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "承载表格、详情和表单的白色业务面板",
+      "html": "<section class=\"ds-card\"><h3>待处理反馈</h3><p>3 项需要管理员处理</p></section>",
+      "css": ".ds-card { border: 1px solid var(--juya-color-border-light, #e9edea); border-radius: var(--juya-panel-radius, 8px); padding: 20px; background: var(--juya-color-surface, #fff); box-shadow: 0 1px 3px rgb(31 45 39 / 6%); color: var(--juya-color-text-primary, #1f2d27); font: 400 14px/1.5 Inter, 'PingFang SC', sans-serif; } .ds-card h3 { margin: 0 0 8px; font-size: 16px; } .ds-card p { margin: 0; color: var(--juya-color-text-secondary, #66736e); }"
+    },
+    {
+      "name": "Status Tag",
+      "kind": "chip",
+      "refersTo": "status-pill",
+      "description": "通过图标、文字和语义色共同表达业务状态",
+      "html": "<span class=\"ds-status-success\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z\"/></svg>正常</span>",
+      "css": ".ds-status-success { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #c1dfcf; border-radius: 999px; padding: 4px 10px; background: #edf7f1; color: #256f4f; font: 600 12px/1.5 Inter, 'PingFang SC', sans-serif; } .ds-status-success svg { width: 12px; height: 12px; fill: currentColor; }"
+    },
+    {
+      "name": "Sidebar Navigation",
+      "kind": "nav",
+      "description": "固定业务坐标与当前模块入口",
+      "html": "<nav class=\"ds-sidebar\"><a href=\"#\">用户管理</a><a class=\"ds-active\" href=\"#\">系统配置</a></nav>",
+      "css": ".ds-sidebar { width: 222px; padding: 14px; background: var(--juya-color-sidebar, #183d31); font: 400 14px/1.5 Inter, 'PingFang SC', sans-serif; } .ds-sidebar a { display: block; margin: 4px 0; border-radius: 8px; padding: 11px 12px; color: rgb(255 255 255 / 72%); text-decoration: none; } .ds-sidebar a:hover { background: var(--juya-color-sidebar-hover, #245344); color: #fff; } .ds-sidebar .ds-active { background: #fbfcfb; color: var(--juya-color-primary, #2f7d61); font-weight: 600; } .ds-sidebar a:focus-visible { outline: 2px solid #97c0b0; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "清晰的运营台账",
+    "overview": "系统像一份可信、紧凑且持续更新的运营台账：深绿色侧栏提供稳定坐标，中性操作底承载白色数据面板，管理员首先看到状态、对象和下一步操作。视觉层级服务于扫描效率与审计信心，不把后台做成营销页面，也不以装饰抢占业务信息的注意力。组件克制而明确。绿色表达当前入口和主要行动，橙、红、蓝灰只用于语义状态；边框、浅底与极轻阴影负责划分区域。所有状态都同时提供文字或图标，使高风险操作和异常信息在弱色觉环境下仍然可理解。",
+    "keyCharacteristics": [
+      "深绿固定侧栏与浅暖灰操作底",
+      "白色紧凑面板、细边框和极轻环境阴影",
+      "以对象编号、状态、时间和操作为中心的信息层级",
+      "Element Plus 基础控件与项目语义令牌统一",
+      "1440×900 主工作区并兼容 1280×800"
+    ],
+    "rules": [
+      {
+        "name": "The Green Rarity Rule",
+        "body": "行动绿只标记当前入口、主操作和正向状态，不能铺满内容面板",
+        "section": "colors"
+      },
+      {
+        "name": "The Semantic Pairing Rule",
+        "body": "危险、警告和成功状态必须同时有文字或图标，不能只依赖颜色",
+        "section": "colors"
+      },
+      {
+        "name": "The Scan First Rule",
+        "body": "页面标题短而稳定，对象编号、状态和时间不得使用装饰性字形或过低对比度",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Ledger Rule",
+        "body": "常驻信息表面保持平坦，禁止使用厚重投影、玻璃模糊或高光渐变制造层级",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do 使用项目令牌和 Element Plus 主题变量保持所有页面一致",
+      "Do 用页面根语义类组织 scoped SCSS 嵌套，类名保持简洁且表达内容角色",
+      "Do 在 1440×900 与 1280×800 同时验证页面布局和长文本",
+      "Do 让状态、对象编号、时间、原因和下一步操作在首屏可扫描",
+      "Do 为图标按钮、输入和开关提供清晰的可访问名称或邻近标签"
+    ],
+    "donts": [
+      "Don't 使用 BEM 类名、深层全局选择器或散落的未命名颜色替代语义令牌",
+      "Don't 把后台页面设计成营销落地页，不添加大面积英雄区、装饰插画或无业务含义的渐变",
+      "Don't 用过量绿色填充面板，也不要让危险操作只靠红色区分",
+      "Don't 让表格、长编号或冲突详情造成页面级横向滚动",
+      "Don't 为待接入接口伪造成功态、统计图或生产数据"
+    ]
+  }
+}

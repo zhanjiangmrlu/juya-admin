@@ -15,6 +15,14 @@ describe('image import validation', () => {
   })
 })
 
+/**
+ * 创建用于导入校验的图片文件
+ *
+ * @param name - 图片文件名
+ * @param seriesId - 所属系列编号
+ * @param templateId - 使用的模板编号
+ * @returns 包含文件和归属信息的图片条目
+ */
 function image(name: string, seriesId = 's1', templateId = 't1') {
   return { file: new File(['x'], name, { type: 'image/png' }), seriesId, templateId }
 }
