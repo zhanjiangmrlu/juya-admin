@@ -10,11 +10,13 @@ const props = withDefaults(
     modelValue: boolean
     objectId: string
     reasonRequired?: boolean
+    submitting?: boolean
     title: string
   }>(),
   {
     confirmLabel: '确认执行',
-    reasonRequired: true
+    reasonRequired: true,
+    submitting: false
   }
 )
 
@@ -97,7 +99,12 @@ function confirm(): void {
 
     <template #footer>
       <ElButton @click="cancel">取消</ElButton>
-      <ElButton :disabled="isConfirmDisabled" type="primary" @click="confirm">
+      <ElButton
+        :disabled="isConfirmDisabled || submitting"
+        :loading="submitting"
+        type="primary"
+        @click="confirm"
+      >
         {{ confirmLabel }}
       </ElButton>
     </template>

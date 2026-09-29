@@ -226,6 +226,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/formal-entitlements/{entitlement_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Entitlement */
+    get: operations['get_entitlement_api_v1_admin_formal_entitlements__entitlement_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/formal-entitlements/preview-operation': {
     parameters: {
       query?: never
@@ -254,6 +271,23 @@ export interface paths {
     put?: never
     /** Apply Operation */
     post: operations['apply_operation_api_v1_admin_formal_entitlements_commands__operation__post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/limited-entitlements/{entitlement_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Entitlement */
+    get: operations['get_entitlement_api_v1_admin_limited_entitlements__entitlement_id__get']
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -339,6 +373,110 @@ export interface paths {
     put?: never
     /** Revoke */
     post: operations['revoke_api_v1_admin_limited_entitlements__entitlement_id__commands_revoke_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/entitlements': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Entitlements */
+    get: operations['list_entitlements_api_v1_admin_entitlements_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-packages': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Packages */
+    get: operations['list_packages_api_v1_admin_content_packages_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/campaigns': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Campaigns */
+    get: operations['list_campaigns_api_v1_admin_campaigns_get']
+    put?: never
+    /** Create Campaign */
+    post: operations['create_campaign_api_v1_admin_campaigns_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/campaigns/{campaign_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Campaign */
+    get: operations['get_campaign_api_v1_admin_campaigns__campaign_id__get']
+    /** Update Campaign */
+    put: operations['update_campaign_api_v1_admin_campaigns__campaign_id__put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/campaigns/{campaign_id}/versions/copy': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Copy Version */
+    post: operations['copy_version_api_v1_admin_campaigns__campaign_id__versions_copy_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/campaigns/{campaign_id}/commands/{operation}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Command Campaign */
+    post: operations['command_campaign_api_v1_admin_campaigns__campaign_id__commands__operation__post']
     delete?: never
     options?: never
     head?: never
@@ -866,6 +1004,123 @@ export interface components {
       /** Scene Ids */
       scene_ids: string[]
     }
+    /** CampaignCommandRequest */
+    CampaignCommandRequest: {
+      /** Expected Version */
+      expected_version: number
+      /** Capacity */
+      capacity?: number | null
+    }
+    /** CampaignListItemResponse */
+    CampaignListItemResponse: {
+      /** Id */
+      id: string
+      /** Name */
+      name: string
+      /** Status */
+      status: string
+      /** Version */
+      version: number
+      /** Current Version Id */
+      current_version_id?: string | null
+      /** Capacity */
+      capacity?: number | null
+      /** Granted User Count */
+      granted_user_count?: number | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string
+      /** Available Operations */
+      available_operations: (
+        ('open' | 'pause' | 'resume' | 'end' | 'archive' | 'capacity') | 'copy'
+      )[]
+    }
+    /** CampaignPageResponse */
+    CampaignPageResponse: {
+      /** Items */
+      items: components['schemas']['CampaignListItemResponse'][]
+      /** Page */
+      page: number
+      /** Page Size */
+      page_size: number
+      /** Total */
+      total: number
+    }
+    /** CampaignResponse */
+    CampaignResponse: {
+      /** Id */
+      id: string
+      /** Name */
+      name: string
+      /** Status */
+      status: string
+      /** Version */
+      version: number
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string
+      current_version: components['schemas']['CampaignVersionResponse'] | null
+      /** Available Operations */
+      available_operations: (
+        ('open' | 'pause' | 'resume' | 'end' | 'archive' | 'capacity') | 'copy'
+      )[]
+    }
+    /** CampaignSaveRequest */
+    CampaignSaveRequest: {
+      /** Expected Version */
+      expected_version?: number | null
+      /** Name */
+      name: string
+      /** Duration Days */
+      duration_days?: (3 | 5) | null
+      /** Activation Window Days */
+      activation_window_days?: number | null
+      /** Capacity */
+      capacity?: number | null
+      /** Scene Ids */
+      scene_ids?: string[] | null
+    }
+    /** CampaignVersionResponse */
+    CampaignVersionResponse: {
+      /** Id */
+      id: string
+      /** Version No */
+      version_no: number
+      /** Status */
+      status: string
+      /** Duration Days */
+      duration_days: number
+      /** Activation Window Days */
+      activation_window_days: number
+      /** Capacity */
+      capacity: number
+      /** Granted User Count */
+      granted_user_count: number
+      /** Grant Starts At */
+      grant_starts_at: string | null
+      /** Grant Ends At */
+      grant_ends_at: string | null
+      /** Locked At */
+      locked_at: string | null
+      /** Version */
+      version: number
+      /** Scene Ids */
+      scene_ids: string[]
+    }
     /** CloseCommand */
     CloseCommand: {
       /** Reason */
@@ -1009,11 +1264,47 @@ export interface components {
       /** Reason */
       reason?: string | null
     }
+    /** EntitlementListItemResponse */
+    EntitlementListItemResponse: {
+      /** Id */
+      id: string
+      /**
+       * Type
+       * @enum {string}
+       */
+      type: 'FORMAL' | 'LIMITED'
+      /** User Id */
+      user_id: string
+      /** Status */
+      status: string
+      /**
+       * Granted At
+       * Format: date-time
+       */
+      granted_at: string
+      /** Expires At */
+      expires_at: string | null
+      /** Package Id */
+      package_id: string | null
+      /** Campaign Id */
+      campaign_id: string | null
+    }
     /**
      * EntitlementOperation
      * @enum {string}
      */
     EntitlementOperation: 'GRANT' | 'RENEW' | 'PAUSE' | 'RESUME' | 'REVOKE'
+    /** EntitlementPageResponse */
+    EntitlementPageResponse: {
+      /** Items */
+      items: components['schemas']['EntitlementListItemResponse'][]
+      /** Page */
+      page: number
+      /** Page Size */
+      page_size: number
+      /** Total */
+      total: number
+    }
     /**
      * EntitlementTerm
      * @enum {string}
@@ -1034,6 +1325,32 @@ export interface components {
       /** Screenshots */
       screenshots?: string[]
     }
+    /** FormalEntitlementDetailResponse */
+    FormalEntitlementDetailResponse: {
+      /** Id */
+      id: string
+      /** User Id */
+      user_id: string
+      /** Package Id */
+      package_id: string
+      /** Package Name */
+      package_name: string
+      /** Status */
+      status: string
+      /** Term */
+      term: string
+      /**
+       * Granted At
+       * Format: date-time
+       */
+      granted_at: string
+      /** Expires At */
+      expires_at: string | null
+      /** Version */
+      version: number
+      /** Available Operations */
+      available_operations: string[]
+    }
     /** GrantRequest */
     GrantRequest: {
       /** User Id */
@@ -1046,10 +1363,73 @@ export interface components {
       /** Detail */
       detail?: components['schemas']['ValidationError'][]
     }
+    /** LimitedEntitlementDetailResponse */
+    LimitedEntitlementDetailResponse: {
+      /** Id */
+      id: string
+      /** User Id */
+      user_id: string
+      /** Campaign Version Id */
+      campaign_version_id: string
+      /** Campaign Id */
+      campaign_id: string
+      /** Campaign Name */
+      campaign_name: string
+      /** Status */
+      status: string
+      /**
+       * Granted At
+       * Format: date-time
+       */
+      granted_at: string
+      /**
+       * Start Deadline
+       * Format: date-time
+       */
+      start_deadline: string
+      /** Activated At */
+      activated_at: string | null
+      /** Expires At */
+      expires_at: string | null
+      /** Remedy Count */
+      remedy_count: number
+      /** Version */
+      version: number
+      /** Duration Days */
+      duration_days: number
+      /** Activation Window Days */
+      activation_window_days: number
+      /** Scene Ids */
+      scene_ids: string[]
+      /** Available Operations */
+      available_operations: string[]
+    }
     /** OpenScenesRequest */
     OpenScenesRequest: {
       /** Scene Ids */
       scene_ids: string[]
+    }
+    /** PackagePageResponse */
+    PackagePageResponse: {
+      /** Items */
+      items: components['schemas']['PackageResponse'][]
+      /** Page */
+      page: number
+      /** Page Size */
+      page_size: number
+      /** Total */
+      total: number
+    }
+    /** PackageResponse */
+    PackageResponse: {
+      /** Id */
+      id: string
+      /** Name */
+      name: string
+      /** Status */
+      status: string
+      /** Sort Order */
+      sort_order: number
     }
     /** PasswordLoginRequest */
     PasswordLoginRequest: {
@@ -1699,6 +2079,39 @@ export interface operations {
       }
     }
   }
+  get_entitlement_api_v1_admin_formal_entitlements__entitlement_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        entitlement_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FormalEntitlementDetailResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   preview_operation_api_v1_admin_formal_entitlements_preview_operation_post: {
     parameters: {
       query: {
@@ -1767,6 +2180,39 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_entitlement_api_v1_admin_limited_entitlements__entitlement_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        entitlement_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['LimitedEntitlementDetailResponse']
         }
       }
       /** @description Validation Error */
@@ -1968,6 +2414,306 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_entitlements_api_v1_admin_entitlements_get: {
+    parameters: {
+      query?: {
+        user_id?: string | null
+        type?: ('FORMAL' | 'LIMITED') | null
+        status?: ('ACTIVE' | 'PAUSED' | 'REVOKED' | 'PENDING' | 'ENDED' | 'START_EXPIRED') | null
+        package_id?: string | null
+        campaign_id?: string | null
+        page?: number
+        page_size?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['EntitlementPageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_packages_api_v1_admin_content_packages_get: {
+    parameters: {
+      query?: {
+        page?: number
+        page_size?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['PackagePageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_campaigns_api_v1_admin_campaigns_get: {
+    parameters: {
+      query?: {
+        status?: ('DRAFT' | 'OPEN' | 'PAUSED' | 'ENDED' | 'ARCHIVED' | 'CLOSED') | null
+        page?: number
+        page_size?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CampaignPageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_campaign_api_v1_admin_campaigns_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CampaignSaveRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CampaignResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_campaign_api_v1_admin_campaigns__campaign_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        campaign_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CampaignResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  update_campaign_api_v1_admin_campaigns__campaign_id__put: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        campaign_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CampaignSaveRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CampaignResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  copy_version_api_v1_admin_campaigns__campaign_id__versions_copy_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        campaign_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CampaignCommandRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CampaignResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  command_campaign_api_v1_admin_campaigns__campaign_id__commands__operation__post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        campaign_id: string
+        operation: 'open' | 'pause' | 'resume' | 'end' | 'archive' | 'capacity'
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CampaignCommandRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CampaignResponse']
         }
       }
       /** @description Validation Error */

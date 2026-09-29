@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
+import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
 import { createFormalEntitlementAdapter } from '@/features/entitlements/formal-entitlement-adapter'
 import {
   FORMAL_OPERATION_LABELS,
@@ -15,6 +16,7 @@ import {
 import { useFormalEntitlementCommand } from '@/features/entitlements/use-formal-entitlement-command'
 import { createApiClient } from '@/services/api/api-client'
 
+import type { ContentPackage } from '@/features/entitlements/entitlement-query-adapter'
 import type { FormalEntitlementTerm } from '@/features/entitlements/formal-entitlement-model'
 
 interface GrantForm {
@@ -33,6 +35,40 @@ const form = reactive<GrantForm>({
   userId: ''
 })
 const isConfirmVisible = ref(false)
+const conflictMessage = ref<string | null>(null)
+const latestVersion = ref<number | null>(null)
+const packages = ref<ContentPackage[]>([])
+const packagePage = ref(1)
+const packageTotal = ref(0)
+const packageState = ref<'loading' | 'error' | 'ready'>('loading')
+const queryAdapter = createEntitlementQueryAdapter(
+  createApiClient({
+    baseUrl: import.meta.env.VITE_API_BASE_URL,
+    getCsrfToken: () => authStore.csrfToken,
+    onUnauthorized: () => {
+      authStore.clearSensitiveState()
+      void router.replace({ name: 'login' })
+    }
+  })
+)
+/**
+ * 加载服务端内容包分页。
+ * @param page - 页码
+ * @returns 加载完成的 Promise
+ */
+async function loadPackages(page = 1): Promise<void> {
+  packageState.value = 'loading'
+  try {
+    const result = await queryAdapter.packages(page)
+    packages.value = result.items
+    packagePage.value = result.page
+    packageTotal.value = result.total
+    packageState.value = 'ready'
+  } catch {
+    packageState.value = 'error'
+  }
+}
+void loadPackages()
 const controller = useFormalEntitlementCommand(
   createFormalEntitlementAdapter(
     createApiClient({
@@ -66,6 +102,8 @@ watch(
  */
 async function handlePreview(): Promise<void> {
   if (!form.userId.trim() || !form.packageId.trim()) return
+  conflictMessage.value = null
+  latestVersion.value = null
   try {
     await controller.preview()
     isConfirmVisible.value = true
@@ -87,6 +125,14 @@ async function handleConfirm(reason: string): Promise<void> {
     ElMessage.success('正式权益操作已完成')
   } catch {
     isConfirmVisible.value = false
+    if (controller.hasConflict.value) {
+      conflictMessage.value = controller.errorMessage.value
+      try {
+        latestVersion.value = (await controller.refreshPreview()).version
+      } catch {
+        // Keep the original draft and conflict message if refresh also fails.
+      }
+    }
   }
 }
 
@@ -127,8 +173,29 @@ function formatServerTime(value: string | null): string {
           <ElFormItem label="用户编号" required>
             <ElInput v-model="form.userId" maxlength="64" placeholder="输入用户编号" />
           </ElFormItem>
-          <ElFormItem label="正式内容包编号" required>
-            <ElInput v-model="form.packageId" maxlength="64" placeholder="输入内容包编号" />
+          <ElFormItem label="正式内容包" required>
+            <ElSelect
+              v-model="form.packageId"
+              :loading="packageState === 'loading'"
+              placeholder="选择服务端内容包"
+              filterable
+            >
+              <ElOption
+                v-for="item in packages"
+                :key="item.id"
+                :label="`${item.name} · ${item.id}`"
+                :value="item.id"
+                :disabled="item.status !== 'ACTIVE'"
+              />
+            </ElSelect>
+            <ElPagination
+              v-if="packageTotal > 20"
+              :current-page="packagePage"
+              :page-size="20"
+              :total="packageTotal"
+              layout="prev, pager, next"
+              @current-change="loadPackages"
+            />
           </ElFormItem>
           <ElFormItem label="有效期" required>
             <ElSelect v-model="form.term">
@@ -143,6 +210,18 @@ function formatServerTime(value: string | null): string {
         </div>
 
         <ElAlert
+          v-if="conflictMessage"
+          class="alert"
+          :closable="false"
+          :title="conflictMessage"
+          type="error"
+          show-icon
+        >
+          原用户、内容包和期限输入已保留。服务端最新版本：{{
+            latestVersion === null ? '暂未获取' : `v${latestVersion}`
+          }}，请重新预览后确认。
+        </ElAlert>
+        <ElAlert
           v-if="controller.errorMessage.value"
           class="alert"
           :closable="false"
@@ -154,6 +233,14 @@ function formatServerTime(value: string | null): string {
             <ElButton size="small" @click="controller.refreshPreview">刷新服务端预览</ElButton>
           </template>
         </ElAlert>
+        <ElAlert
+          v-if="packageState === 'error'"
+          class="alert"
+          title="内容包加载失败，请重试"
+          type="error"
+          :closable="false"
+          ><ElButton size="small" @click="loadPackages(packagePage)">重试</ElButton></ElAlert
+        >
 
         <div v-if="controller.previewResult.value" class="preview">
           <div><span>当前期限</span><strong>由服务端当前状态校验</strong></div>
@@ -186,6 +273,7 @@ function formatServerTime(value: string | null): string {
       :impact-scope="`${FORMAL_OPERATION_LABELS[form.operation]}内容包 ${form.packageId}`"
       :object-id="`${form.userId} · ${form.packageId}`"
       title="确认正式权益操作"
+      :submitting="controller.commandState.value === 'submitting'"
       @confirm="handleConfirm"
     />
   </section>

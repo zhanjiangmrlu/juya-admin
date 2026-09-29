@@ -4,7 +4,8 @@ test('正式权益先预览再填写审计原因确认', async ({ adminApi, page
   await loginAsAdmin(page)
   await navigateInApp(page, '/entitlements/formal/grant')
   await page.getByPlaceholder('输入用户编号').fill('USER-1')
-  await page.getByPlaceholder('输入内容包编号').fill('PACKAGE-1')
+  await page.getByRole('combobox', { name: /正式内容包/ }).click()
+  await page.getByRole('option', { name: /基础内容包/ }).click()
   await page.getByRole('button', { name: '获取服务端预览并二次确认' }).click()
 
   await expect(page.getByRole('dialog', { name: '确认正式权益操作' })).toBeVisible()

@@ -1,56 +1,248 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { ElMessage } from 'element-plus'
+import { computed, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
-const form = reactive({ campaignVersionId: '', userId: '' })
+import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
+import { useAuthStore } from '@/features/auth/auth-store'
+import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
+import { createLimitedEntitlementAdapter } from '@/features/entitlements/limited-entitlement-adapter'
+import { useLimitedEntitlementCommand } from '@/features/entitlements/use-limited-entitlement-command'
+import { createApiClient } from '@/services/api/api-client'
+import { ApiError } from '@/shared/errors/api-error'
+
+import type { CampaignDetail, CampaignRow } from '@/features/campaigns/campaign-adapter'
+
+const router = useRouter()
+const auth = useAuthStore()
+const client = createApiClient({
+  baseUrl: import.meta.env.VITE_API_BASE_URL,
+  getCsrfToken: () => auth.csrfToken,
+  onUnauthorized: () => {
+    auth.clearSensitiveState()
+    void router.replace({ name: 'login' })
+  }
+})
+const campaigns = createCampaignAdapter(client)
+const controller = useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client))
+const form = reactive({ userId: '', campaignId: '' })
+const rows = ref<CampaignRow[]>([])
+const detail = ref<CampaignDetail | null>(null)
+const listPage = ref(1)
+const listTotal = ref(0)
+const state = ref<'loading' | 'ready' | 'error'>('loading')
+const error = ref('')
+const commandError = ref<string | null>(null)
+const hadConflict = ref(false)
+const confirmVisible = ref(false)
+const eligible = computed(
+  () =>
+    detail.value?.status === 'OPEN' &&
+    Boolean(detail.value.currentVersion) &&
+    (detail.value.currentVersion?.grantedUserCount ?? 0) <
+      (detail.value.currentVersion?.capacity ?? 0)
+)
+/**
+ * 加载开放活动分页。
+ * @param page - 页码
+ * @returns 加载完成的 Promise
+ */
+async function loadCampaigns(page = 1): Promise<void> {
+  state.value = 'loading'
+  try {
+    const result = await campaigns.list(page, 'OPEN')
+    rows.value = result.items
+    listPage.value = result.page
+    listTotal.value = result.total
+    state.value = 'ready'
+  } catch {
+    state.value = 'error'
+    error.value = '活动列表加载失败，请重试'
+  }
+}
+/**
+ * 加载管理员选择的活动详情。
+ * @param id - 活动编号
+ * @returns 加载完成的 Promise
+ */
+async function selectCampaign(id: string): Promise<void> {
+  detail.value = null
+  if (!id) return
+  try {
+    detail.value = await campaigns.detail(id)
+  } catch {
+    error.value = '活动详情加载失败，请重新选择或重试'
+  }
+}
+watch(
+  () => form.campaignId,
+  (id) => {
+    void selectCampaign(id)
+  }
+)
+watch(
+  [() => form.userId, detail],
+  () => {
+    controller.setDraft({
+      campaignVersionId: detail.value?.currentVersion?.id ?? null,
+      entitlementId: null,
+      operation: 'GRANT',
+      userId: form.userId.trim() || null
+    })
+  },
+  { immediate: true }
+)
+/**
+ * 提交限时权益开通命令。
+ * @returns 开通限时权益完成后的 Promise
+ */
+async function confirm(): Promise<void> {
+  try {
+    commandError.value = null
+    hadConflict.value = false
+    await controller.submit('')
+    confirmVisible.value = false
+    ElMessage.success('限时权益已开通')
+    await selectCampaign(form.campaignId)
+  } catch (failure) {
+    confirmVisible.value = false
+    hadConflict.value = failure instanceof ApiError && failure.status === 409
+    commandError.value = controller.disabledReason.value ?? controller.errorMessage.value
+    await selectCampaign(form.campaignId)
+  }
+}
+void loadCampaigns()
 </script>
 
 <template>
   <section class="limited-grant-page">
-    <ElCard shadow="never">
-      <template #header>
-        <div class="heading">
+    <ElCard shadow="never"
+      ><template #header
+        ><div class="heading">
           <div>
             <span>A07</span>
             <h2>开通限时学习权益</h2>
           </div>
-          <RouterLink v-slot="{ navigate }" custom :to="{ name: 'entitlements' }">
-            <ElButton @click="navigate">返回权益中心</ElButton>
-          </RouterLink>
-        </div>
-      </template>
-
-      <ElForm label-position="top">
-        <ElFormItem label="用户编号" required>
-          <ElInput v-model="form.userId" maxlength="64" placeholder="输入用户编号" />
-        </ElFormItem>
-        <ElFormItem label="限时活动版本" required>
-          <ElInput v-model="form.campaignVersionId" disabled placeholder="活动版本查询接口待接入" />
-        </ElFormItem>
+          <RouterLink v-slot="{ navigate }" custom :to="{ name: 'entitlements' }"
+            ><ElButton @click="navigate">返回权益中心</ElButton></RouterLink
+          >
+        </div></template
+      >
+      <ElForm label-position="top"
+        ><ElFormItem label="用户编号" required
+          ><ElInput v-model="form.userId" maxlength="64" placeholder="输入用户编号" /></ElFormItem
+        ><ElFormItem label="开放中的活动" required
+          ><ElSelect
+            v-model="form.campaignId"
+            :loading="state === 'loading'"
+            placeholder="选择服务端活动"
+            filterable
+            ><ElOption
+              v-for="row in rows"
+              :key="row.id"
+              :label="`${row.name} · ${row.id}`"
+              :value="row.id" /></ElSelect></ElFormItem
+        ><ElPagination
+          v-if="listTotal > 20"
+          :current-page="listPage"
+          :page-size="20"
+          :total="listTotal"
+          layout="prev, pager, next"
+          @current-change="loadCampaigns"
+        />
         <ElAlert
+          v-if="state === 'error' || error"
           class="notice"
+          :title="error"
+          type="error"
           :closable="false"
-          title="活动版本、开放状态、容量、首次开通时长和启动截止信息无法查询，暂不允许提交开通命令"
+          show-icon
+          ><ElButton size="small" @click="loadCampaigns(listPage)">重试</ElButton></ElAlert
+        >
+        <ElDescriptions v-if="detail?.currentVersion" :column="2" border class="summary"
+          ><ElDescriptionsItem label="当前状态">{{ detail.status }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="活动版本">{{ detail.currentVersion.id }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="容量"
+            >{{ detail.currentVersion.grantedUserCount }} /
+            {{ detail.currentVersion.capacity }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="启动窗口"
+            >{{ detail.currentVersion.activationWindowDays }} 天</ElDescriptionsItem
+          ><ElDescriptionsItem label="学习时长"
+            >{{ detail.currentVersion.durationDays }} 天</ElDescriptionsItem
+          ><ElDescriptionsItem label="开放时间"
+            >{{ detail.currentVersion.grantStartsAt ?? '—' }} 至
+            {{ detail.currentVersion.grantEndsAt ?? '—' }}</ElDescriptionsItem
+          ></ElDescriptions
+        >
+        <ElAlert
+          v-if="detail && !eligible"
+          class="notice"
+          title="活动当前不可开通或容量已满，请选择其他开放活动"
           type="warning"
+          :closable="false"
           show-icon
         />
-        <div class="capacity">
-          <span>容量</span><strong>接口待接入</strong><span>启动截止</span
-          ><strong>接口待接入</strong>
-        </div>
-        <ElTooltip content="缺少活动版本和容量查询接口">
-          <span><ElButton disabled type="primary">二次确认并开通</ElButton></span>
-        </ElTooltip>
-      </ElForm>
-    </ElCard>
+        <ElAlert
+          v-if="commandError || controller.errorMessage.value"
+          class="notice"
+          :title="commandError ?? controller.errorMessage.value ?? ''"
+          type="error"
+          :closable="false"
+          show-icon
+          ><p v-if="hadConflict">
+            原用户与活动选择已保留。服务端最新版本：v{{
+              detail?.version ?? '未知'
+            }}，请核对状态和容量。
+          </p>
+          <ElButton size="small" @click="selectCampaign(form.campaignId)"
+            >刷新活动状态</ElButton
+          ></ElAlert
+        >
+        <ElDescriptions v-if="controller.result.value" :column="2" border class="summary"
+          ><ElDescriptionsItem label="权益编号">{{ controller.result.value.id }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="目标状态">{{
+            controller.result.value.status
+          }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="启动截止">{{
+            controller.result.value.startDeadline
+          }}</ElDescriptionsItem></ElDescriptions
+        >
+        <ElButton
+          type="primary"
+          class="submit"
+          :disabled="
+            !form.userId.trim() || !eligible || controller.commandState.value === 'submitting'
+          "
+          :loading="controller.commandState.value === 'submitting'"
+          @click="confirmVisible = true"
+          >二次确认并开通</ElButton
+        >
+      </ElForm></ElCard
+    >
+    <ConfirmDialog
+      v-if="detail?.currentVersion"
+      v-model="confirmVisible"
+      :before-status="detail.status"
+      after-status="开通后的权益状态由服务端返回"
+      :impact-scope="`为用户 ${form.userId} 开通活动版本 ${detail.currentVersion.id}`"
+      :object-id="form.userId"
+      :reason-required="false"
+      title="确认开通限时权益"
+      :submitting="controller.commandState.value === 'submitting'"
+      @confirm="confirm"
+    />
   </section>
 </template>
 
 <style scoped lang="scss">
 .limited-grant-page {
+  min-width: 0;
+
   .heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
+    gap: 14px;
   }
 
   .heading span {
@@ -59,28 +251,19 @@ const form = reactive({ campaignVersionId: '', userId: '' })
     font-weight: 700;
   }
 
-  .heading h2 {
+  h2 {
     margin: 3px 0 0;
     color: var(--juya-color-sidebar);
     font-size: 16px;
   }
 
-  .notice {
-    margin-bottom: 16px;
+  .notice,
+  .summary {
+    margin: 16px 0;
   }
 
-  .capacity {
-    display: grid;
-    grid-template-columns: auto 1fr auto 1fr;
-    gap: 10px;
-    margin-bottom: 16px;
-    padding: 14px;
-    border-radius: var(--juya-control-radius);
-    background: #fbebcf;
-  }
-
-  .capacity span {
-    color: var(--juya-color-text-secondary);
+  .submit {
+    margin-top: 16px;
   }
 }
 </style>

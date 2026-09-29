@@ -1,40 +1,145 @@
 <script setup lang="ts">
-import PendingCapability from '@/components/pending-capability/pending-capability.vue'
-import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
-const capabilities = createCampaignAdapter()
+import { useAuthStore } from '@/features/auth/auth-store'
+import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
+import { createApiClient } from '@/services/api/api-client'
+import { ApiError } from '@/shared/errors/api-error'
+
+import type { CampaignPage } from '@/features/campaigns/campaign-adapter'
+
+const router = useRouter()
+const auth = useAuthStore()
+const adapter = createCampaignAdapter(
+  createApiClient({
+    baseUrl: import.meta.env.VITE_API_BASE_URL,
+    getCsrfToken: () => auth.csrfToken,
+    onUnauthorized: () => {
+      auth.clearSensitiveState()
+      void router.replace({ name: 'login' })
+    }
+  })
+)
+const filters = reactive({ page: 1, status: '' })
+const page = ref<CampaignPage>({ items: [], page: 1, pageSize: 20, total: 0 })
+const state = ref<'loading' | 'empty' | 'error' | 'success'>('loading')
+const error = ref('')
+/**
+ * 加载服务端活动分页。
+ * @returns 活动列表加载完成后的 Promise
+ */
+async function load(): Promise<void> {
+  state.value = 'loading'
+  error.value = ''
+  try {
+    page.value = await adapter.list(filters.page, filters.status || undefined)
+    state.value = page.value.items.length ? 'success' : 'empty'
+  } catch (failure) {
+    state.value = 'error'
+    error.value = failure instanceof ApiError ? failure.message : '活动列表加载失败，请重试'
+  }
+}
+/**
+ * 切换服务端分页。
+ * @param next - 新页码
+ * @returns 无返回值
+ */
+function changePage(next: number): void {
+  filters.page = next
+  void load()
+}
+void load()
 </script>
 
 <template>
   <section class="campaign-page">
     <ElCard shadow="never">
-      <template #header>
-        <div class="heading">
+      <template #header
+        ><div class="heading">
           <div>
             <span>A10</span>
             <h2>限时活动列表</h2>
           </div>
-          <ElButton :disabled="!capabilities.canManage" type="primary">新建活动</ElButton>
-        </div>
-      </template>
-      <ElAlert
-        :closable="false"
-        title="活动列表与管理接口尚未提供，当前不会发送未知请求"
-        type="warning"
-        show-icon
-      />
+          <RouterLink
+            v-slot="{ navigate }"
+            custom
+            :to="{ name: 'campaign-edit', params: { id: 'new' } }"
+            ><ElButton type="primary" @click="navigate">新建活动</ElButton></RouterLink
+          >
+        </div></template
+      >
       <div class="filters">
-        <ElInput disabled placeholder="活动名称或编号" />
-        <ElSelect aria-label="活动状态筛选（待接入）" disabled placeholder="全部状态" />
+        <ElSelect
+          v-model="filters.status"
+          aria-label="活动状态"
+          placeholder="全部状态"
+          clearable
+          @change="changePage(1)"
+          ><ElOption
+            v-for="status in ['DRAFT', 'OPEN', 'PAUSED', 'ENDED', 'ARCHIVED', 'CLOSED']"
+            :key="status"
+            :value="status"
+            :label="status" /></ElSelect
+        ><ElButton @click="load">刷新</ElButton>
       </div>
-      <PendingCapability description="缺少活动查询接口，未使用本地模拟活动或容量数据。" />
-      <p class="request-state">网络请求状态：{{ capabilities.requestCount }} 个未知请求</p>
+      <ElSkeleton v-if="state === 'loading'" :rows="5" animated aria-label="正在加载活动" />
+      <ElAlert v-else-if="state === 'error'" :title="error" type="error" :closable="false" show-icon
+        ><ElButton size="small" @click="load">重试</ElButton></ElAlert
+      >
+      <ElEmpty
+        v-else-if="state === 'empty'"
+        description="暂无活动。可以新建活动，或清除状态筛选。"
+      />
+      <ElTable v-else :data="page.items" stripe class="data-table"
+        ><ElTableColumn
+          prop="id"
+          label="活动编号"
+          min-width="180"
+          show-overflow-tooltip
+        /><ElTableColumn
+          prop="name"
+          label="活动名称"
+          min-width="200"
+          show-overflow-tooltip
+        /><ElTableColumn prop="status" label="状态" width="110" /><ElTableColumn
+          prop="capacity"
+          label="容量"
+          width="100"
+          ><template #default="scope">{{ scope.row.capacity ?? '—' }}</template></ElTableColumn
+        ><ElTableColumn prop="grantedUserCount" label="已开通" width="100"
+          ><template #default="scope">{{
+            scope.row.grantedUserCount ?? '—'
+          }}</template></ElTableColumn
+        ><ElTableColumn label="操作" width="160"
+          ><template #default="scope"
+            ><RouterLink :to="{ name: 'campaign-edit', params: { id: scope.row.id } }"
+              >编辑</RouterLink
+            ><RouterLink
+              class="link"
+              :to="{ name: 'campaign-versions', params: { id: scope.row.id } }"
+              >版本与容量</RouterLink
+            ></template
+          ></ElTableColumn
+        ></ElTable
+      >
+      <ElPagination
+        v-if="page.total > 20"
+        class="pagination"
+        :current-page="page.page"
+        :page-size="page.pageSize"
+        :total="page.total"
+        layout="prev, pager, next, total"
+        @current-change="changePage"
+      />
     </ElCard>
   </section>
 </template>
 
 <style scoped lang="scss">
 .campaign-page {
+  min-width: 0;
+
   .heading {
     display: flex;
     align-items: flex-start;
@@ -47,7 +152,7 @@ const capabilities = createCampaignAdapter()
     font-weight: 700;
   }
 
-  .heading h2 {
+  h2 {
     margin: 3px 0 0;
     color: var(--juya-color-sidebar);
     font-size: 16px;
@@ -56,22 +161,24 @@ const capabilities = createCampaignAdapter()
   .filters {
     display: flex;
     gap: 10px;
-    margin-top: 16px;
-  }
-
-  .filters .el-input {
-    width: 240px;
+    margin-bottom: 16px;
   }
 
   .filters .el-select {
     width: 160px;
   }
 
-  .request-state {
-    margin: 0;
-    color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    text-align: center;
+  .data-table {
+    width: 100%;
+  }
+
+  .link {
+    margin-left: 12px;
+  }
+
+  .pagination {
+    margin-top: 16px;
+    justify-content: flex-end;
   }
 }
 </style>

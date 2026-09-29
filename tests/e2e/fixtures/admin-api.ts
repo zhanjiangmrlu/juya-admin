@@ -11,6 +11,8 @@ export interface ApiRequestRecord {
 }
 
 export interface AdminApiMock {
+  conflictOnNextCampaignSave(): void
+  setCampaignStatus(status: 'DRAFT' | 'OPEN'): void
   conflictOnNextContactDecision(): void
   conflictOnNextSettingsUpdate(): void
   findRequest(method: string, pathname: string): ApiRequestRecord | undefined
@@ -19,6 +21,12 @@ export interface AdminApiMock {
 }
 
 interface AdminApiState extends AdminApiMock {
+  campaignConflictPending: boolean
+  campaignVersion: number
+  campaignCapacity: number
+  campaignGrantedCount: number
+  campaignName: string
+  campaignStatus: 'DRAFT' | 'OPEN'
   contactDecisionConflictPending: boolean
   contactCorrectionStatus: 'APPROVED' | 'PENDING' | 'REJECTED'
   feedbackStatus: string
@@ -30,6 +38,12 @@ interface AdminApiState extends AdminApiMock {
 export const test = base.extend<{ adminApi: AdminApiMock }>({
   adminApi: async ({ page }, use) => {
     const state: AdminApiState = {
+      conflictOnNextCampaignSave() {
+        state.campaignConflictPending = true
+      },
+      setCampaignStatus(status) {
+        state.campaignStatus = status
+      },
       conflictOnNextContactDecision() {
         state.contactDecisionConflictPending = true
       },
@@ -42,6 +56,12 @@ export const test = base.extend<{ adminApi: AdminApiMock }>({
         )
       },
       contactCorrectionStatus: 'PENDING',
+      campaignConflictPending: false,
+      campaignVersion: 3,
+      campaignCapacity: 30,
+      campaignGrantedCount: 5,
+      campaignName: '秋季限时学习',
+      campaignStatus: 'OPEN',
       contactDecisionConflictPending: false,
       feedbackStatus: 'PROCESSING',
       requests: [],
@@ -244,6 +264,167 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     await replyJson(route, formalEntitlement)
     return
   }
+  if (url.pathname === '/api/v1/admin/entitlements' && request.method() === 'GET') {
+    await replyJson(route, {
+      items: [
+        {
+          id: 'FORMAL-1',
+          type: 'FORMAL',
+          user_id: 'USER-1',
+          status: 'ACTIVE',
+          granted_at: '2026-09-29T00:00:00Z',
+          expires_at: '2026-12-29T00:00:00Z',
+          package_id: 'PACKAGE-1',
+          campaign_id: null
+        },
+        {
+          id: 'LIMITED-1',
+          type: 'LIMITED',
+          user_id: 'USER-1',
+          status: 'PENDING',
+          granted_at: '2026-09-29T00:00:00Z',
+          expires_at: null,
+          package_id: null,
+          campaign_id: 'CAMP-1'
+        }
+      ],
+      page: Number(url.searchParams.get('page') ?? 1),
+      page_size: 20,
+      total: 2
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content-packages' && request.method() === 'GET') {
+    await replyJson(route, {
+      items: [{ id: 'PACKAGE-1', name: '基础内容包', status: 'ACTIVE', sort_order: 1 }],
+      page: 1,
+      page_size: 20,
+      total: 1
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/formal-entitlements/FORMAL-1' && request.method() === 'GET') {
+    await replyJson(route, {
+      ...formalEntitlement,
+      package_name: '基础内容包',
+      available_operations: ['RENEW', 'PAUSE', 'REVOKE']
+    })
+    return
+  }
+  if (
+    url.pathname === '/api/v1/admin/limited-entitlements/LIMITED-1' &&
+    request.method() === 'GET'
+  ) {
+    await replyJson(route, {
+      id: 'LIMITED-1',
+      user_id: 'USER-1',
+      campaign_version_id: 'VERSION-1',
+      campaign_id: 'CAMP-1',
+      campaign_name: state.campaignName,
+      status: 'PENDING',
+      granted_at: '2026-09-29T00:00:00Z',
+      start_deadline: '2026-10-06T00:00:00Z',
+      activated_at: null,
+      expires_at: null,
+      remedy_count: 0,
+      version: 1,
+      duration_days: 3,
+      activation_window_days: 7,
+      scene_ids: ['SCENE-1'],
+      available_operations: ['EXTEND_START_DEADLINE', 'REVOKE']
+    })
+    return
+  }
+  if (
+    url.pathname === '/api/v1/admin/limited-entitlements/commands/grant' &&
+    request.method() === 'POST'
+  ) {
+    await replyJson(
+      route,
+      {
+        id: 'LIMITED-2',
+        user_id: 'USER-1',
+        campaign_version_id: 'VERSION-1',
+        status: 'PENDING',
+        granted_at: '2026-09-29T00:00:00Z',
+        start_deadline: '2026-10-06T00:00:00Z',
+        activated_at: null,
+        expires_at: null,
+        remedy_count: 0,
+        version: 1
+      },
+      201
+    )
+    return
+  }
+  if (url.pathname === '/api/v1/admin/campaigns' && request.method() === 'GET') {
+    await replyJson(route, {
+      items: [
+        {
+          id: 'CAMP-1',
+          name: state.campaignName,
+          status: state.campaignStatus,
+          version: state.campaignVersion,
+          current_version_id: 'VERSION-1',
+          capacity: state.campaignCapacity,
+          granted_user_count: state.campaignGrantedCount,
+          created_at: '2026-09-29T00:00:00Z',
+          updated_at: '2026-09-29T00:00:00Z',
+          available_operations:
+            state.campaignStatus === 'DRAFT'
+              ? ['open', 'copy', 'capacity']
+              : ['pause', 'end', 'capacity']
+        }
+      ],
+      page: Number(url.searchParams.get('page') ?? 1),
+      page_size: 20,
+      total: 1
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/campaigns/CAMP-1' && request.method() === 'GET') {
+    await replyJson(route, createCampaignDetail(state))
+    return
+  }
+  if (url.pathname === '/api/v1/admin/campaigns' && request.method() === 'POST') {
+    state.campaignStatus = 'DRAFT'
+    state.campaignVersion = 1
+    state.campaignGrantedCount = 0
+    state.campaignName = (record.body as { name?: string }).name ?? state.campaignName
+    state.campaignCapacity =
+      (record.body as { capacity?: number }).capacity ?? state.campaignCapacity
+    await replyJson(route, createCampaignDetail(state), 201)
+    return
+  }
+  if (
+    url.pathname.startsWith('/api/v1/admin/campaigns/CAMP-1') &&
+    ['PUT', 'POST'].includes(request.method())
+  ) {
+    if (state.campaignConflictPending) {
+      state.campaignConflictPending = false
+      state.campaignVersion += 1
+      state.campaignName = '其他管理员的新名称'
+      await replyJson(
+        route,
+        {
+          code: 'CAMPAIGN_VERSION_CONFLICT',
+          message: '活动版本冲突',
+          request_id: 'e2e-campaign-409'
+        },
+        409
+      )
+      return
+    }
+    state.campaignVersion += 1
+    if (url.pathname.endsWith('/commands/open')) state.campaignStatus = 'OPEN'
+    if (url.pathname.endsWith('/commands/capacity'))
+      state.campaignCapacity =
+        (record.body as { capacity?: number }).capacity ?? state.campaignCapacity
+    if (request.method() === 'PUT')
+      state.campaignName = (record.body as { name?: string }).name ?? state.campaignName
+    await replyJson(route, createCampaignDetail(state))
+    return
+  }
   if (url.pathname === '/api/v1/admin/feedback/FB-1') {
     await replyJson(route, {
       ...feedbackTicket,
@@ -427,6 +608,40 @@ const formalEntitlement = {
   term: 'MONTH_3',
   user_id: 'USER-1',
   version: 1
+}
+
+/**
+ * 返回与 FastAPI CampaignResponse 契约一致的活动详情夹具。
+ * @param state - 当前模拟服务端状态
+ * @returns 活动详情响应
+ */
+function createCampaignDetail(state: AdminApiState) {
+  return {
+    available_operations:
+      state.campaignStatus === 'DRAFT'
+        ? ['open', 'copy', 'capacity']
+        : ['pause', 'end', 'capacity'],
+    created_at: '2026-09-29T00:00:00Z',
+    current_version: {
+      activation_window_days: 7,
+      capacity: state.campaignCapacity,
+      duration_days: 3,
+      grant_ends_at: null,
+      grant_starts_at: null,
+      granted_user_count: state.campaignGrantedCount,
+      id: 'VERSION-1',
+      locked_at: state.campaignStatus === 'DRAFT' ? null : '2026-09-29T00:00:00Z',
+      scene_ids: ['SCENE-1'],
+      status: state.campaignStatus,
+      version: state.campaignVersion,
+      version_no: 1
+    },
+    id: 'CAMP-1',
+    name: state.campaignName,
+    status: state.campaignStatus,
+    updated_at: '2026-09-29T00:00:00Z',
+    version: state.campaignVersion
+  }
 }
 
 const feedbackTicket = {
