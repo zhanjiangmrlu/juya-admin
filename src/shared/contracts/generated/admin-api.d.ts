@@ -2311,7 +2311,8 @@ export interface operations {
   pause_api_v1_admin_limited_entitlements__entitlement_id__commands_pause_post: {
     parameters: {
       query?: never
-      header?: {
+      header: {
+        'X-Idempotency-Key': string
         'X-CSRF-Token'?: string | null
       }
       path: {
@@ -2352,7 +2353,8 @@ export interface operations {
   resume_api_v1_admin_limited_entitlements__entitlement_id__commands_resume_post: {
     parameters: {
       query?: never
-      header?: {
+      header: {
+        'X-Idempotency-Key': string
         'X-CSRF-Token'?: string | null
       }
       path: {
@@ -2389,7 +2391,8 @@ export interface operations {
   revoke_api_v1_admin_limited_entitlements__entitlement_id__commands_revoke_post: {
     parameters: {
       query?: never
-      header?: {
+      header: {
+        'X-Idempotency-Key': string
         'X-CSRF-Token'?: string | null
       }
       path: {

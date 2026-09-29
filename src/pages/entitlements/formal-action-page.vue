@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
@@ -36,7 +36,11 @@ const client = createApiClient({
   }
 })
 const query = createEntitlementQueryAdapter(client)
-const controller = useFormalEntitlementCommand(createFormalEntitlementAdapter(client))
+const controller = shallowRef(useFormalEntitlementCommand(createFormalEntitlementAdapter(client)))
+let requestSequence = 0
+onBeforeUnmount(() => {
+  requestSequence += 1
+})
 const detail = ref<FormalDetail | null>(null)
 const state = ref<'loading' | 'ready' | 'error'>('loading')
 const error = ref('')
@@ -60,17 +64,31 @@ const allowedOperations = computed(() =>
  * @returns 加载完成的 Promise
  */
 async function load(keepDraft = false): Promise<void> {
+  const sequence = ++requestSequence
+  const id = entitlementId.value
+  detail.value = null
+  confirmVisible.value = false
+  controller.value = useFormalEntitlementCommand(createFormalEntitlementAdapter(client))
+  if (!keepDraft) {
+    commandError.value = null
+    commandApiError.value = null
+    hadConflict.value = false
+  }
   state.value = 'loading'
   error.value = ''
   apiError.value = null
   try {
-    detail.value = await query.formal(entitlementId.value)
+    const result = await query.formal(id)
+    if (sequence !== requestSequence || id !== entitlementId.value) return
+    if (result.id !== id) throw new Error('权益详情与当前对象不一致')
+    detail.value = result
     if (!keepDraft) {
       form.operation = allowedOperations.value[0] ?? 'RENEW'
       form.term = FORMAL_TERMS.find((value) => value === detail.value?.term) ?? 'MONTH_3'
     }
     state.value = 'ready'
   } catch (failure) {
+    if (sequence !== requestSequence || id !== entitlementId.value) return
     apiError.value = failure instanceof ApiError ? failure : null
     state.value = 'error'
     error.value = '正式权益详情加载失败，请重试'
@@ -80,7 +98,7 @@ watch(
   [form, detail],
   () => {
     if (!detail.value) return
-    controller.setDraft({
+    controller.value.setDraft({
       operation: form.operation,
       packageId: detail.value.packageId,
       term: form.operation === 'RENEW' || form.operation === 'GRANT' ? form.term : null,
@@ -101,11 +119,19 @@ watch(
  * @returns 服务端预览完成后的 Promise
  */
 async function preview(): Promise<void> {
+  if (
+    state.value !== 'ready' ||
+    detail.value?.id !== entitlementId.value ||
+    !allowedOperations.value.includes(form.operation)
+  )
+    return
+  const sequence = requestSequence
   commandError.value = null
   commandApiError.value = null
   hadConflict.value = false
   try {
-    await controller.preview()
+    await controller.value.preview()
+    if (sequence !== requestSequence) return
     confirmVisible.value = true
   } catch {
     /* 控制器显示错误 */
@@ -117,16 +143,25 @@ async function preview(): Promise<void> {
  * @returns 命令完成后的 Promise
  */
 async function confirm(reason: string): Promise<void> {
+  if (
+    state.value !== 'ready' ||
+    detail.value?.id !== entitlementId.value ||
+    !allowedOperations.value.includes(form.operation)
+  )
+    return
+  const sequence = requestSequence
   try {
-    await controller.submit(reason)
+    await controller.value.submit(reason)
+    if (sequence !== requestSequence) return
     confirmVisible.value = false
     ElMessage.success('正式权益状态已更新')
     await load()
   } catch {
+    if (sequence !== requestSequence) return
     confirmVisible.value = false
-    hadConflict.value = controller.hasConflict.value
-    commandError.value = controller.errorMessage.value
-    commandApiError.value = controller.apiError.value
+    hadConflict.value = controller.value.hasConflict.value
+    commandError.value = controller.value.errorMessage.value
+    commandApiError.value = controller.value.apiError.value
     if (hadConflict.value) await load(true)
   }
 }

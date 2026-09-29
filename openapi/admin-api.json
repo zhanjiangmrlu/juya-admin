@@ -1318,6 +1318,15 @@
             }
           },
           {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Idempotency-Key"
+            }
+          },
+          {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
@@ -1402,6 +1411,15 @@
             }
           },
           {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Idempotency-Key"
+            }
+          },
+          {
             "name": "X-CSRF-Token",
             "in": "header",
             "required": false,
@@ -1473,6 +1491,15 @@
             "schema": {
               "type": "string",
               "title": "Entitlement Id"
+            }
+          },
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Idempotency-Key"
             }
           },
           {

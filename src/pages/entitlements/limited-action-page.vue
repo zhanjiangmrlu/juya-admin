@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
@@ -29,7 +29,11 @@ const client = createApiClient({
   }
 })
 const query = createEntitlementQueryAdapter(client)
-const controller = useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client))
+const controller = shallowRef(useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client)))
+let requestSequence = 0
+onBeforeUnmount(() => {
+  requestSequence += 1
+})
 const detail = ref<LimitedDetail | null>(null)
 const state = ref<'loading' | 'ready' | 'error'>('loading')
 const error = ref('')
@@ -61,14 +65,28 @@ const nextStatus = computed(
  * @returns 加载完成的 Promise
  */
 async function load(keepDraft = false): Promise<void> {
+  const sequence = ++requestSequence
+  const id = entitlementId.value
+  detail.value = null
+  confirmVisible.value = false
+  controller.value = useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client))
+  if (!keepDraft) {
+    commandError.value = null
+    commandApiError.value = null
+    hadConflict.value = false
+  }
   state.value = 'loading'
   error.value = ''
   apiError.value = null
   try {
-    detail.value = await query.limited(entitlementId.value)
+    const result = await query.limited(id)
+    if (sequence !== requestSequence || id !== entitlementId.value) return
+    if (result.id !== id) throw new Error('权益详情与当前对象不一致')
+    detail.value = result
     if (!keepDraft) operation.value = allowedOperations.value[0] ?? 'PAUSE'
     state.value = 'ready'
   } catch (failure) {
+    if (sequence !== requestSequence || id !== entitlementId.value) return
     apiError.value = failure instanceof ApiError ? failure : null
     state.value = 'error'
     error.value = '限时权益详情加载失败，请重试'
@@ -76,7 +94,7 @@ async function load(keepDraft = false): Promise<void> {
 }
 watch([operation, detail], () => {
   if (!detail.value) return
-  controller.setDraft({
+  controller.value.setDraft({
     campaignVersionId: null,
     entitlementId: detail.value.id,
     operation: operation.value,
@@ -96,19 +114,29 @@ watch(
  * @returns 命令完成后的 Promise
  */
 async function confirm(reason: string): Promise<void> {
+  if (
+    state.value !== 'ready' ||
+    detail.value?.id !== entitlementId.value ||
+    !allowedOperations.value.includes(operation.value)
+  )
+    return
+  const sequence = requestSequence
   try {
     commandError.value = null
     commandApiError.value = null
     hadConflict.value = false
-    await controller.submit(reason)
+    await controller.value.submit(reason)
+    if (sequence !== requestSequence) return
     confirmVisible.value = false
     ElMessage.success('限时权益状态已更新')
     await load()
   } catch (failure) {
+    if (sequence !== requestSequence) return
     confirmVisible.value = false
     hadConflict.value = failure instanceof ApiError && failure.status === 409
-    commandError.value = controller.disabledReason.value ?? controller.errorMessage.value
-    commandApiError.value = controller.apiError.value
+    commandError.value =
+      controller.value.disabledReason.value ?? controller.value.errorMessage.value
+    commandApiError.value = controller.value.apiError.value
     if (hadConflict.value) await load(true)
   }
 }
