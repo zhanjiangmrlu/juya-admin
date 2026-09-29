@@ -6,12 +6,12 @@ import TaskProgress from '@/components/task-progress/task-progress.vue'
 import { validateImageBatch } from '@/features/content-import/import-validation'
 import { createUploadAdapter } from '@/features/content-import/upload-adapter'
 import { useUploadQueue } from '@/features/content-import/use-upload-queue'
-import { createApiClient } from '@/services/api/api-client'
+import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 import type { UploadFile, UploadFiles } from 'element-plus'
 
 const context = reactive({ seriesId: '', templateId: '' })
-const queue = useUploadQueue(createUploadAdapter(createApiClient()))
+const queue = useUploadQueue(createUploadAdapter(useAdminApiClient()))
 
 /**
  * 接收 Element Plus 选择的本地图片

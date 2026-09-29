@@ -6,12 +6,12 @@ import AuditEventList from '@/components/audit-event-list/audit-event-list.vue'
 import { createAuditAdapter } from '@/features/audit/audit-adapter'
 import { createSystemConfigAdapter } from '@/features/system-config/system-config-adapter'
 import { useSystemConfig } from '@/features/system-config/use-system-config'
-import { createApiClient } from '@/services/api/api-client'
+import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 import type { AuditEvent } from '@/features/audit/audit-adapter'
 import type { SystemConfigDraft } from '@/features/system-config/system-config-model'
 
-const client = createApiClient()
+const client = useAdminApiClient()
 const controller = useSystemConfig(createSystemConfigAdapter(client))
 const auditAdapter = createAuditAdapter(client)
 const auditEvents = ref<AuditEvent[]>([])

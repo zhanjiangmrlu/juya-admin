@@ -5,11 +5,11 @@ import { useRoute } from 'vue-router'
 
 import { createPublishAdapter } from '@/features/publishing/publish-adapter'
 import { usePublishCheck } from '@/features/publishing/use-publish-check'
-import { createApiClient } from '@/services/api/api-client'
+import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 const route = useRoute()
 const revisionId = computed(() => String(route.params.id))
-const controller = usePublishCheck(createPublishAdapter(createApiClient()), revisionId)
+const controller = usePublishCheck(createPublishAdapter(useAdminApiClient()), revisionId)
 
 /**
  * 执行发布检查并展示失败提示

@@ -57,6 +57,7 @@ function confirm(): void {
 
 <template>
   <ElDialog
+    class="confirm-dialog"
     :model-value="modelValue"
     :title="title"
     width="520px"

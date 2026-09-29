@@ -4,10 +4,10 @@ import { reactive } from 'vue'
 
 import { createDiscoveryAdapter } from '@/features/discovery/discovery-adapter'
 import { validateOpenScenes, validatePreviewScenes } from '@/features/discovery/discovery-model'
-import { createApiClient } from '@/services/api/api-client'
+import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 const form = reactive({ openScenes: ['', '', ''], previewScenes: '', seriesId: '' })
-const adapter = createDiscoveryAdapter(createApiClient())
+const adapter = createDiscoveryAdapter(useAdminApiClient())
 
 /**
  * 保存开放场景配置
