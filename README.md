@@ -72,7 +72,7 @@ tests/
 - OpenAPI 快照位于 `openapi/admin-api.json`，生成结果位于 `src/shared/contracts/generated/admin-api.d.ts`
 - 登录采用管理员账号和密码，认证 Cookie 由浏览器管理，CSRF token 只保存在内存 Store
 - 写请求自动携带 `X-CSRF-Token`，高风险命令额外携带 `X-Idempotency-Key`
-- 整页刷新后若内存 CSRF 已丢失，写请求会被前端阻止并要求重新登录，不会发送缺少安全凭证的命令
+- 整页刷新后通过独立会话接口校验 HttpOnly Cookie，并轮换、恢复仅存于内存的 CSRF token
 - 完整微信号通过 POST 正文检索，不进入 URL、localStorage 或 sessionStorage
 - 401 会清理敏感状态并跳转登录页；409 保留本地草稿并展示服务端新版本
 

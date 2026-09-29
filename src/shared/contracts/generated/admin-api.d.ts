@@ -45,7 +45,8 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    get?: never
+    /** Get Session */
+    get: operations['get_session_api_v1_admin_session_get']
     put?: never
     /** Create Password Session */
     post: operations['create_password_session_api_v1_admin_session_post']
@@ -982,6 +983,39 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
+        }
+      }
+    }
+  }
+  get_session_api_v1_admin_session_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
         }
       }
     }

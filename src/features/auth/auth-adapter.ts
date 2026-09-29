@@ -10,7 +10,7 @@ export interface AuthSession {
 
 export interface AuthAdapter {
   logout(csrfToken: string | null): Promise<void>
-  probeSession(): Promise<void>
+  probeSession(): Promise<AuthSession>
   submitPassword(credentials: PasswordCredentials): Promise<AuthSession>
 }
 
@@ -37,12 +37,20 @@ export function createAuthAdapter(client: ApiClient): AuthAdapter {
     },
 
     /**
-     * 通过受保护的只读配置接口探测 Cookie 会话
+     * 通过独立会话接口探测 Cookie 会话并恢复内存凭证
      *
-     * @returns 探测成功后的 Promise
+     * @returns 当前会话的新 CSRF token 和过期时间
      */
-    async probeSession(): Promise<void> {
-      await client.request({ method: 'GET', path: '/api/v1/admin/settings' })
+    async probeSession(): Promise<AuthSession> {
+      const response = await client.request<Record<string, unknown>>({
+        method: 'GET',
+        path: '/api/v1/admin/session'
+      })
+
+      return {
+        csrfToken: requireString(response, 'csrf_token'),
+        expiresAt: requireString(response, 'expires_at')
+      }
     },
 
     /**

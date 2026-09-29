@@ -53,12 +53,17 @@ export function createUseAuthStore(adapter: AuthAdapter, storeId = 'auth') {
      */
     async function probeSession(): Promise<boolean> {
       try {
-        await adapter.probeSession()
+        const session = await adapter.probeSession()
+        csrfToken.value = session.csrfToken
+        sessionExpiresAt.value = session.expiresAt
         hasSession.value = true
         return true
-      } catch {
-        clearSensitiveState()
-        return false
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          clearSensitiveState()
+          return false
+        }
+        throw error
       }
     }
 

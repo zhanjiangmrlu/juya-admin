@@ -121,6 +121,10 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     await replyJson(route, { csrf_token: 'csrf-e2e', expires_at: '2026-09-29T20:00:00Z' })
     return
   }
+  if (url.pathname === '/api/v1/admin/session' && request.method() === 'GET') {
+    await replyJson(route, { csrf_token: 'csrf-e2e', expires_at: '2026-09-29T20:00:00Z' })
+    return
+  }
   if (url.pathname === '/api/v1/admin/session/logout') {
     await route.fulfill({ status: 204 })
     return
