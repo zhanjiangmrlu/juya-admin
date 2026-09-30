@@ -609,7 +609,117 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     return
   }
   if (url.pathname === '/api/v1/admin/media/uploads/confirm') {
-    await route.fulfill({ status: 204 })
+    const body = record.body as { asset_type?: unknown }
+    const isAudio = body.asset_type === 'audio'
+    await replyJson(
+      route,
+      {
+        asset_type: isAudio ? 'audio' : 'images',
+        content_type: isAudio ? 'audio/mpeg' : 'image/png',
+        id: isAudio ? 'ASSET-AUDIO-2' : 'ASSET-UPLOADED-1',
+        sha256: 'a'.repeat(64),
+        size: 1024,
+        status: 'CONFIRMED'
+      },
+      201
+    )
+    return
+  }
+  if (url.pathname === '/api/v1/admin/media/ocr/jobs' && request.method() === 'POST') {
+    await replyJson(route, { ...createMediaJob(), id: 'JOB-UPLOAD', status: 'PENDING' }, 201)
+    return
+  }
+  if (url.pathname === '/api/v1/admin/media/ocr/jobs/JOB-1' && request.method() === 'GET') {
+    await replyJson(route, createMediaJob())
+    return
+  }
+  if (
+    url.pathname === '/api/v1/admin/media/ocr/jobs/JOB-1/candidate' &&
+    request.method() === 'GET'
+  ) {
+    await replyJson(route, {
+      asset_id: 'ASSET-1',
+      confidence: 0.98,
+      confirmed_revision_id: null,
+      error_code: null,
+      id: 'CANDIDATE-1',
+      job_id: 'JOB-1',
+      status: 'READY',
+      structured_candidate: { title: 'Coffee time' },
+      template_type: 'learning-card'
+    })
+    return
+  }
+  if (/^\/api\/v1\/admin\/media\/ocr\/jobs\/JOB-1\/commands\/(cancel|retry)$/.test(url.pathname)) {
+    await replyJson(route, {
+      ...createMediaJob(),
+      status: url.pathname.endsWith('/cancel') ? 'CANCELLED' : 'PENDING'
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/media/ocr/jobs/JOB-1/commands/confirm') {
+    await replyJson(route, { revision_id: 'REV-OCR-2', revision_status: 'DRAFT', version: 2 })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/media/audio-targets' && request.method() === 'GET') {
+    await replyJson(route, { items: [createAudioTarget()] })
+    return
+  }
+  if (
+    url.pathname === '/api/v1/admin/media/audio-targets/TARGET-1/versions' &&
+    request.method() === 'GET'
+  ) {
+    await replyJson(route, { items: [createAudioVersion()] })
+    return
+  }
+  if (
+    url.pathname === '/api/v1/admin/media/audio-targets/TARGET-1/versions' &&
+    request.method() === 'POST'
+  ) {
+    await replyJson(route, { ...createAudioVersion(), id: 'VERSION-2', status: 'CANDIDATE' }, 201)
+    return
+  }
+  if (url.pathname === '/api/v1/admin/media/audio-targets/TARGET-1/commands/generate') {
+    await replyJson(route, { ...createMediaJob(), id: 'TTS-JOB-1', job_type: 'TTS' }, 201)
+    return
+  }
+  if (/^\/api\/v1\/admin\/media\/audio-versions\/[^/]+\/commands\/confirm$/.test(url.pathname)) {
+    await replyJson(route, { ...createAudioTarget(), active_version_id: 'VERSION-2' })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/media/audio-targets/TARGET-1/commands/rollback') {
+    await replyJson(route, createAudioTarget())
+    return
+  }
+  if (url.pathname === '/api/v1/admin/media/batch-jobs' && request.method() === 'GET') {
+    await replyJson(route, { items: [createBatchJob()], page: 1, page_size: 20, total: 1 })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/media/batch-jobs' && request.method() === 'POST') {
+    await replyJson(route, createBatchJob(), 201)
+    return
+  }
+  if (
+    /^\/api\/v1\/admin\/media\/batch-jobs\/BATCH-1\/commands\/(cancel|retry-failed)$/.test(
+      url.pathname
+    )
+  ) {
+    await replyJson(route, createBatchJob())
+    return
+  }
+  if (url.pathname === '/api/v1/admin/media/trash' && request.method() === 'GET') {
+    await replyJson(route, { items: [createTrashEntry()] })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/media/trash' && request.method() === 'POST') {
+    await replyJson(route, createTrashEntry(), 201)
+    return
+  }
+  if (/^\/api\/v1\/admin\/media\/trash\/TRASH-1\/commands\/(restore|cleanup)$/.test(url.pathname)) {
+    await replyJson(route, {
+      ...createTrashEntry(),
+      status: url.pathname.endsWith('/restore') ? 'RESTORED' : 'CLEANED'
+    })
     return
   }
   if (url.pathname === '/api/v1/admin/content/scenes' && request.method() === 'GET') {
@@ -890,6 +1000,120 @@ function createContentScene(): Record<string, unknown> {
     summary: '咖啡店点单练习',
     title: 'Ordering coffee',
     updated_at: '2026-09-30T10:00:00Z'
+  }
+}
+
+/**
+ * 创建媒体任务响应夹具
+ * @returns OCR 任务响应
+ */
+function createMediaJob(): Record<string, unknown> {
+  return {
+    batch_id: null,
+    business_key: 'ocr:e2e',
+    cancel_requested_at: null,
+    created_at: '2026-09-30T10:00:00Z',
+    created_by: 'ADMIN-1',
+    error_code: null,
+    id: 'JOB-1',
+    job_type: 'OCR',
+    provider_request_id: 'provider-1',
+    status: 'SUCCEEDED',
+    target_id: 'ASSET-1',
+    updated_at: '2026-09-30T10:01:00Z'
+  }
+}
+
+/**
+ * 创建音频目标夹具
+ * @returns 音频目标响应
+ */
+function createAudioTarget(): Record<string, unknown> {
+  return {
+    active_version_id: 'VERSION-1',
+    id: 'TARGET-1',
+    stable_key: 'SENTENCE-1',
+    target_type: 'SENTENCE'
+  }
+}
+
+/**
+ * 创建音频版本夹具
+ * @returns 音频版本响应
+ */
+function createAudioVersion(): Record<string, unknown> {
+  return {
+    asset_id: 'ASSET-AUDIO-1',
+    created_at: '2026-09-30T10:00:00Z',
+    created_by: 'ADMIN-1',
+    id: 'VERSION-1',
+    processing_job_id: null,
+    provider_request_id: null,
+    source: 'MANUAL',
+    status: 'ACTIVE',
+    target_id: 'TARGET-1',
+    version_no: 1
+  }
+}
+
+/**
+ * 创建含单项成功和失败结果的批量任务夹具
+ * @returns 批量任务响应
+ */
+function createBatchJob(): Record<string, unknown> {
+  return {
+    business_key: 'batch:e2e',
+    cancel_requested_at: null,
+    completed_at: '2026-09-30T10:01:00Z',
+    created_at: '2026-09-30T10:00:00Z',
+    created_by: 'ADMIN-1',
+    failure_count: 1,
+    id: 'BATCH-1',
+    items: [
+      {
+        attempt_count: 1,
+        error_code: null,
+        id: 'ITEM-1',
+        item_key: '0:SCENE-1',
+        processing_job_id: null,
+        result_version: 1,
+        status: 'SUCCEEDED',
+        target_id: 'SCENE-1'
+      },
+      {
+        attempt_count: 1,
+        error_code: 'VALIDATION_FAILED',
+        id: 'ITEM-2',
+        item_key: '1:SCENE-2',
+        processing_job_id: null,
+        result_version: null,
+        status: 'FAILED',
+        target_id: 'SCENE-2'
+      }
+    ],
+    job_type: 'VALIDATE',
+    status: 'COMPLETED_WITH_ERRORS',
+    success_count: 1,
+    total_count: 2,
+    updated_at: '2026-09-30T10:01:00Z'
+  }
+}
+
+/**
+ * 创建草稿回收站夹具
+ * @returns 回收站响应
+ */
+function createTrashEntry(): Record<string, unknown> {
+  return {
+    cleaned_at: null,
+    id: 'TRASH-1',
+    restored_at: null,
+    retention_until: '2026-10-30T10:00:00Z',
+    revision_id: 'REV-DRAFT-1',
+    scene_id: 'SCENE-1',
+    status: 'TRASHED',
+    trashed_at: '2026-09-30T10:00:00Z',
+    trashed_by: 'ADMIN-1'
   }
 }
 

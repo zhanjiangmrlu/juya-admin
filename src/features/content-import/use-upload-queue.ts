@@ -1,5 +1,7 @@
 import { readonly, ref } from 'vue'
 
+import { createIdempotencyKey } from '@/services/api/api-client'
+
 import type { DeepReadonly, Ref } from 'vue'
 
 export interface UploadPreparation {
@@ -8,8 +10,22 @@ export interface UploadPreparation {
   url: string
 }
 
+export interface UploadConfirmation {
+  assetId: string
+  jobId: string
+}
+
+export interface UploadBatchContext {
+  seriesId: string
+  templateId: string
+}
+
 export interface UploadAdapter {
-  confirm(prepared: UploadPreparation): Promise<void>
+  confirm(
+    prepared: UploadPreparation,
+    context: UploadBatchContext,
+    idempotencyKey: string
+  ): Promise<UploadConfirmation | void>
   prepare(file: File): Promise<UploadPreparation>
   upload(
     prepared: UploadPreparation,
@@ -23,15 +39,19 @@ export type UploadStatus =
   'awaiting-ocr' | 'cancelled' | 'failed' | 'preparing' | 'queued' | 'uploading'
 
 export interface UploadQueueItem {
+  assetId: string | null
+  context: UploadBatchContext
   error: string | null
   file: File
   id: string
+  idempotencyKey: string
+  jobId: string | null
   progress: number
   status: UploadStatus
 }
 
 export interface UploadQueueController {
-  add(file: File): UploadQueueItem
+  add(file: File, context: UploadBatchContext): UploadQueueItem
   cancel(id: string): void
   items: DeepReadonly<Ref<UploadQueueItem[]>>
   start(id: string): Promise<void>
@@ -52,13 +72,18 @@ export function useUploadQueue(adapter: UploadAdapter): UploadQueueController {
    * 向队列加入一张图片
    *
    * @param file - 待上传图片
+   * @param context - 当前系列和模板上下文
    * @returns 新建的队列项
    */
-  function add(file: File): UploadQueueItem {
+  function add(file: File, context: UploadBatchContext): UploadQueueItem {
     const item: UploadQueueItem = {
+      assetId: null,
+      context: { ...context },
       error: null,
       file,
       id: crypto.randomUUID(),
+      idempotencyKey: createIdempotencyKey(),
+      jobId: null,
       progress: 0,
       status: 'queued'
     }
@@ -104,8 +129,10 @@ export function useUploadQueue(adapter: UploadAdapter): UploadQueueController {
         controller.signal
       )
       if (controller.signal.aborted) return
-      await adapter.confirm(prepared)
+      const confirmation = await adapter.confirm(prepared, { ...item.context }, item.idempotencyKey)
       if (controller.signal.aborted) return
+      item.assetId = confirmation?.assetId ?? null
+      item.jobId = confirmation?.jobId ?? null
       item.progress = 100
       item.status = 'awaiting-ocr'
     } catch (failure) {

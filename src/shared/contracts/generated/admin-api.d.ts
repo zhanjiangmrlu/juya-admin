@@ -842,6 +842,247 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/media/ocr/jobs': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Create Ocr Job */
+    post: operations['create_ocr_job_api_v1_admin_media_ocr_jobs_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/ocr/jobs/{job_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Ocr Job */
+    get: operations['get_ocr_job_api_v1_admin_media_ocr_jobs__job_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/ocr/jobs/{job_id}/candidate': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Ocr Candidate */
+    get: operations['get_ocr_candidate_api_v1_admin_media_ocr_jobs__job_id__candidate_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/ocr/jobs/{job_id}/commands/{operation}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Command Ocr Job */
+    post: operations['command_ocr_job_api_v1_admin_media_ocr_jobs__job_id__commands__operation__post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/audio-targets': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Audio Targets */
+    get: operations['list_audio_targets_api_v1_admin_media_audio_targets_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/audio-targets/{target_id}/versions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Audio Versions */
+    get: operations['list_audio_versions_api_v1_admin_media_audio_targets__target_id__versions_get']
+    put?: never
+    /** Create Audio Version */
+    post: operations['create_audio_version_api_v1_admin_media_audio_targets__target_id__versions_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/audio-targets/{target_id}/commands/generate': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Generate Audio */
+    post: operations['generate_audio_api_v1_admin_media_audio_targets__target_id__commands_generate_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/audio-versions/{version_id}/commands/confirm': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Confirm Audio Version */
+    post: operations['confirm_audio_version_api_v1_admin_media_audio_versions__version_id__commands_confirm_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/audio-targets/{target_id}/commands/rollback': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Rollback Audio Version */
+    post: operations['rollback_audio_version_api_v1_admin_media_audio_targets__target_id__commands_rollback_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/batch-jobs': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Batch Jobs */
+    get: operations['list_batch_jobs_api_v1_admin_media_batch_jobs_get']
+    put?: never
+    /** Create Batch Job */
+    post: operations['create_batch_job_api_v1_admin_media_batch_jobs_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/batch-jobs/{batch_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Batch Job */
+    get: operations['get_batch_job_api_v1_admin_media_batch_jobs__batch_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/batch-jobs/{batch_id}/commands/{operation}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Command Batch Job */
+    post: operations['command_batch_job_api_v1_admin_media_batch_jobs__batch_id__commands__operation__post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/trash': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Trash */
+    get: operations['list_trash_api_v1_admin_media_trash_get']
+    put?: never
+    /** Create Trash Entry */
+    post: operations['create_trash_entry_api_v1_admin_media_trash_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/trash/{entry_id}/commands/{operation}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Command Trash Entry */
+    post: operations['command_trash_entry_api_v1_admin_media_trash__entry_id__commands__operation__post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/users': {
     parameters: {
       query?: never
@@ -1159,6 +1400,118 @@ export interface components {
         [key: string]: unknown
       }
     }
+    /** AudioTargetListResponse */
+    AudioTargetListResponse: {
+      /** Items */
+      items: components['schemas']['AudioTargetResponse'][]
+    }
+    /** AudioTargetResponse */
+    AudioTargetResponse: {
+      /** Id */
+      id: string
+      /** Stable Key */
+      stable_key: string
+      /** Target Type */
+      target_type: string
+      /** Active Version Id */
+      active_version_id: string | null
+    }
+    /** AudioVersionListResponse */
+    AudioVersionListResponse: {
+      /** Items */
+      items: components['schemas']['AudioVersionResponse'][]
+    }
+    /** AudioVersionResponse */
+    AudioVersionResponse: {
+      /** Id */
+      id: string
+      /** Target Id */
+      target_id: string
+      /** Asset Id */
+      asset_id: string
+      /** Version No */
+      version_no: number
+      /** Source */
+      source: string
+      /** Status */
+      status: string
+      /** Provider Request Id */
+      provider_request_id: string | null
+      /** Processing Job Id */
+      processing_job_id: string | null
+      /** Created By */
+      created_by: string
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
+    /** BatchJobItemResponse */
+    BatchJobItemResponse: {
+      /** Id */
+      id: string
+      /** Item Key */
+      item_key: string
+      /** Target Id */
+      target_id: string
+      /** Status */
+      status: string
+      /** Attempt Count */
+      attempt_count: number
+      /** Error Code */
+      error_code: string | null
+      /** Result Version */
+      result_version: number | null
+      /** Processing Job Id */
+      processing_job_id: string | null
+    }
+    /** BatchJobPageResponse */
+    BatchJobPageResponse: {
+      /** Items */
+      items: components['schemas']['BatchJobResponse'][]
+      /** Page */
+      page: number
+      /** Page Size */
+      page_size: number
+      /** Total */
+      total: number
+    }
+    /** BatchJobResponse */
+    BatchJobResponse: {
+      /** Id */
+      id: string
+      /** Business Key */
+      business_key: string
+      /** Job Type */
+      job_type: string
+      /** Status */
+      status: string
+      /** Total Count */
+      total_count: number
+      /** Success Count */
+      success_count: number
+      /** Failure Count */
+      failure_count: number
+      /** Created By */
+      created_by: string
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string
+      /** Completed At */
+      completed_at: string | null
+      /** Cancel Requested At */
+      cancel_requested_at: string | null
+      /** Items */
+      items: components['schemas']['BatchJobItemResponse'][]
+    }
     /** CampaignCommandRequest */
     CampaignCommandRequest: {
       /** Expected Version */
@@ -1399,10 +1752,40 @@ export interface components {
        */
       processed_at: string
     }
+    /** CreateAudioVersionRequest */
+    CreateAudioVersionRequest: {
+      /** Asset Id */
+      asset_id: string
+    }
+    /** CreateBatchJobRequest */
+    CreateBatchJobRequest: {
+      /** Job Type */
+      job_type: string
+      /** Target Ids */
+      target_ids: string[]
+    }
+    /** CreateOcrJobRequest */
+    CreateOcrJobRequest: {
+      /** Asset Id */
+      asset_id: string
+      /** Object Key */
+      object_key: string
+      /** Series Id */
+      series_id: string
+      /** Template Id */
+      template_id: string
+    }
     /** CreateRevisionRequest */
     CreateRevisionRequest: {
       /** Source Revision Id */
       source_revision_id?: string | null
+    }
+    /** CreateTrashRequest */
+    CreateTrashRequest: {
+      /** Scene Id */
+      scene_id: string
+      /** Revision Id */
+      revision_id: string
     }
     /** DeletionRequest */
     DeletionRequest: {
@@ -1428,6 +1811,8 @@ export interface components {
       /** Actor Id */
       actor_id: string | null
     }
+    /** EmptyCommandRequest */
+    EmptyCommandRequest: Record<string, never>
     /** EntitlementCommandRequest */
     EntitlementCommandRequest: {
       /** User Id */
@@ -1762,6 +2147,17 @@ export interface components {
       /** Available Operations */
       available_operations: string[]
     }
+    /** GenerateAudioRequest */
+    GenerateAudioRequest: {
+      /** Stable Key */
+      stable_key: string
+      /** Target Type */
+      target_type: string
+      /** Text */
+      text: string
+      /** Voice */
+      voice: string
+    }
     /** GrantRequest */
     GrantRequest: {
       /** User Id */
@@ -1820,6 +2216,47 @@ export interface components {
       /** Available Operations */
       available_operations: string[]
     }
+    /** OcrCandidateResponse */
+    OcrCandidateResponse: {
+      /** Id */
+      id: string
+      /** Job Id */
+      job_id: string
+      /** Asset Id */
+      asset_id: string
+      /** Status */
+      status: string
+      /** Template Type */
+      template_type: string
+      /** Structured Candidate */
+      structured_candidate: {
+        [key: string]: unknown
+      }
+      /** Confidence */
+      confidence: number | null
+      /** Error Code */
+      error_code: string | null
+      /** Confirmed Revision Id */
+      confirmed_revision_id: string | null
+    }
+    /** OcrCommandRequest */
+    OcrCommandRequest: {
+      /** Scene Id */
+      scene_id?: string | null
+      /** Content */
+      content?: {
+        [key: string]: unknown
+      } | null
+    }
+    /** OcrConfirmationResponse */
+    OcrConfirmationResponse: {
+      /** Revision Id */
+      revision_id: string
+      /** Revision Status */
+      revision_status: string
+      /** Version */
+      version: number
+    }
     /** OpenScenesRequest */
     OpenScenesRequest: {
       /** Scene Ids */
@@ -1858,6 +2295,39 @@ export interface components {
     PreviewScenesRequest: {
       /** Scene Ids */
       scene_ids: string[]
+    }
+    /** ProcessingJobResponse */
+    ProcessingJobResponse: {
+      /** Id */
+      id: string
+      /** Business Key */
+      business_key: string
+      /** Job Type */
+      job_type: string
+      /** Target Id */
+      target_id: string
+      /** Batch Id */
+      batch_id: string | null
+      /** Status */
+      status: string
+      /** Provider Request Id */
+      provider_request_id: string | null
+      /** Error Code */
+      error_code: string | null
+      /** Created By */
+      created_by: string
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string
+      /** Cancel Requested At */
+      cancel_requested_at: string | null
     }
     /** PublishRevisionRequest */
     PublishRevisionRequest: {
@@ -1909,6 +2379,11 @@ export interface components {
       created_by: string
       /** Created At */
       created_at: string | null
+    }
+    /** RollbackAudioRequest */
+    RollbackAudioRequest: {
+      /** Version Id */
+      version_id: string
     }
     /** SaveDiscoveryConfigRequest */
     SaveDiscoveryConfigRequest: {
@@ -1989,6 +2464,38 @@ export interface components {
       user_id: string
       /** Text */
       text: string
+    }
+    /** TrashEntryResponse */
+    TrashEntryResponse: {
+      /** Id */
+      id: string
+      /** Scene Id */
+      scene_id: string
+      /** Revision Id */
+      revision_id: string
+      /** Status */
+      status: string
+      /** Trashed By */
+      trashed_by: string
+      /**
+       * Trashed At
+       * Format: date-time
+       */
+      trashed_at: string
+      /**
+       * Retention Until
+       * Format: date-time
+       */
+      retention_until: string
+      /** Restored At */
+      restored_at: string | null
+      /** Cleaned At */
+      cleaned_at: string | null
+    }
+    /** TrashListResponse */
+    TrashListResponse: {
+      /** Items */
+      items: components['schemas']['TrashEntryResponse'][]
     }
     /** UploadPolicyRequest */
     UploadPolicyRequest: {
@@ -4070,6 +4577,635 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_ocr_job_api_v1_admin_media_ocr_jobs_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateOcrJobRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProcessingJobResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_ocr_job_api_v1_admin_media_ocr_jobs__job_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        job_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProcessingJobResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_ocr_candidate_api_v1_admin_media_ocr_jobs__job_id__candidate_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        job_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['OcrCandidateResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  command_ocr_job_api_v1_admin_media_ocr_jobs__job_id__commands__operation__post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        job_id: string
+        operation: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OcrCommandRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json':
+            | components['schemas']['ProcessingJobResponse']
+            | components['schemas']['OcrConfirmationResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_audio_targets_api_v1_admin_media_audio_targets_get: {
+    parameters: {
+      query?: {
+        scene_id?: string | null
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AudioTargetListResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_audio_versions_api_v1_admin_media_audio_targets__target_id__versions_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        target_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AudioVersionListResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_audio_version_api_v1_admin_media_audio_targets__target_id__versions_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        target_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateAudioVersionRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AudioVersionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  generate_audio_api_v1_admin_media_audio_targets__target_id__commands_generate_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        target_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GenerateAudioRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProcessingJobResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  confirm_audio_version_api_v1_admin_media_audio_versions__version_id__commands_confirm_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        version_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EmptyCommandRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AudioTargetResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  rollback_audio_version_api_v1_admin_media_audio_targets__target_id__commands_rollback_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        target_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RollbackAudioRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AudioTargetResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_batch_jobs_api_v1_admin_media_batch_jobs_get: {
+    parameters: {
+      query?: {
+        page?: number
+        page_size?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['BatchJobPageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_batch_job_api_v1_admin_media_batch_jobs_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateBatchJobRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['BatchJobResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_batch_job_api_v1_admin_media_batch_jobs__batch_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        batch_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['BatchJobResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  command_batch_job_api_v1_admin_media_batch_jobs__batch_id__commands__operation__post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        batch_id: string
+        operation: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EmptyCommandRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['BatchJobResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_trash_api_v1_admin_media_trash_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TrashListResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_trash_entry_api_v1_admin_media_trash_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateTrashRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TrashEntryResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  command_trash_entry_api_v1_admin_media_trash__entry_id__commands__operation__post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        entry_id: string
+        operation: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EmptyCommandRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TrashEntryResponse']
         }
       }
       /** @description Validation Error */

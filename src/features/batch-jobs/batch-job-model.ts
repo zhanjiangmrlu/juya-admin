@@ -30,3 +30,38 @@ export function validateBatchJobSize(itemCount: number): BatchValidationResult {
 export function getDraftOperations(draft: DraftState): readonly ('CLEANUP' | 'RESTORE')[] {
   return draft.referenced ? ['RESTORE'] : ['RESTORE', 'CLEANUP']
 }
+
+export interface BatchJobItem {
+  attemptCount: number
+  errorCode: null | string
+  id: string
+  resultVersion: null | number
+  status: string
+  targetId: string
+}
+
+export interface BatchJob {
+  failureCount: number
+  id: string
+  items: BatchJobItem[]
+  jobType: string
+  status: string
+  successCount: number
+  totalCount: number
+  updatedAt: string
+}
+
+export interface BatchJobPage {
+  items: BatchJob[]
+  page: number
+  pageSize: number
+  total: number
+}
+
+export interface TrashEntry {
+  id: string
+  retentionUntil: string
+  revisionId: string
+  sceneId: string
+  status: string
+}

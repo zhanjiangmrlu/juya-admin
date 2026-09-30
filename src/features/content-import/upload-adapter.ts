@@ -3,6 +3,9 @@ import { createXhrUploader } from '@/services/upload/xhr-uploader'
 
 import type { UploadAdapter, UploadPreparation } from './use-upload-queue'
 import type { ApiClient } from '@/services/api/api-client'
+import type { components } from '@/shared/contracts/generated/admin-api'
+
+type ProcessingJobDto = components['schemas']['ProcessingJobResponse']
 
 /**
  * 创建图片上传策略、直传和确认适配器
@@ -17,14 +20,28 @@ export function createUploadAdapter(client: ApiClient): UploadAdapter {
      * 确认已成功写入对象存储的图片
      *
      * @param prepared - 已准备的对象键和上传字段
+     * @param context - 加入队列时冻结的业务上下文
+     * @param idempotencyKey - OCR 任务逻辑操作幂等键
      * @returns 确认完成后的 Promise
      */
-    async confirm(prepared) {
-      await client.request({
+    async confirm(prepared, context, idempotencyKey) {
+      const asset = await client.request<{ id: string }>({
         body: { asset_type: 'images', object_key: prepared.objectKey },
         method: 'POST',
         path: '/api/v1/admin/media/uploads/confirm'
       })
+      const job = await client.request<ProcessingJobDto>({
+        body: {
+          asset_id: asset.id,
+          object_key: prepared.objectKey,
+          series_id: context.seriesId,
+          template_id: context.templateId
+        },
+        idempotencyKey,
+        method: 'POST',
+        path: '/api/v1/admin/media/ocr/jobs'
+      })
+      return { assetId: asset.id, jobId: job.id }
     },
     /**
      * 计算摘要并申请图片上传临时策略

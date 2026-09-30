@@ -12,7 +12,10 @@ describe('upload queue', () => {
       prepare: vi.fn(async () => ({ fields: {}, objectKey: 'uploads/a.png', url: '' })),
       upload
     })
-    const item = controller.add(new File(['x'], 'a.png', { type: 'image/png' }))
+    const item = controller.add(new File(['x'], 'a.png', { type: 'image/png' }), {
+      seriesId: 'SERIES-1',
+      templateId: 'CARD'
+    })
     const running = controller.start(item.id)
     await vi.waitFor(() => expect(upload).toHaveBeenCalled())
     controller.cancel(item.id)
@@ -35,9 +38,31 @@ describe('upload queue', () => {
         if (file.name === 'bad.png') throw new Error('上传失败')
       })
     })
-    controller.add(new File(['x'], 'bad.png', { type: 'image/png' }))
-    controller.add(new File(['x'], 'good.png', { type: 'image/png' }))
+    const context = { seriesId: 'SERIES-1', templateId: 'CARD' }
+    controller.add(new File(['x'], 'bad.png', { type: 'image/png' }), context)
+    controller.add(new File(['x'], 'good.png', { type: 'image/png' }), context)
     await controller.startAll()
     expect(controller.items.value.map((item) => item.status)).toEqual(['failed', 'awaiting-ocr'])
+  })
+
+  it('freezes batch context and reuses the OCR idempotency key after a lost response', async () => {
+    const confirm = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network lost'))
+      .mockResolvedValueOnce({ assetId: 'A-1', jobId: 'J-1' })
+    const controller = useUploadQueue({
+      confirm,
+      prepare: vi.fn(async () => ({ fields: {}, objectKey: 'uploads/a.png', url: '' })),
+      upload: vi.fn(async () => undefined)
+    })
+    const context = { seriesId: 'SERIES-1', templateId: 'CARD' }
+    const item = controller.add(new File(['x'], 'a.png', { type: 'image/png' }), context)
+    context.seriesId = 'CHANGED'
+
+    await controller.start(item.id)
+    await controller.start(item.id)
+
+    expect(confirm.mock.calls[0]?.[1]).toEqual({ seriesId: 'SERIES-1', templateId: 'CARD' })
+    expect(confirm.mock.calls[0]?.[2]).toBe(confirm.mock.calls[1]?.[2])
   })
 })

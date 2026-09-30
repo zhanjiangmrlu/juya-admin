@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { reactive } from 'vue'
+import { computed, reactive } from 'vue'
 
 import TaskProgress from '@/components/task-progress/task-progress.vue'
 import { validateImageBatch } from '@/features/content-import/import-validation'
@@ -12,6 +12,7 @@ import type { UploadFile, UploadFiles } from 'element-plus'
 
 const context = reactive({ seriesId: '', templateId: '' })
 const queue = useUploadQueue(createUploadAdapter(useAdminApiClient()))
+const contextLocked = computed(() => queue.items.value.length > 0)
 
 /**
  * 接收 Element Plus 选择的本地图片
@@ -33,7 +34,7 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
   }
   for (const item of batch) {
     if (!queue.items.value.some((queued) => queued.file.name === item.file.name))
-      queue.add(item.file)
+      queue.add(item.file, { seriesId: item.seriesId, templateId: item.templateId })
   }
 }
 </script>
@@ -57,10 +58,10 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
         />
         <ElForm class="batch-form" label-position="top">
           <ElFormItem label="系列编号" required
-            ><ElInput v-model="context.seriesId" maxlength="64"
+            ><ElInput v-model="context.seriesId" :disabled="contextLocked" maxlength="64"
           /></ElFormItem>
           <ElFormItem label="识别模板" required
-            ><ElInput v-model="context.templateId" maxlength="64"
+            ><ElInput v-model="context.templateId" :disabled="contextLocked" maxlength="64"
           /></ElFormItem>
         </ElForm>
         <ElUpload
@@ -89,19 +90,23 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
         <template #header><h3>任务队列</h3></template>
         <ElEmpty v-if="queue.items.value.length === 0" description="尚未选择图片" />
         <template v-else>
-          <TaskProgress
-            v-for="item in queue.items.value"
-            :key="item.id"
-            :item="item"
-            @cancel="queue.cancel"
-            @retry="queue.start"
-          />
+          <div v-for="item in queue.items.value" :key="item.id" class="queue-item">
+            <TaskProgress :item="item" @cancel="queue.cancel" @retry="queue.start" />
+            <RouterLink
+              v-if="item.jobId"
+              :to="{
+                name: 'content-ocr',
+                params: { itemId: item.assetId ?? 'asset', taskId: item.jobId }
+              }"
+              >进入 OCR 校对</RouterLink
+            >
+          </div>
         </template>
         <ElAlert
           class="ocr-note"
           :closable="false"
-          title="OCR 任务创建接口待接入，上传确认后将停留在等待状态"
-          type="warning"
+          title="上传确认后自动创建持久化 OCR 任务，可取消、重试并进入人工校对"
+          type="success"
           show-icon
         />
       </ElCard>
@@ -159,6 +164,17 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
 
   .ocr-note {
     margin-top: 16px;
+  }
+
+  .queue-item {
+    display: grid;
+    gap: 6px;
+
+    a {
+      color: var(--el-color-primary);
+      font-size: 12px;
+      text-align: right;
+    }
   }
 
   @media (width <= 1100px) {

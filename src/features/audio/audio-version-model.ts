@@ -18,3 +18,20 @@ export function validateAudioBatch(files: readonly File[]): AudioValidationResul
     return { code: 'INVALID_AUDIO', message: '仅支持 MP3、M4A、WAV 和 AAC', valid: false }
   return { code: null, message: '校验通过', valid: true }
 }
+
+export interface AudioTarget {
+  activeVersionId: null | string
+  id: string
+  stableKey: string
+  targetType: string
+}
+
+export interface AudioVersion {
+  assetId: string
+  createdAt: string
+  id: string
+  source: string
+  status: string
+  targetId: string
+  versionNo: number
+}

@@ -17,3 +17,27 @@ export function mergeAcceptedOcrFields<T extends object>(
   }
   return next
 }
+
+export interface OcrJob {
+  errorCode: null | string
+  id: string
+  providerRequestId: null | string
+  status: string
+  targetId: string
+  updatedAt: string
+}
+
+export interface OcrCandidate {
+  confidence: null | number
+  confirmedRevisionId: null | string
+  content: Record<string, unknown>
+  id: string
+  status: string
+  templateType: string
+}
+
+export interface OcrConfirmation {
+  revisionId: string
+  revisionStatus: string
+  version: number
+}
