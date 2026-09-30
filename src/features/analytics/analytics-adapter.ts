@@ -1,3 +1,5 @@
+import dayjs from 'dayjs'
+
 import type { AnalyticsPeriod, AnalyticsSnapshot } from './analytics-model'
 import type { ApiClient } from '@/services/api/api-client'
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -47,8 +49,36 @@ export function createAnalyticsAdapter(client: ApiClient): AnalyticsAdapter {
       }))
       const validation = validateAnalyticsRows(rows)
       if (!validation.valid) throw new Error(validation.message)
+      /**
+       * 计算请求口径的自然周期起点
+       * @param day - 已校验日期
+       * @returns 周一、月初或原自然日
+       */
+      function bucket(day: string): string {
+        return period === 'week'
+          ? dayjs(day)
+              .subtract((dayjs(day).day() + 6) % 7, 'day')
+              .format('YYYY-MM-DD')
+          : period === 'month'
+            ? dayjs(day).startOf('month').format('YYYY-MM-DD')
+            : day
+      }
+      const first = bucket(start)
+      const last = bucket(end)
+      const counts = new Map<string, number>()
+      const components = new Set<string>()
+      for (const row of rows) {
+        const key = `${row.day}/${row.metric}/${row.dimension}`
+        if (row.day < first || row.day > last || bucket(row.day) !== row.day || counts.has(key))
+          throw new Error('统计行包含错误日期桶或重复计数')
+        counts.set(key, row.value)
+        if (['NUMERATOR', 'DENOMINATOR'].includes(row.dimension))
+          components.add(`${row.day}/${row.metric}`)
+      }
+      const seenRatios = new Set<string>()
       const ratios = response.ratios.map((ratio) => {
         const { basis, day, denominator, metric, numerator, rate } = ratio
+        const key = `${day}/${metric}`
         if (
           !RATIO_BASES[metric] ||
           basis !== RATIO_BASES[metric] ||
@@ -61,11 +91,17 @@ export function createAnalyticsAdapter(client: ApiClient): AnalyticsAdapter {
             : rate === null ||
               !Number.isFinite(rate) ||
               Math.abs(rate - numerator / denominator) > 1e-10) ||
-          !validateAnalyticsRows([{ day, dimension: 'ALL', metric, value: numerator }]).valid
+          !validateAnalyticsRows([{ day, dimension: 'ALL', metric, value: numerator }]).valid ||
+          seenRatios.has(key) ||
+          counts.get(`${key}/NUMERATOR`) !== numerator ||
+          counts.get(`${key}/DENOMINATOR`) !== denominator
         )
           throw new Error('统计比率缺少有效分子、分母或口径')
+        seenRatios.add(key)
         return { basis, day, denominator, metric, numerator, rate }
       })
+      if ([...components].some((key) => !seenRatios.has(key)))
+        throw new Error('统计比率缺少成对响应')
       return { end, period, ratios, rows, start, timezone: 'Asia/Shanghai' }
     }
   }

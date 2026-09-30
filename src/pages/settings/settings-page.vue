@@ -66,7 +66,13 @@ async function saveConfig(): Promise<void> {
     <div class="settings-grid">
       <ElCard shadow="never"
         ><template #header><h3>SLA 与到期阈值</h3></template
-        ><ElForm label-position="top" @submit.prevent="saveConfig"
+        ><ElForm
+          :key="controller.isReady.value ? 'loaded' : 'loading'"
+          label-position="top"
+          :disabled="
+            controller.isLoading.value || !controller.isReady.value || controller.isSaving.value
+          "
+          @submit.prevent="saveConfig"
           ><ElFormItem label="反馈处理 SLA（小时）" required
             ><ElInputNumber v-model="form.feedbackSlaHours" :min="1" :max="168" /></ElFormItem
           ><ElFormItem label="权益即将到期阈值（天）" required
@@ -89,7 +95,13 @@ async function saveConfig(): Promise<void> {
             title="保存将影响反馈时限、运营提醒及用户端敏感功能展示"
             type="warning"
             show-icon
-          /><ElButton native-type="submit" type="primary">保存配置</ElButton></ElForm
+          /><ElButton
+            native-type="submit"
+            type="primary"
+            :loading="controller.isSaving.value"
+            :disabled="controller.isLoading.value || !controller.isReady.value"
+            >保存配置</ElButton
+          ></ElForm
         ></ElCard
       >
       <ElCard shadow="never"
@@ -110,7 +122,13 @@ async function saveConfig(): Promise<void> {
       :title="controller.error.value"
       type="error"
       show-icon
-    />
+      ><ElButton
+        v-if="!controller.isReady.value"
+        :loading="controller.isLoading.value"
+        @click="loadPage"
+        >重新读取配置</ElButton
+      ></ElAlert
+    >
     <ElCard class="audit-card" shadow="never"
       ><template #header><h3>最近审计事件</h3></template><AuditEventList :items="auditEvents"
     /></ElCard>
