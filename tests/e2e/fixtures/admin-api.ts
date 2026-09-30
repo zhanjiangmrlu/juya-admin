@@ -12,6 +12,8 @@ export interface ApiRequestRecord {
 
 export interface AdminApiMock {
   conflictOnNextCampaignSave(): void
+  conflictOnNextDiscoverySave(): void
+  conflictOnNextRevisionSave(): void
   setCampaignStatus(status: 'DRAFT' | 'OPEN'): void
   conflictOnNextContactDecision(): void
   conflictOnNextSettingsUpdate(): void
@@ -36,9 +38,14 @@ interface AdminApiState extends AdminApiMock {
   campaignScenes: string[]
   contactDecisionConflictPending: boolean
   contactCorrectionStatus: 'APPROVED' | 'PENDING' | 'REJECTED'
+  discoveryConflictPending: boolean
+  discoveryVersion: number
   feedbackNotes: Array<Record<string, unknown>>
   feedbackScreenshotSequence: number
   feedbackStatus: string
+  revisionConflictPending: boolean
+  revisionContent: Record<string, unknown>
+  revisionVersion: number
   settingsConflictPending: boolean
   settingsVersion: number
   supplementRounds: number
@@ -49,6 +56,12 @@ export const test = base.extend<{ adminApi: AdminApiMock }>({
     const state: AdminApiState = {
       conflictOnNextCampaignSave() {
         state.campaignConflictPending = true
+      },
+      conflictOnNextDiscoverySave() {
+        state.discoveryConflictPending = true
+      },
+      conflictOnNextRevisionSave() {
+        state.revisionConflictPending = true
       },
       setCampaignStatus(status) {
         state.campaignStatus = status
@@ -66,6 +79,8 @@ export const test = base.extend<{ adminApi: AdminApiMock }>({
         )
       },
       contactCorrectionStatus: 'PENDING',
+      discoveryConflictPending: false,
+      discoveryVersion: 3,
       campaignConflictPending: false,
       campaignVersion: 3,
       campaignCapacity: 30,
@@ -82,6 +97,15 @@ export const test = base.extend<{ adminApi: AdminApiMock }>({
       feedbackNotes: [],
       feedbackScreenshotSequence: 0,
       feedbackStatus: 'PROCESSING',
+      revisionConflictPending: false,
+      revisionContent: {
+        dialogue: [{ speaker: 'Clerk', text: 'What would you like?' }],
+        summary: '咖啡店点单练习',
+        tags: ['日常'],
+        title: 'Ordering coffee',
+        vocabulary: [{ term: 'latte', translation: '拿铁' }]
+      },
+      revisionVersion: 3,
       requests: [],
       unexpectedRequests: [],
       settingsConflictPending: false,
@@ -588,6 +612,92 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     await route.fulfill({ status: 204 })
     return
   }
+  if (url.pathname === '/api/v1/admin/content/scenes' && request.method() === 'GET') {
+    await replyJson(route, {
+      items: [createContentScene()],
+      page: Number(url.searchParams.get('page') ?? 1),
+      page_size: Number(url.searchParams.get('page_size') ?? 20),
+      total: 1
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content/scenes/SCENE-1' && request.method() === 'GET') {
+    await replyJson(route, createContentScene())
+    return
+  }
+  if (
+    url.pathname === '/api/v1/admin/content/revisions/REV-DRAFT-1' &&
+    request.method() === 'GET'
+  ) {
+    await replyJson(route, createContentRevision(state))
+    return
+  }
+  if (
+    url.pathname === '/api/v1/admin/content/revisions/REV-DRAFT-1' &&
+    request.method() === 'PUT'
+  ) {
+    if (state.revisionConflictPending) {
+      state.revisionConflictPending = false
+      state.revisionVersion = 4
+      state.revisionContent = { ...state.revisionContent, title: '其他管理员的标题' }
+      await replyJson(
+        route,
+        {
+          code: 'REVISION_VERSION_CONFLICT',
+          details: { current_version: state.revisionVersion },
+          message: '草稿版本冲突',
+          request_id: 'e2e-revision-409'
+        },
+        409
+      )
+      return
+    }
+    const body = record.body as { content?: Record<string, unknown>; expected_version?: number }
+    state.revisionContent = body.content ?? state.revisionContent
+    state.revisionVersion += 1
+    await replyJson(route, createContentRevision(state))
+    return
+  }
+  if (/^\/api\/v1\/admin\/content\/revisions\/(REV-DRAFT-1|REV-1)\/preview$/.test(url.pathname)) {
+    await replyJson(route, {
+      content: state.revisionContent,
+      revision_id: url.pathname.includes('REV-DRAFT-1') ? 'REV-DRAFT-1' : 'REV-1',
+      revision_status: 'DRAFT',
+      scene_id: 'SCENE-1',
+      scene_title: 'Ordering coffee',
+      series_title: '日常英语'
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content/discovery-config' && request.method() === 'GET') {
+    await replyJson(route, createDiscoveryConfig(state.discoveryVersion))
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content/discovery-config' && request.method() === 'PUT') {
+    if (state.discoveryConflictPending) {
+      state.discoveryConflictPending = false
+      state.discoveryVersion = 4
+      await replyJson(
+        route,
+        {
+          code: 'DISCOVERY_CONFIG_VERSION_CONFLICT',
+          details: { current_version: state.discoveryVersion },
+          message: '发现页配置版本冲突',
+          request_id: 'e2e-discovery-409'
+        },
+        409
+      )
+      return
+    }
+    state.discoveryVersion += 1
+    await replyJson(route, {
+      ...(record.body as Record<string, unknown>),
+      actor_id: 'ADMIN-1',
+      updated_at: '2026-09-30T10:30:00Z',
+      version: state.discoveryVersion
+    })
+    return
+  }
   if (url.pathname === '/api/v1/admin/content/revisions/REV-1/publish-checks') {
     await replyJson(route, {
       error_codes: [],
@@ -762,6 +872,61 @@ function createSettingsResponse(version: number): Record<string, unknown> {
  */
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * 创建与内容目录契约一致的场景摘要
+ * @returns 场景摘要响应
+ */
+function createContentScene(): Record<string, unknown> {
+  return {
+    cover_object_key: null,
+    draft_revision_id: 'REV-DRAFT-1',
+    id: 'SCENE-1',
+    published_revision_id: 'REV-1',
+    series_id: 'SERIES-1',
+    series_title: '日常英语',
+    status: 'PUBLISHED',
+    summary: '咖啡店点单练习',
+    title: 'Ordering coffee',
+    updated_at: '2026-09-30T10:00:00Z'
+  }
+}
+
+/**
+ * 创建当前版本的草稿响应
+ * @param state - 管理端夹具状态
+ * @returns 草稿响应
+ */
+function createContentRevision(state: AdminApiState): Record<string, unknown> {
+  return {
+    content: state.revisionContent,
+    created_at: '2026-09-30T10:00:00Z',
+    created_by: 'ADMIN-1',
+    id: 'REV-DRAFT-1',
+    scene_id: 'SCENE-1',
+    source_revision_id: 'REV-1',
+    stable_entry_ids: ['ENTRY-1'],
+    stable_sentence_ids: ['SENTENCE-1'],
+    status: 'DRAFT',
+    version: state.revisionVersion
+  }
+}
+
+/**
+ * 创建统一发现页配置响应
+ * @param version - 当前配置版本
+ * @returns 发现页配置响应
+ */
+function createDiscoveryConfig(version: number): Record<string, unknown> {
+  return {
+    actor_id: 'ADMIN-1',
+    learning_modules: { scene_learning: true, shadowing: false },
+    open_scene_ids: ['SCENE-1', 'SCENE-2', 'SCENE-3'],
+    preview_by_series: { 'SERIES-1': ['SCENE-4', 'SCENE-5', 'SCENE-6'] },
+    updated_at: '2026-09-30T10:00:00Z',
+    version
+  }
 }
 
 const dashboardSnapshot = {

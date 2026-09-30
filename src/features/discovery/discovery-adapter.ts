@@ -1,44 +1,72 @@
 import type { ApiClient } from '@/services/api/api-client'
+import type { components } from '@/shared/contracts/generated/admin-api'
+
+type DiscoveryDto = components['schemas']['DiscoveryConfigResponse']
+
+export interface DiscoveryConfigDraft {
+  learningModules: Record<string, boolean>
+  openSceneIds: string[]
+  previewBySeries: Record<string, string[]>
+}
+
+export interface DiscoveryConfigSnapshot extends DiscoveryConfigDraft {
+  version: number
+}
 
 export interface DiscoveryAdapter {
-  replaceOpenScenes(sceneIds: string[]): Promise<Record<string, unknown>>
-  replacePreviewScenes(seriesId: string, sceneIds: string[]): Promise<Record<string, unknown>>
+  load(): Promise<DiscoveryConfigSnapshot>
+  save(draft: DiscoveryConfigDraft, expectedVersion: number): Promise<DiscoveryConfigSnapshot>
 }
 
 /**
- * 创建开放场景与系列预览配置适配器
+ * 创建统一版本的发现页配置适配器
  *
  * @param client - 统一 API 客户端
  * @returns 发现页配置适配器
  */
 export function createDiscoveryAdapter(client: ApiClient): DiscoveryAdapter {
   return {
-    /**
-     * 替换三个开放场景
-     *
-     * @param sceneIds - 三个开放场景编号
-     * @returns 服务端配置结果
-     */
-    async replaceOpenScenes(sceneIds) {
-      return client.request<Record<string, unknown>>({
-        body: { scene_ids: sceneIds },
-        method: 'PUT',
-        path: '/api/v1/admin/content/open-scenes'
-      })
+    async load() {
+      return mapConfig(
+        await client.request<DiscoveryDto>({
+          method: 'GET',
+          path: '/api/v1/admin/content/discovery-config'
+        })
+      )
     },
-    /**
-     * 替换指定系列的预览场景
-     *
-     * @param seriesId - 系列编号
-     * @param sceneIds - 预览场景编号
-     * @returns 服务端配置结果
-     */
-    async replacePreviewScenes(seriesId, sceneIds) {
-      return client.request<Record<string, unknown>>({
-        body: { scene_ids: sceneIds },
-        method: 'PUT',
-        path: `/api/v1/admin/content/preview-configs/${encodeURIComponent(seriesId)}`
-      })
+    async save(draft, expectedVersion) {
+      return mapConfig(
+        await client.request<DiscoveryDto>({
+          body: {
+            expected_version: expectedVersion,
+            learning_modules: draft.learningModules,
+            open_scene_ids: draft.openSceneIds,
+            preview_by_series: draft.previewBySeries
+          },
+          method: 'PUT',
+          path: '/api/v1/admin/content/discovery-config'
+        })
+      )
     }
+  }
+}
+
+/**
+ * 将生成 DTO 映射为可编辑快照
+ *
+ * @param source - OpenAPI 生成的配置响应
+ * @returns 可编辑配置快照
+ */
+function mapConfig(source: DiscoveryDto): DiscoveryConfigSnapshot {
+  return {
+    learningModules: { ...source.learning_modules },
+    openSceneIds: [...source.open_scene_ids],
+    previewBySeries: Object.fromEntries(
+      Object.entries(source.preview_by_series).map(([seriesId, sceneIds]) => [
+        seriesId,
+        [...sceneIds]
+      ])
+    ),
+    version: source.version
   }
 }

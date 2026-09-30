@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { createPublishAdapter } from '@/features/publishing/publish-adapter'
+import { useAdminPreview } from '@/features/publishing/use-admin-preview'
 import { usePublishCheck } from '@/features/publishing/use-publish-check'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 const route = useRoute()
 const revisionId = computed(() => String(route.params.id))
-const controller = usePublishCheck(createPublishAdapter(useAdminApiClient()), revisionId)
+const adapter = createPublishAdapter(useAdminApiClient())
+const controller = usePublishCheck(adapter, revisionId)
+const previewController = useAdminPreview(adapter, revisionId)
+
+onMounted(() => previewController.load().catch(() => undefined))
 
 /**
  * 执行发布检查并展示失败提示
@@ -82,12 +87,31 @@ async function handlePublish(): Promise<void> {
       </ElCard>
       <ElCard shadow="never">
         <template #header><h3>管理员预览与发布</h3></template>
+        <ElSkeleton v-if="previewController.state.value === 'loading'" :rows="6" animated />
         <ElAlert
+          v-else-if="previewController.error.value"
           :closable="false"
-          title="管理员预览接口待接入，不展示伪造预览内容"
-          type="warning"
+          :title="previewController.error.value"
+          type="error"
           show-icon
-        />
+        >
+          <template #default
+            ><ElButton link type="primary" @click="previewController.load"
+              >重新加载预览</ElButton
+            ></template
+          >
+        </ElAlert>
+        <article v-else-if="previewController.preview.value" class="preview-card">
+          <div class="preview-meta">
+            <ElTag effect="plain">{{ previewController.preview.value.revisionStatus }}</ElTag
+            ><span>{{ previewController.preview.value.seriesTitle }}</span>
+          </div>
+          <h4>{{ previewController.preview.value.sceneTitle }}</h4>
+          <p v-if="typeof previewController.preview.value.content.summary === 'string'">
+            {{ previewController.preview.value.content.summary }}
+          </p>
+          <pre>{{ JSON.stringify(previewController.preview.value.content, null, 2) }}</pre>
+        </article>
         <ElAlert
           v-if="controller.error.value"
           class="publish-error"
@@ -151,6 +175,39 @@ async function handlePublish(): Promise<void> {
   .publish-button {
     width: 100%;
     margin-top: 14px;
+  }
+
+  .preview-card {
+    padding: 14px;
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 6px;
+    background: var(--el-fill-color-lighter);
+
+    h4 {
+      margin: 12px 0 6px;
+      color: var(--juya-color-sidebar);
+      font-size: 18px;
+    }
+
+    p {
+      color: var(--juya-color-text-secondary);
+    }
+
+    pre {
+      max-height: 300px;
+      margin: 12px 0 0;
+      overflow: auto;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .preview-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--juya-color-text-secondary);
+    font-size: 12px;
   }
 
   @media (width <= 1000px) {

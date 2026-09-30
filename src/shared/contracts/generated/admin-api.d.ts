@@ -124,6 +124,93 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/content/scenes': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Scenes */
+    get: operations['list_scenes_api_v1_admin_content_scenes_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/scenes/{scene_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Scene */
+    get: operations['get_scene_api_v1_admin_content_scenes__scene_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/revisions/{revision_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Revision */
+    get: operations['get_revision_api_v1_admin_content_revisions__revision_id__get']
+    /** Save Revision */
+    put: operations['save_revision_api_v1_admin_content_revisions__revision_id__put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/discovery-config': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Discovery Config */
+    get: operations['get_discovery_config_api_v1_admin_content_discovery_config_get']
+    /** Save Discovery Config */
+    put: operations['save_discovery_config_api_v1_admin_content_discovery_config_put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/revisions/{revision_id}/preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Admin Preview */
+    get: operations['admin_preview_api_v1_admin_content_revisions__revision_id__preview_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/content/scenes/{scene_id}/revisions': {
     parameters: {
       query?: never
@@ -1055,6 +1142,23 @@ export interface components {
       /** Scene Ids */
       scene_ids: string[]
     }
+    /** AdminPreviewResponse */
+    AdminPreviewResponse: {
+      /** Scene Id */
+      scene_id: string
+      /** Revision Id */
+      revision_id: string
+      /** Revision Status */
+      revision_status: string
+      /** Scene Title */
+      scene_title: string
+      /** Series Title */
+      series_title: string
+      /** Content */
+      content: {
+        [key: string]: unknown
+      }
+    }
     /** CampaignCommandRequest */
     CampaignCommandRequest: {
       /** Expected Version */
@@ -1304,6 +1408,25 @@ export interface components {
     DeletionRequest: {
       /** Event Id */
       event_id: string
+    }
+    /** DiscoveryConfigResponse */
+    DiscoveryConfigResponse: {
+      /** Version */
+      version: number
+      /** Open Scene Ids */
+      open_scene_ids: string[]
+      /** Preview By Series */
+      preview_by_series: {
+        [key: string]: string[]
+      }
+      /** Learning Modules */
+      learning_modules: {
+        [key: string]: boolean
+      }
+      /** Updated At */
+      updated_at: string | null
+      /** Actor Id */
+      actor_id: string | null
     }
     /** EntitlementCommandRequest */
     EntitlementCommandRequest: {
@@ -1762,6 +1885,89 @@ export interface components {
       /** Note */
       note?: string | null
     }
+    /** RevisionResponse */
+    RevisionResponse: {
+      /** Id */
+      id: string
+      /** Scene Id */
+      scene_id: string
+      /** Source Revision Id */
+      source_revision_id: string | null
+      /** Version */
+      version: number
+      /** Status */
+      status: string
+      /** Stable Sentence Ids */
+      stable_sentence_ids: string[]
+      /** Stable Entry Ids */
+      stable_entry_ids: string[]
+      /** Content */
+      content: {
+        [key: string]: unknown
+      }
+      /** Created By */
+      created_by: string
+      /** Created At */
+      created_at: string | null
+    }
+    /** SaveDiscoveryConfigRequest */
+    SaveDiscoveryConfigRequest: {
+      /** Expected Version */
+      expected_version: number
+      /** Open Scene Ids */
+      open_scene_ids: string[]
+      /** Preview By Series */
+      preview_by_series: {
+        [key: string]: string[]
+      }
+      /** Learning Modules */
+      learning_modules: {
+        [key: string]: boolean
+      }
+    }
+    /** SaveRevisionRequest */
+    SaveRevisionRequest: {
+      /** Expected Version */
+      expected_version: number
+      /** Content */
+      content: {
+        [key: string]: unknown
+      }
+    }
+    /** ScenePageResponse */
+    ScenePageResponse: {
+      /** Items */
+      items: components['schemas']['SceneResponse'][]
+      /** Page */
+      page: number
+      /** Page Size */
+      page_size: number
+      /** Total */
+      total: number
+    }
+    /** SceneResponse */
+    SceneResponse: {
+      /** Id */
+      id: string
+      /** Series Id */
+      series_id: string
+      /** Title */
+      title: string
+      /** Series Title */
+      series_title: string
+      /** Summary */
+      summary: string | null
+      /** Cover Object Key */
+      cover_object_key: string | null
+      /** Status */
+      status: string
+      /** Draft Revision Id */
+      draft_revision_id: string | null
+      /** Published Revision Id */
+      published_revision_id: string | null
+      /** Updated At */
+      updated_at: string | null
+    }
     /** SignedFeedbackScreenshotResponse */
     SignedFeedbackScreenshotResponse: {
       /** Url */
@@ -2134,6 +2340,249 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_scenes_api_v1_admin_content_scenes_get: {
+    parameters: {
+      query?: {
+        page?: number
+        page_size?: number
+        query?: string | null
+        series_id?: string | null
+        status?: ('DRAFT' | 'PUBLISHED' | 'OFFLINE') | null
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ScenePageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_scene_api_v1_admin_content_scenes__scene_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        scene_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SceneResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_revision_api_v1_admin_content_revisions__revision_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RevisionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  save_revision_api_v1_admin_content_revisions__revision_id__put: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveRevisionRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RevisionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_discovery_config_api_v1_admin_content_discovery_config_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DiscoveryConfigResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  save_discovery_config_api_v1_admin_content_discovery_config_put: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveDiscoveryConfigRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DiscoveryConfigResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  admin_preview_api_v1_admin_content_revisions__revision_id__preview_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminPreviewResponse']
         }
       }
       /** @description Validation Error */

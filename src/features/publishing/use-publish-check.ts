@@ -26,7 +26,7 @@ export interface PublishCheckController {
  * @returns 发布检查控制器
  */
 export function usePublishCheck(
-  adapter: PublishAdapter,
+  adapter: Pick<PublishAdapter, 'check' | 'publish'>,
   revisionId: MaybeRef<string>
 ): PublishCheckController {
   const result = shallowRef<PublishCheckResult | null>(null)

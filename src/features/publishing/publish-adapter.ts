@@ -11,10 +11,20 @@ export interface PublishInput {
   revisionId: string
 }
 
+export interface AdminPreview {
+  content: Record<string, unknown>
+  revisionId: string
+  revisionStatus: string
+  sceneId: string
+  sceneTitle: string
+  seriesTitle: string
+}
+
 export interface PublishAdapter {
   check(revisionId: string, acknowledgedWarningCodes: string[]): Promise<PublishCheckResult>
   offline(sceneId: string): Promise<void>
   publish(input: PublishInput, idempotencyKey: string): Promise<Record<string, unknown>>
+  preview(revisionId: string): Promise<AdminPreview>
 }
 
 /**
@@ -66,7 +76,40 @@ export function createPublishAdapter(client: ApiClient): PublishAdapter {
         method: 'POST',
         path: `/api/v1/admin/content/revisions/${encodeURIComponent(input.revisionId)}/commands/publish`
       })
+    },
+    async preview(revisionId) {
+      const response = await client.request<Record<string, unknown>>({
+        method: 'GET',
+        path: `/api/v1/admin/content/revisions/${encodeURIComponent(revisionId)}/preview`
+      })
+      return parsePreview(response)
     }
+  }
+}
+
+/**
+ * 映射并校验管理员预览响应
+ *
+ * @param source - 服务端管理员预览响应
+ * @returns 已校验的管理员预览
+ */
+function parsePreview(source: Record<string, unknown>): AdminPreview {
+  if (
+    typeof source.scene_id !== 'string' ||
+    typeof source.revision_id !== 'string' ||
+    typeof source.revision_status !== 'string' ||
+    typeof source.scene_title !== 'string' ||
+    typeof source.series_title !== 'string' ||
+    !isRecord(source.content)
+  )
+    throw new Error('管理员预览响应格式不正确')
+  return {
+    content: source.content,
+    revisionId: source.revision_id,
+    revisionStatus: source.revision_status,
+    sceneId: source.scene_id,
+    sceneTitle: source.scene_title,
+    seriesTitle: source.series_title
   }
 }
 
@@ -98,4 +141,13 @@ function parseCheck(source: Record<string, unknown>): PublishCheckResult {
  */
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+/**
+ * 判断未知值是否为普通记录对象
+ * @param value - 待判断值
+ * @returns 是否为普通记录对象
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
