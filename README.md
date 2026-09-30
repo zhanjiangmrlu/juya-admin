@@ -101,6 +101,7 @@ pnpm build               # 生成生产构建
 pnpm check               # 格式、ESLint、Stylelint、TypeScript
 pnpm test                # Vitest 单元与组件测试
 pnpm test:e2e            # Playwright 主链路与 A01-A26 双视口验收
+pnpm test:production     # 运行生产包，检查登录页渲染、脚本错误及认证链路
 pnpm generate:api        # 根据固定 OpenAPI 快照重新生成类型
 ```
 
@@ -166,6 +167,7 @@ tests/
 pnpm check
 pnpm test -- --maxWorkers=1
 pnpm build
+pnpm test:production
 pnpm test:e2e --project=chromium
 git diff --check
 ```

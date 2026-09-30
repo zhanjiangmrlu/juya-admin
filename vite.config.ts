@@ -12,6 +12,8 @@ export default defineConfig(({ mode }) => {
     build: {
       rolldownOptions: {
         output: {
+          // 手动分包可能产生循环依赖，保留模块初始化顺序以避免运行时白屏
+          strictExecutionOrder: true,
           codeSplitting: {
             groups: [
               {
