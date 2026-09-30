@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { createContentAdapter } from '@/features/content/content-adapter'
@@ -11,17 +11,52 @@ import type { SceneFilters, SceneStatus, SceneSummary } from '@/features/content
 
 const router = useRouter()
 const adapter = createContentAdapter(useAdminApiClient())
-const filters = reactive<SceneFilters>({
-  page: 1,
-  pageSize: 20,
-  query: '',
-  seriesId: '',
-  status: ''
-})
+const filterStorageKey = 'juya.content-list.filters.v1'
+const filters = reactive<SceneFilters>(restoreFilters())
 const scenes = ref<SceneSummary[]>([])
 const total = ref(0)
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+watch(filters, persistFilters, { deep: true })
+
+/**
+ * 从会话存储恢复内容目录筛选
+ * @returns 已校验的筛选条件
+ */
+function restoreFilters(): SceneFilters {
+  const defaults: SceneFilters = { page: 1, pageSize: 20, query: '', seriesId: '', status: '' }
+  try {
+    const saved = JSON.parse(
+      globalThis.sessionStorage.getItem(filterStorageKey) ?? '{}'
+    ) as Partial<SceneFilters>
+    const statuses: SceneStatus[] = ['DRAFT', 'OFFLINE', 'PUBLISHED']
+    return {
+      page: Number.isInteger(saved.page) && Number(saved.page) > 0 ? Number(saved.page) : 1,
+      pageSize:
+        Number.isInteger(saved.pageSize) && Number(saved.pageSize) > 0
+          ? Number(saved.pageSize)
+          : 20,
+      query: typeof saved.query === 'string' ? saved.query : '',
+      seriesId: typeof saved.seriesId === 'string' ? saved.seriesId : '',
+      status: statuses.includes(saved.status as SceneStatus) ? (saved.status as SceneStatus) : ''
+    }
+  } catch {
+    return defaults
+  }
+}
+
+/**
+ * 保存筛选条件，供当前浏览器会话恢复
+ * @param nextFilters - 当前筛选条件
+ */
+function persistFilters(nextFilters: SceneFilters): void {
+  try {
+    globalThis.sessionStorage.setItem(filterStorageKey, JSON.stringify(nextFilters))
+  } catch {
+    // 存储不可用不应阻断内容查询
+  }
+}
 
 /** 加载当前筛选条件对应的场景分页。 */
 async function loadScenes(): Promise<void> {

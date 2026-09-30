@@ -7,7 +7,10 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import ContentListPage from './content-list-page.vue'
 
 describe('content list page', () => {
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    sessionStorage.clear()
+    vi.unstubAllGlobals()
+  })
 
   it('loads the real scene page and renders an empty-safe table state', async () => {
     const fetchSpy = vi.fn().mockResolvedValue(
@@ -50,5 +53,42 @@ describe('content list page', () => {
     expect(wrapper.text()).toContain('日常英语')
     expect(wrapper.text()).not.toContain('内容列表接口待接入')
     expect(fetchSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('restores persisted catalogue filters before the first request', async () => {
+    sessionStorage.setItem(
+      'juya.content-list.filters.v1',
+      JSON.stringify({
+        page: 2,
+        pageSize: 20,
+        query: 'coffee',
+        seriesId: 'SERIES-1',
+        status: 'DRAFT'
+      })
+    )
+    const fetchSpy = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ items: [], page: 2, page_size: 20, total: 0 }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200
+      })
+    )
+    vi.stubGlobal('fetch', fetchSpy)
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ component: { template: '<div />' }, name: 'content-scenes', path: '/' }]
+    })
+
+    mount(ContentListPage, {
+      global: {
+        plugins: [createPinia(), router, ElementPlus],
+        stubs: { RouterLink: { template: '<a><slot :navigate="() => {}" /></a>' } }
+      }
+    })
+
+    await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1))
+    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('page=2')
+    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('query=coffee')
+    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('series_id=SERIES-1')
+    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('status=DRAFT')
   })
 })
