@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+coverage/
+playwright-report/
+test-results/
+.impeccable/
+.superpowers/
+.vscode/
+docs/
+tests/

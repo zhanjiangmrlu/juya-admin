@@ -75,6 +75,24 @@ docker compose -f .\docker-compose.dev.yml stop
 - `5173` 已占用：已有本项目开发服务时直接访问它，否则先解决端口冲突再启动
 - OSS 上传、OCR 或音频生产：还需要配置外部服务；默认本地 Compose 配置用于登录和页面查看
 
+## Vercel 部署
+
+仓库根目录的 `vercel.json` 配置了 Vite 构建、`dist` 输出目录和单页应用路由回退，直接访问或刷新 `/login` 等前端路由时不会返回 404。
+
+在 Vercel 导入本仓库时，Root Directory 保持仓库根目录，Node.js 使用 `22.x`，并在 Production 和 Preview 环境设置 `ENABLE_EXPERIMENTAL_COREPACK=1`，以使用 `package.json` 锁定的 pnpm 版本。
+
+也可以在项目根目录通过 CLI 发布：
+
+```powershell
+npx vercel login
+npx vercel link --project juya-admin
+npx vercel deploy --prod
+```
+
+后端尚未部署时，先访问部署地址的 `/login` 查看登录页；登录、会话恢复与业务数据操作需要真实的 `juya-admin-api`，Vite 的本地 API 代理不会在 Vercel 生效。
+
+后续接通后端时，需要配置公网 HTTPS API 地址、Cookie/CSRF 与跨域策略，或为 `/api` 配置同源反向代理。`VITE_API_BASE_URL` 是构建时变量，修改后需重新部署；禁止在任何 `VITE_` 变量中放入密码或密钥。
+
 ## 常用命令
 
 ```powershell
