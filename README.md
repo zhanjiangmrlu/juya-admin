@@ -10,17 +10,43 @@
 
 ## 安装与启动
 
+### 1. 先启动管理 API
+
+先安装并打开 Docker Desktop，等待 Docker Engine 就绪。在 PowerShell 执行：
+
 ```powershell
+cd D:\个人\juya\juya-admin-api
+docker compose -f .\docker-compose.dev.yml up --build -d
+Invoke-RestMethod http://127.0.0.1:8000/health/ready
+```
+
+健康检查返回 `status: ready` 后再打开管理端。Compose 会启动 MySQL、Redis、API、Worker 和
+Beat，并自动执行数据库迁移与本地管理员初始化。第一次构建需要下载镜像和依赖。
+完整启动说明见 [juya-admin-api README](../juya-admin-api/README.md)。
+
+### 2. 启动管理端
+
+另开一个 PowerShell 终端，首次启动执行：
+
+```powershell
+cd D:\个人\juya\juya-admin
 pnpm install
-Copy-Item .env.example .env.local
-pnpm dev
+# 已有 .env.local 时保留现有配置
+if (-not (Test-Path .env.local)) { Copy-Item .env.example .env.local }
+pnpm dev --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-本地开发先在 `D:\个人\juya\juya-admin-api` 启动真实管理接口：
+后续启动只需先启动后端，再在管理端目录执行同一条 `pnpm dev` 命令。保持前端终端运行，
+关闭终端或按 `Ctrl+C` 会停止页面服务。`--strictPort` 会在 `5173` 被占用时报错，避免地址自动变化。
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local.ps1
-```
+### 3. 打开页面并登录
+
+浏览器访问 <http://127.0.0.1:5173/>
+当前登录只需账号密码，无需 TOTP 动态验证码。登录成功后进入 `/dashboard` 工作台，
+可通过左侧菜单查看各页面。这些账号信息仅适用于本地或测试环境；如果后端配置了
+`JUYA_LOCAL_ADMIN_USERNAME`、`JUYA_LOCAL_ADMIN_PASSWORD`，请使用覆盖后的账号密码。
+
+### 本地 API 代理
 
 `VITE_API_BASE_URL` 在本地保持为空，请求会通过 Vite 的 `/api` 同源代理进入管理接口。代理默认连接 `http://127.0.0.1:8000`，只有后端使用其他地址时才覆盖：
 
@@ -29,7 +55,25 @@ VITE_API_BASE_URL=
 VITE_DEV_API_PROXY_TARGET=http://127.0.0.1:8000
 ```
 
-修改环境变量后需要重启 `pnpm dev`。本地开发地址由 Vite 输出，Playwright 验收固定使用 `http://127.0.0.1:4173`
+修改环境变量后需要重启 `pnpm dev`。不带端口参数时，地址以 Vite 输出为准；上面的启动命令固定
+使用 `http://127.0.0.1:5173`。Playwright 验收固定使用 `http://127.0.0.1:4173`。
+
+### 停止服务与常见问题
+
+管理端在运行 `pnpm dev` 的终端按 `Ctrl+C` 停止。后端执行：
+
+```powershell
+cd D:\个人\juya\juya-admin-api
+docker compose -f .\docker-compose.dev.yml stop
+```
+
+该命令保留数据库数据，下次可继续使用 `up --build -d` 启动。
+
+- 空白页或服务不可用：确认 <http://127.0.0.1:8000/health/ready> 返回 `ready`，再刷新页面；工作台首次访问需要探测后端会话
+- 登录失败：检查是否使用了后端覆盖后的本地账号密码，并查看后端 API 日志
+- 后端启动脚本提示端口占用：如果是本项目的 MySQL 或 Redis 已运行，直接执行上述 Compose 命令；其他服务占用端口时需先解决冲突
+- `5173` 已占用：已有本项目开发服务时直接访问它，否则先解决端口冲突再启动
+- OSS 上传、OCR 或音频生产：还需要配置外部服务；默认本地 Compose 配置用于登录和页面查看
 
 ## 常用命令
 
