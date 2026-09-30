@@ -33,6 +33,7 @@ export function createXhrUploader(
         const xhr = xhrFactory()
         const form = new FormData()
         for (const [key, value] of Object.entries(input.fields)) form.append(key, value)
+        if (input.file.type) form.set('Content-Type', input.file.type)
         form.append('file', input.file)
         xhr.open('POST', input.url)
         xhr.upload.onprogress = (event) => {
