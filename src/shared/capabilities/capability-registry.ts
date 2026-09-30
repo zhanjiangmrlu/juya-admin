@@ -2,9 +2,9 @@ export type CapabilityState = 'available' | 'pending'
 
 export type CapabilityKey = keyof typeof capabilityRegistry
 
-const capabilityRegistry = {
+export const capabilityRegistry = {
   'analytics.export': 'available',
-  'analytics.query': 'pending',
+  'analytics.query': 'available',
   'auth.logout': 'available',
   'auth.password': 'available',
   'auth.session-probe': 'available',

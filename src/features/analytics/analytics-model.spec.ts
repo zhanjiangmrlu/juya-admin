@@ -1,8 +1,26 @@
 import { describe, expect, it } from 'vitest'
 
-import { toRatioViewModel, validateAnalyticsRows } from './analytics-model'
+import { groupAnalyticsRows, toRatioViewModel, validateAnalyticsRows } from './analytics-model'
 
 describe('analytics model', () => {
+  it('aligns missing buckets without shifting values to earlier dates', () => {
+    const series = groupAnalyticsRows(
+      [
+        { day: '2026-09-27', dimension: 'ALL', metric: 'NEW_USERS', value: 2 },
+        { day: '2026-09-28', dimension: 'ALL', metric: 'NEW_USERS', value: 3 },
+        { day: '2026-09-28', dimension: 'ALL', metric: 'FAVORITES', value: 7 }
+      ],
+      'week'
+    )
+    expect(series.map((item) => item.xAxis)).toEqual([
+      ['2026-09-21', '2026-09-28'],
+      ['2026-09-21', '2026-09-28']
+    ])
+    expect(series.map((item) => item.values)).toEqual([
+      [2, 3],
+      [null, 7]
+    ])
+  })
   it('rejects unknown metrics and personal dimensions', () => {
     expect(
       validateAnalyticsRows([

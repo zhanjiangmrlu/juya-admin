@@ -1,10 +1,30 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
-import type { WorkItemAdapter } from './work-item-adapter'
+import type { WorkItemAdapter, WorkItemDto } from './work-item-adapter'
 
 import { useWorkItems } from './use-work-items'
 
 describe('work item controller', () => {
+  it('keeps completed items removed when an earlier request arrives late', async () => {
+    let resolveFirst!: (value: WorkItemDto[]) => void
+    const getWorkItems = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve
+          })
+      )
+      .mockResolvedValue([])
+    const controller = useWorkItems({ getWorkItems })
+    const first = controller.load()
+    await controller.load()
+    resolveFirst([
+      { due_at: '2026-09-30T01:00:00Z', key: 'feedback:1', kind: 'NEW_FEEDBACK', priority_rank: 60 }
+    ])
+    await first
+    expect(controller.actionable.value).toEqual([])
+  })
   it('preserves server order and separates informational reminders', async () => {
     const adapter: WorkItemAdapter = {
       getWorkItems: async () => [

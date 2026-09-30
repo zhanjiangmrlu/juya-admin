@@ -1,23 +1,33 @@
 <script setup lang="ts">
 /* global Blob, URL, document */
 import dayjs from 'dayjs'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import MetricChart from '@/components/metric-chart/metric-chart.vue'
 import { createAnalyticsAdapter } from '@/features/analytics/analytics-adapter'
-import { groupAnalyticsRows } from '@/features/analytics/analytics-model'
+import { groupAnalyticsRows, METRIC_LABELS } from '@/features/analytics/analytics-model'
 import { useAnalytics } from '@/features/analytics/use-analytics'
-import { createApiClient } from '@/services/api/api-client'
+import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 import type { AnalyticsPeriod } from '@/features/analytics/analytics-model'
 
-const dateRange = ref<[string, string]>([
-  dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
-  dayjs().format('YYYY-MM-DD')
+const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Shanghai' }).format(new Date())
+const dateRange = ref<[string, string] | null>([
+  dayjs(today).subtract(29, 'day').format('YYYY-MM-DD'),
+  today
 ])
 const period = ref<AnalyticsPeriod>('day')
-const controller = useAnalytics(createAnalyticsAdapter(createApiClient()))
-const series = computed(() => groupAnalyticsRows(controller.rows.value, period.value))
+const controller = useAnalytics(createAnalyticsAdapter(useAdminApiClient()))
+const loadedPeriod = ref<AnalyticsPeriod>('day')
+const series = computed(() =>
+  groupAnalyticsRows(
+    controller.rows.value.filter((row) => !['NUMERATOR', 'DENOMINATOR'].includes(row.dimension)),
+    loadedPeriod.value
+  )
+)
+
+onMounted(() => void handleLoad())
+watch([period, dateRange], () => void handleLoad())
 
 /**
  * 加载当前日期区间的匿名汇总统计
@@ -25,7 +35,9 @@ const series = computed(() => groupAnalyticsRows(controller.rows.value, period.v
  * @returns 加载完成后的 Promise
  */
 async function handleLoad(): Promise<void> {
-  await controller.load(dateRange.value[0], dateRange.value[1])
+  if (!dateRange.value) return
+  loadedPeriod.value = period.value
+  await controller.load(dateRange.value[0], dateRange.value[1], period.value)
 }
 
 /**
@@ -35,11 +47,25 @@ async function handleLoad(): Promise<void> {
  */
 function downloadRows(): void {
   const url = URL.createObjectURL(
-    new Blob([JSON.stringify(controller.rows.value, null, 2)], { type: 'application/json' })
+    new Blob(
+      [
+        JSON.stringify(
+          {
+            period: loadedPeriod.value,
+            timezone: 'Asia/Shanghai',
+            rows: controller.rows.value,
+            ratios: controller.ratios.value
+          },
+          null,
+          2
+        )
+      ],
+      { type: 'application/json' }
+    )
   )
   const anchor = document.createElement('a')
   anchor.href = url
-  anchor.download = `juya-analytics-${dateRange.value[0]}-${dateRange.value[1]}.json`
+  anchor.download = `juya-analytics-${dateRange.value?.[0]}-${dateRange.value?.[1]}.json`
   anchor.click()
   URL.revokeObjectURL(url)
 }
@@ -52,7 +78,9 @@ function downloadRows(): void {
         <span>A25</span>
         <h2>匿名汇总统计</h2>
       </div>
-      <ElButton :disabled="controller.rows.value.length === 0" @click="downloadRows"
+      <ElButton
+        :disabled="!dateRange || controller.isLoading.value || controller.rows.value.length === 0"
+        @click="downloadRows"
         >导出已校验数据</ElButton
       >
     </div>
@@ -64,11 +92,16 @@ function downloadRows(): void {
           value-format="YYYY-MM-DD"
           start-placeholder="起始日期"
           end-placeholder="结束日期"
-        /><ElSelect v-model="period"
+          aria-label="统计日期范围"
+        /><ElSelect v-model="period" aria-label="统计周期"
           ><ElOption label="按日" value="day" /><ElOption label="按周" value="week" /><ElOption
             label="按月"
             value="month" /></ElSelect
-        ><ElButton :loading="controller.isLoading.value" type="primary" @click="handleLoad"
+        ><ElButton
+          :disabled="!dateRange"
+          :loading="controller.isLoading.value"
+          type="primary"
+          @click="handleLoad"
           >查询统计</ElButton
         >
       </div>
@@ -86,10 +119,33 @@ function downloadRows(): void {
         type="error"
         show-icon
       />
-      <ElEmpty v-if="controller.rows.value.length === 0" description="请选择日期并查询匿名统计" />
-      <MetricChart v-else :series="series" />
+      <ElSkeleton v-if="controller.isLoading.value" :rows="5" animated />
+      <ElEmpty
+        v-else-if="controller.rows.value.length === 0"
+        description="当前区间没有匿名汇总数据，可调整日期后重试"
+      />
+      <MetricChart v-else-if="series.length" :series="series" />
+      <ElTable
+        v-if="controller.ratios.value.length"
+        :data="controller.ratios.value"
+        aria-label="统计比率口径"
+      >
+        <ElTableColumn prop="day" label="周期起始日" width="120" />
+        <ElTableColumn label="指标" width="140"
+          ><template #default="{ row }">{{ METRIC_LABELS[row.metric] }}</template></ElTableColumn
+        >
+        <ElTableColumn prop="numerator" label="分子" width="80" />
+        <ElTableColumn prop="denominator" label="分母" width="80" />
+        <ElTableColumn label="比率" width="110"
+          ><template #default="{ row }">{{
+            row.rate === null ? '无分母' : `${(row.rate * 100).toFixed(1)}%`
+          }}</template></ElTableColumn
+        >
+        <ElTableColumn prop="basis" label="口径" min-width="240" />
+      </ElTable>
       <p class="metric-note">
-        图表展示接口原始计数；比率指标必须同时提供分子、分母或明确口径后方可展示
+        按北京时间自然日、周一开始的自然周与自然月汇总，首尾周期仅包含查询区间。活跃用户跨日合计为人次，未去重；缺失统计显示为空，不补零。比率使用累计分子
+        / 累计分母。
       </p>
     </ElCard>
   </section>

@@ -49,6 +49,84 @@
         }
       }
     },
+    "/api/v1/admin/analytics": {
+      "get": {
+        "tags": ["analytics"],
+        "summary": "Query Analytics",
+        "operationId": "query_analytics_api_v1_admin_analytics_get",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": ["day", "week", "month"],
+              "type": "string",
+              "default": "day",
+              "title": "Period"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Start"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "End"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/session": {
       "post": {
         "tags": ["admin-security"],
@@ -6437,6 +6515,114 @@
           "content"
         ],
         "title": "AdminPreviewResponse"
+      },
+      "AnalyticsCountResponse": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "dimension": {
+            "type": "string",
+            "title": "Dimension"
+          },
+          "value": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": ["day", "metric", "dimension", "value"],
+        "title": "AnalyticsCountResponse"
+      },
+      "AnalyticsRatioResponse": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "numerator": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Numerator"
+          },
+          "denominator": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Denominator"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          },
+          "basis": {
+            "type": "string",
+            "title": "Basis"
+          }
+        },
+        "type": "object",
+        "required": ["day", "metric", "numerator", "denominator", "rate", "basis"],
+        "title": "AnalyticsRatioResponse"
+      },
+      "AnalyticsResponse": {
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": ["day", "week", "month"],
+            "title": "Period"
+          },
+          "timezone": {
+            "type": "string",
+            "const": "Asia/Shanghai",
+            "title": "Timezone",
+            "default": "Asia/Shanghai"
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "title": "End"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsCountResponse"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "ratios": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsRatioResponse"
+            },
+            "type": "array",
+            "title": "Ratios"
+          }
+        },
+        "type": "object",
+        "required": ["period", "start", "end", "rows", "ratios"],
+        "title": "AnalyticsResponse"
       },
       "AudioTargetListResponse": {
         "properties": {

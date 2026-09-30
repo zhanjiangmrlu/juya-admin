@@ -31,6 +31,7 @@ export function useWorkItems(adapter: WorkItemAdapter): WorkItemController {
     items.value.filter((item) => item.kind === 'ACTIVE_ENTITLEMENT_EXPIRING')
   )
   let controller: AbortController | null = null
+  let sequence = 0
 
   /**
    * 加载最新待办并以服务端顺序保存
@@ -39,16 +40,19 @@ export function useWorkItems(adapter: WorkItemAdapter): WorkItemController {
    */
   async function load(): Promise<void> {
     controller?.abort()
-    controller = new AbortController()
+    const activeController = new AbortController()
+    controller = activeController
+    const current = ++sequence
     isLoading.value = true
     error.value = null
     try {
-      items.value = await adapter.getWorkItems(controller.signal)
+      const next = await adapter.getWorkItems(activeController.signal)
+      if (current === sequence && !activeController.signal.aborted) items.value = next
     } catch (failure) {
-      if (controller.signal.aborted) return
+      if (current !== sequence || activeController.signal.aborted) return
       error.value = failure instanceof ApiError ? failure.message : '消息中心加载失败，请稍后重试'
     } finally {
-      if (!controller.signal.aborted) isLoading.value = false
+      if (current === sequence && !activeController.signal.aborted) isLoading.value = false
     }
   }
 
@@ -60,6 +64,7 @@ export function useWorkItems(adapter: WorkItemAdapter): WorkItemController {
   function dispose(): void {
     controller?.abort()
     controller = null
+    sequence++
   }
 
   return {

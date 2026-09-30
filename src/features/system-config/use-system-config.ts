@@ -16,6 +16,7 @@ export interface SystemConfigController {
   applySnapshot(snapshot: SystemConfigSnapshot): void
   conflict: DeepReadonly<Ref<ConfigConflict | null>>
   draft: DeepReadonly<Ref<SystemConfigDraft | null>>
+  dismissConflict(): void
   error: Readonly<Ref<string | null>>
   load(): Promise<void>
   save(nextDraft: SystemConfigDraft): Promise<void>
@@ -42,6 +43,14 @@ export function useSystemConfig(adapter: SystemConfigAdapter): SystemConfigContr
   function applySnapshot(snapshot: SystemConfigSnapshot): void {
     draft.value = { ...snapshot.draft }
     versions.value = { ...snapshot.versions }
+  }
+
+  /**
+   * 关闭冲突比较，保留草稿及已读取的远端版本供再次保存
+   * @returns 无返回值
+   */
+  function dismissConflict(): void {
+    conflict.value = null
   }
 
   /**
@@ -94,6 +103,7 @@ export function useSystemConfig(adapter: SystemConfigAdapter): SystemConfigContr
     applySnapshot,
     conflict: readonly(conflict),
     draft: readonly(draft),
+    dismissConflict,
     error: readonly(error),
     load,
     save

@@ -38,6 +38,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/analytics': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Query Analytics */
+    get: operations['query_analytics_api_v1_admin_analytics_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/session': {
     parameters: {
       query?: never
@@ -1400,6 +1417,66 @@ export interface components {
         [key: string]: unknown
       }
     }
+    /** AnalyticsCountResponse */
+    AnalyticsCountResponse: {
+      /**
+       * Day
+       * Format: date
+       */
+      day: string
+      /** Metric */
+      metric: string
+      /** Dimension */
+      dimension: string
+      /** Value */
+      value: number
+    }
+    /** AnalyticsRatioResponse */
+    AnalyticsRatioResponse: {
+      /**
+       * Day
+       * Format: date
+       */
+      day: string
+      /** Metric */
+      metric: string
+      /** Numerator */
+      numerator: number
+      /** Denominator */
+      denominator: number
+      /** Rate */
+      rate: number | null
+      /** Basis */
+      basis: string
+    }
+    /** AnalyticsResponse */
+    AnalyticsResponse: {
+      /**
+       * Period
+       * @enum {string}
+       */
+      period: 'day' | 'week' | 'month'
+      /**
+       * Timezone
+       * @default Asia/Shanghai
+       * @constant
+       */
+      timezone: 'Asia/Shanghai'
+      /**
+       * Start
+       * Format: date
+       */
+      start: string
+      /**
+       * End
+       * Format: date
+       */
+      end: string
+      /** Rows */
+      rows: components['schemas']['AnalyticsCountResponse'][]
+      /** Ratios */
+      ratios: components['schemas']['AnalyticsRatioResponse'][]
+    }
     /** AudioTargetListResponse */
     AudioTargetListResponse: {
       /** Items */
@@ -2648,6 +2725,41 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
+        }
+      }
+    }
+  }
+  query_analytics_api_v1_admin_analytics_get: {
+    parameters: {
+      query: {
+        period?: 'day' | 'week' | 'month'
+        start: string
+        end: string
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AnalyticsResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
         }
       }
     }

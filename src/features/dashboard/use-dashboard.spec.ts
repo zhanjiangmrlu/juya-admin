@@ -36,6 +36,29 @@ async function flushPromises(): Promise<void> {
 }
 
 describe('useDashboard', () => {
+  it('refreshes counts and removes handled feedback together', async () => {
+    const adapter = createAdapter()
+    vi.mocked(adapter.getWorkItems)
+      .mockResolvedValueOnce([
+        {
+          due_at: '2026-09-30T01:00:00Z',
+          key: 'feedback:1',
+          kind: 'NEW_FEEDBACK',
+          priority_rank: 60
+        }
+      ])
+      .mockResolvedValue([])
+    vi.mocked(adapter.getSnapshot)
+      .mockResolvedValueOnce(snapshot)
+      .mockResolvedValue({ ...snapshot, open_feedback: 6, failed_jobs: 0 })
+    const controller = useDashboard(adapter)
+    await controller.load()
+    expect(controller.groupedWorkItems.value.urgent).toHaveLength(1)
+    await controller.load()
+    expect(controller.groupedWorkItems.value.urgent).toEqual([])
+    expect(controller.snapshot.value?.open_feedback).toBe(6)
+    expect(controller.snapshot.value?.failed_jobs).toBe(0)
+  })
   beforeEach(() => {
     vi.useFakeTimers()
     Object.defineProperty(document, 'hidden', { configurable: true, value: false })

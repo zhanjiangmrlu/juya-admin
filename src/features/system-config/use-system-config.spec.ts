@@ -21,6 +21,13 @@ describe('system config controller', () => {
     expect(update.mock.calls[0]?.[2]).toBe(3)
     expect(controller.conflict.value?.remoteVersion).toBe(4)
     expect(controller.draft.value).toEqual(localDraft)
+    expect(controller.conflict.value?.remoteDraft.feedbackSlaHours).toBe(72)
+    controller.dismissConflict()
+    expect(controller.conflict.value).toBeNull()
+    expect(controller.draft.value).toEqual(localDraft)
+    update.mockResolvedValue({ key: 'feedback_sla_hours', value: { value: 48 }, version: 5 })
+    await controller.save(localDraft)
+    expect(update.mock.calls[1]?.[2]).toBe(4)
   })
 })
 

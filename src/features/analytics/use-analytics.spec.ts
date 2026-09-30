@@ -1,13 +1,53 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import type { AnalyticsSnapshot } from './analytics-model'
+
 import { useAnalytics } from './use-analytics'
 
 describe('analytics controller', () => {
+  it('uses latest period only when older requests finish late', async () => {
+    let resolveFirst!: (value: AnalyticsSnapshot) => void
+    const query = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve
+          })
+      )
+      .mockResolvedValue({
+        period: 'month',
+        timezone: 'Asia/Shanghai',
+        start: '2026-09-01',
+        end: '2026-09-30',
+        rows: [{ day: '2026-09-01', dimension: 'ALL', metric: 'NEW_USERS', value: 5 }],
+        ratios: []
+      })
+    const controller = useAnalytics({ query })
+    const first = controller.load('2026-09-01', '2026-09-30', 'week')
+    await controller.load('2026-09-01', '2026-09-30', 'month')
+    resolveFirst({
+      period: 'week',
+      timezone: 'Asia/Shanghai',
+      start: '2026-09-01',
+      end: '2026-09-30',
+      rows: [],
+      ratios: []
+    })
+    await first
+    expect(controller.rows.value[0]?.value).toBe(5)
+    expect(controller.isLoading.value).toBe(false)
+  })
   it('loads and validates anonymous rows', async () => {
-    const exportRows = vi.fn(async () => [
-      { day: '2026-09-29', dimension: 'all', metric: 'ACTIVE_USERS', value: 12 }
-    ])
-    const controller = useAnalytics({ exportRows })
+    const query = vi.fn(async (): Promise<AnalyticsSnapshot> => ({
+      period: 'day',
+      timezone: 'Asia/Shanghai',
+      start: '2026-09-01',
+      end: '2026-09-29',
+      rows: [{ day: '2026-09-29', dimension: 'all', metric: 'ACTIVE_USERS', value: 12 }],
+      ratios: []
+    }))
+    const controller = useAnalytics({ query })
     await controller.load('2026-09-01', '2026-09-29')
     expect(controller.rows.value).toHaveLength(1)
     expect(controller.error.value).toBeNull()

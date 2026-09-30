@@ -119,6 +119,7 @@ async function saveConfig(): Promise<void> {
       title="配置版本冲突"
       width="680px"
       :close-on-click-modal="false"
+      @close="controller.dismissConflict"
       ><p>远端配置已更新，本地草稿未被覆盖，请对比后重新提交</p>
       <div v-if="controller.conflict.value" class="conflict-grid">
         <div>

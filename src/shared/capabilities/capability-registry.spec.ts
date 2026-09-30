@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
-import { getCapability } from './capability-registry'
+import { capabilityRegistry, getCapability } from './capability-registry'
 
 describe('capability registry', () => {
+  it('has no pending requirements after six batches', () => {
+    expect(Object.entries(capabilityRegistry).filter(([, state]) => state !== 'available')).toEqual(
+      []
+    )
+  })
+  it('makes the final anonymous analytics query available', () => {
+    expect(getCapability('analytics.query')).toBe('available')
+  })
   it('marks implemented user queries as available', () => {
     expect(getCapability('users.list')).toBe('available')
     expect(getCapability('users.detail')).toBe('available')
