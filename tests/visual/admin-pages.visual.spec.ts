@@ -7,11 +7,17 @@ for (const adminPage of pageManifest) {
       adminApi,
       page
     }) => {
-      void adminApi
+      const errors: string[] = []
+      page.on('pageerror', (error) => errors.push(error.message))
       await page.setViewportSize(viewport)
       await page.goto(adminPage.path)
       await expect(page.getByRole('heading', { level: 1, name: adminPage.title })).toBeVisible()
       await stabilizePage(page)
+      await expect(page.getByText(/接口待接入|页面开发中/)).toHaveCount(0)
+      if (adminPage.id === 'A25')
+        await expect(page.getByText('80.0%', { exact: true })).toBeVisible()
+      expect(adminApi.unexpectedRequests).toEqual([])
+      expect(errors).toEqual([])
 
       const overflow = await page.evaluate(() => ({
         clientWidth: document.documentElement.clientWidth,

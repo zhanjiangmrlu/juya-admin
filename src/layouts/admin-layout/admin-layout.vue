@@ -334,6 +334,8 @@ async function logout(): Promise<void> {
   }
 
   .main {
+    --juya-main-margin-block: 40px;
+
     min-width: 0;
     overflow: auto;
     padding: var(--juya-main-padding-top) var(--juya-main-padding-inline)

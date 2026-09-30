@@ -19,7 +19,7 @@ const adminPageRoutes: RouteRecordRaw[] = ADMIN_PAGE_DEFINITIONS.map((page) => (
  * 将页面定义名称解析为对应的懒加载页面组件
  *
  * @param name - 管理端页面定义名称
- * @returns 对应页面的异步组件；尚未实现时返回能力占位页
+ * @returns 对应页面的异步组件；缺失映射时阻止路由初始化
  */
 function resolveAdminPageComponent(
   name: string
@@ -53,7 +53,7 @@ function resolveAdminPageComponent(
     'work-items': () => import('@/pages/work-items/work-item-page.vue')
   }
   if (name in pageComponents) return pageComponents[name as keyof typeof pageComponents]
-  return () => import('@/pages/capability-placeholder/capability-placeholder-page.vue')
+  throw new Error(`管理端页面缺少实现：${name}`)
 }
 
 export const router = createRouter({

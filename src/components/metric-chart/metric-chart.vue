@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /* global HTMLDivElement, ResizeObserver */
 import { BarChart, LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent } from 'echarts/components'
+import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
 import { init, use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -14,7 +14,7 @@ const container = ref<HTMLDivElement | null>(null)
 let chart: ECharts | null = null
 let observer: ResizeObserver | null = null
 
-use([BarChart, CanvasRenderer, GridComponent, LineChart, TooltipComponent])
+use([BarChart, CanvasRenderer, GridComponent, LegendComponent, LineChart, TooltipComponent])
 
 /**
  * 根据最新统计序列更新图表
@@ -24,18 +24,24 @@ use([BarChart, CanvasRenderer, GridComponent, LineChart, TooltipComponent])
 function renderChart(): void {
   if (!chart) return
   const xAxis = [...new Set(props.series.flatMap((item) => item.xAxis))].sort()
-  chart.setOption({
-    grid: { bottom: 36, containLabel: true, left: 16, right: 20, top: 24 },
-    series: props.series.map((item) => ({
-      data: item.values,
-      name: item.label,
-      smooth: true,
-      type: 'line'
-    })),
-    tooltip: { trigger: 'axis' },
-    xAxis: { data: xAxis, type: 'category' },
-    yAxis: { minInterval: 1, type: 'value' }
-  })
+  chart.setOption(
+    {
+      animation: false,
+      legend: { data: props.series.map((item) => item.label), type: 'scroll' },
+      grid: { bottom: 36, containLabel: true, left: 16, right: 20, top: 48 },
+      series: props.series.map((item) => ({
+        data: item.values,
+        name: item.label,
+        showSymbol: true,
+        smooth: true,
+        type: 'line'
+      })),
+      tooltip: { trigger: 'axis' },
+      xAxis: { data: xAxis, type: 'category' },
+      yAxis: { minInterval: 1, type: 'value' }
+    },
+    { notMerge: true }
+  )
 }
 
 /**

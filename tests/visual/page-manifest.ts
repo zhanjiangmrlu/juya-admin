@@ -86,7 +86,7 @@ export const pageManifest: readonly AdminPageManifestItem[] = [
   },
   {
     id: 'A19',
-    path: '/content/ocr/TASK-1/ITEM-1',
+    path: '/content/ocr/JOB-1/ITEM-1',
     title: 'OCR 校对',
     viewports: ACCEPTANCE_VIEWPORTS
   },

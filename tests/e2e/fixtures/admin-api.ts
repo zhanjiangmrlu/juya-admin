@@ -824,6 +824,37 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     await replyJson(route, [])
     return
   }
+  if (url.pathname === '/api/v1/admin/analytics' && request.method() === 'GET') {
+    const period = url.searchParams.get('period') ?? 'day'
+    const start = url.searchParams.get('start') ?? '2026-09-01'
+    const end = url.searchParams.get('end') ?? '2026-09-30'
+    const day = new Date(`${end}T00:00:00Z`)
+    if (period === 'week') day.setUTCDate(day.getUTCDate() - ((day.getUTCDay() + 6) % 7))
+    if (period === 'month') day.setUTCDate(1)
+    const bucket = day.toISOString().slice(0, 10)
+    await replyJson(route, {
+      end,
+      period,
+      start,
+      timezone: 'Asia/Shanghai',
+      rows: [
+        { day: bucket, metric: 'NEW_USERS', dimension: 'ALL', value: 12 },
+        { day: bucket, metric: 'FEEDBACK_SLA', dimension: 'NUMERATOR', value: 4 },
+        { day: bucket, metric: 'FEEDBACK_SLA', dimension: 'DENOMINATOR', value: 5 }
+      ],
+      ratios: [
+        {
+          day: bucket,
+          metric: 'FEEDBACK_SLA',
+          numerator: 4,
+          denominator: 5,
+          rate: 0.8,
+          basis: 'SLA 内处理数量 / 纳入 SLA 统计的反馈数量'
+        }
+      ]
+    })
+    return
+  }
   if (url.pathname === '/api/v1/admin/content/open-scenes') {
     await replyJson(route, { items: [], version: 1 })
     return
