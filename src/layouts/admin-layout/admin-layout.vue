@@ -380,6 +380,26 @@ async function logout(): Promise<void> {
     font-weight: 600;
   }
 
+  .collapsed .brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  /* stylelint-disable selector-class-pattern -- Element Plus 外部组件类名 */
+  .menu:where(.el-menu--collapse) {
+    :deep(> .el-menu-item),
+    :deep(> .el-sub-menu > .el-sub-menu__title) {
+      justify-content: center;
+      padding-inline: 0;
+    }
+
+    :deep(> .el-menu-item .el-menu-tooltip__trigger) {
+      justify-content: center;
+      padding-inline: 0;
+    }
+  }
+  /* stylelint-enable selector-class-pattern */
+
   .page-number {
     flex: 0 0 30px;
     color: var(--juya-color-brand-accent);
