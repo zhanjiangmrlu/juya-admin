@@ -5,12 +5,19 @@ import type { components } from '@/shared/contracts/generated/admin-api'
 type FeedbackDetailDto = components['schemas']['FeedbackAdminDetailResponse']
 type FeedbackListItemDto = components['schemas']['FeedbackListItemResponse']
 type FeedbackNoteDto = components['schemas']['FeedbackInternalNoteResponse']
-type FeedbackPageDto = components['schemas']['FeedbackPageResponse']
+type FeedbackPageDto = Omit<components['schemas']['FeedbackPageResponse'], 'items'> & {
+  items: (FeedbackListItemDto & {
+    title?: string
+    source?: Record<string, unknown>
+    screenshot_status?: string
+    supplied_at?: string | null
+  })[]
+}
 type FeedbackTicketDto = components['schemas']['FeedbackTicketResponse']
 type SignedScreenshotDto = components['schemas']['SignedFeedbackScreenshotResponse']
 
 export type FeedbackCategory = FeedbackDetailDto['category']
-export type FeedbackSlaState = FeedbackListItemDto['sla_state']
+export type FeedbackSlaState = FeedbackListItemDto['sla_state'] | 'URGENT'
 
 export interface FeedbackTicket {
   category: FeedbackCategory
@@ -30,6 +37,10 @@ export interface FeedbackTicket {
 }
 
 export interface FeedbackListItem {
+  title?: string
+  source?: Readonly<Record<string, unknown>>
+  screenshotStatus?: string
+  suppliedAt?: string | null
   category: FeedbackCategory
   createdAt: string
   deadlineAt: string | null
@@ -215,6 +226,10 @@ export function createFeedbackAdapter(client: ApiClient): FeedbackAdapter {
       })
       return {
         items: response.items.map((item) => ({
+          title: item.title ?? item.description.slice(0, 40),
+          source: item.source ?? {},
+          screenshotStatus: item.screenshot_status ?? 'NONE',
+          suppliedAt: item.supplied_at ?? null,
           category: item.category,
           createdAt: item.created_at,
           deadlineAt: item.deadline_at,

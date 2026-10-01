@@ -9,6 +9,13 @@ export interface UserProjectionDto {
   limited_entitlement_count: number
   open_feedback_count: number
   user_id: string
+  juya_number?: string
+  nickname?: string | null
+  avatar_object_key?: string | null
+  avatar_url?: string | null
+  change_pending?: boolean
+  contact_changed_at?: string | null
+  open_scene_completed_count?: number | null
 }
 
 export type ContactStatus =
@@ -24,13 +31,23 @@ export interface UserContactDto {
 }
 
 export interface UserDetailDto extends UserProjectionDto {
+  records?: Record<string, Record<string, unknown>[]>
   favorite_count: number | null
   learning_days: number | null
   learning_degraded: boolean
   open_scene_completed_count: number | null
 }
 
-export interface WechatSearchRequest {
+export interface UserSearchFilters {
+  page?: number
+  page_size?: number
+  entitlement_type?: 'FORMAL' | 'LIMITED'
+  entitlement_status?: string
+  profile_completeness?: 'COMPLETE' | 'INCOMPLETE'
+  cohort?: 'NEW_TODAY' | 'OPEN_WITHOUT_CONTACT'
+}
+export interface WechatSearchRequest extends UserSearchFilters {
+  contact_status?: ContactStatus
   wechat_id: string
 }
 
@@ -40,7 +57,8 @@ export interface UserAdapter {
   searchUsers(
     query?: string,
     contactStatus?: ContactStatus,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    filters?: UserSearchFilters
   ): Promise<UserProjectionDto[]>
 }
 
@@ -94,19 +112,21 @@ export function createUserAdapter(client: ApiClient): UserAdapter {
      * @param query - 用户编号等非敏感查询条件
      * @param contactStatus - 可选联系状态筛选
      * @param signal - 可选请求取消信号
+     * @param filters - 服务端分页和运营筛选条件
      * @returns 匹配的用户投影数组
      */
     async searchUsers(
       query?: string,
       contactStatus?: ContactStatus,
-      signal?: AbortSignal
+      signal?: AbortSignal,
+      filters?: UserSearchFilters
     ): Promise<UserProjectionDto[]> {
       const response = await client.request<unknown>({
         method: 'GET',
         path: '/api/v1/admin/users',
         query:
-          query || contactStatus
-            ? { contact_status: contactStatus, query: query || undefined }
+          query || contactStatus || filters
+            ? { ...filters, contact_status: contactStatus, query: query || undefined }
             : undefined,
         signal
       })
@@ -136,6 +156,9 @@ function parseUserDetail(source: unknown): UserDetailDto {
   if (!isRecord(source)) throw new Error('用户详情接口响应格式不正确')
   return {
     ...parseUserProjection(source),
+    records: isRecord(source.records)
+      ? (source.records as Record<string, Record<string, unknown>[]>)
+      : {},
     favorite_count: requireNullableNumber(source, 'favorite_count'),
     learning_days: requireNullableNumber(source, 'learning_days'),
     learning_degraded: requireBoolean(source, 'learning_degraded'),
@@ -165,6 +188,18 @@ function parseUserProjection(source: unknown): UserProjectionDto {
     }
   }
   return {
+    juya_number: typeof source.juya_number === 'string' ? source.juya_number : undefined,
+    nickname: typeof source.nickname === 'string' ? source.nickname : null,
+    avatar_object_key:
+      typeof source.avatar_object_key === 'string' ? source.avatar_object_key : null,
+    avatar_url: typeof source.avatar_url === 'string' ? source.avatar_url : null,
+    change_pending: source.change_pending === true,
+    contact_changed_at:
+      typeof source.contact_changed_at === 'string' ? source.contact_changed_at : null,
+    open_scene_completed_count:
+      typeof source.open_scene_completed_count === 'number'
+        ? source.open_scene_completed_count
+        : null,
     account_status: requireString(source, 'account_status'),
     contact,
     contact_degraded: requireBoolean(source, 'contact_degraded'),

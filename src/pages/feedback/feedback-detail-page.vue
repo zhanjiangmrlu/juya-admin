@@ -51,6 +51,10 @@ const operations = computed(() =>
 const sla = computed(() =>
   controller.ticket.value ? formatFeedbackSla(controller.ticket.value, new Date()) : null
 )
+const lastSuppliedAt = computed(
+  () =>
+    controller.ticket.value?.rounds.filter((round) => round.suppliedAt).at(-1)?.suppliedAt ?? null
+)
 const timeline = computed(() =>
   (controller.ticket.value?.timeline ?? []).map((event, index) => ({
     actor: `${event.actorType === 'ADMIN' ? '管理员' : '用户'} · ${event.actorId}`,
@@ -190,6 +194,12 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
               class="record-block"
             >
               <strong>第 {{ round.roundNumber }} 轮</strong>
+              <small
+                >要求补充：{{ round.pausedAt ? formatDateTime(round.pausedAt) : '—' }} ·
+                用户补充：{{
+                  round.suppliedAt ? formatDateTime(round.suppliedAt) : '未补充'
+                }}</small
+              >
               <PlainTextContent :content="round.requestText ?? '未记录补充要求'" />
               <PlainTextContent :content="round.supplementText ?? '等待用户补充'" />
             </div>
@@ -226,6 +236,17 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
               }}</ElDescriptionsItem>
               <ElDescriptionsItem label="提交时间">{{
                 formatDateTime(controller.ticket.value.createdAt)
+              }}</ElDescriptionsItem>
+              <ElDescriptionsItem label="自动来源页面">{{
+                controller.ticket.value.source.page || '未记录'
+              }}</ElDescriptionsItem>
+              <ElDescriptionsItem label="自动来源场景">{{
+                controller.ticket.value.source.scene_id ||
+                controller.ticket.value.source.sceneId ||
+                '未关联'
+              }}</ElDescriptionsItem>
+              <ElDescriptionsItem label="最近补充时间">{{
+                lastSuppliedAt ? formatDateTime(lastSuppliedAt) : '未补充'
               }}</ElDescriptionsItem>
               <ElDescriptionsItem label="最近更新">{{
                 formatDateTime(controller.ticket.value.updatedAt)

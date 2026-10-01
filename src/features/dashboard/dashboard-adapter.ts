@@ -6,6 +6,13 @@ import type { ApiClient } from '@/services/api/api-client'
 export type { WorkItemDto } from '@/features/work-items/work-item-adapter'
 
 export interface DashboardSnapshotDto {
+  new_users_today?: number
+  open_completed_without_contact?: number
+  pending_contacts?: number
+  limited_pending?: number
+  limited_learning?: number
+  urgent_feedback?: number
+  entitlement_warning_days?: number
   active_users: number
   expiring_entitlements: number
   failed_jobs: number
@@ -62,6 +69,24 @@ export function createDashboardAdapter(client: ApiClient): DashboardAdapter {
  */
 function parseDashboardSnapshot(source: Record<string, unknown>): DashboardSnapshotDto {
   return {
+    new_users_today:
+      typeof source.new_users_today === 'number' ? source.new_users_today : undefined,
+    open_completed_without_contact:
+      typeof source.open_completed_without_contact === 'number'
+        ? source.open_completed_without_contact
+        : undefined,
+    pending_contacts:
+      typeof source.pending_contacts === 'number' ? source.pending_contacts : undefined,
+    limited_pending:
+      typeof source.limited_pending === 'number' ? source.limited_pending : undefined,
+    limited_learning:
+      typeof source.limited_learning === 'number' ? source.limited_learning : undefined,
+    urgent_feedback:
+      typeof source.urgent_feedback === 'number' ? source.urgent_feedback : undefined,
+    entitlement_warning_days:
+      typeof source.entitlement_warning_days === 'number'
+        ? source.entitlement_warning_days
+        : undefined,
     active_users: requireNumber(source, 'active_users'),
     expiring_entitlements: requireNumber(source, 'expiring_entitlements'),
     failed_jobs: requireNumber(source, 'failed_jobs'),

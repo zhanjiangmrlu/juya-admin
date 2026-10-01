@@ -25,6 +25,38 @@ const projection = {
 }
 
 describe('user adapter', () => {
+  it('sends profile and entitlement filters with server pagination and preserves identity summaries', async () => {
+    const request = vi.fn().mockResolvedValue([
+      {
+        ...projection,
+        juya_number: 'JY123',
+        nickname: '学习者',
+        open_scene_completed_count: 3,
+        change_pending: true
+      }
+    ])
+    const adapter = createUserAdapter({ request } as ApiClient)
+    const rows = await adapter.searchUsers('学习者', 'PENDING', undefined, {
+      page: 3,
+      page_size: 20,
+      entitlement_type: 'LIMITED',
+      entitlement_status: 'PENDING',
+      profile_completeness: 'COMPLETE'
+    })
+    expect(request.mock.calls[0]?.[0].query).toMatchObject({
+      page: 3,
+      page_size: 20,
+      entitlement_type: 'LIMITED',
+      entitlement_status: 'PENDING',
+      profile_completeness: 'COMPLETE'
+    })
+    expect(rows[0]).toMatchObject({
+      juya_number: 'JY123',
+      nickname: '学习者',
+      open_scene_completed_count: 3,
+      change_pending: true
+    })
+  })
   it('sends contact status only as a normal GET query and validates list contacts', async () => {
     const request = vi
       .fn<(options: ApiRequestOptions) => Promise<unknown>>()

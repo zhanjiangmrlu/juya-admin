@@ -5,6 +5,52 @@ import type { ApiClient } from '@/services/api/api-client'
 import { createEntitlementQueryAdapter } from './entitlement-query-adapter'
 
 describe('entitlement query adapter', () => {
+  it('passes activity version, expiry and date filters and reads operational fields', async () => {
+    const request = vi.fn().mockResolvedValue({
+      items: [
+        {
+          id: 'E1',
+          user_id: 'U1',
+          type: 'LIMITED',
+          status: 'ACTIVE',
+          juya_number: 'JY123',
+          nickname: '学习者',
+          wechat_id: 'wx-example',
+          contact_status: 'PENDING',
+          campaign_version_id: 'V2',
+          campaign_version_no: 2,
+          term: '3_DAYS',
+          effective_at: '2026-10-01T00:00:00Z',
+          granted_at: '2026-10-01T00:00:00Z',
+          expires_at: null,
+          package_id: null,
+          campaign_id: 'C1'
+        }
+      ],
+      page: 1,
+      page_size: 20,
+      total: 1
+    })
+    const result = await createEntitlementQueryAdapter({ request } as ApiClient).list({
+      page: 1,
+      campaignVersionId: 'V2',
+      expiry: 'ENDING',
+      dateFrom: '2026-10-01',
+      dateTo: '2026-10-02'
+    })
+    expect(request.mock.calls[0]?.[0].query).toMatchObject({
+      campaign_version_id: 'V2',
+      expiry: 'ENDING',
+      date_from: '2026-10-01',
+      date_to: '2026-10-02'
+    })
+    expect(result.items[0]).toMatchObject({
+      juyaNumber: 'JY123',
+      wechatId: 'wx-example',
+      campaignVersionNo: 2,
+      term: '3_DAYS'
+    })
+  })
   it('sends filters and server pagination on the unified list path', async () => {
     const request = vi.fn().mockResolvedValue({ items: [], page: 2, page_size: 20, total: 21 })
     const adapter = createEntitlementQueryAdapter({ request } as ApiClient)

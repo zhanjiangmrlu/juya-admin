@@ -6,6 +6,7 @@ import type {
   ContactStatus,
   UserAdapter,
   UserProjectionDto,
+  UserSearchFilters,
   WechatSearchRequest
 } from './user-adapter'
 import type { UserPageState } from './user-model'
@@ -14,8 +15,11 @@ import type { Router } from 'vue-router'
 export interface UserListController {
   dispose(): void
   error: Ref<string | null>
-  search(query?: string, contactStatus?: ContactStatus): Promise<void>
-  searchByWechat(value: string): Promise<void>
+  search(query?: string, contactStatus?: ContactStatus, filters?: UserSearchFilters): Promise<void>
+  searchByWechat(
+    value: string,
+    filters?: UserSearchFilters & { contact_status?: ContactStatus }
+  ): Promise<void>
   state: Ref<UserPageState>
   users: Ref<UserProjectionDto[]>
 }
@@ -39,13 +43,23 @@ export function useUserList(adapter: UserAdapter, router: Router): UserListContr
    *
    * @param query - 用户编号等普通搜索条件
    * @param contactStatus - 可选联系状态筛选
+   * @param filters - 服务端分页和运营筛选条件
    * @returns 搜索完成后的 Promise
    */
-  async function search(query = '', contactStatus?: ContactStatus): Promise<void> {
+  async function search(
+    query = '',
+    contactStatus?: ContactStatus,
+    filters?: UserSearchFilters
+  ): Promise<void> {
     const normalizedQuery = query.trim()
     await runSearch(
-      (signal) => adapter.searchUsers(normalizedQuery || undefined, contactStatus, signal),
+      (signal) => adapter.searchUsers(normalizedQuery || undefined, contactStatus, signal, filters),
       {
+        ...Object.fromEntries(
+          Object.entries(filters ?? {})
+            .filter(([, value]) => value !== undefined)
+            .map(([key, value]) => [key, String(value)])
+        ),
         ...(normalizedQuery ? { query: normalizedQuery } : {}),
         ...(contactStatus ? { contact_status: contactStatus } : {})
       }
@@ -56,11 +70,15 @@ export function useUserList(adapter: UserAdapter, router: Router): UserListContr
    * 执行完整微信号 POST 搜索且仅在 URL 记录布尔标记
    *
    * @param value - 完整微信号输入值
+   * @param filters - 服务端分页和运营筛选条件
    * @returns 搜索完成后的 Promise；输入无效时不发请求
    */
-  async function searchByWechat(value: string): Promise<void> {
+  async function searchByWechat(
+    value: string,
+    filters?: UserSearchFilters & { contact_status?: ContactStatus }
+  ): Promise<void> {
     try {
-      const payload = createSensitiveSearchPayload(value)
+      const payload = { ...createSensitiveSearchPayload(value), ...filters }
       await runSearch((signal) => adapter.searchByWechat(payload, signal), {
         hasSensitiveSearch: 'true'
       })

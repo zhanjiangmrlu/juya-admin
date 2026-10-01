@@ -14,7 +14,7 @@ test('完整微信号通过 POST 正文查询且不会进入地址栏', async ({
     .poll(() => adminApi.findRequest('POST', '/api/v1/admin/users/search-by-wechat'))
     .toBeTruthy()
   const request = adminApi.findRequest('POST', '/api/v1/admin/users/search-by-wechat')
-  expect(request?.body).toEqual({ wechat_id: 'juya_private_wechat' })
+  expect(request?.body).toEqual({ wechat_id: 'juya_private_wechat', page: 1, page_size: 20 })
   expect(page.url()).not.toContain('juya_private_wechat')
   expect(
     await page.evaluate(

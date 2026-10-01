@@ -23,24 +23,34 @@ const client = createApiClient({
 const dashboard = useDashboard(createDashboardAdapter(client))
 const metrics = computed(() => [
   {
-    label: '当前活跃用户',
-    to: '/users?accountStatus=ACTIVE',
-    value: dashboard.snapshot.value?.active_users ?? 0
+    label: '今日新增用户',
+    to: '/users?cohort=NEW_TODAY',
+    value: dashboard.snapshot.value?.new_users_today ?? 0
   },
   {
-    label: '待处理反馈',
-    to: '/feedback?status=open',
-    value: dashboard.snapshot.value?.open_feedback ?? 0
+    label: '完成3个开放场景未留微信号',
+    to: '/users?cohort=OPEN_WITHOUT_CONTACT',
+    value: dashboard.snapshot.value?.open_completed_without_contact ?? 0
   },
   {
-    label: '7天内权益到期',
-    to: '/entitlements?status=expiring',
-    value: dashboard.snapshot.value?.expiring_entitlements ?? 0
+    label: '待联系用户',
+    to: '/users?contact_status=PENDING',
+    value: dashboard.snapshot.value?.pending_contacts ?? 0
   },
   {
-    label: '异常批量任务',
-    to: '/content/jobs?status=errors',
-    value: dashboard.snapshot.value?.failed_jobs ?? 0
+    label: '限时权益待开始',
+    to: '/entitlements?type=LIMITED&status=PENDING',
+    value: dashboard.snapshot.value?.limited_pending ?? 0
+  },
+  {
+    label: '限时权益学习中',
+    to: '/entitlements?type=LIMITED&status=ACTIVE',
+    value: dashboard.snapshot.value?.limited_learning ?? 0
+  },
+  {
+    label: '反馈紧急待办',
+    to: '/feedback?sla=URGENT',
+    value: dashboard.snapshot.value?.urgent_feedback ?? 0
   }
 ])
 
@@ -137,6 +147,16 @@ function formatDueAt(value: string): string {
             </div>
           </template>
 
+          <p class="normal-metrics">
+            <span>活跃用户 {{ dashboard.snapshot.value?.active_users ?? 0 }}</span>
+            <RouterLink to="/entitlements?expiry=EXPIRING"
+              >{{ dashboard.snapshot.value?.entitlement_warning_days ?? 30 }}天内正式权益到期
+              {{ dashboard.snapshot.value?.expiring_entitlements ?? 0 }}</RouterLink
+            >
+            <RouterLink to="/content/jobs?status=errors"
+              >异常批量任务 {{ dashboard.snapshot.value?.failed_jobs ?? 0 }}</RouterLink
+            >
+          </p>
           <ElEmpty
             v-if="dashboard.groupedWorkItems.value.informational.length === 0"
             description="暂无普通提醒"
@@ -170,7 +190,7 @@ function formatDueAt(value: string): string {
 
   .metrics {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
     margin-bottom: 14px;
   }
@@ -194,6 +214,14 @@ function formatDueAt(value: string): string {
     color: var(--juya-color-sidebar);
     font-size: 26px;
     line-height: 1;
+  }
+
+  .normal-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    color: var(--juya-color-text-secondary);
+    font-size: 12px;
   }
 
   .content {

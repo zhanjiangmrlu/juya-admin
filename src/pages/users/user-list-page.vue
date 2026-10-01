@@ -2,7 +2,7 @@
 import { Search } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import DataTable from '@/components/data-table/data-table.vue'
 import StatusTag from '@/components/status-tag/status-tag.vue'
@@ -14,15 +14,27 @@ import { createUserAdapter } from '@/features/users/user-adapter'
 import { getAccountStatusLabel, getAccountStatusTone } from '@/features/users/user-model'
 import { createApiClient } from '@/services/api/api-client'
 
-import type { ContactStatus } from '@/features/users/user-adapter'
+import type { ContactStatus, UserSearchFilters } from '@/features/users/user-adapter'
 
 const router = useRouter()
+const route = useRoute()
+const page = ref(1)
 const authStore = useAuthStore()
+const operationFilters = reactive<UserSearchFilters>({
+  cohort:
+    route.query.cohort === 'NEW_TODAY' || route.query.cohort === 'OPEN_WITHOUT_CONTACT'
+      ? route.query.cohort
+      : undefined
+})
 const filters = reactive<{
   contactStatus: '' | ContactStatus
   mode: 'normal' | 'wechat'
   query: string
-}>({ contactStatus: '', mode: 'normal', query: '' })
+}>({
+  contactStatus: route.query.contact_status === 'PENDING' ? 'PENDING' : '',
+  mode: 'normal',
+  query: ''
+})
 const view = ref<'corrections' | 'users'>('users')
 const client = createApiClient({
   baseUrl: import.meta.env.VITE_API_BASE_URL,
@@ -42,7 +54,7 @@ const contactStatusOptions: { label: string; value: ContactStatus }[] = [
   { label: '不希望联系', value: 'DO_NOT_CONTACT' }
 ]
 
-onMounted(() => void controller.search())
+onMounted(() => void loadPage(1))
 onBeforeUnmount(() => {
   controller.dispose()
   corrections.dispose()
@@ -50,11 +62,24 @@ onBeforeUnmount(() => {
 
 /** 根据当前搜索模式提交用户查询。 */
 async function submitSearch(): Promise<void> {
+  await loadPage(1)
+}
+
+/**
+ * 使用同一服务端筛选切换分页，微信号只保留在请求正文。
+ * @param value - 服务端字段值或页码
+ */
+async function loadPage(value: number): Promise<void> {
+  page.value = value
+  const query = { ...operationFilters, page: value, page_size: 20 }
   if (filters.mode === 'wechat') {
-    await controller.searchByWechat(filters.query)
+    await controller.searchByWechat(filters.query, {
+      ...query,
+      contact_status: filters.contactStatus || undefined
+    })
     return
   }
-  await controller.search(filters.query, filters.contactStatus || undefined)
+  await controller.search(filters.query, filters.contactStatus || undefined, query)
 }
 
 /** 切换用户与联系更正列表。 */
@@ -92,7 +117,7 @@ function contactStatusLabel(status: string | undefined): string {
             <p>
               {{
                 view === 'users'
-                  ? '普通条件使用 GET；完整微信号使用 POST 且不写入地址栏。'
+                  ? '查找用户并查看学习、联系资料、权益和反馈。'
                   : '查看用户提交的修改机会申请，并进入详情执行批准或拒绝。'
               }}
             </p>
@@ -107,7 +132,7 @@ function contactStatusLabel(status: string | undefined): string {
         <ElForm class="filters" inline @submit.prevent="submitSearch">
           <ElFormItem>
             <ElSelect v-model="filters.mode" aria-label="搜索方式" class="mode">
-              <ElOption label="编号 / 普通条件" value="normal" />
+              <ElOption label="句芽编号 / 昵称" value="normal" />
               <ElOption label="完整微信号" value="wechat" />
             </ElSelect>
           </ElFormItem>
@@ -115,7 +140,7 @@ function contactStatusLabel(status: string | undefined): string {
             <ElInput
               v-model="filters.query"
               maxlength="64"
-              :placeholder="filters.mode === 'wechat' ? '输入完整微信号' : '输入用户编号或普通条件'"
+              :placeholder="filters.mode === 'wechat' ? '输入完整微信号' : '输入句芽编号或昵称'"
               :prefix-icon="Search"
               clearable
               @keyup.enter="submitSearch"
@@ -141,12 +166,66 @@ function contactStatusLabel(status: string | undefined): string {
           </ElFormItem>
           <ElFormItem>
             <ElSelect
-              class="entitlement-filter"
-              disabled
-              model-value=""
-              placeholder="全部权益"
-              aria-label="权益筛选（待接入）"
-            />
+              v-model="operationFilters.entitlement_type"
+              class="status-filter"
+              clearable
+              placeholder="全部权益类型"
+              aria-label="权益类型筛选"
+            >
+              <ElOption label="正式包" value="FORMAL" /><ElOption label="限时包" value="LIMITED" />
+            </ElSelect>
+          </ElFormItem>
+          <ElFormItem>
+            <ElSelect
+              v-model="operationFilters.entitlement_status"
+              class="status-filter"
+              clearable
+              placeholder="全部权益状态"
+              aria-label="权益状态筛选"
+            >
+              <ElOption
+                v-for="option in [
+                  { value: 'ACTIVE', label: '有效 / 学习中' },
+                  { value: 'PAUSED', label: '已暂停' },
+                  { value: 'REVOKED', label: '已撤销' },
+                  { value: 'PENDING', label: '待开始' },
+                  { value: 'EXPIRED', label: '正式权益已到期' },
+                  { value: 'ENDED', label: '限时权益已结束' },
+                  { value: 'START_EXPIRED', label: '未开始已失效' }
+                ]"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </ElSelect>
+          </ElFormItem>
+          <ElFormItem>
+            <ElSelect
+              v-model="operationFilters.profile_completeness"
+              class="status-filter"
+              clearable
+              placeholder="全部资料完整度"
+              aria-label="资料完整度筛选"
+            >
+              <ElOption label="昵称头像完整" value="COMPLETE" /><ElOption
+                label="昵称或头像缺失"
+                value="INCOMPLETE"
+              />
+            </ElSelect>
+          </ElFormItem>
+          <ElFormItem>
+            <ElSelect
+              v-model="operationFilters.cohort"
+              class="status-filter"
+              clearable
+              placeholder="全部用户"
+              aria-label="用户分组"
+            >
+              <ElOption label="今日新增" value="NEW_TODAY" /><ElOption
+                label="完成开放未留微信号"
+                value="OPEN_WITHOUT_CONTACT"
+              />
+            </ElSelect>
           </ElFormItem>
         </ElForm>
 
@@ -176,7 +255,11 @@ function contactStatusLabel(status: string | undefined): string {
           <ElTableColumn label="对象" min-width="200">
             <template #default="{ row }">
               <div class="identity">
-                <strong>{{ row.user_id }}</strong>
+                <ElAvatar :src="row.avatar_url || undefined" :size="32">{{
+                  (row.nickname || row.juya_number || row.user_id).slice(0, 1)
+                }}</ElAvatar>
+                <strong>{{ row.nickname || '未设置昵称' }}</strong>
+                <span>{{ row.juya_number || row.user_id }}</span>
                 <span>最近活跃：{{ formatDateTime(row.last_active_at) }}</span>
               </div>
             </template>
@@ -199,6 +282,19 @@ function contactStatusLabel(status: string | undefined): string {
               contactStatusLabel(row.contact?.contact_status)
             }}</template>
           </ElTableColumn>
+          <ElTableColumn label="微信号变更" min-width="110"
+            ><template #default="{ row }"
+              ><ElTag v-if="row.change_pending || row.contact?.change_pending" type="warning"
+                >待核对</ElTag
+              ><span v-else>—</span></template
+            ></ElTableColumn
+          >
+          <ElTableColumn prop="open_scene_completed_count" label="开放完成" min-width="95" />
+          <ElTableColumn label="反馈摘要" min-width="110"
+            ><template #default="{ row }"
+              >待处理 {{ row.open_feedback_count }}</template
+            ></ElTableColumn
+          >
           <ElTableColumn label="权益" min-width="150">
             <template #default="{ row }">
               正式 {{ row.formal_entitlement_count }} · 限时 {{ row.limited_entitlement_count }}
@@ -216,6 +312,19 @@ function contactStatusLabel(status: string | undefined): string {
             </template>
           </ElTableColumn>
         </DataTable>
+        <div class="pagination">
+          <ElButton
+            :disabled="page <= 1 || controller.state.value === 'loading'"
+            @click="loadPage(page - 1)"
+            >上一页</ElButton
+          >
+          <span>第 {{ page }} 页 · 每页 20 条</span>
+          <ElButton
+            :disabled="controller.users.value.length < 20 || controller.state.value === 'loading'"
+            @click="loadPage(page + 1)"
+            >下一页</ElButton
+          >
+        </div>
       </template>
 
       <template v-else>
@@ -284,6 +393,14 @@ function contactStatusLabel(status: string | undefined): string {
     margin: 5px 0 0;
     color: var(--juya-color-text-secondary);
     font-size: 12px;
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
   }
 
   .filters {

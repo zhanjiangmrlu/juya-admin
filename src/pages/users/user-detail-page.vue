@@ -14,6 +14,7 @@ import {
 import { useUserDetail } from '@/features/users/use-user-detail'
 import { createUserAdapter } from '@/features/users/user-adapter'
 import { getAccountStatusLabel, getAccountStatusTone } from '@/features/users/user-model'
+import UserRelatedRecords from '@/features/users/user-related-records.vue'
 import { createApiClient } from '@/services/api/api-client'
 
 import type { ContactStatus } from '@/features/contacts/contact-capabilities'
@@ -124,7 +125,9 @@ async function copyWechat(): Promise<void> {
       <div class="toolbar">
         <div>
           <span>A03</span>
-          <h2>用户详情 · {{ controller.detail.value.user_id }}</h2>
+          <h2>
+            用户详情 · {{ controller.detail.value.juya_number || controller.detail.value.user_id }}
+          </h2>
         </div>
         <RouterLink v-slot="{ navigate }" custom :to="{ name: 'users' }">
           <ElButton @click="navigate">返回用户列表</ElButton>
@@ -136,11 +139,14 @@ async function copyWechat(): Promise<void> {
           <ElCard shadow="never">
             <template #header><h3 class="panel-title">基本身份</h3></template>
             <div class="profile">
-              <span class="avatar"
+              <ElAvatar :src="controller.detail.value.avatar_url || undefined" :size="48"
                 ><ElIcon><UserFilled /></ElIcon
-              ></span>
+              ></ElAvatar>
               <div class="profile-copy">
-                <strong>{{ controller.detail.value.user_id }}</strong>
+                <strong>{{ controller.detail.value.nickname || '未设置昵称' }}</strong
+                ><span>{{
+                  controller.detail.value.juya_number || controller.detail.value.user_id
+                }}</span>
                 <StatusTag
                   :label="getAccountStatusLabel(controller.detail.value.account_status)"
                   :tone="getAccountStatusTone(controller.detail.value.account_status)"
@@ -220,6 +226,11 @@ async function copyWechat(): Promise<void> {
                   formatDateTime(controller.detail.value.contact?.verified_at ?? null)
                 }}</span
               >
+              <span
+                >最近联系方式变更：{{
+                  formatDateTime(controller.detail.value.contact_changed_at ?? null)
+                }}</span
+              >
               <span>核对管理员：{{ controller.detail.value.contact?.verified_by || '暂无' }}</span>
             </div>
           </template>
@@ -251,6 +262,7 @@ async function copyWechat(): Promise<void> {
           </div>
         </ElCard>
       </div>
+      <UserRelatedRecords :records="controller.detail.value.records ?? {}" />
     </template>
   </section>
 </template>

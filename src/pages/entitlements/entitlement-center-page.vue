@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import dayjs from 'dayjs'
 import { reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
@@ -12,12 +12,15 @@ import { createApiClient } from '@/services/api/api-client'
 import type { EntitlementFilters } from '@/features/entitlements/entitlement-query-adapter'
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 const filters = reactive<EntitlementFilters>({
   page: 1,
   userId: '',
-  type: undefined,
-  status: undefined
+  type:
+    route.query.type === 'LIMITED' || route.query.type === 'FORMAL' ? route.query.type : undefined,
+  status: typeof route.query.status === 'string' ? route.query.status : undefined,
+  expiry: route.query.expiry === 'EXPIRING' ? 'EXPIRING' : undefined
 })
 const controller = useEntitlementList(
   createEntitlementQueryAdapter(
@@ -37,7 +40,8 @@ const statusLabels: Record<string, string> = {
   PENDING: '待启动',
   START_EXPIRED: '启动过期',
   ENDED: '已结束',
-  REVOKED: '已撤销'
+  REVOKED: '已撤销',
+  EXPIRED: '已到期'
 }
 /**
  * 仅格式化服务端到期时间，不在前端推算权益状态。
@@ -92,12 +96,47 @@ void controller.load({ ...filters })
         /></ElSelect>
         <ElSelect v-model="filters.status" aria-label="权益状态" placeholder="全部状态" clearable
           ><ElOption
-            v-for="status in ['ACTIVE', 'PAUSED', 'PENDING', 'START_EXPIRED', 'ENDED', 'REVOKED']"
+            v-for="status in [
+              'ACTIVE',
+              'PAUSED',
+              'PENDING',
+              'START_EXPIRED',
+              'ENDED',
+              'REVOKED',
+              'EXPIRED'
+            ]"
             :key="status"
             :label="statusLabels[status]"
             :value="status"
         /></ElSelect>
+        <ElInput
+          v-model="filters.campaignVersionId"
+          aria-label="活动版本"
+          placeholder="活动版本编号"
+          clearable
+        />
+        <ElSelect v-model="filters.expiry" aria-label="临近期限" placeholder="全部期限" clearable>
+          <ElOption label="正式权益即将到期" value="EXPIRING" /><ElOption
+            label="限时学习24小时内结束"
+            value="ENDING"
+          /><ElOption label="待开始24小时内失效" value="START_EXPIRING" />
+        </ElSelect>
+        <ElDatePicker
+          v-model="filters.dateFrom"
+          type="date"
+          value-format="YYYY-MM-DD"
+          placeholder="授予开始日期"
+          aria-label="授予开始日期"
+        />
+        <ElDatePicker
+          v-model="filters.dateTo"
+          type="date"
+          value-format="YYYY-MM-DD"
+          placeholder="授予结束日期"
+          aria-label="授予结束日期"
+        />
         <ElButton native-type="submit" type="primary">查询</ElButton>
+        <RouterLink to="/settings">配置正式权益预警天数</RouterLink>
       </ElForm>
       <ElSkeleton
         v-if="controller.state.value === 'loading'"
@@ -124,7 +163,17 @@ void controller.load({ ...filters })
       <template v-else>
         <ElTable :data="controller.page.value.items" class="data-table" stripe>
           <ElTableColumn prop="id" label="权益编号" min-width="145" show-overflow-tooltip />
-          <ElTableColumn prop="userId" label="用户编号" min-width="125" show-overflow-tooltip />
+          <ElTableColumn label="用户 / 句芽编号" min-width="160"
+            ><template #default="{ row }"
+              >{{ row.nickname || '未设置昵称' }} · {{ row.juyaNumber || row.userId }}</template
+            ></ElTableColumn
+          >
+          <ElTableColumn label="微信号 / 联系状态" min-width="170"
+            ><template #default="{ row }"
+              >{{ row.contactDegraded ? '联系资料暂不可用' : row.wechatId || '未填写' }} ·
+              {{ row.contactStatus }}</template
+            ></ElTableColumn
+          >
           <ElTableColumn label="类型" width="90"
             ><template #default="scope">{{
               scope.row.type === 'FORMAL' ? '正式包' : '限时包'
@@ -137,7 +186,28 @@ void controller.load({ ...filters })
           >
           <ElTableColumn label="内容包 / 活动" min-width="145" show-overflow-tooltip
             ><template #default="scope">{{
-              scope.row.packageId ?? scope.row.campaignId ?? '—'
+              scope.row.contentName || scope.row.packageId || scope.row.campaignId || '—'
+            }}</template></ElTableColumn
+          >
+          <ElTableColumn label="活动版本" min-width="130"
+            ><template #default="{ row }"
+              >{{ row.campaignVersionNo ? `第 ${row.campaignVersionNo} 版` : '—'
+              }}<span v-if="row.campaignVersionId"> · {{ row.campaignVersionId }}</span></template
+            ></ElTableColumn
+          >
+          <ElTableColumn label="期限档位" min-width="110"
+            ><template #default="{ row }">{{
+              row.term === 'permanent' ? '永久' : row.term
+            }}</template></ElTableColumn
+          >
+          <ElTableColumn label="生效时间" min-width="150"
+            ><template #default="{ row }">{{
+              row.effectiveAt ? displayTime(row.effectiveAt) : '尚未开始'
+            }}</template></ElTableColumn
+          >
+          <ElTableColumn label="启动期限" min-width="150"
+            ><template #default="{ row }">{{
+              row.startDeadline ? displayTime(row.startDeadline) : '—'
             }}</template></ElTableColumn
           >
           <ElTableColumn prop="expiresAt" label="到期时间" min-width="150"
@@ -200,8 +270,9 @@ void controller.load({ ...filters })
   .actions,
   .filters {
     display: flex;
-    gap: 10px;
     flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
   }
 
   .filters {

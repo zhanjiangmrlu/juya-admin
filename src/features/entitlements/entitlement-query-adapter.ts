@@ -1,7 +1,21 @@
 import type { ApiClient } from '@/services/api/api-client'
 import type { components } from '@/shared/contracts/generated/admin-api'
 
-type EntitlementPageDto = components['schemas']['EntitlementPageResponse']
+type EntitlementPageDto = Omit<components['schemas']['EntitlementPageResponse'], 'items'> & {
+  items: (components['schemas']['EntitlementListItemResponse'] & {
+    juya_number?: string
+    nickname?: string | null
+    wechat_id?: string | null
+    contact_status?: string
+    contact_degraded?: boolean
+    content_name?: string
+    campaign_version_id?: string | null
+    campaign_version_no?: number | null
+    term?: string | null
+    effective_at?: string | null
+    start_deadline?: string | null
+  })[]
+}
 type FormalDetailDto = components['schemas']['FormalEntitlementDetailResponse']
 type LimitedDetailDto = components['schemas']['LimitedEntitlementDetailResponse']
 type PackagePageDto = components['schemas']['PackagePageResponse']
@@ -21,6 +35,17 @@ export interface EntitlementRow {
   expiresAt: string | null
   packageId: string | null
   campaignId: string | null
+  juyaNumber?: string
+  nickname?: string | null
+  wechatId?: string | null
+  contactStatus?: string
+  contactDegraded?: boolean
+  contentName?: string
+  campaignVersionId?: string | null
+  campaignVersionNo?: number | null
+  term?: string | null
+  effectiveAt?: string | null
+  startDeadline?: string | null
 }
 export interface ContentPackage {
   id: string
@@ -66,6 +91,10 @@ export interface EntitlementFilters {
   status?: string
   packageId?: string
   campaignId?: string
+  campaignVersionId?: string
+  expiry?: 'EXPIRING' | 'ENDING' | 'START_EXPIRING'
+  dateFrom?: string
+  dateTo?: string
 }
 export interface EntitlementQueryAdapter {
   list(filters: EntitlementFilters): Promise<Page<EntitlementRow>>
@@ -92,6 +121,10 @@ export function createEntitlementQueryAdapter(client: ApiClient): EntitlementQue
           ...(filters.type ? { type: filters.type } : {}),
           ...(filters.status ? { status: filters.status } : {}),
           ...(filters.packageId ? { package_id: filters.packageId } : {}),
+          ...(filters.campaignVersionId ? { campaign_version_id: filters.campaignVersionId } : {}),
+          ...(filters.expiry ? { expiry: filters.expiry } : {}),
+          ...(filters.dateFrom ? { date_from: filters.dateFrom } : {}),
+          ...(filters.dateTo ? { date_to: filters.dateTo } : {}),
           ...(filters.campaignId ? { campaign_id: filters.campaignId } : {})
         }
       })
@@ -104,7 +137,18 @@ export function createEntitlementQueryAdapter(client: ApiClient): EntitlementQue
           grantedAt: item.granted_at,
           expiresAt: item.expires_at,
           packageId: item.package_id,
-          campaignId: item.campaign_id
+          campaignId: item.campaign_id,
+          juyaNumber: item.juya_number,
+          nickname: item.nickname,
+          wechatId: item.wechat_id,
+          contactStatus: item.contact_status,
+          contactDegraded: item.contact_degraded,
+          contentName: item.content_name,
+          campaignVersionId: item.campaign_version_id,
+          campaignVersionNo: item.campaign_version_no,
+          term: item.term,
+          effectiveAt: item.effective_at,
+          startDeadline: item.start_deadline
         })),
         page: dto.page,
         pageSize: dto.page_size,

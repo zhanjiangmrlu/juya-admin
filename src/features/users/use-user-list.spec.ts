@@ -89,7 +89,8 @@ describe('useUserList', () => {
     expect(adapter.searchUsers).toHaveBeenCalledWith(
       undefined,
       'UNREACHABLE',
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
+      undefined
     )
     expect(router.currentRoute.value.query).toEqual({ contact_status: 'UNREACHABLE' })
   })

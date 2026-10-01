@@ -48,6 +48,7 @@ const categoryLabels: Record<FeedbackCategory, string> = {
   PRONUNCIATION: '发音问题'
 }
 const slaLabels: Record<FeedbackSlaState, string> = {
+  URGENT: '紧急待办',
   COMPLETED: '已结束',
   DUE_SOON: '即将超时',
   ON_TRACK: '时限正常',
@@ -222,11 +223,41 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
           </template>
         </ElTableColumn>
         <ElTableColumn prop="userId" label="用户编号" min-width="112" show-overflow-tooltip />
-        <ElTableColumn label="反馈内容" min-width="210">
+        <ElTableColumn label="反馈标题 / 说明" min-width="210">
           <template #default="scope">
-            <PlainTextContent class="description-cell" :content="scope.row.description" />
+            <strong>{{ scope.row.title }}</strong>
+            <PlainTextContent
+              v-if="scope.row.description !== scope.row.title"
+              class="description-cell"
+              :content="scope.row.description"
+            />
           </template>
         </ElTableColumn>
+        <ElTableColumn label="自动来源" min-width="180"
+          ><template #default="{ row }"
+            >{{ row.source?.page || '未记录页面' }} ·
+            {{ row.source?.scene_id || row.source?.sceneId || '未关联场景' }}</template
+          ></ElTableColumn
+        >
+        <ElTableColumn label="截图状态" min-width="100"
+          ><template #default="{ row }">{{
+            row.screenshotStatus === 'NONE'
+              ? '未附截图'
+              : row.screenshotStatus === 'DELETED'
+                ? '已删除'
+                : row.screenshotStatus
+          }}</template></ElTableColumn
+        >
+        <ElTableColumn label="提交时间" min-width="150"
+          ><template #default="{ row }">{{
+            dayjs(row.createdAt).format('YYYY-MM-DD HH:mm')
+          }}</template></ElTableColumn
+        >
+        <ElTableColumn label="最近补充时间" min-width="150"
+          ><template #default="{ row }">{{
+            row.suppliedAt ? dayjs(row.suppliedAt).format('YYYY-MM-DD HH:mm') : '未补充'
+          }}</template></ElTableColumn
+        >
         <ElTableColumn label="分类" width="96">
           <template #default="scope">{{
             categoryLabels[scope.row.category as FeedbackCategory]
