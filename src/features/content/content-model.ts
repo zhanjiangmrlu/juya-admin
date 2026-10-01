@@ -2,6 +2,7 @@ export type SceneStatus = 'DRAFT' | 'OFFLINE' | 'PUBLISHED'
 export type SceneOperation = 'CREATE_REVISION' | 'EDIT' | 'OFFLINE' | 'PUBLISH_CHECK'
 
 export interface SceneSummary {
+  templateType?: 'dialogue' | 'vocabulary'
   coverObjectKey: null | string
   draftRevisionId: null | string
   id: string

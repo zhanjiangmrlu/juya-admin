@@ -1,6 +1,7 @@
 import { createIdempotencyKey } from '@/services/api/api-client'
 
 import type { OcrCandidate, OcrJob } from './ocr-model'
+import type { OcrSuggestions } from './ocr-suggestions'
 import type { ApiClient } from '@/services/api/api-client'
 import type { components } from '@/shared/contracts/generated/admin-api'
 
@@ -13,8 +14,10 @@ export interface OcrAdapter {
     seriesId: string,
     sceneId: string,
     revisionId: string,
-    idempotencyKey?: string
+    idempotencyKey?: string,
+    templateType?: 'dialogue' | 'vocabulary'
   ): Promise<OcrJob>
+  getSuggestions(revisionId: string, jobId: string): Promise<OcrSuggestions>
   getQuota(): Promise<OcrQuota>
   updateSettings(
     input: {
@@ -55,7 +58,8 @@ export function createOcrAdapter(client: ApiClient): OcrAdapter {
       seriesId,
       sceneId,
       revisionId,
-      idempotencyKey = createIdempotencyKey()
+      idempotencyKey = createIdempotencyKey(),
+      templateType = 'dialogue'
     ) {
       return mapJob(
         await client.request<JobDto>({
@@ -64,13 +68,19 @@ export function createOcrAdapter(client: ApiClient): OcrAdapter {
           body: {
             asset_id: assetId,
             series_id: seriesId,
-            template_id: 'dialogue',
+            template_id: templateType,
             scene_id: sceneId,
             revision_id: revisionId
           },
           idempotencyKey
         })
       )
+    },
+    async getSuggestions(revisionId, jobId) {
+      return client.request<OcrSuggestions>({
+        method: 'GET',
+        path: `/api/v1/admin/content/revisions/${encodeURIComponent(revisionId)}/ocr-suggestions/${encodeURIComponent(jobId)}`
+      })
     },
     async getQuota() {
       return client.request<OcrQuota>({ method: 'GET', path: '/api/v1/admin/media/ocr/quota' })

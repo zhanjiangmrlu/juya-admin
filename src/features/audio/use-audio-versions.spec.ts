@@ -3,6 +3,51 @@ import { describe, expect, it, vi } from 'vitest'
 import { useAudioVersions } from './use-audio-versions'
 
 describe('audio versions controller', () => {
+  it('maps all 300 files independently and bounds simultaneous uploads', async () => {
+    const targets = Array.from({ length: 300 }, (_, index) => ({
+      id: `T-${index}`,
+      stableKey: `stable-${index}`,
+      targetType: 'vocabulary',
+      activeVersionId: null
+    }))
+    let active = 0
+    let maximum = 0
+    const adapter = {
+      confirmVersion: vi.fn(),
+      generate: vi.fn(),
+      listTargets: vi.fn(async () => targets),
+      listVersions: vi.fn(async () => []),
+      rollback: vi.fn(),
+      uploadVersion: vi.fn(),
+      uploadFile: vi.fn(async (targetId: string) => {
+        active++
+        maximum = Math.max(maximum, active)
+        await Promise.resolve()
+        await Promise.resolve()
+        active--
+        return {
+          id: `version-${targetId}`,
+          targetId,
+          assetId: 'asset',
+          versionNo: 1,
+          source: 'MANUAL',
+          status: 'CANDIDATE',
+          createdAt: ''
+        }
+      })
+    }
+    const controller = useAudioVersions(adapter, 'scene')
+    await controller.load()
+    const items = controller.addUploads(
+      targets.map((target) => new File(['a'], `${target.stableKey}.wav`))
+    )
+    expect(items.map((item) => item.targetId)).toEqual(targets.map((target) => target.id))
+    expect(() => controller.addUploads([new File(['a'], 'extra.wav')])).toThrow('300')
+    await controller.startAllUploads()
+    expect(adapter.uploadFile).toHaveBeenCalledTimes(300)
+    expect(maximum).toBeLessThanOrEqual(3)
+    expect(controller.uploads.value.every((item) => item.status === 'completed')).toBe(true)
+  })
   it('loads targets and versions and refreshes after rollback', async () => {
     const target = {
       activeVersionId: 'V-2',
@@ -60,7 +105,7 @@ describe('audio versions controller', () => {
     }
     const controller = useAudioVersions(adapter, 'SCENE-1')
     await controller.load()
-    const item = controller.addUploads([new File(['a'], 'a.mp3', { type: 'audio/mpeg' })])[0]!
+    const item = controller.addUploads([new File(['a'], 'S-1.mp3', { type: 'audio/mpeg' })])[0]!
 
     await controller.startUpload(item.id)
     await controller.startUpload(item.id)
@@ -96,7 +141,7 @@ describe('audio versions controller', () => {
     }
     const controller = useAudioVersions(adapter, 'SCENE-1')
     await controller.load()
-    const item = controller.addUploads([new File(['a'], 'a.mp3', { type: 'audio/mpeg' })])[0]!
+    const item = controller.addUploads([new File(['a'], 'S-1.mp3', { type: 'audio/mpeg' })])[0]!
 
     await controller.selectTarget('T-2')
     await controller.startUpload(item.id)
@@ -109,6 +154,22 @@ describe('audio versions controller', () => {
       expect.any(AbortSignal)
     )
     expect(controller.selectedTarget.value?.id).toBe('T-2')
+    const unmatched = controller.addUploads([new File(['b'], 'unknown.wav')])[0]!
+    await controller.startUpload(unmatched.id)
+    expect(adapter.uploadFile).toHaveBeenCalledTimes(1)
+    expect(controller.uploads.value[1]?.error).toContain('未匹配')
+    controller.assignUploadTarget(unmatched.id, 'T-2')
+    await controller.startUpload(unmatched.id)
+    expect(adapter.uploadFile).toHaveBeenLastCalledWith(
+      'T-2',
+      expect.any(File),
+      expect.any(String),
+      expect.any(Function),
+      expect.any(AbortSignal)
+    )
+    const skipped = controller.addUploads([new File(['c'], 'skip.wav')])[0]!
+    controller.removeUpload(skipped.id)
+    expect(controller.uploads.value.some((candidate) => candidate.id === skipped.id)).toBe(false)
   })
 
   it('reuses a generation key after failure and rotates it after success', async () => {

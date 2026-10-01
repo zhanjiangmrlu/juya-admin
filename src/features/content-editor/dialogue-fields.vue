@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import type { DialogueRow, SceneAudio } from './scene-form'
+import type { createSegmentPlayer } from '@/features/audio/segment-player'
 
 import { createDialogueRow } from './scene-form'
 
 const rows = defineModel<DialogueRow[]>({ required: true })
-const props = defineProps<{ audio?: SceneAudio | null; timing?: boolean }>()
-const emit = defineEmits<{ play: [row: DialogueRow] }>()
+const props = defineProps<{
+  audio?: SceneAudio | null
+  timing?: boolean
+  canRecord?: boolean
+  playback?: ReturnType<typeof createSegmentPlayer> | null
+}>()
+const emit = defineEmits<{
+  play: [row: DialogueRow]
+  record: [row: DialogueRow, edge: 'start_ms' | 'end_ms']
+}>()
 /** 移动句子而保留稳定编号。
  * @param index - 当前序号
  * @param offset - 移动方向
@@ -68,6 +77,7 @@ function invalidate(row: DialogueRow): void {
               :min="0"
               :max="audio?.duration_ms"
               :precision="0"
+              :step="10"
               @change="invalidate(row)"
           /></ElFormItem>
           <ElFormItem label="结束毫秒"
@@ -77,9 +87,14 @@ function invalidate(row: DialogueRow): void {
               :min="0"
               :max="audio?.duration_ms"
               :precision="0"
+              :step="10"
               @change="invalidate(row)"
           /></ElFormItem>
-          <ElCheckbox
+          <ElButton :disabled="!audio || !canRecord" @click="emit('record', row, 'start_ms')"
+            >记录本句开始</ElButton
+          ><ElButton :disabled="!audio || !canRecord" @click="emit('record', row, 'end_ms')"
+            >记录本句结束</ElButton
+          ><ElCheckbox
             v-model="row.timing_confirmed"
             :disabled="
               !audio || row.start_ms === null || row.end_ms === null || row.end_ms <= row.start_ms
@@ -92,7 +107,7 @@ function invalidate(row: DialogueRow): void {
               !audio || row.start_ms === null || row.end_ms === null || row.end_ms <= row.start_ms
             "
             @click="emit('play', row)"
-            >试听此句</ElButton
+            >{{ playback?.label(row.id) ?? '试听' }}此句</ElButton
           >
         </div>
       </ElForm>

@@ -5,11 +5,14 @@ import type { LexiconRow, SceneContent } from '@/features/content-editor/scene-f
 import type { ApiClient } from '@/services/api/api-client'
 import type { components } from '@/shared/contracts/generated/admin-api'
 
-type SceneDto = components['schemas']['SceneResponse']
+type SceneDto = components['schemas']['SceneResponse'] & {
+  template_type?: 'dialogue' | 'vocabulary'
+}
 type ScenePageDto = components['schemas']['ScenePageResponse']
 type RevisionDto = components['schemas']['RevisionResponse']
 
 export interface ContentAdapter {
+  listRevisionHistory(sceneId: string, page: number): Promise<RevisionHistoryPage>
   listSeries(): Promise<ContentSeries[]>
   createSeries(title: string, slug: string, idempotencyKey?: string): Promise<ContentSeries>
   createScene(
@@ -49,6 +52,24 @@ export interface ContentSeries {
   cover_asset_id: string | null
 }
 
+/** 手写历史查询契约；共享 OpenAPI 和生成类型由统一整合更新。 */
+export interface RevisionHistoryPage {
+  items: {
+    id: string
+    version_no: number
+    edit_version: number
+    status: string
+    source_revision_id: string | null
+    title_en: string
+    created_at: string | null
+    created_by: string
+    is_current: boolean
+  }[]
+  page: number
+  page_size: number
+  total: number
+}
+
 /**
  * 创建内容目录与版本编辑适配器
  *
@@ -57,6 +78,13 @@ export interface ContentSeries {
  */
 export function createContentAdapter(client: ApiClient): ContentAdapter {
   return {
+    async listRevisionHistory(sceneId, page) {
+      return client.request<RevisionHistoryPage>({
+        method: 'GET',
+        path: `/api/v1/admin/content/scenes/${encodeURIComponent(sceneId)}/revisions`,
+        query: { page, page_size: 20 }
+      })
+    },
     async listSeries() {
       const result = await client.request<{ items: ContentSeries[] }>({
         method: 'GET',
@@ -187,6 +215,7 @@ export function createContentAdapter(client: ApiClient): ContentAdapter {
  */
 function mapScene(source: SceneDto): SceneSummary {
   return {
+    templateType: source.template_type ?? 'dialogue',
     coverObjectKey: source.cover_object_key,
     draftRevisionId: source.draft_revision_id,
     id: source.id,

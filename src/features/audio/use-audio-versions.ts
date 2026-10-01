@@ -8,6 +8,7 @@ import type { AudioTarget, AudioVersion } from './audio-version-model'
 import type { DeepReadonly, Ref } from 'vue'
 
 import { validateAudioBatch } from './audio-version-model'
+import { matchAudioTarget } from './upload-target-matcher'
 
 export interface AudioUploadItem {
   error: null | string
@@ -16,11 +17,13 @@ export interface AudioUploadItem {
   idempotencyKey: string
   progress: number
   status: 'cancelled' | 'completed' | 'failed' | 'queued' | 'uploading'
-  targetId: string
+  targetId: string | null
 }
 
 export interface AudioVersionsController {
   addUploads(files: readonly File[]): AudioUploadItem[]
+  assignUploadTarget(itemId: string, targetId: string | null): void
+  removeUpload(itemId: string): void
   cancelUpload(itemId: string): void
   confirm(versionId: string): Promise<void>
   error: Readonly<Ref<null | string>>
@@ -131,7 +134,6 @@ export function useAudioVersions(adapter: AudioAdapter, sceneId: string): AudioV
    * @returns 新增队列项
    */
   function addUploads(files: readonly File[]): AudioUploadItem[] {
-    const target = requireTarget()
     const validation = validateAudioBatch([...uploads.value.map((item) => item.file), ...files])
     if (!validation.valid) throw new Error(validation.message)
     const nextItems = files.map((file) => ({
@@ -141,10 +143,31 @@ export function useAudioVersions(adapter: AudioAdapter, sceneId: string): AudioV
       idempotencyKey: createIdempotencyKey(),
       progress: 0,
       status: 'queued' as const,
-      targetId: target.id
+      targetId: matchAudioTarget(file.name, targets.value)
     }))
     uploads.value.push(...nextItems)
     return nextItems
+  }
+
+  /**
+   * 只有尚未提交的项可重新匹配，避免丢失响应后同一素材产生不同目标副作用。
+   * @param itemId - 上传队列项编号
+   * @param targetId - 明确匹配的稳定目标编号
+   */
+  function assignUploadTarget(itemId: string, targetId: string | null): void {
+    const item = uploads.value.find((candidate) => candidate.id === itemId)
+    if (!item || item.status !== 'queued') return
+    if (targetId !== null && !targets.value.some((target) => target.id === targetId))
+      throw new Error('音频目标不存在')
+    item.targetId = targetId
+    item.error = null
+  }
+
+  /** 移除尚未提交的文件，不丢弃已经发出的幂等命令。
+   * @param itemId - 未提交的队列项编号
+   */
+  function removeUpload(itemId: string): void {
+    uploads.value = uploads.value.filter((item) => item.id !== itemId || item.status !== 'queued')
   }
 
   /**
@@ -154,6 +177,10 @@ export function useAudioVersions(adapter: AudioAdapter, sceneId: string): AudioV
   async function startUpload(itemId: string): Promise<void> {
     const item = uploads.value.find((candidate) => candidate.id === itemId)
     if (!item || item.status === 'uploading' || item.status === 'completed') return
+    if (!item.targetId) {
+      item.error = '未匹配文件，请先指定稳定目标'
+      return
+    }
     const abortController = new AbortController()
     uploadAbortControllers.set(item.id, abortController)
     item.status = 'uploading'
@@ -192,10 +219,17 @@ export function useAudioVersions(adapter: AudioAdapter, sceneId: string): AudioV
 
   /** 上传所有尚未完成的队列项，并隔离单项失败。 */
   async function startAllUploads(): Promise<void> {
+    const pending = uploads.value.filter((item) =>
+      ['cancelled', 'failed', 'queued'].includes(item.status)
+    )
+    let next = 0
     await Promise.allSettled(
-      uploads.value
-        .filter((item) => ['cancelled', 'failed', 'queued'].includes(item.status))
-        .map((item) => startUpload(item.id))
+      Array.from({ length: Math.min(3, pending.length) }, async () => {
+        while (next < pending.length) {
+          const item = pending[next++]
+          if (item) await startUpload(item.id)
+        }
+      })
     )
   }
 
@@ -326,11 +360,13 @@ export function useAudioVersions(adapter: AudioAdapter, sceneId: string): AudioV
 
   return {
     addUploads,
+    assignUploadTarget,
     cancelUpload,
     confirm,
     error: readonly(error),
     generate,
     load,
+    removeUpload,
     rollback,
     selectTarget,
     selectedTarget: readonly(selectedTarget),

@@ -5,6 +5,23 @@ import { createApiClient } from '@/services/api/api-client'
 import { createOcrAdapter } from './ocr-adapter'
 
 describe('ocr adapter', () => {
+  it('sends the actual vocabulary template without changing the command key', async () => {
+    const request = vi.fn().mockResolvedValue({ id: 'job', status: 'PENDING' })
+    await createOcrAdapter({ request }).createJob(
+      'image',
+      'series',
+      'scene',
+      'revision',
+      'key',
+      'vocabulary'
+    )
+    expect(request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({ template_id: 'vocabulary' }),
+        idempotencyKey: 'key'
+      })
+    )
+  })
   it('reuses the supplied OCR creation key after a lost response for the same input', async () => {
     const request = vi
       .fn()

@@ -4,12 +4,15 @@ import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { createContentAdapter } from '@/features/content/content-adapter'
+import SceneHistory from '@/features/content-editor/scene-history.vue'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 import type { ContentSeries } from '@/features/content/content-adapter'
 import type { SceneFilters, SceneStatus, SceneSummary } from '@/features/content/content-model'
 
+const historySceneId = ref('')
+const historyOpened = ref(false)
 const router = useRouter()
 const adapter = createContentAdapter(useAdminApiClient())
 const filterStorageKey = 'juya.content-list.filters.v1'
@@ -31,6 +34,13 @@ const newScene = reactive({
   seriesSlug: ''
 })
 
+/** 打开指定场景的完整历史列表。
+ * @param id - 稳定场景编号
+ */
+function openHistory(id: string): void {
+  historySceneId.value = id
+  historyOpened.value = true
+}
 /** 加载系列目录并打开新建场景表单。 */
 async function openCreate(): Promise<void> {
   try {
@@ -289,7 +299,8 @@ onMounted(loadScenes)
                 "
                 >检查发布</ElButton
               >
-              <ElButton v-if="row.status === 'PUBLISHED'" link type="danger" @click="offline(row)"
+              <ElButton link @click="openHistory(row.id)">完整版本历史</ElButton
+              ><ElButton v-if="row.status === 'PUBLISHED'" link type="danger" @click="offline(row)"
                 >下线</ElButton
               >
             </template></ElTableColumn
@@ -340,6 +351,7 @@ onMounted(loadScenes)
         ></template
       ></ElDialog
     >
+    <SceneHistory v-model="historyOpened" :scene-id="historySceneId" />
   </section>
 </template>
 

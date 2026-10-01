@@ -53,6 +53,19 @@ export function createSceneMediaAdapter(client: ApiClient) {
         path: `/api/v1/admin/media/assets/${encodeURIComponent(assetId)}/signed-url`
       })
     },
+    async createEntryAudioTarget(entryId: string, entryType: 'vocabulary' | 'chunk') {
+      return client.request<{
+        id: string
+        stable_key: string
+        target_type: string
+        active_version_id: string | null
+      }>({
+        method: 'POST',
+        path: '/api/v1/admin/media/audio-targets',
+        idempotencyKey: `lexicon-audio-${entryId}`,
+        body: { stable_key: entryId, target_type: entryType }
+      })
+    },
     async createSceneAudioTarget(sceneId: string) {
       return client.request<{
         id: string

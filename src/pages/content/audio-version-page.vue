@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { createAudioAdapter } from '@/features/audio/audio-adapter'
@@ -20,11 +20,11 @@ const selectedTargetId = ref('')
 const busy = computed(() => state.value === 'loading' || state.value === 'saving')
 const media = createSceneMediaAdapter(useAdminApiClient())
 const audioElement = ref<AudioElement | null>(null)
-let player: ReturnType<typeof createSegmentPlayer> | null = null
+const player = shallowRef<ReturnType<typeof createSegmentPlayer> | null>(null)
 let previewGeneration = 0
 
 onMounted(async () => {
-  if (audioElement.value) player = createSegmentPlayer(audioElement.value)
+  if (audioElement.value) player.value = createSegmentPlayer(audioElement.value)
   try {
     await controller.load()
     selectedTargetId.value = selectedTarget.value?.id ?? ''
@@ -39,7 +39,7 @@ onMounted(async () => {
  */
 async function selectTarget(value: string): Promise<void> {
   previewGeneration++
-  player?.stop()
+  player.value?.stop()
   try {
     await controller.selectTarget(value)
   } catch {
@@ -52,17 +52,21 @@ async function selectTarget(value: string): Promise<void> {
  */
 async function listen(versionId: string, assetId: string): Promise<void> {
   const current = ++previewGeneration
-  player?.stop()
   try {
+    if (player.value?.activeId.value === versionId && player.value.status.value !== 'error') {
+      await player.value.play(versionId, audioElement.value?.getAttribute('src') ?? '')
+      return
+    }
+    player.value?.stop()
     const signed = await media.signedUrl(assetId)
-    if (current === previewGeneration) await player?.play(versionId, signed.url)
+    if (current === previewGeneration) await player.value?.play(versionId, signed.url)
   } catch (failure) {
     ElMessage.error(failure instanceof Error ? failure.message : '音频试听失败')
   }
 }
 onBeforeUnmount(() => {
   previewGeneration++
-  player?.dispose()
+  player.value?.dispose()
 })
 
 /**
@@ -119,6 +123,9 @@ async function rollbackVersion(versionId: string): Promise<void> {
       </div>
       <ElTag type="info">单批最多 300 个</ElTag>
     </div>
+    <p>
+      确认与回退维护音频目标版本；已发布场景仍固定原音频，需在场景草稿中绑定并检查发布完整版本。
+    </p>
     <ElAlert v-if="error" :closable="false" :title="error" type="error" show-icon />
     <div class="audio-grid">
       <ElCard shadow="never">
@@ -159,14 +166,29 @@ async function rollbackVersion(versionId: string): Promise<void> {
         >
           <ElButton :disabled="busy || !selectedTarget">选择音频文件</ElButton>
         </ElUpload>
+        <p>文件名（不含扩展名）精确匹配稳定编号或目标编号；未匹配项请逐项选择目标。</p>
         <div v-if="uploads.length" class="upload-queue">
           <div v-for="item in uploads" :key="item.id" class="upload-item">
             <div>
               <strong>{{ item.file.name }}</strong>
-              <small>{{ item.status }} · {{ item.progress }}%</small>
+              <ElSelect
+                :model-value="item.targetId"
+                :disabled="item.status !== 'queued'"
+                clearable
+                placeholder="未匹配，请选择稳定目标"
+                @change="controller.assignUploadTarget(item.id, $event || null)"
+                ><ElOption
+                  v-for="target in targets"
+                  :key="target.id"
+                  :label="`${target.stableKey} · ${target.targetType}`"
+                  :value="target.id" /></ElSelect
+              ><small>{{ item.status }} · {{ item.progress }}%</small>
               <ElProgress :percentage="item.progress" :show-text="false" />
               <small v-if="item.error" class="upload-error">{{ item.error }}</small>
             </div>
+            <ElButton v-if="item.status === 'queued'" link @click="controller.removeUpload(item.id)"
+              >移出队列</ElButton
+            >
             <ElButton
               v-if="item.status === 'uploading'"
               link
@@ -196,7 +218,9 @@ async function rollbackVersion(versionId: string): Promise<void> {
           <ElTableColumn label="素材编号" prop="assetId" min-width="150" />
           <ElTableColumn label="操作" width="170">
             <template #default="{ row }">
-              <ElButton link @click="listen(row.id, row.assetId)">试听</ElButton>
+              <ElButton link @click="listen(row.id, row.assetId)">{{
+                player?.label(row.id) ?? '试听'
+              }}</ElButton>
               <ElButton
                 v-if="row.status === 'CANDIDATE'"
                 link
@@ -215,6 +239,7 @@ async function rollbackVersion(versionId: string): Promise<void> {
         </ElTable>
       </ElCard>
     </div>
+    <p aria-live="polite">{{ player?.statusText.value }} · {{ player?.error.value }}</p>
     <audio ref="audioElement" controls preload="metadata" />
   </section>
 </template>

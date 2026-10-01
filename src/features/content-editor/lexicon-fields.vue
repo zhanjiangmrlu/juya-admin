@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { createContentAdapter } from '@/features/content/content-adapter'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 import type { DialogueRow, LexiconRow } from './scene-form'
 
+import LexiconMediaFields from './lexicon-media-fields.vue'
 import { createLexiconRow } from './scene-form'
 
 const rows = defineModel<LexiconRow[]>({ required: true })
@@ -14,11 +15,36 @@ const props = defineProps<{
   entryType: 'vocabulary' | 'chunk'
   sentences: DialogueRow[]
   candidate?: boolean
+  originalImageAssetId?: string | null
 }>()
 const adapter = createContentAdapter(useAdminApiClient())
 const query = ref('')
 const results = ref<LexiconRow[]>([])
 const busy = ref(false)
+const emit = defineEmits<{ busy: [value: boolean] }>()
+const rowKeys = new WeakMap<LexiconRow, number>()
+let nextRowKey = 0
+const mediaRows = ref(new Set<LexiconRow>())
+watch(
+  computed(() => mediaRows.value.size > 0),
+  (value) => emit('busy', value)
+)
+/** 保持词库登记前后相同的编辑行身份。
+ * @param row - 编辑中的条目
+ * @returns 稳定界面编号
+ */
+function rowKey(row: LexiconRow): number {
+  if (!rowKeys.has(row)) rowKeys.set(row, ++nextRowKey)
+  return rowKeys.get(row)!
+}
+/** 保护正在执行的素材操作。
+ * @param row - 编辑中的条目
+ * @param value - 是否处理中
+ */
+function setMediaBusy(row: LexiconRow, value: boolean): void {
+  if (value) mediaRows.value.add(row)
+  else mediaRows.value.delete(row)
+}
 /** 查询全局词库。 */
 async function search(): Promise<void> {
   busy.value = true
@@ -41,12 +67,15 @@ function add(entry: LexiconRow): void {
  */
 async function saveEntry(index: number): Promise<void> {
   const entry = rows.value[index]
-  if (!entry || !entry.english.trim()) return
+  if (!entry || !entry.english.trim() || mediaRows.value.has(entry)) return
+  setMediaBusy(entry, true)
   try {
-    rows.value[index] = await adapter.saveLexicon(entry, props.entryType)
+    Object.assign(entry, await adapter.saveLexicon(entry, props.entryType))
     ElMessage.success('词库版本已保存，保存草稿后生效')
   } catch (failure) {
     ElMessage.error(failure instanceof Error ? failure.message : '词条保存失败')
+  } finally {
+    setMediaBusy(entry, false)
   }
 }
 </script>
@@ -71,13 +100,15 @@ async function saveEntry(index: number): Promise<void> {
       v-if="!rows.length"
       :description="entryType === 'chunk' ? '添加常用语块' : '添加核心词汇'"
     />
-    <div v-for="(row, index) in rows" :key="`${index}:${row.entry_id}`" class="entry-row">
+    <div v-for="(row, index) in rows" :key="rowKey(row)" class="entry-row">
       <div class="row-heading">
         <strong>{{ entryType === 'chunk' ? '语块' : '词汇' }} {{ index + 1 }}</strong
         ><small>{{ row.entry_id || '保存草稿时自动登记词库' }} · v{{ row.entry_version }}</small
-        ><ElButton link type="danger" @click="rows.splice(index, 1)">删除条目</ElButton>
+        ><ElButton link type="danger" :disabled="mediaRows.has(row)" @click="rows.splice(index, 1)"
+          >删除条目</ElButton
+        >
       </div>
-      <ElForm label-position="top" class="entry-form">
+      <ElForm label-position="top" class="entry-form" :disabled="mediaRows.has(row)">
         <ElFormItem label="英文"
           ><ElInput v-model="row.english" :aria-label="`${entryType} 英文 ${index + 1}`"
         /></ElFormItem>
@@ -123,7 +154,17 @@ async function saveEntry(index: number): Promise<void> {
           ><ElInput v-model="row.audio_version_id" clearable
         /></ElFormItem>
       </ElForm>
-      <ElButton v-if="!candidate" :disabled="!row.english.trim()" @click="saveEntry(index)"
+      <LexiconMediaFields
+        v-if="!candidate"
+        :entry="row"
+        :entry-type="entryType"
+        :original-image-asset-id="originalImageAssetId"
+        @update="Object.assign(row, $event)"
+        @busy="setMediaBusy(row, $event)"
+      /><ElButton
+        v-if="!candidate"
+        :disabled="!row.english.trim() || mediaRows.has(row)"
+        @click="saveEntry(index)"
         >保存到全局词库</ElButton
       >
     </div>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { createAudioAdapter } from '@/features/audio/audio-adapter'
@@ -18,18 +18,21 @@ import {
   normalizeSceneContent,
   replaceSceneAudio
 } from '@/features/content-editor/scene-form'
+import SceneHistory from '@/features/content-editor/scene-history.vue'
 import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
 import ScenePreview from '@/features/content-editor/scene-preview.vue'
 import { createOcrAdapter } from '@/features/ocr/ocr-adapter'
+import OcrComparisonLines from '@/features/ocr/ocr-comparison-lines.vue'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 import type { AudioVersion } from '@/features/audio/audio-version-model'
 import type { AudioElement } from '@/features/audio/segment-player'
 import type { SceneRevision, SceneSummary } from '@/features/content/content-model'
-import type { DialogueRow } from '@/features/content-editor/scene-form'
+import type { DialogueRow, LexiconRow } from '@/features/content-editor/scene-form'
 import type { OcrQuota } from '@/features/ocr/ocr-adapter'
 import type { OcrJob } from '@/features/ocr/ocr-model'
+import type { OcrGroup, OcrSuggestions } from '@/features/ocr/ocr-suggestions'
 import type { UploadFile } from 'element-plus'
 
 const route = useRoute()
@@ -48,6 +51,8 @@ const candidate = reactive(normalizeSceneContent({}))
 const state = ref<'error' | 'loading' | 'ready' | 'saving'>('loading')
 const error = ref('')
 const mediaBusy = ref(false)
+const lexiconBusy = reactive({ vocabulary: false, chunks: false })
+const assetsBusy = computed(() => mediaBusy.value || lexiconBusy.vocabulary || lexiconBusy.chunks)
 const imageUrl = ref('')
 const audioVersions = ref<AudioVersion[]>([])
 const audioTargetId = ref('')
@@ -57,6 +62,7 @@ let pendingAudioKey = ''
 let pendingAudioVersion: AudioVersion | null = null
 let pendingAudioConfirmKey = ''
 const showPreview = ref(false)
+const historyOpened = ref(false)
 const quota = ref<OcrQuota | null>(null)
 const job = ref<OcrJob | null>(null)
 const ocrBusy = ref(false)
@@ -64,18 +70,22 @@ let pendingOcrKey: string | null = null
 let pendingOcrContext: string | null = null
 const candidateReady = ref(false)
 const rawLines = ref<string[]>([])
+const suggestions = ref<OcrSuggestions | null>(null)
+const acceptedGroups = ref<string[]>([])
 const selectedFields = ref<string[]>([])
+const assignedLines = new Map<string, DialogueRow | LexiconRow>()
 const currentVersion = computed(() => controller.value?.revision.value ?? 0)
 const hasConflict = computed(() => controller.value?.conflict.value ?? false)
 const audioElement = ref<AudioElement | null>(null)
-let player: ReturnType<typeof createSegmentPlayer> | null = null
+const player = shallowRef<ReturnType<typeof createSegmentPlayer> | null>(null)
+const audioUrl = ref('')
 let audioGeneration = 0
 
 /** 加载同一场景的当前草稿。 */
 async function load(): Promise<void> {
   state.value = 'loading'
   error.value = ''
-  player?.stop()
+  player.value?.stop()
   audioGeneration++
   try {
     scene.value = await adapter.getScene(sceneId.value)
@@ -102,7 +112,7 @@ function accept(value: SceneRevision): void {
  * @returns 是否保存成功
  */
 async function save(): Promise<boolean> {
-  if (!revision.value || hasConflict.value) return false
+  if (!revision.value || hasConflict.value || assetsBusy.value) return false
   state.value = 'saving'
   error.value = ''
   try {
@@ -206,7 +216,7 @@ async function uploadAudio(file: UploadFile): Promise<void> {
  */
 async function bindAudio(id: string): Promise<void> {
   audioGeneration++
-  player?.stop()
+  player.value?.stop()
   const version = audioVersions.value.find((item) => item.id === id)
   if (!version) return
   try {
@@ -222,21 +232,81 @@ async function bindAudio(id: string): Promise<void> {
     error.value = message(failure)
   }
 }
-/** 试听已编辑的时间片段。
- * @param row - 对话行
- */
-async function playRow(row: DialogueRow): Promise<void> {
+/** 装载当前绑定音频，不需要预先填写句子区间。 */
+async function loadAudioSource(): Promise<void> {
   const current = ++audioGeneration
-  player?.stop()
-  if (!form.audio || row.start_ms === null || row.end_ms === null) return
+  player.value?.stop()
+  audioUrl.value = ''
+  if (!player.value) return
+  if (!form.audio) {
+    player.value.load('')
+    return
+  }
   try {
-    const result = await media.signedUrl(form.audio.asset_id)
-    if (current === audioGeneration)
-      await player?.play(row.id, result.url, row.start_ms, row.end_ms)
+    const signed = await media.signedUrl(form.audio.asset_id)
+    if (current !== audioGeneration) return
+    audioUrl.value = signed.url
+    player.value.load(signed.url)
   } catch (failure) {
     error.value = message(failure)
   }
 }
+/**
+ * 同一按钮暂停或续播，重新播放失败时刷新签名。
+ * @param row - 本次编辑的句子
+ */
+async function playRow(row?: DialogueRow): Promise<void> {
+  if (!form.audio || (row && (row.start_ms === null || row.end_ms === null))) return
+  const current = ++audioGeneration
+  const assetId = form.audio.asset_id
+  try {
+    if (!audioUrl.value || player.value?.status.value === 'error') {
+      player.value?.stop()
+      const signed = await media.signedUrl(assetId)
+      if (current !== audioGeneration || form.audio?.asset_id !== assetId) return
+      audioUrl.value = signed.url
+      player.value?.load(signed.url)
+    }
+    if (current !== audioGeneration) return
+    if (audioUrl.value)
+      await player.value?.play(
+        row?.id ?? 'scene',
+        audioUrl.value,
+        row?.start_ms ?? 0,
+        row?.end_ms ?? null
+      )
+  } catch (failure) {
+    if (current === audioGeneration) error.value = message(failure)
+  }
+}
+/**
+ * 采集普通播放器当前时间，编辑后必须重新人工确认。
+ * @param row - 本次编辑的句子
+ * @param edge - 采集的起点或终点字段
+ */
+function recordTime(row: DialogueRow, edge: 'start_ms' | 'end_ms'): void {
+  if (!form.audio || !audioUrl.value || !audioElement.value) return
+  row[edge] = Math.min(
+    form.audio.duration_ms,
+    Math.max(0, Math.round(audioElement.value.currentTime * 1000))
+  )
+  row.timing_confirmed = false
+  row.audio_version_id = null
+}
+watch(
+  audioElement,
+  (element) => {
+    player.value?.dispose()
+    player.value = element ? createSegmentPlayer(element) : null
+    void loadAudioSource()
+  },
+  { flush: 'post' }
+)
+watch(
+  () => form.audio?.asset_id,
+  () => void loadAudioSource(),
+  { flush: 'post' }
+)
 /** 用户明确创建 OCR 任务前保存同一草稿。 */
 async function startOcr(): Promise<void> {
   if (ocrBusy.value || !form.original_image_asset_id || !revision.value || !scene.value) return
@@ -246,7 +316,8 @@ async function startOcr(): Promise<void> {
       sceneId.value,
       revision.value.id,
       scene.value.seriesId,
-      form.original_image_asset_id
+      form.original_image_asset_id,
+      scene.value.templateType
     ])
     const replayPending = pendingOcrKey !== null && pendingOcrContext === context
     quota.value = await ocr.getQuota()
@@ -263,14 +334,18 @@ async function startOcr(): Promise<void> {
       scene.value.seriesId,
       sceneId.value,
       revision.value.id,
-      pendingOcrKey
+      pendingOcrKey,
+      scene.value.templateType ?? 'dialogue'
     )
     pendingOcrKey = null
     pendingOcrContext = null
     await router.replace({ query: { ...route.query, ocrJob: job.value.id } })
     candidateReady.value = false
+    suggestions.value = null
+    acceptedGroups.value = []
     rawLines.value = []
     selectedFields.value = []
+    assignedLines.clear()
     ElMessage.success('识别任务已创建，可手动刷新状态')
   } catch (failure) {
     error.value = message(failure)
@@ -286,6 +361,14 @@ async function refreshOcr(): Promise<void> {
     job.value = await ocr.getJob(job.value.id)
     if (job.value.status === 'SUCCEEDED') {
       const result = await ocr.getCandidate(job.value.id)
+      if (result.confirmedRevisionId) {
+        candidateReady.value = false
+        acceptedGroups.value = []
+        selectedFields.value = []
+        assignedLines.clear()
+        ElMessage.info('该识别结果已采纳，请在当前草稿继续编辑')
+        return
+      }
       const blocks = Array.isArray(result.content.blocks) ? result.content.blocks : []
       rawLines.value = blocks
         .map((block) =>
@@ -294,8 +377,15 @@ async function refreshOcr(): Promise<void> {
         .filter(Boolean)
       if (!rawLines.value.length && typeof result.content.text === 'string')
         rawLines.value = result.content.text.split('\n').filter(Boolean)
-      if (!candidateReady.value) Object.assign(candidate, normalizeSceneContent({}))
+      if (!candidateReady.value) {
+        Object.assign(candidate, normalizeSceneContent({}))
+        acceptedGroups.value = []
+        selectedFields.value = []
+        assignedLines.clear()
+      }
       candidateReady.value = true
+      if (revision.value)
+        suggestions.value = await ocr.getSuggestions(revision.value.id, job.value.id)
     }
   } catch (failure) {
     error.value = message(failure)
@@ -306,13 +396,55 @@ async function refreshOcr(): Promise<void> {
 /** 手工将识别行放入需要的候选字段。
  * @param text - OCR 原始行
  * @param field - 候选字段
+ * @param lineId - 原图中的独立识别行编号
  */
-function assignLine(text: string, field: string): void {
-  if (field === 'title_en' || field === 'title_zh') candidate[field] = text
-  else if (field === 'dialogue') candidate.dialogue.push({ ...createDialogueRow(), english: text })
-  else if (field === 'vocabulary' || field === 'chunks')
-    candidate[field].push({ ...createLexiconRow(), english: text })
+function assignLine(text: string, field: string, lineId: number): void {
+  const identity = `${field}:${lineId}`
+  const assigned = assignedLines.get(identity)
   if (!selectedFields.value.includes(field)) selectedFields.value.push(field)
+  if (field === 'title_en' || field === 'title_zh') candidate[field] = text
+  else if (field === 'dialogue') {
+    if (candidate.dialogue.some((row) => row === assigned)) return
+    const existing = form.dialogue.find(
+      (row) => row.english === text && !candidate.dialogue.some((item) => item.id === row.id)
+    )
+    candidate.dialogue.push(
+      existing ? JSON.parse(JSON.stringify(existing)) : { ...createDialogueRow(), english: text }
+    )
+    assignedLines.set(identity, candidate.dialogue.at(-1)!)
+  } else if (field === 'vocabulary' || field === 'chunks') {
+    if (candidate[field].some((row) => row === assigned)) return
+    const existing = form[field].find((entry) => entry.english === text)
+    if (!candidate[field].some((entry) => entry.english === text))
+      candidate[field].push(
+        existing ? JSON.parse(JSON.stringify(existing)) : { ...createLexiconRow(), english: text }
+      )
+    assignedLines.set(
+      identity,
+      candidate[field].find((entry) => entry.english === text)!
+    )
+  }
+}
+/**
+ * 管理员确认后才把分组行放入可编辑候选。
+ * @param group - 管理员明确确认的分组建议
+ */
+function acceptGroup(group: OcrGroup): void {
+  if (!suggestions.value || acceptedGroups.value.includes(group.field)) return
+  for (const id of group.line_ids) {
+    const line = suggestions.value.lines.find((item) => item.id === id)
+    if (line)
+      assignLine(
+        line.text,
+        group.field === 'title'
+          ? /[\u4e00-\u9fff]/.test(line.text)
+            ? 'title_zh'
+            : 'title_en'
+          : group.field,
+        line.id
+      )
+  }
+  acceptedGroups.value.push(group.field)
 }
 /** 用当前乐观锁版本逐项采纳，非选择字段保留服务端草稿。 */
 async function adopt(): Promise<void> {
@@ -330,6 +462,9 @@ async function adopt(): Promise<void> {
       )
     )
     candidateReady.value = false
+    acceptedGroups.value = []
+    selectedFields.value = []
+    assignedLines.clear()
     ElMessage.success('选中字段已采纳到当前草稿')
   } catch (failure) {
     controller.value?.handleSaveFailure(failure)
@@ -341,13 +476,13 @@ async function adopt(): Promise<void> {
 /** 移除整段音频并重置标时。 */
 function removeAudio(): void {
   audioGeneration++
-  player?.stop()
+  player.value?.stop()
   replaceSceneAudio(form, null)
 }
 /** 打开已保存草稿的设备预览。 */
 async function preview(): Promise<void> {
   audioGeneration++
-  player?.stop()
+  player.value?.stop()
   if (await save()) showPreview.value = true
 }
 /** 返回错误文案。
@@ -359,11 +494,10 @@ function message(failure: unknown): string {
 }
 onMounted(async () => {
   await load()
-  if (audioElement.value) player = createSegmentPlayer(audioElement.value)
 })
 onBeforeUnmount(() => {
   audioGeneration++
-  player?.dispose()
+  player.value?.dispose()
 })
 </script>
 <template>
@@ -375,9 +509,11 @@ onBeforeUnmount(() => {
       </div>
       <div class="heading-actions">
         <ElTag v-if="revision" effect="plain" type="warning">草稿 v{{ currentVersion }}</ElTag
-        ><ElButton :disabled="state !== 'ready' || hasConflict" @click="preview">设备预览</ElButton
+        ><ElButton :disabled="state !== 'ready' || hasConflict || assetsBusy" @click="preview"
+          >设备预览</ElButton
+        ><ElButton :disabled="assetsBusy" @click="historyOpened = true">完整版本历史</ElButton
         ><ElButton
-          :disabled="state !== 'ready' || hasConflict"
+          :disabled="state !== 'ready' || hasConflict || assetsBusy"
           :loading="state === 'saving'"
           type="primary"
           @click="save"
@@ -490,23 +626,37 @@ onBeforeUnmount(() => {
             <p v-if="form.audio">
               当前 {{ form.audio.version_id }} · {{ form.audio.duration_ms }} 毫秒
             </p>
-            <ElButton v-if="form.audio" @click="removeAudio">移除整段音频</ElButton
+            <ElButton v-if="form.audio" @click="playRow()"
+              >{{ player?.label('scene') ?? '播放' }}整段音频</ElButton
+            >
+            <p v-if="form.audio" aria-live="polite">
+              当前 {{ player?.currentMs.value ?? 0 }} 毫秒 · {{ player?.statusText.value }}
+              {{ player?.error.value }}
+            </p>
+            <ElButton v-if="form.audio" @click="loadAudioSource">刷新音频地址</ElButton
+            ><ElButton v-if="form.audio" @click="removeAudio">移除整段音频</ElButton
             ><audio ref="audioElement" controls preload="metadata"
           /></ElCard>
           <ElCard shadow="never"
             ><template #header><h3>显式 OCR 识别</h3></template>
-            <p>上传原图不会启动识别。识别结果先成为候选，由你分配字段并逐项采纳。</p>
+            <p>
+              本次识别将消耗 1
+              次接口调用，成功或失败均计次；重识别是新的调用。上传原图不会启动识别。分组建议无需额外接口。
+            </p>
             <p v-if="quota">
               {{ quota.month }} · 剩余 {{ quota.remaining }} / {{ quota.monthly_limit }} ·
               {{ quota.enabled ? '已启用' : '已关闭' }}
             </p>
             <ElButton
-              :disabled="!form.original_image_asset_id || hasConflict"
+              :disabled="!form.original_image_asset_id || hasConflict || assetsBusy"
               :loading="ocrBusy"
               @click="startOcr"
               >保存并识别原图</ElButton
             ><template v-if="job"
-              ><p>任务 {{ job.id }} · {{ job.status }} {{ job.errorCode || '' }}</p>
+              ><p>
+                任务 {{ job.id }} · {{ job.status }} {{ job.errorCode || '' }} · 百度请求编号
+                {{ job.providerRequestId || '尚未返回' }}
+              </p>
               <ElButton :loading="ocrBusy" @click="refreshOcr">刷新识别状态</ElButton></template
             ></ElCard
           >
@@ -514,7 +664,14 @@ onBeforeUnmount(() => {
         <div class="editor-stack">
           <ElCard shadow="never"
             ><template #header><h3>对话与句子标时</h3></template
-            ><DialogueFields v-model="form.dialogue" :audio="form.audio" timing @play="playRow"
+            ><DialogueFields
+              v-model="form.dialogue"
+              :audio="form.audio"
+              :playback="player"
+              :can-record="Boolean(audioUrl)"
+              timing
+              @play="playRow"
+              @record="recordTime"
           /></ElCard>
           <ElCard shadow="never"
             ><template #header><h3>核心词汇</h3></template
@@ -522,19 +679,33 @@ onBeforeUnmount(() => {
               v-model="form.vocabulary"
               entry-type="vocabulary"
               :sentences="form.dialogue"
+              :original-image-asset-id="form.original_image_asset_id"
+              @busy="lexiconBusy.vocabulary = $event"
           /></ElCard>
           <ElCard shadow="never"
             ><template #header><h3>常用语块</h3></template
-            ><LexiconFields v-model="form.chunks" entry-type="chunk" :sentences="form.dialogue"
+            ><LexiconFields
+              v-model="form.chunks"
+              entry-type="chunk"
+              :sentences="form.dialogue"
+              :original-image-asset-id="form.original_image_asset_id"
+              @busy="lexiconBusy.chunks = $event"
           /></ElCard>
         </div>
       </div>
       <ElCard v-if="candidateReady" class="ocr-comparison" shadow="never"
         ><template #header><h3>候选比较与逐项采纳</h3></template>
-        <p>原始识别行只提供文字；说话人、翻译和分类需要人工校对。</p>
-        <div v-for="(line, index) in rawLines" :key="index" class="ocr-line">
+        <OcrComparisonLines
+          v-if="suggestions"
+          :suggestions="suggestions"
+          :accepted-groups="acceptedGroups"
+          @assign="assignLine"
+          @group="acceptGroup"
+        />
+        <p v-else>分组建议暂不可用，可手动分配原始识别行并继续校对。</p>
+        <div v-for="(line, index) in suggestions ? [] : rawLines" :key="index" class="ocr-line">
           <span>{{ line }}</span
-          ><ElDropdown @command="assignLine(line, $event)"
+          ><ElDropdown @command="assignLine(line, $event, index)"
             ><ElButton>分配候选字段</ElButton
             ><template #dropdown
               ><ElDropdownMenu
@@ -588,7 +759,7 @@ onBeforeUnmount(() => {
         <ElButton
           type="primary"
           :loading="ocrBusy"
-          :disabled="!selectedFields.length || hasConflict"
+          :disabled="!selectedFields.length || hasConflict || assetsBusy"
           @click="adopt"
           >采纳选中字段到当前草稿</ElButton
         ></ElCard
@@ -600,6 +771,7 @@ onBeforeUnmount(() => {
         :content="revision.content"
         :revision-id="revision.id"
     /></ElDialog>
+    <SceneHistory v-model="historyOpened" :scene-id="sceneId" />
   </section>
 </template>
 <style scoped lang="scss">

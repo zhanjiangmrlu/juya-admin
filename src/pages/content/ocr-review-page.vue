@@ -22,7 +22,9 @@ const lines = computed(() => {
   if (Array.isArray(content.blocks))
     return content.blocks
       .map((block) =>
-        typeof block === 'object' && block && 'text' in block ? String(block.text) : ''
+        typeof block === 'object' && block && 'text' in block
+          ? `${String(block.text)} · 位置 ${JSON.stringify('location' in block ? block.location : {})} · 置信度 ${'confidence' in block && typeof block.confidence === 'number' ? `${Math.round(block.confidence * 100)}%${block.confidence < 0.85 ? '（低可信／需复核）' : ''}` : '未返回／需复核'}`
+          : ''
       )
       .filter(Boolean)
   return typeof content.text === 'string' ? content.text.split('\n') : []
@@ -78,6 +80,9 @@ onMounted(load)
       ><ElDescriptions v-if="job" :column="1"
         ><ElDescriptionsItem label="任务">{{ job.id }}</ElDescriptionsItem
         ><ElDescriptionsItem label="状态">{{ job.status }}</ElDescriptionsItem
+        ><ElDescriptionsItem label="百度请求编号">{{
+          job.providerRequestId || '尚未返回'
+        }}</ElDescriptionsItem
         ><ElDescriptionsItem label="素材">{{ job.targetId }}</ElDescriptionsItem
         ><ElDescriptionsItem label="错误">{{
           job.errorCode || '—'
@@ -91,11 +96,14 @@ onMounted(load)
         @click="command('retry')"
         >显式重试任务</ElButton
       >
-      <h3>原始识别文字</h3>
+      <p>
+        显式重试将产生新的 1 次接口调用，成功或失败均计次，须再次检查额度；分组建议不消耗额外次数。
+      </p>
+      <h3>原始识别文字、位置与置信度</h3>
       <p v-for="(line, index) in lines" :key="index">{{ line }}</p>
       <ElEmpty v-if="!lines.length" description="候选尚未生成" /><ElAlert
         :closable="false"
-        title="原始 OCR 只提供文字。请在任务绑定的场景中校对分类、翻译，并选择采纳字段。"
+        title="原始 OCR 提供文字及可用位置/置信度。返回场景查看四部分分组建议，人工校对并选择采纳字段。"
         type="info"
       /><ElForm label-position="top"
         ><ElFormItem label="任务绑定场景编号"><ElInput v-model="sceneId" /></ElFormItem
