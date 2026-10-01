@@ -1,5 +1,47 @@
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 
+test('OCR 设置带幂等头，失败重试复用键，成功或输入变化后使用新键', async ({ adminApi, page }) => {
+  await loginAsAdmin(page)
+  await navigateInApp(page, '/content/import')
+  const keys: Array<string | undefined> = []
+  await page.route('**/api/v1/admin/media/ocr/settings', async (route) => {
+    const key = route.request().headers()['x-idempotency-key']
+    keys.push(key)
+    const unavailable = keys.length === 1 || keys.length === 3
+    await route.fulfill({
+      status: !key ? 422 : unavailable ? 503 : 200,
+      json: !key
+        ? {
+            code: 'VALIDATION_ERROR',
+            message: '缺少 X-Idempotency-Key',
+            request_id: 'settings-e2e'
+          }
+        : unavailable
+          ? { code: 'UNAVAILABLE', message: '设置保存暂不可用', request_id: 'settings-e2e' }
+          : { ...route.request().postDataJSON(), remaining: 100 }
+    })
+  })
+  const save = page.getByRole('button', { name: '保存 OCR 设置' })
+  await save.click()
+  await expect.poll(() => keys.length).toBe(1)
+  expect(keys[0]).toBeTruthy()
+  await expect(page.getByText('设置保存暂不可用', { exact: true })).toBeVisible()
+  await save.click()
+  await expect(page.getByText('OCR 设置已保存', { exact: true })).toBeVisible()
+  expect(keys[1]).toBe(keys[0])
+
+  await save.click()
+  await expect.poll(() => keys.length).toBe(3)
+  expect(keys[2]).not.toBe(keys[1])
+  await expect(save).toBeEnabled()
+  await page.getByLabel('内部月额度').fill('20')
+  await save.click()
+  await expect.poll(() => keys.length).toBe(4)
+  expect(keys[3]).not.toBe(keys[2])
+  await expect(page.getByText('内部月额度为 0 时不会发起识别，不代表不限量。')).toBeVisible()
+  expect(adminApi.unexpectedRequests).toEqual([])
+})
+
 test('图片确认只上传素材并提供场景录入入口', async ({ adminApi, page }) => {
   await page.route('**/__e2e-upload', async (route) => route.fulfill({ status: 204 }))
   await loginAsAdmin(page)

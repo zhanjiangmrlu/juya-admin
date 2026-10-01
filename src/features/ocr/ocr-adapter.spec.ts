@@ -1,8 +1,48 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { createApiClient } from '@/services/api/api-client'
+
 import { createOcrAdapter } from './ocr-adapter'
 
 describe('ocr adapter', () => {
+  it('sends the required idempotency and CSRF headers when saving settings', async () => {
+    const fetchImplementation = vi
+      .fn()
+      .mockResolvedValue(new Response('{}', { headers: { 'Content-Type': 'application/json' } }))
+    const adapter = createOcrAdapter(
+      createApiClient({ fetchImplementation, getCsrfToken: () => 'csrf-test' })
+    )
+    await adapter.updateSettings(settingsInput)
+
+    const options = fetchImplementation.mock.calls[0]?.[1] as RequestInit
+    const headers = new Headers(options.headers)
+    expect(headers.get('X-Idempotency-Key')).toEqual(expect.stringMatching(/^idem-/))
+    expect(headers.get('X-CSRF-Token')).toBe('csrf-test')
+    expect(options.method).toBe('PUT')
+    expect(JSON.parse(String(options.body))).toEqual(settingsInput)
+  })
+
+  it('preserves the supplied settings command key across a failed request and retry', async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network failure'))
+      .mockResolvedValue({})
+    const adapter = createOcrAdapter({ request })
+    await expect(adapter.updateSettings(settingsInput, 'settings-retry-key')).rejects.toThrow(
+      'network failure'
+    )
+    await adapter.updateSettings(settingsInput, 'settings-retry-key')
+
+    for (const [options] of request.mock.calls) {
+      expect(options).toMatchObject({
+        idempotencyKey: 'settings-retry-key',
+        method: 'PUT',
+        path: '/api/v1/admin/media/ocr/settings',
+        body: settingsInput
+      })
+    }
+  })
+
   it('loads persisted job and candidate and sends idempotent commands', async () => {
     const request = vi
       .fn()
@@ -51,3 +91,11 @@ describe('ocr adapter', () => {
     )
   })
 })
+
+const settingsInput = {
+  enabled: true,
+  monthly_limit: 0,
+  free_quota: 1000,
+  paid_disabled: true,
+  verify_quota: true
+}

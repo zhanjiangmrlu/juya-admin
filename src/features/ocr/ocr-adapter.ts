@@ -1,3 +1,5 @@
+import { createIdempotencyKey } from '@/services/api/api-client'
+
 import type { OcrCandidate, OcrJob } from './ocr-model'
 import type { ApiClient } from '@/services/api/api-client'
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -8,13 +10,16 @@ type CandidateDto = components['schemas']['OcrCandidateResponse']
 export interface OcrAdapter {
   createJob(assetId: string, seriesId: string, sceneId: string, revisionId: string): Promise<OcrJob>
   getQuota(): Promise<OcrQuota>
-  updateSettings(input: {
-    enabled: boolean
-    monthly_limit: number
-    free_quota: number
-    paid_disabled: boolean
-    verify_quota: boolean
-  }): Promise<OcrQuota>
+  updateSettings(
+    input: {
+      enabled: boolean
+      monthly_limit: number
+      free_quota: number
+      paid_disabled: boolean
+      verify_quota: boolean
+    },
+    idempotencyKey?: string
+  ): Promise<OcrQuota>
   command(jobId: string, operation: 'cancel' | 'retry', idempotencyKey: string): Promise<OcrJob>
   getCandidate(jobId: string): Promise<OcrCandidate>
   getJob(jobId: string): Promise<OcrJob>
@@ -58,10 +63,11 @@ export function createOcrAdapter(client: ApiClient): OcrAdapter {
     async getQuota() {
       return client.request<OcrQuota>({ method: 'GET', path: '/api/v1/admin/media/ocr/quota' })
     },
-    async updateSettings(input) {
+    async updateSettings(input, idempotencyKey = createIdempotencyKey()) {
       return client.request<OcrQuota>({
         method: 'PUT',
         path: '/api/v1/admin/media/ocr/settings',
+        idempotencyKey,
         body: input
       })
     },

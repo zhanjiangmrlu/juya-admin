@@ -10,6 +10,7 @@ import { createUploadAdapter } from '@/features/content-import/upload-adapter'
 import { useUploadQueue } from '@/features/content-import/use-upload-queue'
 import { createOcrAdapter } from '@/features/ocr/ocr-adapter'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
+import { useIdempotentCommand } from '@/shared/commands/idempotent-command'
 
 import type { ContentSeries } from '@/features/content/content-adapter'
 import type { UploadQueueItem } from '@/features/content-import/use-upload-queue'
@@ -21,6 +22,8 @@ const contextLocked = computed(() => queue.items.value.length > 0)
 const router = useRouter()
 const adapter = createContentAdapter(useAdminApiClient())
 const ocr = createOcrAdapter(useAdminApiClient())
+const ocrSettingsCommand = useIdempotentCommand(ocr.updateSettings)
+const savingOcr = ref(false)
 const series = ref<ContentSeries[]>([])
 const ocrSettings = reactive({
   enabled: false,
@@ -43,19 +46,24 @@ async function loadContext(): Promise<void> {
 }
 /** 保存 OCR 配置和管理员控制台核验记录。 */
 async function saveOcr(): Promise<void> {
+  if (savingOcr.value) return
+  savingOcr.value = true
   try {
-    await ocr.updateSettings({
+    await ocrSettingsCommand.submit({
       enabled: ocrSettings.enabled,
       monthly_limit: ocrSettings.monthly_limit,
       free_quota: ocrSettings.free_quota,
       paid_disabled: ocrSettings.paid_disabled,
       verify_quota: ocrSettings.verify_quota
     })
+    ocrSettingsCommand.reset()
     ocrSettings.verify_quota = false
     await loadContext()
     ElMessage.success('OCR 设置已保存')
   } catch (failure) {
     ElMessage.error(failure instanceof Error ? failure.message : 'OCR 设置保存失败')
+  } finally {
+    savingOcr.value = false
   }
 }
 /** 编辑上传确认后自动建立的场景草稿。
@@ -169,7 +177,8 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
     <ElCard class="ocr-note" shadow="never"
       ><template #header><h3>OCR 安全额度设置</h3></template>
       <p>{{ quotaText }}</p>
-      <ElForm inline
+      <p>内部月额度为 0 时不会发起识别，不代表不限量。</p>
+      <ElForm inline :disabled="savingOcr"
         ><ElFormItem label="启用 OCR"><ElSwitch v-model="ocrSettings.enabled" /></ElFormItem
         ><ElFormItem label="内部月额度"
           ><ElInputNumber v-model="ocrSettings.monthly_limit" :min="0" :precision="0" /></ElFormItem
@@ -181,7 +190,9 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
           ><ElCheckbox v-model="ocrSettings.verify_quota"
             >已在百度控制台核验本月额度</ElCheckbox
           ></ElFormItem
-        ><ElButton @click="saveOcr">保存 OCR 设置</ElButton></ElForm
+        ><ElButton :loading="savingOcr" :disabled="savingOcr" @click="saveOcr"
+          >保存 OCR 设置</ElButton
+        ></ElForm
       ></ElCard
     >
   </section>
