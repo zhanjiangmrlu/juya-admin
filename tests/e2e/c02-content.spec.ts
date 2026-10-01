@@ -104,7 +104,7 @@ test('OCR显示位置低可信和四部分建议，确认分组后才填入候�
             location: { top: 20, left: 10 },
             confidence: 0.7,
             low_confidence: true,
-            paragraph: {}
+            paragraph: { paragraph_id: 1 }
           }
         ],
         groups: [
@@ -123,6 +123,7 @@ test('OCR显示位置低可信和四部分建议，确认分组后才填入候�
   await page.getByRole('button', { name: '刷新识别状态' }).click()
   await expect(page.getByText('低可信／需复核', { exact: true })).toBeVisible()
   await expect(page.getByText(/位置：.*top.*20/)).toBeVisible()
+  await expect(page.getByText(/段落：.*paragraph_id.*1/)).toBeVisible()
   await expect(page.getByLabel('候选英文标题', { exact: true })).toHaveValue('')
   await page.getByRole('button', { name: '确认分组并加入候选', exact: true }).first().click()
   await expect(page.getByLabel('候选英文标题', { exact: true })).toHaveValue('Coffee time')

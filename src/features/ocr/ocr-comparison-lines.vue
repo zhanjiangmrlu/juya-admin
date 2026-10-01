@@ -38,6 +38,7 @@ const emit = defineEmits<{
             line.confidence === null ? '未返回' : `${Math.round(line.confidence * 100)}%`
           }}
         </p>
+        <p v-if="Object.keys(line.paragraph).length">段落：{{ JSON.stringify(line.paragraph) }}</p>
         <ElTag v-if="line.low_confidence" type="warning">低可信／需复核</ElTag>
       </div>
       <ElDropdown @command="emit('assign', line.text, $event, line.id)"
