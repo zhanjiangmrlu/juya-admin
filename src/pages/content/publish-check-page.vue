@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 
 import ScenePreview from '@/features/content-editor/scene-preview.vue'
 import { createPublishAdapter } from '@/features/publishing/publish-adapter'
+import { publishCheckLabel } from '@/features/publishing/publish-check-labels'
 import { useAdminPreview } from '@/features/publishing/use-admin-preview'
 import { usePublishCheck } from '@/features/publishing/use-publish-check'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
@@ -64,7 +65,7 @@ async function handlePublish(): Promise<void> {
             :key="code"
             class="check-item"
             :closable="false"
-            :title="code"
+            :title="publishCheckLabel(code)"
             type="error"
             show-icon
           />
