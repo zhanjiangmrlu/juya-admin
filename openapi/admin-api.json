@@ -7449,6 +7449,47 @@
         }
       }
     },
+    "/internal/v1/account-deletions": {
+      "post": {
+        "tags": ["internal-users"],
+        "summary": "Cleanup Account",
+        "operationId": "cleanup_account_internal_v1_account_deletions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDeletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Cleanup Account Internal V1 Account Deletions Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/users/{user_id}/deletion": {
       "post": {
         "tags": ["internal-users"],
@@ -7525,6 +7566,32 @@
         "type": "object",
         "required": ["user_id", "scene_ids"],
         "title": "AccessBatchRequest"
+      },
+      "AccountDeletionRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "maxLength": 26,
+            "minLength": 26,
+            "title": "User Id"
+          },
+          "deletion_request_id": {
+            "type": "string",
+            "maxLength": 26,
+            "minLength": 26,
+            "title": "Deletion Request Id"
+          },
+          "event_id": {
+            "type": "string",
+            "maxLength": 26,
+            "minLength": 26,
+            "title": "Event Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["user_id", "deletion_request_id", "event_id"],
+        "title": "AccountDeletionRequest"
       },
       "AdminPreviewResponse": {
         "properties": {

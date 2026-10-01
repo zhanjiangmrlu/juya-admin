@@ -5,6 +5,21 @@ import { createApiClient } from '@/services/api/api-client'
 import { createOcrAdapter } from './ocr-adapter'
 
 describe('ocr adapter', () => {
+  it('reuses the supplied OCR creation key after a lost response for the same input', async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network failure'))
+      .mockResolvedValue({ id: 'JOB-1', status: 'PENDING' })
+    const adapter = createOcrAdapter({ request })
+    await expect(
+      adapter.createJob('ASSET-1', 'SERIES-1', 'SCENE-1', 'REV-1', 'same-ocr-key')
+    ).rejects.toThrow('network failure')
+    await adapter.createJob('ASSET-1', 'SERIES-1', 'SCENE-1', 'REV-1', 'same-ocr-key')
+    expect(request.mock.calls.map(([input]) => input.idempotencyKey)).toEqual([
+      'same-ocr-key',
+      'same-ocr-key'
+    ])
+  })
   it('sends the required idempotency and CSRF headers when saving settings', async () => {
     const fetchImplementation = vi
       .fn()

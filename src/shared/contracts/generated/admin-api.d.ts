@@ -1563,6 +1563,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/internal/v1/account-deletions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Cleanup Account */
+    post: operations['cleanup_account_internal_v1_account_deletions_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/internal/v1/users/{user_id}/deletion': {
     parameters: {
       query?: never
@@ -1590,6 +1607,15 @@ export interface components {
       user_id: string
       /** Scene Ids */
       scene_ids: string[]
+    }
+    /** AccountDeletionRequest */
+    AccountDeletionRequest: {
+      /** User Id */
+      user_id: string
+      /** Deletion Request Id */
+      deletion_request_id: string
+      /** Event Id */
+      event_id: string
     }
     /** AdminPreviewResponse */
     AdminPreviewResponse: {
@@ -6993,6 +7019,41 @@ export interface operations {
       cookie?: never
     }
     requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  cleanup_account_internal_v1_account_deletions_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AccountDeletionRequest']
+      }
+    }
     responses: {
       /** @description Successful Response */
       200: {

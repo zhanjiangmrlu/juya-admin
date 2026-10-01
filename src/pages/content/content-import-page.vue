@@ -24,6 +24,9 @@ const adapter = createContentAdapter(useAdminApiClient())
 const ocr = createOcrAdapter(useAdminApiClient())
 const ocrSettingsCommand = useIdempotentCommand(ocr.updateSettings)
 const savingOcr = ref(false)
+const loadingOcr = ref(false)
+const ocrSettingsReady = ref(false)
+const ocrSettingsError = ref('')
 const series = ref<ContentSeries[]>([])
 const ocrSettings = reactive({
   enabled: false,
@@ -35,18 +38,25 @@ const ocrSettings = reactive({
 const quotaText = ref('')
 /** 加载系列和服务器 OCR 额度。 */
 async function loadContext(): Promise<void> {
+  loadingOcr.value = true
+  ocrSettingsReady.value = false
+  ocrSettingsError.value = ''
   try {
     series.value = await adapter.listSeries()
     const quota = await ocr.getQuota()
     Object.assign(ocrSettings, quota)
     quotaText.value = `${quota.month} 已使用 ${quota.reserved_count}，剩余 ${quota.remaining}，控制台核验 ${quota.quota_verified_at || '尚未完成'}`
+    ocrSettingsReady.value = true
   } catch (failure) {
-    ElMessage.error(failure instanceof Error ? failure.message : '配置加载失败')
+    ocrSettingsError.value = failure instanceof Error ? failure.message : '配置加载失败'
+    ElMessage.error(ocrSettingsError.value)
+  } finally {
+    loadingOcr.value = false
   }
 }
 /** 保存 OCR 配置和管理员控制台核验记录。 */
 async function saveOcr(): Promise<void> {
-  if (savingOcr.value) return
+  if (savingOcr.value || !ocrSettingsReady.value) return
   savingOcr.value = true
   try {
     await ocrSettingsCommand.submit({
@@ -178,7 +188,19 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
       ><template #header><h3>OCR 安全额度设置</h3></template>
       <p>{{ quotaText }}</p>
       <p>内部月额度为 0 时不会发起识别，不代表不限量。</p>
-      <ElForm inline :disabled="savingOcr"
+      <ElAlert v-if="ocrSettingsError" :title="ocrSettingsError" :closable="false" type="error" />
+      <ElButton
+        v-if="ocrSettingsError"
+        :loading="loadingOcr"
+        :disabled="savingOcr"
+        @click="loadContext"
+        >重新读取 OCR 设置</ElButton
+      >
+      <!-- ElInputNumber 仅在挂载时写 aria-disabled，锁定变化时重建以保持状态一致。 -->
+      <ElForm
+        :key="savingOcr || !ocrSettingsReady ? 'locked' : 'ready'"
+        inline
+        :disabled="savingOcr || !ocrSettingsReady"
         ><ElFormItem label="启用 OCR"><ElSwitch v-model="ocrSettings.enabled" /></ElFormItem
         ><ElFormItem label="内部月额度"
           ><ElInputNumber v-model="ocrSettings.monthly_limit" :min="0" :precision="0" /></ElFormItem
@@ -190,7 +212,7 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
           ><ElCheckbox v-model="ocrSettings.verify_quota"
             >已在百度控制台核验本月额度</ElCheckbox
           ></ElFormItem
-        ><ElButton :loading="savingOcr" :disabled="savingOcr" @click="saveOcr"
+        ><ElButton :loading="savingOcr" :disabled="savingOcr || !ocrSettingsReady" @click="saveOcr"
           >保存 OCR 设置</ElButton
         ></ElForm
       ></ElCard

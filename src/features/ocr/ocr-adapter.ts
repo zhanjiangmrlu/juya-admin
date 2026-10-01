@@ -8,7 +8,13 @@ type JobDto = components['schemas']['ProcessingJobResponse']
 type CandidateDto = components['schemas']['OcrCandidateResponse']
 
 export interface OcrAdapter {
-  createJob(assetId: string, seriesId: string, sceneId: string, revisionId: string): Promise<OcrJob>
+  createJob(
+    assetId: string,
+    seriesId: string,
+    sceneId: string,
+    revisionId: string,
+    idempotencyKey?: string
+  ): Promise<OcrJob>
   getQuota(): Promise<OcrQuota>
   updateSettings(
     input: {
@@ -44,7 +50,13 @@ export interface OcrQuota {
  */
 export function createOcrAdapter(client: ApiClient): OcrAdapter {
   return {
-    async createJob(assetId, seriesId, sceneId, revisionId) {
+    async createJob(
+      assetId,
+      seriesId,
+      sceneId,
+      revisionId,
+      idempotencyKey = createIdempotencyKey()
+    ) {
       return mapJob(
         await client.request<JobDto>({
           method: 'POST',
@@ -56,7 +68,7 @@ export function createOcrAdapter(client: ApiClient): OcrAdapter {
             scene_id: sceneId,
             revision_id: revisionId
           },
-          idempotencyKey: crypto.randomUUID()
+          idempotencyKey
         })
       )
     },

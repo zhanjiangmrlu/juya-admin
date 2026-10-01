@@ -1,5 +1,118 @@
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 
+test('OCR 额度首次读取挂起或失败时不能编辑保存，重新读取后恢复服务器值', async ({
+  adminApi,
+  page
+}) => {
+  await loginAsAdmin(page)
+  let release!: () => void
+  const pending = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let loads = 0
+  await page.route('**/api/v1/admin/media/ocr/quota', async (route) => {
+    loads++
+    if (loads === 1) {
+      await pending
+      return route.fulfill({
+        status: 503,
+        json: { code: 'UNAVAILABLE', message: '额度读取失败', request_id: 'quota-e2e' }
+      })
+    }
+    return route.fallback()
+  })
+  await navigateInApp(page, '/content/import')
+  const limit = page.getByLabel('内部月额度')
+  const save = page.getByRole('button', { name: '保存 OCR 设置', exact: true })
+  try {
+    await expect(limit).toBeDisabled()
+    await expect(save).toBeDisabled()
+  } finally {
+    release()
+  }
+  await expect(page.getByRole('alert').filter({ hasText: '额度读取失败' }).first()).toBeVisible()
+  await expect(limit).toBeDisabled()
+  await save.dispatchEvent('click')
+  expect(adminApi.findRequest('PUT', '/api/v1/admin/media/ocr/settings')).toBeUndefined()
+  await page.getByRole('button', { name: '重新读取 OCR 设置', exact: true }).click()
+  await expect(limit).toBeEnabled()
+  await expect(limit).toHaveValue('100')
+  await expect(save).toBeEnabled()
+})
+
+test('OCR 创建响应丢失重试保持素材上下文幂等键，明确再次识别时换键', async ({ adminApi, page }) => {
+  await loginAsAdmin(page)
+  await navigateInApp(page, '/content/scenes/SCENE-1/edit')
+  await page.getByLabel('学习原图素材编号').fill('ASSET-1')
+  const keys: string[] = []
+  await page.route('**/api/v1/admin/media/ocr/jobs', async (route) => {
+    keys.push(route.request().headers()['x-idempotency-key'] ?? '')
+    if (keys.length === 1 || keys.length === 3) return route.abort('failed')
+    return route.fallback()
+  })
+  const start = page.getByRole('button', { name: '保存并识别原图', exact: true })
+  await start.click()
+  await expect.poll(() => keys.length).toBe(1)
+  await expect(start).toBeEnabled()
+  await start.click()
+  await expect(page.getByRole('button', { name: '刷新识别状态', exact: true })).toBeVisible()
+  expect(keys[1]).toBe(keys[0])
+  await expect(start).toBeEnabled()
+  await start.click()
+  await expect.poll(() => keys.length).toBe(3)
+  expect(keys[2]).not.toBe(keys[1])
+  await expect(start).toBeEnabled()
+  await page.getByLabel('学习原图素材编号').fill('ASSET-2')
+  await start.click()
+  await expect.poll(() => keys.length).toBe(4)
+  expect(keys[3]).not.toBe(keys[2])
+  expect(adminApi.unexpectedRequests).toEqual([])
+})
+
+test('OCR 最后额度已预占时同键恢复任务，成功后的新识别及新素材仍被阻止', async ({
+  adminApi,
+  page
+}) => {
+  await loginAsAdmin(page)
+  await navigateInApp(page, '/content/scenes/SCENE-1/edit')
+  await page.getByLabel('学习原图素材编号').fill('ASSET-1')
+  const keys: string[] = []
+  let remaining = 1
+  await page.route('**/api/v1/admin/media/ocr/quota', (route) =>
+    route.fulfill({ json: { enabled: true, monthly_limit: 1, remaining, month: '2026-10' } })
+  )
+  await page.route('**/api/v1/admin/media/ocr/jobs', async (route) => {
+    keys.push(route.request().headers()['x-idempotency-key'] ?? '')
+    if (keys.length === 1) {
+      remaining = 0 // Server accepted and reserved the final request, but its response was lost.
+      return route.abort('failed')
+    }
+    return route.fallback()
+  })
+  const start = page.getByRole('button', { name: '保存并识别原图', exact: true })
+  await start.click()
+  await expect.poll(() => keys.length).toBe(1)
+  await expect(start).toBeEnabled()
+  await page.getByLabel('学习原图素材编号').fill('ASSET-2')
+  await start.click()
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'OCR 未启用或本月额度已用完' })
+  ).toBeVisible()
+  expect(keys).toHaveLength(1)
+  await page.getByLabel('学习原图素材编号').fill('ASSET-1')
+  await start.click()
+  await expect(page.getByRole('button', { name: '刷新识别状态', exact: true })).toBeVisible()
+  expect(keys).toHaveLength(2)
+  expect(keys[1]).toBe(keys[0])
+  await expect(start).toBeEnabled()
+  await start.click()
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'OCR 未启用或本月额度已用完' })
+  ).toBeVisible()
+  expect(keys).toHaveLength(2)
+  expect(adminApi.unexpectedRequests).toEqual([])
+})
+
 test('OCR 设置带幂等头，失败重试复用键，成功或输入变化后使用新键', async ({ adminApi, page }) => {
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/import')

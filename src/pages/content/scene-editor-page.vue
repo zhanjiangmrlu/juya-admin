@@ -60,6 +60,8 @@ const showPreview = ref(false)
 const quota = ref<OcrQuota | null>(null)
 const job = ref<OcrJob | null>(null)
 const ocrBusy = ref(false)
+let pendingOcrKey: string | null = null
+let pendingOcrContext: string | null = null
 const candidateReady = ref(false)
 const rawLines = ref<string[]>([])
 const selectedFields = ref<string[]>([])
@@ -237,19 +239,34 @@ async function playRow(row: DialogueRow): Promise<void> {
 }
 /** 用户明确创建 OCR 任务前保存同一草稿。 */
 async function startOcr(): Promise<void> {
-  if (!form.original_image_asset_id || !revision.value || !scene.value) return
+  if (ocrBusy.value || !form.original_image_asset_id || !revision.value || !scene.value) return
   ocrBusy.value = true
   try {
+    const context = JSON.stringify([
+      sceneId.value,
+      revision.value.id,
+      scene.value.seriesId,
+      form.original_image_asset_id
+    ])
+    const replayPending = pendingOcrKey !== null && pendingOcrContext === context
     quota.value = await ocr.getQuota()
-    if (!quota.value.enabled || quota.value.remaining <= 0)
+    // A lost creation response may already have reserved the final quota slot.
+    if (!quota.value.enabled || (quota.value.remaining <= 0 && !replayPending))
       throw new Error('OCR 未启用或本月额度已用完')
     if (!(await save())) return
+    if (pendingOcrContext !== context || pendingOcrKey === null) {
+      pendingOcrContext = context
+      pendingOcrKey = createIdempotencyKey()
+    }
     job.value = await ocr.createJob(
       form.original_image_asset_id,
       scene.value.seriesId,
       sceneId.value,
-      revision.value.id
+      revision.value.id,
+      pendingOcrKey
     )
+    pendingOcrKey = null
+    pendingOcrContext = null
     await router.replace({ query: { ...route.query, ocrJob: job.value.id } })
     candidateReady.value = false
     rawLines.value = []
