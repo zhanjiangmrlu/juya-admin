@@ -126,6 +126,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/content/revisions/{revision_id}/ocr-suggestions/{job_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Ocr Suggestions */
+    get: operations['ocr_suggestions_api_v1_admin_content_revisions__revision_id__ocr_suggestions__job_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/content/revisions/{revision_id}/ocr-adoptions': {
     parameters: {
       query?: never
@@ -340,7 +357,8 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    get?: never
+    /** Revision History */
+    get: operations['revision_history_api_v1_admin_content_scenes__scene_id__revisions_get']
     put?: never
     /** Create Revision */
     post: operations['create_revision_api_v1_admin_content_scenes__scene_id__revisions_post']
@@ -2307,6 +2325,40 @@ export interface components {
       package_id: string | null
       /** Campaign Id */
       campaign_id: string | null
+      /**
+       * Juya Number
+       * @default
+       */
+      juya_number: string
+      /** Nickname */
+      nickname?: string | null
+      /** Wechat Id */
+      wechat_id?: string | null
+      /**
+       * Contact Status
+       * @default NOT_PROVIDED
+       */
+      contact_status: string
+      /**
+       * Contact Degraded
+       * @default false
+       */
+      contact_degraded: boolean
+      /**
+       * Content Name
+       * @default
+       */
+      content_name: string
+      /** Campaign Version Id */
+      campaign_version_id?: string | null
+      /** Campaign Version No */
+      campaign_version_no?: number | null
+      /** Term */
+      term?: string | null
+      /** Effective At */
+      effective_at?: string | null
+      /** Start Deadline */
+      start_deadline?: string | null
     }
     /**
      * EntitlementOperation
@@ -2473,6 +2525,22 @@ export interface components {
        * Format: date-time
        */
       updated_at: string
+      /** Source */
+      source?: {
+        [key: string]: unknown
+      }
+      /**
+       * Title
+       * @default
+       */
+      title: string
+      /**
+       * Screenshot Status
+       * @default NONE
+       */
+      screenshot_status: string
+      /** Supplied At */
+      supplied_at?: string | null
     }
     /** FeedbackPageResponse */
     FeedbackPageResponse: {
@@ -2781,6 +2849,22 @@ export interface components {
        */
       verify_quota: boolean
     }
+    /** OcrSuggestions */
+    OcrSuggestions: {
+      /** Template Type */
+      template_type: string
+      /** Lines */
+      lines: components['schemas']['SuggestedLine'][]
+      /** Groups */
+      groups: components['schemas']['SuggestedGroup'][]
+      /** Unassigned Line Ids */
+      unassigned_line_ids: number[]
+      /**
+       * Low Confidence Threshold
+       * @default 0.85
+       */
+      low_confidence_threshold: number
+    }
     /** OpenScenesRequest */
     OpenScenesRequest: {
       /** Scene Ids */
@@ -2931,6 +3015,38 @@ export interface components {
       user_id: string
       /** Revision Id */
       revision_id: string
+    }
+    /** RevisionHistoryItemResponse */
+    RevisionHistoryItemResponse: {
+      /** Id */
+      id: string
+      /** Version No */
+      version_no: number
+      /** Edit Version */
+      edit_version: number
+      /** Status */
+      status: string
+      /** Source Revision Id */
+      source_revision_id: string | null
+      /** Title En */
+      title_en: string | null
+      /** Created At */
+      created_at: string | null
+      /** Created By */
+      created_by: string
+      /** Is Current */
+      is_current: boolean
+    }
+    /** RevisionHistoryResponse */
+    RevisionHistoryResponse: {
+      /** Items */
+      items: components['schemas']['RevisionHistoryItemResponse'][]
+      /** Page */
+      page: number
+      /** Page Size */
+      page_size: number
+      /** Total */
+      total: number
     }
     /** RevisionResponse */
     RevisionResponse: {
@@ -3095,6 +3211,11 @@ export interface components {
     }
     /** SceneResponse */
     SceneResponse: {
+      /**
+       * Template Type
+       * @default dialogue
+       */
+      template_type: string
       /** Id */
       id: string
       /** Series Id */
@@ -3137,6 +3258,39 @@ export interface components {
        * Format: date-time
        */
       expires_at: string
+    }
+    /** SuggestedGroup */
+    SuggestedGroup: {
+      /**
+       * Field
+       * @enum {string}
+       */
+      field: 'title' | 'dialogue' | 'vocabulary' | 'chunks'
+      /** Label */
+      label: string
+      /** Line Ids */
+      line_ids?: number[]
+      /** Reason */
+      reason: string
+    }
+    /** SuggestedLine */
+    SuggestedLine: {
+      /** Id */
+      id: number
+      /** Text */
+      text: string
+      /** Location */
+      location?: {
+        [key: string]: number
+      }
+      /** Confidence */
+      confidence?: number | null
+      /** Low Confidence */
+      low_confidence: boolean
+      /** Paragraph */
+      paragraph?: {
+        [key: string]: unknown
+      }
     }
     /** SupplementCommand */
     SupplementCommand: {
@@ -3225,14 +3379,36 @@ export interface components {
       contact: components['schemas']['UserContactResponse'] | null
       /** Contact Degraded */
       contact_degraded: boolean
-      /** Learning Degraded */
-      learning_degraded: boolean
+      /**
+       * Juya Number
+       * @default
+       */
+      juya_number: string
+      /** Nickname */
+      nickname?: string | null
+      /** Avatar Object Key */
+      avatar_object_key?: string | null
+      /** Avatar Url */
+      avatar_url?: string | null
       /** Open Scene Completed Count */
       open_scene_completed_count: number | null
+      /**
+       * Change Pending
+       * @default false
+       */
+      change_pending: boolean
+      /** Contact Changed At */
+      contact_changed_at?: string | null
+      /** Learning Degraded */
+      learning_degraded: boolean
       /** Learning Days */
       learning_days: number | null
       /** Favorite Count */
       favorite_count: number | null
+      /** Records */
+      records?: {
+        [key: string]: unknown
+      }
     }
     /** UserProjectionResponse */
     UserProjectionResponse: {
@@ -3251,6 +3427,29 @@ export interface components {
       contact: components['schemas']['UserContactResponse'] | null
       /** Contact Degraded */
       contact_degraded: boolean
+      /**
+       * Juya Number
+       * @default
+       */
+      juya_number: string
+      /** Nickname */
+      nickname?: string | null
+      /** Avatar Object Key */
+      avatar_object_key?: string | null
+      /** Avatar Url */
+      avatar_url?: string | null
+      /**
+       * Open Scene Completed Count
+       * @default 0
+       */
+      open_scene_completed_count: number | null
+      /**
+       * Change Pending
+       * @default false
+       */
+      change_pending: boolean
+      /** Contact Changed At */
+      contact_changed_at?: string | null
     }
     /** UserQuery */
     UserQuery: {
@@ -3283,6 +3482,26 @@ export interface components {
     WechatSearchRequest: {
       /** Wechat Id */
       wechat_id: string
+      /**
+       * Page
+       * @default 1
+       */
+      page: number
+      /**
+       * Page Size
+       * @default 20
+       */
+      page_size: number
+      /** Contact Status */
+      contact_status?: string | null
+      /** Entitlement Type */
+      entitlement_type?: ('FORMAL' | 'LIMITED') | null
+      /** Entitlement Status */
+      entitlement_status?: string | null
+      /** Profile Completeness */
+      profile_completeness?: ('COMPLETE' | 'INCOMPLETE') | null
+      /** Cohort */
+      cohort?: ('NEW_TODAY' | 'OPEN_WITHOUT_CONTACT') | null
     }
   }
   responses: never
@@ -3621,6 +3840,40 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['SceneEntry']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  ocr_suggestions_api_v1_admin_content_revisions__revision_id__ocr_suggestions__job_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        revision_id: string
+        job_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['OcrSuggestions']
         }
       }
       /** @description Validation Error */
@@ -4145,6 +4398,42 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['AdminPreviewResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  revision_history_api_v1_admin_content_scenes__scene_id__revisions_get: {
+    parameters: {
+      query?: {
+        page?: number
+        page_size?: number
+      }
+      header?: never
+      path: {
+        scene_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RevisionHistoryResponse']
         }
       }
       /** @description Validation Error */
@@ -4749,9 +5038,15 @@ export interface operations {
       query?: {
         user_id?: string | null
         type?: ('FORMAL' | 'LIMITED') | null
-        status?: ('ACTIVE' | 'PAUSED' | 'REVOKED' | 'PENDING' | 'ENDED' | 'START_EXPIRED') | null
+        status?:
+          | ('ACTIVE' | 'PAUSED' | 'REVOKED' | 'PENDING' | 'ENDED' | 'START_EXPIRED' | 'EXPIRED')
+          | null
         package_id?: string | null
         campaign_id?: string | null
+        campaign_version_id?: string | null
+        expiry?: ('EXPIRING' | 'ENDING' | 'START_EXPIRING') | null
+        date_from?: string | null
+        date_to?: string | null
         page?: number
         page_size?: number
       }
@@ -5059,7 +5354,7 @@ export interface operations {
           | null
         category?: ('CONTENT' | 'PRONUNCIATION' | 'DISPLAY' | 'FUNCTION') | null
         keyword?: string | null
-        sla?: ('PAUSED' | 'OVERDUE' | 'DUE_SOON' | 'ON_TRACK' | 'COMPLETED') | null
+        sla?: ('PAUSED' | 'OVERDUE' | 'DUE_SOON' | 'ON_TRACK' | 'COMPLETED' | 'URGENT') | null
         page?: number
         page_size?: number
       }
@@ -6461,6 +6756,14 @@ export interface operations {
         query?: string | null
         contact_status?:
           ('NOT_PROVIDED' | 'PENDING' | 'CONTACTED' | 'UNREACHABLE' | 'DO_NOT_CONTACT') | null
+        entitlement_type?: ('FORMAL' | 'LIMITED') | null
+        entitlement_status?:
+          | ('ACTIVE' | 'PAUSED' | 'REVOKED' | 'PENDING' | 'ENDED' | 'START_EXPIRED' | 'EXPIRED')
+          | null
+        profile_completeness?: ('COMPLETE' | 'INCOMPLETE') | null
+        cohort?: ('NEW_TODAY' | 'OPEN_WITHOUT_CONTACT') | null
+        page?: number
+        page_size?: number
       }
       header?: never
       path?: never

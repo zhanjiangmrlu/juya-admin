@@ -248,6 +248,8 @@ function formatDueAt(value: string): string {
 
   .panel :deep(.el-empty) {
     width: 100%;
+    min-height: 0;
+    padding-block: 20px;
     flex: 1;
     justify-content: center;
   }

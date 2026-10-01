@@ -177,3 +177,28 @@ git diff --check
 统一可视化草稿覆盖双语标题、原图、对话、词库、语块和版权来源；整段音频逐句毫秒标时与试听确认后发布。OCR 默认关闭且按字段采纳；上传重试保留命令键，保存期间锁定编辑防止输入丢失。手机和平板内容预览使用真实资源，发布固定内容版本。正式期限使用小写枚举，批量任务展示逐项结果，统计区分独立活跃人数和人日。
 
 当前门禁：check、构建、234 个单元测试及 97 个 Chromium 用例通过，覆盖 1440×900 和 1280×800。真实服务联调后台地址为 http://127.0.0.1:18173；OSS 浏览器直传 CORS 和供应商验收尚待配置，详见 [交付记录](../juya-admin-api/docs/implementation/v13-content/evidence.md)。小程序前端本轮没有修改。
+
+## V1.3 统一主站刷新（2026-10-01）
+
+当前本地统一主站：后台 <http://127.0.0.1:5173/>，管理 API <http://127.0.0.1:8000/docs>，用户 API <http://127.0.0.1:8001/docs>。两个 API 使用真实共享 MySQL/Redis，schema 最低版本16。
+
+已有本机 Docker 栈刷新源码并保留运行时配置：
+
+```powershell
+cd D:\个人\juya\juya-admin-api
+uv run python scripts/refresh-v13-local.py
+Invoke-RestMethod http://127.0.0.1:8000/health/ready
+Invoke-RestMethod http://127.0.0.1:8001/health/ready
+```
+
+该脚本已在本机实际执行，重建统一镜像、迁移并刷新两个 API、管理内容/领域 Worker、管理 Beat 和用户 Worker。它读取既有本地容器环境，不写 `.env` 或输出凭据；依赖既有管理栈及用户 API 环境，不能代替首次安装。直接运行默认 Compose up 可能重新采用默认配置，当前带 OSS 配置的栈用本节刷新命令。
+
+停止但保留数据库卷：
+
+```powershell
+cd D:\个人\juya\juya-admin-api
+docker stop juya-main-mini-api juya-main-mini-worker
+docker compose -f docker-compose.dev.yml stop
+```
+
+前端保留现有5173终端；如未运行，在 `juya-admin` 执行 `pnpm dev --host 127.0.0.1 --port 5173 --strictPort`，停止按 Ctrl+C。服务异常先分别检查两个 ready 与容器状态。完整验收与外部边界见[统一验收](../juya-admin-api/docs/implementation/v13-unified/acceptance.md).

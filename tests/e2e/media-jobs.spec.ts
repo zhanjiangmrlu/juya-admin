@@ -230,7 +230,7 @@ test('音频人工版本与批量失败重试均携带幂等命令头', async ({
   await page.locator('input[type="file"]').setInputFiles({
     buffer: Buffer.from('e2e-audio'),
     mimeType: 'audio/mpeg',
-    name: 'sentence.mp3'
+    name: 'SENTENCE-1.mp3'
   })
   await page.getByRole('button', { name: '开始上传音频' }).click()
   await expect(page.getByText('completed · 100%')).toBeVisible()

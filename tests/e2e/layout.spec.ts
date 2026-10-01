@@ -75,7 +75,7 @@ test('隐藏菜单后仍可从列表进入详情和操作页并返回所属栏�
   await expect(page).toHaveURL(/\/users\/USER-1$/)
   await expect(navigation.locator('.el-menu-item.is-active')).toHaveText('用户管理')
   await page.getByRole('button', { name: '返回用户列表' }).click()
-  await expect(page).toHaveURL(/\/users$/)
+  await expect(page).toHaveURL(/\/users(?:\?|$)/)
 
   await navigation.getByRole('menuitem', { name: 'A05 统一权益中心' }).click()
   await page

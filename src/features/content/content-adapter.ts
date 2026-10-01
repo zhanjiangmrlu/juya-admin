@@ -5,9 +5,7 @@ import type { LexiconRow, SceneContent } from '@/features/content-editor/scene-f
 import type { ApiClient } from '@/services/api/api-client'
 import type { components } from '@/shared/contracts/generated/admin-api'
 
-type SceneDto = components['schemas']['SceneResponse'] & {
-  template_type?: 'dialogue' | 'vocabulary'
-}
+type SceneDto = components['schemas']['SceneResponse']
 type ScenePageDto = components['schemas']['ScenePageResponse']
 type RevisionDto = components['schemas']['RevisionResponse']
 
@@ -219,7 +217,10 @@ export function createContentAdapter(client: ApiClient): ContentAdapter {
  */
 function mapScene(source: SceneDto): SceneSummary {
   return {
-    templateType: source.template_type ?? 'dialogue',
+    templateType:
+      source.template_type === 'dialogue' || source.template_type === 'vocabulary'
+        ? source.template_type
+        : undefined,
     coverObjectKey: source.cover_object_key,
     draftRevisionId: source.draft_revision_id,
     id: source.id,

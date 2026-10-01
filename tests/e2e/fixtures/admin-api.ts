@@ -796,6 +796,30 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     )
     return
   }
+  if (url.pathname === '/api/v1/admin/content/revisions/REV-DRAFT-1/ocr-suggestions/JOB-1') {
+    await replyJson(route, {
+      template_type: 'dialogue',
+      low_confidence_threshold: 0.85,
+      lines: [
+        {
+          id: 0,
+          text: 'Coffee time',
+          confidence: 0.98,
+          low_confidence: false,
+          location: null,
+          paragraph: null
+        }
+      ],
+      groups: [
+        { field: 'title', label: '标题', line_ids: [0], reason: '标题候选' },
+        { field: 'dialogue', label: '说话者／对话', line_ids: [], reason: '人工复核' },
+        { field: 'vocabulary', label: '重点词汇', line_ids: [], reason: '人工复核' },
+        { field: 'chunks', label: 'Useful Chunks', line_ids: [], reason: '人工复核' }
+      ],
+      unassigned_line_ids: []
+    })
+    return
+  }
   if (
     url.pathname === '/api/v1/admin/media/ocr/quota' ||
     url.pathname === '/api/v1/admin/media/ocr/settings'

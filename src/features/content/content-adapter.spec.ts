@@ -5,6 +5,14 @@ import { createLexiconRow, normalizeSceneContent } from '@/features/content-edit
 import { createContentAdapter } from './content-adapter'
 
 describe('content adapter', () => {
+  it('keeps legacy scenes readable without assigning an unsupported authoring template', async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValue({ ...scenePage.items[0], template_type: 'learning-card' })
+    const scene = await createContentAdapter({ request }).getScene('scene-1')
+    expect(scene.id).toBe(scenePage.items[0].id)
+    expect(scene.templateType).toBeUndefined()
+  })
   it('reuses caller creation keys and creates distinct defaults for independent actions', async () => {
     const request = vi.fn().mockResolvedValue(scenePage.items[0])
     const adapter = createContentAdapter({ request })
