@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { VideoPause, VideoPlay } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 
 import { createSegmentPlayer } from '@/features/audio/segment-player'
 import { createContentAdapter } from '@/features/content/content-adapter'
@@ -26,6 +27,7 @@ const player = shallowRef<ReturnType<typeof createSegmentPlayer> | null>(null)
 const selectedSourceId = ref<string | null>(null)
 const selectedEntry = ref<LexiconRow | null>(null)
 const adapter = createContentAdapter(useAdminApiClient())
+let entryTrigger: globalThis.HTMLElement | null = null
 let generation = 0
 /** 加载该版本引用的签名资源，丢弃过期的并发响应。 */
 async function loadResources(): Promise<void> {
@@ -130,16 +132,34 @@ function pause(): void {
 /** 保留实际点词来源并打开固定版本词卡。
  * @param entry - 所选固定词条
  * @param sentenceId - 实际点词的稳定句子编号
+ * @param event - 词卡入口点击事件，用于返回时恢复焦点
  */
-function openEntry(entry: LexiconRow, sentenceId: string | null = null): void {
+function openEntry(
+  entry: LexiconRow,
+  sentenceId: string | null = null,
+  event?: globalThis.MouseEvent
+): void {
+  entryTrigger = event?.currentTarget instanceof globalThis.HTMLElement ? event.currentTarget : null
   selectedEntry.value = entry
   selectedSourceId.value = sentenceId
 }
-/** 关闭词卡并停止播放。 */
+/** 关闭词卡，恢复整段音源供原生控件播放。 */
 function closeEntry(): void {
+  if (!selectedEntry.value) return
   selectedEntry.value = null
   selectedSourceId.value = null
-  player.value?.stop()
+  const assetId = content.value.audio?.asset_id
+  player.value?.load(assetId ? (urls.value[assetId] ?? '') : '')
+}
+/** 返回打开词卡的位置，保留键盘阅读位置。 */
+function restoreOriginalFocus(): void {
+  entryTrigger?.focus({ preventScroll: true })
+}
+/** 关闭词卡，返回来源原文或词条列表。 */
+async function returnToOriginal(): Promise<void> {
+  closeEntry()
+  await nextTick()
+  restoreOriginalFocus()
 }
 watch(() => [props.revisionId, props.content], loadResources, { deep: true, immediate: true })
 onMounted(() => {
@@ -177,7 +197,20 @@ onBeforeUnmount(() => {
           <ElButton v-if="content.audio" :disabled="!urls[content.audio.asset_id]" @click="playAll"
             >{{ player?.label('scene') ?? '播放' }}整段音频</ElButton
           ><ElButton v-if="content.audio" @click="pause">暂停</ElButton>
+          <audio
+            ref="audioElement"
+            class="preview-audio"
+            controls
+            preload="metadata"
+            aria-label="预览音频播放器"
+          />
           <p aria-live="polite">{{ player?.statusText.value }} {{ player?.error.value }}</p>
+          <ElButton v-if="player?.status.value === 'error'" @click="loadResources"
+            >刷新音频后重试</ElButton
+          >
+          <p v-if="content.audio" class="audio-help">
+            播放中仍无声？请检查播放器、浏览器和系统音量，以及耳机或音箱的输出设备。
+          </p>
           <p v-if="player?.activeId.value" aria-live="polite">
             当前：{{
               content.dialogue.find((row) => row.id === player?.activeId.value)?.english ||
@@ -188,7 +221,11 @@ onBeforeUnmount(() => {
             <span class="speaker">{{ row.speaker || `句子 ${index + 1}` }}</span>
             <p class="english">
               <template v-for="(part, partIndex) in tokens(row)" :key="partIndex"
-                ><button v-if="part.entry" class="word-link" @click="openEntry(part.entry, row.id)">
+                ><button
+                  v-if="part.entry"
+                  class="word-link"
+                  @click="openEntry(part.entry, row.id, $event)"
+                >
                   {{ part.text }}</button
                 ><template v-else>{{ part.text }}</template></template
               >
@@ -217,7 +254,7 @@ onBeforeUnmount(() => {
                 v-for="entry in section.key === 'vocabulary' ? content.vocabulary : content.chunks"
                 :key="`${entry.entry_id}:${entry.entry_version}`"
                 class="entry-card"
-                @click="openEntry(entry)"
+                @click="openEntry(entry, null, $event)"
               >
                 <img
                   v-if="entry.icon_asset_id && urls[entry.icon_asset_id]"
@@ -235,39 +272,65 @@ onBeforeUnmount(() => {
         </div>
       </article>
     </div>
-    <audio ref="audioElement" preload="metadata" />
     <ElDialog
       :model-value="Boolean(selectedEntry)"
       title="词卡"
       width="min(440px, 90vw)"
       @close="closeEntry"
+      @closed="restoreOriginalFocus"
       ><template v-if="selectedEntry"
-        ><h3>{{ selectedEntry.english }}</h3>
-        <p>{{ selectedEntry.phonetic }}</p>
-        <p>{{ selectedEntry.chinese }}</p>
-        <p>{{ selectedEntry.explanation }}</p>
-        <div
-          v-for="sentence in entrySources(selectedEntry, content.dialogue, selectedSourceId)"
-          :key="sentence.id"
-        >
-          <strong>来源原句</strong>
-          <p>{{ sentence.speaker }} · {{ sentence.english }}</p>
-          <p>{{ sentence.chinese }}</p>
-        </div>
-        <p v-if="!entrySources(selectedEntry, content.dialogue, selectedSourceId).length">
-          当前版本未关联来源原句
-        </p>
-        <ElButton v-if="player?.status.value === 'error'" @click="loadResources"
-          >刷新音频后重试</ElButton
-        >
-        <small>固定版本 v{{ selectedEntry.entry_version }}</small>
-        <p v-if="!selectedEntry.audio_version_id">暂无独立发音</p>
-        <ElButton
-          v-else
-          :disabled="!urls[selectedEntry.audio_version_id]"
-          @click="playEntry(selectedEntry)"
-          >{{ player?.label(selectedEntry.entry_id) ?? '播放' }}词条发音</ElButton
-        ></template
+        ><div class="entry-sheet">
+          <div class="entry-heading">
+            <h3>{{ selectedEntry.english }}</h3>
+            <ElButton
+              class="entry-play"
+              type="primary"
+              circle
+              :aria-label="`${player?.label(selectedEntry.entry_id) ?? '播放'} ${selectedEntry.english} 发音`"
+              :disabled="!selectedEntry.audio_version_id || !urls[selectedEntry.audio_version_id]"
+              @click="playEntry(selectedEntry)"
+              ><ElIcon
+                ><VideoPause
+                  v-if="
+                    player?.activeId.value === selectedEntry.entry_id &&
+                    ['playing', 'loading'].includes(player.status.value)
+                  " /><VideoPlay v-else /></ElIcon
+            ></ElButton>
+          </div>
+          <p class="entry-phonetic">{{ selectedEntry.phonetic || '音标待补充' }}</p>
+          <p class="entry-meaning">{{ selectedEntry.chinese }}</p>
+          <p v-if="selectedEntry.explanation" class="entry-explanation">
+            {{ selectedEntry.explanation }}
+          </p>
+          <div
+            v-for="sentence in entrySources(selectedEntry, content.dialogue, selectedSourceId)"
+            :key="sentence.id"
+            class="entry-source"
+          >
+            <strong>来源原句</strong>
+            <p>{{ sentence.speaker }} · {{ sentence.english }}</p>
+            <p v-if="sentence.chinese">{{ sentence.chinese }}</p>
+          </div>
+          <p v-if="!entrySources(selectedEntry, content.dialogue, selectedSourceId).length">
+            当前版本未关联来源原句
+          </p>
+          <p v-if="!selectedEntry.audio_version_id" class="entry-missing">
+            <span>暂无独立发音</span>，待补充素材
+          </p>
+          <p v-else-if="!urls[selectedEntry.audio_version_id]" class="entry-missing">
+            发音资源暂不可用，请刷新预览
+          </p>
+          <p v-if="player?.activeId.value === selectedEntry.entry_id" aria-live="polite">
+            {{ player.statusText.value }} {{ player.error.value }}
+          </p>
+          <ElButton v-if="player?.status.value === 'error'" @click="loadResources"
+            >刷新音频后重试</ElButton
+          >
+          <div class="entry-footer">
+            <small>固定版本 v{{ selectedEntry.entry_version }}</small>
+            <ElButton type="primary" @click="returnToOriginal">返回原文</ElButton>
+          </div>
+        </div></template
       ></ElDialog
     >
   </div>
@@ -320,6 +383,78 @@ h3 {
 .translation,
 .source {
   color: var(--juya-color-text-secondary);
+}
+
+.preview-audio {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.audio-help {
+  color: var(--juya-color-text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.entry-sheet {
+  padding: 24px;
+  border-radius: 12px;
+  background: #f7f1e2;
+  color: var(--juya-color-text-primary);
+}
+
+.entry-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  h3 {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 32px;
+    line-height: 1.2;
+  }
+}
+
+.entry-play {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+}
+
+.entry-phonetic,
+.entry-missing {
+  color: var(--juya-color-text-secondary);
+}
+
+.entry-meaning {
+  margin-top: 20px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.entry-explanation,
+.entry-source {
+  line-height: 1.7;
+}
+
+.entry-source {
+  margin-top: 20px;
+
+  p {
+    margin: 8px 0;
+  }
+}
+
+.entry-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .tags {

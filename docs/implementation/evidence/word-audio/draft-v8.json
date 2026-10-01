@@ -1,0 +1,89 @@
+{
+  "revision_id": "01M3VFQMRK4SQKNGZG1KZ1ZEBS",
+  "initial_version": 7,
+  "source_sha256": "a1ae8bff647f54b25ad229b296585e2a35a0724969b919abd3ce0b116dd4b58e",
+  "audio_bindings": {},
+  "entries": {
+    "change": {
+      "entry_id": "01M3VGKQZA2YF2SVKTYF44H0J0",
+      "entry_version": 2,
+      "phonetic": "/tʃeɪndʒ/",
+      "source_sentence_ids": ["35ecb799-1ea3-41a3-a23e-40afbe771c0f"],
+      "audio_version_id": null
+    },
+    "manage": {
+      "entry_id": "01M3VGKQZFJ3MFBY3ERY0A7NJT",
+      "entry_version": 2,
+      "phonetic": "/ˈmæn.ədʒ/",
+      "source_sentence_ids": ["c90ab449-c322-40d2-990a-1a49b3571098"],
+      "audio_version_id": null
+    },
+    "solve": {
+      "entry_id": "01M3VGKQZHKF7C113TVPRH4GVK",
+      "entry_version": 2,
+      "phonetic": "/sɑːlv/",
+      "source_sentence_ids": ["89faa283-4b6d-4fde-acb7-d3a629c09427"],
+      "audio_version_id": null
+    },
+    "improve": {
+      "entry_id": "01M3VGKQZJAV535J2XEWZ3VCPN",
+      "entry_version": 2,
+      "phonetic": "/ɪmˈpruːv/",
+      "source_sentence_ids": ["35ecb799-1ea3-41a3-a23e-40afbe771c0f"],
+      "audio_version_id": null
+    },
+    "develop": {
+      "entry_id": "01M3VGKQZK2YXX9FZ6TMSPA8WN",
+      "entry_version": 2,
+      "phonetic": "/dɪˈvel.əp/",
+      "source_sentence_ids": ["39012081-9850-4634-9b0f-f51a6032e409"],
+      "audio_version_id": null
+    },
+    "sustainable": {
+      "entry_id": "01M3VGKQZMHTBGHAEW8DJ2A1SR",
+      "entry_version": 2,
+      "phonetic": "/səˈsteɪ.nə.bəl/",
+      "source_sentence_ids": ["39012081-9850-4634-9b0f-f51a6032e409"],
+      "audio_version_id": null
+    },
+    "scheduling problem": {
+      "entry_id": "01M3VGKQZN5V56KMDNW3EF3NMK",
+      "entry_version": 2,
+      "phonetic": "/ˈskedʒ.uː.lɪŋ ˈprɑː.bləm/",
+      "source_sentence_ids": ["89faa283-4b6d-4fde-acb7-d3a629c09427"],
+      "audio_version_id": null
+    },
+    "handoff process": {
+      "entry_id": "01M3VGKQZPA3CBYCABNKCHQ5WS",
+      "entry_version": 2,
+      "phonetic": "/ˈhænd.ɑːf ˈprɑː.ses/",
+      "source_sentence_ids": ["35ecb799-1ea3-41a3-a23e-40afbe771c0f"],
+      "audio_version_id": null
+    },
+    "improve communication": {
+      "entry_id": "01M3VGKQZQDCTXKESZXVB88S9C",
+      "entry_version": 2,
+      "phonetic": "/ɪmˈpruːv kəˌmjuː.nəˈkeɪ.ʃən/",
+      "source_sentence_ids": ["35ecb799-1ea3-41a3-a23e-40afbe771c0f"],
+      "audio_version_id": null
+    },
+    "coordinate our shifts": {
+      "entry_id": "01M3VGKQZR8GA6661TBWMTJYW1",
+      "entry_version": 2,
+      "phonetic": "/koʊˈɔːr.dən.eɪt aʊr ʃɪfts/",
+      "source_sentence_ids": [],
+      "audio_version_id": null
+    },
+    "sanction the plan": {
+      "entry_id": "01M3VGKQZTX3KWSAY7HNRARA3W",
+      "entry_version": 2,
+      "phonetic": "/ˈsæŋk.ʃən ðə plæn/",
+      "source_sentence_ids": [],
+      "audio_version_id": null
+    }
+  },
+  "pending_audio": ["coordinate our shifts", "sanction the plan"],
+  "actual_listening": "pending human acceptance",
+  "published": false,
+  "saved_version": 8
+}

@@ -1,0 +1,91 @@
+{
+  "source_file": "D:\\个人\\图片+音频\\图片+音频\\A Better Way to Work.wav",
+  "source_sha256": "a1ae8bff647f54b25ad229b296585e2a35a0724969b919abd3ce0b116dd4b58e",
+  "sample_revision_id": "01M3VFQMRK4SQKNGZG1KZ1ZEBS",
+  "clips": [
+    {
+      "english": "change",
+      "start_ms": 4200,
+      "end_ms": 4740,
+      "file": "change.wav",
+      "sha256": "7addd35fa7245dd82058b5f29f1cfa8c669a375d398be12609576325c7750360",
+      "independent_transcript": "change",
+      "recognized_exactly": true
+    },
+    {
+      "english": "manage",
+      "start_ms": 17880,
+      "end_ms": 18450,
+      "file": "manage.wav",
+      "sha256": "f5eeba9f85d9a2049c7b150b31a3553a1015d4f88a36ce54bbf8ac508ee352bb",
+      "independent_transcript": "manage",
+      "recognized_exactly": true
+    },
+    {
+      "english": "solve",
+      "start_ms": 1140,
+      "end_ms": 1770,
+      "file": "solve.wav",
+      "sha256": "0d9634bac97591c65d2221214baf2684085572096a7d12a086811a80160bb89a",
+      "independent_transcript": "solve",
+      "recognized_exactly": true
+    },
+    {
+      "english": "improve",
+      "start_ms": 6840,
+      "end_ms": 7410,
+      "file": "improve.wav",
+      "sha256": "b23a4ee898310544f6045ae4c9e40228ddc86e275c7fe3357b9fcf9508406b61",
+      "independent_transcript": "improved",
+      "recognized_exactly": false
+    },
+    {
+      "english": "develop",
+      "start_ms": 9810,
+      "end_ms": 10500,
+      "file": "develop.wav",
+      "sha256": "d41de5c49e8874acac3166ba9c3dc3c9c57e92372318645564c1762822c9850f",
+      "independent_transcript": "develop",
+      "recognized_exactly": true
+    },
+    {
+      "english": "sustainable",
+      "start_ms": 10680,
+      "end_ms": 11490,
+      "file": "sustainable.wav",
+      "sha256": "95563db2350daff44034c5e9cb7f478779ba35c59a6b2fda4e685c1d5abd35d2",
+      "independent_transcript": "sustainable",
+      "recognized_exactly": true
+    },
+    {
+      "english": "scheduling problem",
+      "start_ms": 2070,
+      "end_ms": 3420,
+      "file": "scheduling-problem.wav",
+      "sha256": "f08f67757e45847ef52e636d4e9f474a18188792d432a79a3f590c783c64e5c3",
+      "independent_transcript": "scheduling problem",
+      "recognized_exactly": true
+    },
+    {
+      "english": "handoff process",
+      "start_ms": 4920,
+      "end_ms": 6420,
+      "file": "handoff-process.wav",
+      "sha256": "20d36d14f901d3504d530af76aa4f1e4e1873f1296346b778736ddbc563a4834",
+      "independent_transcript": "handoff process",
+      "recognized_exactly": true
+    },
+    {
+      "english": "improve communication",
+      "start_ms": 6840,
+      "end_ms": 8430,
+      "file": "improve-communication.wav",
+      "sha256": "f640d097b2a44d56e75778b888f35efea241e4d24acb2fc8eff360c1f2e95d11",
+      "independent_transcript": "improve communication",
+      "recognized_exactly": true
+    }
+  ],
+  "missing": ["coordinate our shifts", "sanction the plan"],
+  "actual_listening": "pending human listening; ASR is not listening acceptance",
+  "source_header_note": "original streamed WAV data size=0xffffffff; clip headers use actual frame counts"
+}
