@@ -16,7 +16,7 @@ const importGroups = [['^node:'], ['^@?\\w'], ['^@/'], ['^.+\\u0000$'], ['^\\.']
 
 export default tseslint.config(
   {
-    ignores: ['coverage/**', 'dist/**', 'node_modules/**']
+    ignores: ['coverage/**', 'dist/**', 'node_modules/**', '.impeccable/**']
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

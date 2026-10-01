@@ -18,7 +18,12 @@ export interface BatchJobAdapter {
     operation: 'cleanup' | 'restore',
     idempotencyKey: string
   ): Promise<TrashEntry>
-  create(jobType: string, targetIds: string[], idempotencyKey: string): Promise<BatchJob>
+  create(
+    jobType: string,
+    targetIds: string[],
+    idempotencyKey: string,
+    inputPayload?: Record<string, unknown>
+  ): Promise<BatchJob>
   list(page: number, pageSize: number, signal?: AbortSignal): Promise<BatchJobPage>
   listTrash(signal?: AbortSignal): Promise<TrashEntry[]>
   trash(sceneId: string, revisionId: string, idempotencyKey: string): Promise<TrashEntry>
@@ -52,10 +57,10 @@ export function createBatchJobAdapter(client: ApiClient): BatchJobAdapter {
         })
       )
     },
-    async create(jobType, targetIds, idempotencyKey) {
+    async create(jobType, targetIds, idempotencyKey, inputPayload = {}) {
       return mapBatch(
         await client.request<BatchDto>({
-          body: { job_type: jobType, target_ids: targetIds },
+          body: { job_type: jobType, target_ids: targetIds, input_payload: inputPayload },
           idempotencyKey,
           method: 'POST',
           path: '/api/v1/admin/media/batch-jobs'
@@ -105,6 +110,14 @@ export function createBatchJobAdapter(client: ApiClient): BatchJobAdapter {
  */
 function mapBatch(source: BatchDto): BatchJob {
   return {
+    inputPayload: ('input_payload' in source ? source.input_payload : {}) as Record<
+      string,
+      unknown
+    >,
+    resultPayload: ('result_payload' in source ? source.result_payload : {}) as Record<
+      string,
+      unknown
+    >,
     failureCount: source.failure_count,
     id: source.id,
     items: source.items.map((item) => ({

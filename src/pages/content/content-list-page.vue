@@ -7,6 +7,7 @@ import { createContentAdapter } from '@/features/content/content-adapter'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
+import type { ContentSeries } from '@/features/content/content-adapter'
 import type { SceneFilters, SceneStatus, SceneSummary } from '@/features/content/content-model'
 
 const router = useRouter()
@@ -17,8 +18,77 @@ const scenes = ref<SceneSummary[]>([])
 const total = ref(0)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const series = ref<ContentSeries[]>([])
+const creating = ref(false)
+const creatingSeries = ref(false)
+const creatingScene = ref(false)
+let pendingSeriesKey: string | null = null
+let pendingSceneKey: string | null = null
+const newScene = reactive({
+  seriesId: '',
+  templateType: 'dialogue' as 'dialogue' | 'vocabulary',
+  seriesTitle: '',
+  seriesSlug: ''
+})
+
+/** 加载系列目录并打开新建场景表单。 */
+async function openCreate(): Promise<void> {
+  try {
+    series.value = await adapter.listSeries()
+    creating.value = true
+  } catch (failure) {
+    ElMessage.error(failure instanceof Error ? failure.message : '系列加载失败')
+  }
+}
+/** 保存新系列，供场景使用。 */
+async function createSeries(): Promise<void> {
+  if (creatingSeries.value || !newScene.seriesTitle.trim() || !newScene.seriesSlug.trim()) return
+  pendingSeriesKey ??= createIdempotencyKey()
+  creatingSeries.value = true
+  try {
+    const item = await adapter.createSeries(
+      newScene.seriesTitle.trim(),
+      newScene.seriesSlug.trim(),
+      pendingSeriesKey
+    )
+    pendingSeriesKey = null
+    series.value.push(item)
+    newScene.seriesId = item.id
+    newScene.seriesTitle = ''
+    newScene.seriesSlug = ''
+  } catch (failure) {
+    ElMessage.error(failure instanceof Error ? failure.message : '系列创建失败')
+  } finally {
+    creatingSeries.value = false
+  }
+}
+/** 创建空白草稿并进入结构化编辑。 */
+async function createScene(): Promise<void> {
+  if (creatingScene.value || !newScene.seriesId) return
+  pendingSceneKey ??= createIdempotencyKey()
+  creatingScene.value = true
+  try {
+    const created = await adapter.createScene(
+      newScene.seriesId,
+      newScene.templateType,
+      pendingSceneKey
+    )
+    pendingSceneKey = null
+    await router.push({ name: 'content-scene-edit', params: { id: created.id } })
+  } catch (failure) {
+    ElMessage.error(failure instanceof Error ? failure.message : '场景创建失败')
+  } finally {
+    creatingScene.value = false
+  }
+}
 
 watch(filters, persistFilters, { deep: true })
+watch(creating, (opened) => {
+  if (!opened) {
+    pendingSeriesKey = null
+    pendingSceneKey = null
+  }
+})
 
 /**
  * 从会话存储恢复内容目录筛选
@@ -144,9 +214,12 @@ onMounted(loadScenes)
             <span>A17</span>
             <h2>内容列表</h2>
           </div>
-          <RouterLink v-slot="{ navigate }" custom :to="{ name: 'content-import' }"
-            ><ElButton type="primary" @click="navigate">批量上传图片</ElButton></RouterLink
-          >
+          <div class="heading-actions">
+            <ElButton type="primary" @click="openCreate">新建场景</ElButton
+            ><RouterLink v-slot="{ navigate }" custom :to="{ name: 'content-import' }"
+              ><ElButton type="primary" @click="navigate">批量上传图片</ElButton></RouterLink
+            >
+          </div>
         </div>
       </template>
       <ElForm class="filter-bar" inline @submit.prevent="search">
@@ -232,6 +305,41 @@ onMounted(loadScenes)
         />
       </template>
     </ElCard>
+    <ElDialog v-model="creating" title="新建场景" width="560px"
+      ><ElForm label-position="top"
+        ><ElFormItem label="所属系列"
+          ><ElSelect v-model="newScene.seriesId" aria-label="新场景所属系列"
+            ><ElOption
+              v-for="item in series"
+              :key="item.id"
+              :label="item.title"
+              :value="item.id" /></ElSelect></ElFormItem
+        ><ElFormItem label="内容模板"
+          ><ElRadioGroup v-model="newScene.templateType"
+            ><ElRadio value="dialogue">对话</ElRadio
+            ><ElRadio value="vocabulary">词汇</ElRadio></ElRadioGroup
+          ></ElFormItem
+        ><ElDivider>创建新系列</ElDivider
+        ><ElFormItem label="系列名称"><ElInput v-model="newScene.seriesTitle" /></ElFormItem
+        ><ElFormItem label="系列标识"
+          ><ElInput v-model="newScene.seriesSlug" placeholder="如 daily-english" /></ElFormItem
+        ><ElButton
+          :loading="creatingSeries"
+          :disabled="!newScene.seriesTitle || !newScene.seriesSlug"
+          @click="createSeries"
+          >创建系列</ElButton
+        ></ElForm
+      ><template #footer
+        ><ElButton @click="creating = false">取消</ElButton
+        ><ElButton
+          type="primary"
+          :loading="creatingScene"
+          :disabled="!newScene.seriesId"
+          @click="createScene"
+          >创建并编辑</ElButton
+        ></template
+      ></ElDialog
+    >
   </section>
 </template>
 
@@ -240,6 +348,11 @@ onMounted(loadScenes)
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+}
+
+.heading-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .page-heading span {

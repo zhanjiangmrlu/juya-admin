@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { createAudioAdapter } from '@/features/audio/audio-adapter'
+import { createSegmentPlayer } from '@/features/audio/segment-player'
 import { useAudioVersions } from '@/features/audio/use-audio-versions'
+import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
+import type { AudioElement } from '@/features/audio/segment-player'
 import type { UploadFile } from 'element-plus'
 
 const route = useRoute()
@@ -14,10 +17,14 @@ const sceneId = computed(() => String(route.params.id))
 const controller = useAudioVersions(createAudioAdapter(useAdminApiClient()), sceneId.value)
 const { error, selectedTarget, state, targets, uploads, versions } = controller
 const selectedTargetId = ref('')
-const generation = reactive({ text: '', voice: 'standard' })
 const busy = computed(() => state.value === 'loading' || state.value === 'saving')
+const media = createSceneMediaAdapter(useAdminApiClient())
+const audioElement = ref<AudioElement | null>(null)
+let player: ReturnType<typeof createSegmentPlayer> | null = null
+let previewGeneration = 0
 
 onMounted(async () => {
+  if (audioElement.value) player = createSegmentPlayer(audioElement.value)
   try {
     await controller.load()
     selectedTargetId.value = selectedTarget.value?.id ?? ''
@@ -31,12 +38,32 @@ onMounted(async () => {
  * @param value - 目标编号
  */
 async function selectTarget(value: string): Promise<void> {
+  previewGeneration++
+  player?.stop()
   try {
     await controller.selectTarget(value)
   } catch {
     selectedTargetId.value = selectedTarget.value?.id ?? ''
   }
 }
+/** 试听服务端验证过的实际音频版本。
+ * @param versionId - 音频版本
+ * @param assetId - 素材编号
+ */
+async function listen(versionId: string, assetId: string): Promise<void> {
+  const current = ++previewGeneration
+  player?.stop()
+  try {
+    const signed = await media.signedUrl(assetId)
+    if (current === previewGeneration) await player?.play(versionId, signed.url)
+  } catch (failure) {
+    ElMessage.error(failure instanceof Error ? failure.message : '音频试听失败')
+  }
+}
+onBeforeUnmount(() => {
+  previewGeneration++
+  player?.dispose()
+})
 
 /**
  * 将选择的音频加入受控上传队列
@@ -54,20 +81,6 @@ function addUpload(uploadFile: UploadFile): void {
 /** 启动全部排队或失败的音频上传。 */
 async function startUploads(): Promise<void> {
   await controller.startAllUploads()
-}
-
-/** 创建当前目标的 TTS 候选任务。 */
-async function generate(): Promise<void> {
-  if (!generation.text.trim()) {
-    ElMessage.warning('请输入需要生成的文本')
-    return
-  }
-  try {
-    const jobId = await controller.generate(generation.text, generation.voice)
-    ElMessage.success(`TTS 任务已创建：${jobId}`)
-  } catch {
-    // The controller exposes the operation error.
-  }
 }
 
 /**
@@ -183,6 +196,7 @@ async function rollbackVersion(versionId: string): Promise<void> {
           <ElTableColumn label="素材编号" prop="assetId" min-width="150" />
           <ElTableColumn label="操作" width="170">
             <template #default="{ row }">
+              <ElButton link @click="listen(row.id, row.assetId)">试听</ElButton>
               <ElButton
                 v-if="row.status === 'CANDIDATE'"
                 link
@@ -200,19 +214,8 @@ async function rollbackVersion(versionId: string): Promise<void> {
           </ElTableColumn>
         </ElTable>
       </ElCard>
-      <ElCard shadow="never">
-        <template #header><h3>生成候选音频</h3></template>
-        <ElForm label-position="top">
-          <ElFormItem label="音色"><ElInput v-model="generation.voice" /></ElFormItem>
-          <ElFormItem label="文本">
-            <ElInput v-model="generation.text" type="textarea" :rows="5" />
-          </ElFormItem>
-          <ElButton :disabled="busy || !selectedTarget" type="primary" @click="generate">
-            创建 TTS 任务
-          </ElButton>
-        </ElForm>
-      </ElCard>
     </div>
+    <audio ref="audioElement" controls preload="metadata" />
   </section>
 </template>
 
@@ -239,7 +242,7 @@ async function rollbackVersion(versionId: string): Promise<void> {
 
   .audio-grid {
     display: grid;
-    grid-template-columns: minmax(260px, 1fr) minmax(440px, 2fr) minmax(260px, 1fr);
+    grid-template-columns: minmax(260px, 1fr) minmax(440px, 2fr);
     gap: 14px;
     margin-top: 14px;
   }

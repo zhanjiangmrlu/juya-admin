@@ -1,12 +1,18 @@
 import { readonly, ref, shallowRef } from 'vue'
 
 import type { AnalyticsAdapter } from './analytics-adapter'
-import type { AnalyticsPeriod, AnalyticsRatio, AnalyticsRow } from './analytics-model'
+import type {
+  ActivityBasis,
+  AnalyticsPeriod,
+  AnalyticsRatio,
+  AnalyticsRow
+} from './analytics-model'
 import type { DeepReadonly, Ref } from 'vue'
 
 import { validateAnalyticsRows } from './analytics-model'
 
 export interface AnalyticsController {
+  activityBasis: Readonly<Ref<ActivityBasis | null>>
   error: Readonly<Ref<string | null>>
   isLoading: Readonly<Ref<boolean>>
   load(start: string, end: string, period?: AnalyticsPeriod): Promise<void>
@@ -21,6 +27,7 @@ export interface AnalyticsController {
  * @returns 统计加载控制器
  */
 export function useAnalytics(adapter: AnalyticsAdapter): AnalyticsController {
+  const activityBasis = ref<ActivityBasis | null>(null)
   const rows = shallowRef<AnalyticsRow[]>([])
   const ratios = shallowRef<AnalyticsRatio[]>([])
   const error = ref<string | null>(null)
@@ -44,6 +51,7 @@ export function useAnalytics(adapter: AnalyticsAdapter): AnalyticsController {
     error.value = null
     rows.value = []
     ratios.value = []
+    activityBasis.value = null
     try {
       const snapshot = await adapter.query(start, end, period, abortController.signal)
       if (current !== sequence) return
@@ -52,6 +60,7 @@ export function useAnalytics(adapter: AnalyticsAdapter): AnalyticsController {
       if (!validation.valid) throw new Error(validation.message)
       rows.value = nextRows
       ratios.value = snapshot.ratios
+      activityBasis.value = snapshot.activityBasis
     } catch (failure) {
       if (current !== sequence) return
       error.value = failure instanceof Error ? failure.message : '统计加载失败'
@@ -62,6 +71,7 @@ export function useAnalytics(adapter: AnalyticsAdapter): AnalyticsController {
   }
 
   return {
+    activityBasis: readonly(activityBasis),
     error: readonly(error),
     isLoading: readonly(isLoading),
     load,

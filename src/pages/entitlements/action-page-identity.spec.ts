@@ -26,7 +26,7 @@ function detail(id: string) {
     campaign_id: `CAMPAIGN-${id}`,
     campaign_name: `活动 ${id}`,
     status: 'ACTIVE',
-    term: 'MONTH_3',
+    term: 'month_3',
     granted_at: '2026-09-29T00:00:00Z',
     start_deadline: '2026-10-06T00:00:00Z',
     activated_at: '2026-09-29T00:00:00Z',

@@ -3,11 +3,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { createUploadAdapter } from './upload-adapter'
 
 describe('upload adapter', () => {
-  it('confirms the asset then creates one persisted OCR job', async () => {
+  it('confirms the asset without creating an automatic OCR job', async () => {
     const request = vi
       .fn()
       .mockResolvedValueOnce({ id: 'ASSET-1' })
-      .mockResolvedValueOnce({ id: 'JOB-1', status: 'PENDING' })
+      .mockResolvedValueOnce({ items: [{ id: 'SCENE-1' }] })
     const adapter = createUploadAdapter({ request })
 
     await expect(
@@ -16,18 +16,13 @@ describe('upload adapter', () => {
         { seriesId: 'SERIES-1', templateId: 'learning-card' },
         'ocr-key'
       )
-    ).resolves.toEqual({ assetId: 'ASSET-1', jobId: 'JOB-1' })
-    expect(request).toHaveBeenNthCalledWith(
-      2,
+    ).resolves.toEqual({ assetId: 'ASSET-1', jobId: null, sceneId: 'SCENE-1' })
+    expect(request).toHaveBeenCalledTimes(2)
+    expect(request).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        body: {
-          asset_id: 'ASSET-1',
-          object_key: 'uploads/images/7/a.png',
-          series_id: 'SERIES-1',
-          template_id: 'learning-card'
-        },
+        path: '/api/v1/admin/content/imports',
         idempotencyKey: 'ocr-key',
-        path: '/api/v1/admin/media/ocr/jobs'
+        body: { asset_ids: ['ASSET-1'], series_id: 'SERIES-1', template_type: 'dialogue' }
       })
     )
   })

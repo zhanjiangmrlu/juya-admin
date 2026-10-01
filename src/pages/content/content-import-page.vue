@@ -1,18 +1,70 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, reactive } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import TaskProgress from '@/components/task-progress/task-progress.vue'
+import { createContentAdapter } from '@/features/content/content-adapter'
 import { validateImageBatch } from '@/features/content-import/import-validation'
 import { createUploadAdapter } from '@/features/content-import/upload-adapter'
 import { useUploadQueue } from '@/features/content-import/use-upload-queue'
+import { createOcrAdapter } from '@/features/ocr/ocr-adapter'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
+import type { ContentSeries } from '@/features/content/content-adapter'
+import type { UploadQueueItem } from '@/features/content-import/use-upload-queue'
 import type { UploadFile, UploadFiles } from 'element-plus'
 
 const context = reactive({ seriesId: '', templateId: '' })
 const queue = useUploadQueue(createUploadAdapter(useAdminApiClient()))
 const contextLocked = computed(() => queue.items.value.length > 0)
+const router = useRouter()
+const adapter = createContentAdapter(useAdminApiClient())
+const ocr = createOcrAdapter(useAdminApiClient())
+const series = ref<ContentSeries[]>([])
+const ocrSettings = reactive({
+  enabled: false,
+  monthly_limit: 0,
+  free_quota: 0,
+  paid_disabled: true,
+  verify_quota: false
+})
+const quotaText = ref('')
+/** 加载系列和服务器 OCR 额度。 */
+async function loadContext(): Promise<void> {
+  try {
+    series.value = await adapter.listSeries()
+    const quota = await ocr.getQuota()
+    Object.assign(ocrSettings, quota)
+    quotaText.value = `${quota.month} 已使用 ${quota.reserved_count}，剩余 ${quota.remaining}，控制台核验 ${quota.quota_verified_at || '尚未完成'}`
+  } catch (failure) {
+    ElMessage.error(failure instanceof Error ? failure.message : '配置加载失败')
+  }
+}
+/** 保存 OCR 配置和管理员控制台核验记录。 */
+async function saveOcr(): Promise<void> {
+  try {
+    await ocr.updateSettings({
+      enabled: ocrSettings.enabled,
+      monthly_limit: ocrSettings.monthly_limit,
+      free_quota: ocrSettings.free_quota,
+      paid_disabled: ocrSettings.paid_disabled,
+      verify_quota: ocrSettings.verify_quota
+    })
+    ocrSettings.verify_quota = false
+    await loadContext()
+    ElMessage.success('OCR 设置已保存')
+  } catch (failure) {
+    ElMessage.error(failure instanceof Error ? failure.message : 'OCR 设置保存失败')
+  }
+}
+/** 编辑上传确认后自动建立的场景草稿。
+ * @param item - 上传素材
+ */
+async function editImage(item: Readonly<UploadQueueItem>): Promise<void> {
+  if (item.sceneId) await router.push({ name: 'content-scene-edit', params: { id: item.sceneId } })
+}
+onMounted(loadContext)
 
 /**
  * 接收 Element Plus 选择的本地图片
@@ -44,7 +96,7 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
     <div class="page-heading">
       <div>
         <span>A18</span>
-        <h2>批量上传与 OCR</h2>
+        <h2>批量图片上传</h2>
       </div>
     </div>
     <div class="content-grid">
@@ -58,11 +110,19 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
         />
         <ElForm class="batch-form" label-position="top">
           <ElFormItem label="系列编号" required
-            ><ElInput v-model="context.seriesId" :disabled="contextLocked" maxlength="64"
-          /></ElFormItem>
+            ><ElSelect v-model="context.seriesId" :disabled="contextLocked"
+              ><ElOption
+                v-for="item in series"
+                :key="item.id"
+                :label="item.title"
+                :value="item.id" /></ElSelect
+          ></ElFormItem>
           <ElFormItem label="识别模板" required
-            ><ElInput v-model="context.templateId" :disabled="contextLocked" maxlength="64"
-          /></ElFormItem>
+            ><ElSelect v-model="context.templateId" :disabled="contextLocked"
+              ><ElOption label="对话" value="dialogue" /><ElOption
+                label="词汇"
+                value="vocabulary" /></ElSelect
+          ></ElFormItem>
         </ElForm>
         <ElUpload
           :auto-upload="false"
@@ -92,25 +152,38 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
         <template v-else>
           <div v-for="item in queue.items.value" :key="item.id" class="queue-item">
             <TaskProgress :item="item" @cancel="queue.cancel" @retry="queue.start" />
-            <RouterLink
-              v-if="item.jobId"
-              :to="{
-                name: 'content-ocr',
-                params: { itemId: item.assetId ?? 'asset', taskId: item.jobId }
-              }"
-              >进入 OCR 校对</RouterLink
+            <ElButton v-if="item.sceneId" link type="primary" @click="editImage(item)"
+              >编辑场景草稿</ElButton
             >
           </div>
         </template>
         <ElAlert
           class="ocr-note"
           :closable="false"
-          title="上传确认后自动创建持久化 OCR 任务，可取消、重试并进入人工校对"
+          title="上传只确认素材。进入场景后可手工录入或显式启动 OCR，并逐项采纳候选。"
           type="success"
           show-icon
         />
       </ElCard>
     </div>
+    <ElCard class="ocr-note" shadow="never"
+      ><template #header><h3>OCR 安全额度设置</h3></template>
+      <p>{{ quotaText }}</p>
+      <ElForm inline
+        ><ElFormItem label="启用 OCR"><ElSwitch v-model="ocrSettings.enabled" /></ElFormItem
+        ><ElFormItem label="内部月额度"
+          ><ElInputNumber v-model="ocrSettings.monthly_limit" :min="0" :precision="0" /></ElFormItem
+        ><ElFormItem label="控制台免费额度"
+          ><ElInputNumber v-model="ocrSettings.free_quota" :min="0" :precision="0" /></ElFormItem
+        ><ElFormItem
+          ><ElCheckbox v-model="ocrSettings.paid_disabled">已关闭付费调用</ElCheckbox></ElFormItem
+        ><ElFormItem
+          ><ElCheckbox v-model="ocrSettings.verify_quota"
+            >已在百度控制台核验本月额度</ElCheckbox
+          ></ElFormItem
+        ><ElButton @click="saveOcr">保存 OCR 设置</ElButton></ElForm
+      ></ElCard
+    >
   </section>
 </template>
 

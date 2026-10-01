@@ -42,18 +42,20 @@ describe('upload queue', () => {
     controller.add(new File(['x'], 'bad.png', { type: 'image/png' }), context)
     controller.add(new File(['x'], 'good.png', { type: 'image/png' }), context)
     await controller.startAll()
-    expect(controller.items.value.map((item) => item.status)).toEqual(['failed', 'awaiting-ocr'])
+    expect(controller.items.value.map((item) => item.status)).toEqual(['failed', 'confirmed'])
   })
 
-  it('freezes batch context and reuses the OCR idempotency key after a lost response', async () => {
+  it('freezes context and retries import confirmation without reuploading after a lost response', async () => {
     const confirm = vi
       .fn()
       .mockRejectedValueOnce(new Error('network lost'))
-      .mockResolvedValueOnce({ assetId: 'A-1', jobId: 'J-1' })
+      .mockResolvedValueOnce({ assetId: 'A-1', jobId: null, sceneId: 'S-1' })
+    const prepare = vi.fn(async () => ({ fields: {}, objectKey: 'uploads/a.png', url: '' }))
+    const upload = vi.fn(async () => undefined)
     const controller = useUploadQueue({
       confirm,
-      prepare: vi.fn(async () => ({ fields: {}, objectKey: 'uploads/a.png', url: '' })),
-      upload: vi.fn(async () => undefined)
+      prepare,
+      upload
     })
     const context = { seriesId: 'SERIES-1', templateId: 'CARD' }
     const item = controller.add(new File(['x'], 'a.png', { type: 'image/png' }), context)
@@ -64,5 +66,8 @@ describe('upload queue', () => {
 
     expect(confirm.mock.calls[0]?.[1]).toEqual({ seriesId: 'SERIES-1', templateId: 'CARD' })
     expect(confirm.mock.calls[0]?.[2]).toBe(confirm.mock.calls[1]?.[2])
+    expect(prepare).toHaveBeenCalledTimes(1)
+    expect(upload).toHaveBeenCalledTimes(1)
+    expect(controller.items.value[0]?.sceneId).toBe('S-1')
   })
 })

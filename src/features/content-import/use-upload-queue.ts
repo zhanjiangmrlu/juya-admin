@@ -11,8 +11,9 @@ export interface UploadPreparation {
 }
 
 export interface UploadConfirmation {
+  sceneId?: string
   assetId: string
-  jobId: string
+  jobId: string | null
 }
 
 export interface UploadBatchContext {
@@ -36,9 +37,10 @@ export interface UploadAdapter {
 }
 
 export type UploadStatus =
-  'awaiting-ocr' | 'cancelled' | 'failed' | 'preparing' | 'queued' | 'uploading'
+  'confirmed' | 'cancelled' | 'failed' | 'preparing' | 'queued' | 'uploading'
 
 export interface UploadQueueItem {
+  sceneId: string | null
   assetId: string | null
   context: UploadBatchContext
   error: string | null
@@ -67,6 +69,7 @@ export interface UploadQueueController {
 export function useUploadQueue(adapter: UploadAdapter): UploadQueueController {
   const items = ref<UploadQueueItem[]>([])
   const abortControllers = new Map<string, AbortController>()
+  const uploadedPreparations = new Map<string, UploadPreparation>()
 
   /**
    * 向队列加入一张图片
@@ -77,6 +80,7 @@ export function useUploadQueue(adapter: UploadAdapter): UploadQueueController {
    */
   function add(file: File, context: UploadBatchContext): UploadQueueItem {
     const item: UploadQueueItem = {
+      sceneId: null,
       assetId: null,
       context: { ...context },
       error: null,
@@ -100,7 +104,7 @@ export function useUploadQueue(adapter: UploadAdapter): UploadQueueController {
   function cancel(id: string): void {
     abortControllers.get(id)?.abort()
     const item = items.value.find((candidate) => candidate.id === id)
-    if (item && item.status !== 'awaiting-ocr') item.status = 'cancelled'
+    if (item && item.status !== 'confirmed') item.status = 'cancelled'
   }
 
   /**
@@ -111,30 +115,35 @@ export function useUploadQueue(adapter: UploadAdapter): UploadQueueController {
    */
   async function start(id: string): Promise<void> {
     const item = items.value.find((candidate) => candidate.id === id)
-    if (!item || item.status === 'awaiting-ocr') return
+    if (!item || ['confirmed', 'preparing', 'uploading'].includes(item.status)) return
     const controller = new AbortController()
     abortControllers.set(id, controller)
     item.error = null
     item.status = 'preparing'
     try {
-      const prepared = await adapter.prepare(item.file)
+      const uploaded = uploadedPreparations.get(id)
+      const prepared = uploaded ?? (await adapter.prepare(item.file))
       if (controller.signal.aborted) return
       item.status = 'uploading'
-      await adapter.upload(
-        prepared,
-        item.file,
-        (progress) => {
-          item.progress = Math.min(100, Math.max(0, progress))
-        },
-        controller.signal
-      )
+      if (!uploaded)
+        await adapter.upload(
+          prepared,
+          item.file,
+          (progress) => {
+            item.progress = Math.min(100, Math.max(0, progress))
+          },
+          controller.signal
+        )
       if (controller.signal.aborted) return
+      uploadedPreparations.set(id, prepared)
       const confirmation = await adapter.confirm(prepared, { ...item.context }, item.idempotencyKey)
       if (controller.signal.aborted) return
       item.assetId = confirmation?.assetId ?? null
+      item.sceneId = confirmation?.sceneId ?? null
       item.jobId = confirmation?.jobId ?? null
       item.progress = 100
-      item.status = 'awaiting-ocr'
+      item.status = 'confirmed'
+      uploadedPreparations.delete(id)
     } catch (failure) {
       if (!controller.signal.aborted) {
         item.error = failure instanceof Error ? failure.message : '上传失败'

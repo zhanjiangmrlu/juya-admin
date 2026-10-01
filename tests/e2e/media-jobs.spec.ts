@@ -1,11 +1,13 @@
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 
-test('图片确认后创建 OCR 任务并提供校对入口', async ({ adminApi, page }) => {
+test('图片确认只上传素材并提供场景录入入口', async ({ adminApi, page }) => {
   await page.route('**/__e2e-upload', async (route) => route.fulfill({ status: 204 }))
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/import')
-  await page.getByLabel('系列编号').fill('SERIES-1')
-  await page.getByLabel('识别模板').fill('learning-card')
+  await page.getByLabel('系列编号').press('Enter')
+  await page.getByRole('option', { name: '日常英语' }).click()
+  await page.getByLabel('识别模板').press('Enter')
+  await page.getByRole('option', { name: '对话', exact: true }).click()
   await page.locator('input[type="file"]').setInputFiles({
     buffer: Buffer.from('e2e-image'),
     mimeType: 'image/png',
@@ -13,28 +15,51 @@ test('图片确认后创建 OCR 任务并提供校对入口', async ({ adminApi,
   })
   await page.getByRole('button', { name: '开始上传' }).click()
 
-  await expect(page.getByRole('link', { name: '进入 OCR 校对' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '编辑场景草稿' })).toBeVisible()
+  expect(adminApi.findRequest('POST', '/api/v1/admin/content/imports')?.body).toEqual({
+    asset_ids: ['ASSET-UPLOADED-1'],
+    series_id: 'SERIES-1',
+    template_type: 'dialogue'
+  })
+  await page.getByRole('button', { name: '编辑场景草稿' }).click()
+  await expect(page).toHaveURL(/\/content\/scenes\/SCENE-1\/edit$/)
   const request = adminApi.findRequest('POST', '/api/v1/admin/media/ocr/jobs')
-  expect(request?.body).toMatchObject({ series_id: 'SERIES-1', template_id: 'learning-card' })
-  expect(request?.headers['x-idempotency-key']).toBeTruthy()
+  expect(request).toBeUndefined()
+  expect(adminApi.findRequest('POST', '/api/v1/admin/media/uploads/confirm')).toBeTruthy()
+  expect(adminApi.findRequest('POST', '/api/v1/admin/content/scenes')).toBeUndefined()
 })
 
-test('OCR 候选人工确认使用真实命令并保留结构化内容', async ({ adminApi, page }) => {
+test('显式 OCR 候选只采纳选择字段到同一草稿', async ({ adminApi, page }) => {
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/ocr/JOB-1/ASSET-1')
+  await navigateInApp(page, '/content/scenes/SCENE-1/edit')
+  await page.getByLabel('学习原图素材编号').fill('ASSET-1')
+  await page.getByRole('button', { name: '保存并识别原图' }).click()
+  await page.getByRole('button', { name: '刷新识别状态' }).click()
 
   await expect(page.getByText('Coffee time')).toBeVisible()
-  await page.getByLabel('场景编号').fill('SCENE-1')
-  await page.getByLabel('校对后的结构化 JSON').fill('{"title":"Reviewed coffee"}')
-  await page.getByRole('button', { name: '保存人工版本' }).click()
-  await expect(page.getByText('人工版本已保存：REV-OCR-2 · DRAFT')).toBeVisible()
+  await page.getByRole('button', { name: '分配候选字段' }).hover()
+  await page.getByRole('menuitem', { name: '英文标题', exact: true }).click()
+  await page.getByLabel('候选英文标题').fill('Reviewed coffee')
+  await page.getByRole('button', { name: '刷新识别状态' }).click()
+  await expect(page.getByLabel('候选英文标题')).toHaveValue('Reviewed coffee')
+  await page.getByRole('button', { name: '采纳选中字段到当前草稿' }).click()
+  await expect(page.getByRole('textbox', { name: '英文标题', exact: true })).toHaveValue(
+    'Reviewed coffee'
+  )
+  await expect(page.getByRole('textbox', { name: '中文标题', exact: true })).toHaveValue(
+    '点一杯咖啡'
+  )
 
   const request = adminApi.findRequest(
     'POST',
-    '/api/v1/admin/media/ocr/jobs/JOB-1/commands/confirm'
+    '/api/v1/admin/content/revisions/REV-DRAFT-1/ocr-adoptions'
   )
-  expect(request?.body).toEqual({ content: { title: 'Reviewed coffee' }, scene_id: 'SCENE-1' })
-  expect(request?.headers['x-idempotency-key']).toBeTruthy()
+  expect(request?.body).toMatchObject({
+    job_id: 'JOB-1',
+    selected_fields: ['title_en'],
+    expected_version: 5,
+    content: { title_en: 'Reviewed coffee' }
+  })
   expect(adminApi.unexpectedRequests).toEqual([])
 })
 

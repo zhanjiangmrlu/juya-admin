@@ -1,196 +1,124 @@
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { createOcrAdapter } from '@/features/ocr/ocr-adapter'
-import { useOcrReview } from '@/features/ocr/use-ocr-review'
+import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
+
+import type { OcrCandidate, OcrJob } from '@/features/ocr/ocr-model'
 
 const route = useRoute()
 const router = useRouter()
-const taskId = computed(() => String(route.params.taskId))
-const itemId = computed(() => String(route.params.itemId))
-const sceneId = ref('')
-const controller = useOcrReview(createOcrAdapter(useAdminApiClient()), taskId.value)
-const { activeJobId, candidate, confirmation, contentText, error, job, state } = controller
-const busy = computed(() => state.value === 'loading' || state.value === 'saving')
-
-onMounted(() => void controller.load().catch(() => undefined))
-
-/** 将当前人工 JSON 确认为场景草稿。 */
-async function submitConfirmation(): Promise<void> {
-  if (!sceneId.value.trim()) {
-    ElMessage.warning('请输入要写入的场景编号')
-    return
-  }
+const adapter = createOcrAdapter(useAdminApiClient())
+const job = ref<OcrJob | null>(null)
+const candidate = ref<OcrCandidate | null>(null)
+const sceneId = ref(String(route.query.sceneId ?? ''))
+const busy = ref(false)
+const error = ref('')
+const lines = computed(() => {
+  const content = candidate.value?.content
+  if (!content) return []
+  if (Array.isArray(content.blocks))
+    return content.blocks
+      .map((block) =>
+        typeof block === 'object' && block && 'text' in block ? String(block.text) : ''
+      )
+      .filter(Boolean)
+  return typeof content.text === 'string' ? content.text.split('\n') : []
+})
+/** 加载当前识别任务及原始文字。 */
+async function load(): Promise<void> {
+  busy.value = true
+  error.value = ''
   try {
-    const result = await controller.confirm(sceneId.value.trim())
-    ElMessage.success(`已创建人工草稿 ${result.revisionId}`)
-  } catch {
-    // The controller exposes the request error without clearing the edited JSON.
+    job.value = await adapter.getJob(job.value?.id ?? String(route.params.taskId))
+    candidate.value =
+      job.value.status === 'SUCCEEDED' ? await adapter.getCandidate(job.value.id) : null
+  } catch (failure) {
+    error.value = failure instanceof Error ? failure.message : '任务加载失败'
+  } finally {
+    busy.value = false
   }
 }
-
-/**
- * 执行 OCR 任务命令
- * @param operation - 取消或重试
+/** 取消或显式重试识别。
+ * @param operation - 任务命令
  */
 async function command(operation: 'cancel' | 'retry'): Promise<void> {
+  if (!job.value) return
+  busy.value = true
   try {
-    const result = await controller.command(operation)
-    if (result.id !== taskId.value) {
-      await router.replace({
-        name: route.name,
-        params: { ...route.params, taskId: result.id },
-        query: route.query
-      })
-    }
-    ElMessage.success(operation === 'cancel' ? '任务已取消' : '重试任务已创建')
-  } catch {
-    // The controller keeps the current candidate visible on command failure.
+    job.value = await adapter.command(job.value.id, operation, createIdempotencyKey())
+    candidate.value = null
+    await router.replace({ params: { ...route.params, taskId: job.value.id }, query: route.query })
+  } catch (failure) {
+    error.value = failure instanceof Error ? failure.message : '任务操作失败'
+  } finally {
+    busy.value = false
   }
 }
+/** 返回绑定场景，使用同一草稿进行逐项采纳。 */
+function edit(): void {
+  if (sceneId.value.trim() && job.value)
+    void router.push({
+      name: 'content-scene-edit',
+      params: { id: sceneId.value.trim() },
+      query: { ocrJob: job.value.id }
+    })
+}
+onMounted(load)
 </script>
-
 <template>
-  <section v-loading="state === 'loading'" class="ocr-review-page">
+  <section v-loading="busy">
     <div class="page-heading">
-      <div>
-        <span>A19</span>
-        <h2>OCR 校对 · {{ activeJobId }} / {{ itemId }}</h2>
-      </div>
-      <div class="heading-actions">
-        <ElButton :disabled="busy" @click="controller.load">刷新状态</ElButton>
-        <ElButton
-          v-if="job && ['PENDING', 'RUNNING'].includes(job.status)"
-          :disabled="busy"
-          @click="command('cancel')"
-          >取消任务</ElButton
-        >
-        <ElButton
-          v-if="job && ['FAILED', 'CANCELLED'].includes(job.status)"
-          :disabled="busy"
-          type="primary"
-          @click="command('retry')"
-          >重试任务</ElButton
-        >
-      </div>
+      <h2>OCR 任务与原始候选</h2>
+      <ElButton @click="load">刷新状态</ElButton>
     </div>
-    <ElAlert v-if="error" :closable="false" :title="error" type="error" show-icon />
-    <ElAlert
-      v-else-if="confirmation"
-      :closable="false"
-      :title="`人工版本已保存：${confirmation.revisionId} · ${confirmation.revisionStatus}`"
-      type="success"
-      show-icon
-    />
-    <div class="review-grid">
-      <ElCard shadow="never">
-        <template #header><h3>任务与原始素材</h3></template>
-        <ElDescriptions v-if="job" :column="1" border>
-          <ElDescriptionsItem label="状态"
-            ><ElTag>{{ job.status }}</ElTag></ElDescriptionsItem
-          >
-          <ElDescriptionsItem label="素材编号">{{ job.targetId }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="Provider Request">
-            {{ job.providerRequestId ?? '尚未生成' }}
-          </ElDescriptionsItem>
-          <ElDescriptionsItem v-if="job.errorCode" label="错误码">
-            {{ job.errorCode }}
-          </ElDescriptionsItem>
-        </ElDescriptions>
-        <ElEmpty v-else-if="state !== 'loading'" description="任务不存在或暂不可用" />
-      </ElCard>
-      <ElCard shadow="never">
-        <template #header><h3>OCR 候选</h3></template>
-        <template v-if="candidate">
-          <p>模板：{{ candidate.templateType }}</p>
-          <p>平均置信度：{{ candidate.confidence ?? '未提供' }}</p>
-          <pre>{{ JSON.stringify(candidate.content, null, 2) }}</pre>
-        </template>
-        <ElEmpty v-else-if="state !== 'loading'" description="候选尚未生成" />
-      </ElCard>
-      <ElCard shadow="never">
-        <template #header><h3>人工版本</h3></template>
-        <ElForm label-position="top">
-          <ElFormItem label="场景编号" required>
-            <ElInput v-model="sceneId" maxlength="64" />
-          </ElFormItem>
-          <ElFormItem label="校对后的结构化 JSON" required>
-            <ElInput v-model="contentText" type="textarea" :rows="12" />
-          </ElFormItem>
-        </ElForm>
-        <ElButton :disabled="busy || !candidate" type="primary" @click="submitConfirmation">
-          保存人工版本
-        </ElButton>
-      </ElCard>
-    </div>
+    <ElAlert v-if="error" :closable="false" :title="error" type="error" /><ElCard shadow="never"
+      ><ElDescriptions v-if="job" :column="1"
+        ><ElDescriptionsItem label="任务">{{ job.id }}</ElDescriptionsItem
+        ><ElDescriptionsItem label="状态">{{ job.status }}</ElDescriptionsItem
+        ><ElDescriptionsItem label="素材">{{ job.targetId }}</ElDescriptionsItem
+        ><ElDescriptionsItem label="错误">{{
+          job.errorCode || '—'
+        }}</ElDescriptionsItem></ElDescriptions
+      ><ElButton
+        v-if="job && ['PENDING', 'RUNNING'].includes(job.status)"
+        @click="command('cancel')"
+        >取消任务</ElButton
+      ><ElButton
+        v-if="job && ['FAILED', 'CANCELLED'].includes(job.status)"
+        @click="command('retry')"
+        >显式重试任务</ElButton
+      >
+      <h3>原始识别文字</h3>
+      <p v-for="(line, index) in lines" :key="index">{{ line }}</p>
+      <ElEmpty v-if="!lines.length" description="候选尚未生成" /><ElAlert
+        :closable="false"
+        title="原始 OCR 只提供文字。请在任务绑定的场景中校对分类、翻译，并选择采纳字段。"
+        type="info"
+      /><ElForm label-position="top"
+        ><ElFormItem label="任务绑定场景编号"><ElInput v-model="sceneId" /></ElFormItem
+        ><ElButton :disabled="!sceneId.trim()" type="primary" @click="edit"
+          >返回场景逐项校对</ElButton
+        ></ElForm
+      ></ElCard
+    >
   </section>
 </template>
-
 <style scoped lang="scss">
-.ocr-review-page {
-  .page-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 14px;
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
 
-    span {
-      color: var(--juya-color-text-primary);
-      font-size: 11px;
-      font-weight: 700;
-    }
+h2 {
+  margin: 0;
+  font-size: 18px;
+}
 
-    h2 {
-      margin: 3px 0 0;
-      color: var(--juya-color-sidebar);
-      font-size: 18px;
-    }
-  }
-
-  .heading-actions {
-    display: flex;
-    gap: 8px;
-  }
-
-  .review-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    margin-top: 14px;
-  }
-
-  h3 {
-    margin: 0;
-    color: var(--juya-color-sidebar);
-    font-size: 15px;
-  }
-
-  p {
-    color: var(--juya-color-text-secondary);
-    font-size: 13px;
-  }
-
-  pre {
-    max-height: 280px;
-    padding: 10px;
-    overflow: auto;
-    border-radius: 6px;
-    background: var(--el-fill-color-light);
-    white-space: pre-wrap;
-  }
-
-  .el-button {
-    width: 100%;
-  }
-
-  @media (width <= 1100px) {
-    .review-grid {
-      grid-template-columns: 1fr;
-    }
-  }
+.el-form {
+  margin-top: 16px;
 }
 </style>

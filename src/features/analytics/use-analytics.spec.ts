@@ -16,6 +16,7 @@ describe('analytics controller', () => {
           })
       )
       .mockResolvedValue({
+        activityBasis: 'CALENDAR_MONTH_USERS',
         period: 'month',
         timezone: 'Asia/Shanghai',
         start: '2026-09-01',
@@ -27,6 +28,7 @@ describe('analytics controller', () => {
     const first = controller.load('2026-09-01', '2026-09-30', 'week')
     await controller.load('2026-09-01', '2026-09-30', 'month')
     resolveFirst({
+      activityBasis: 'PERSON_DAYS',
       period: 'week',
       timezone: 'Asia/Shanghai',
       start: '2026-09-01',
@@ -36,10 +38,12 @@ describe('analytics controller', () => {
     })
     await first
     expect(controller.rows.value[0]?.value).toBe(5)
+    expect(controller.activityBasis.value).toBe('CALENDAR_MONTH_USERS')
     expect(controller.isLoading.value).toBe(false)
   })
   it('loads and validates anonymous rows', async () => {
     const query = vi.fn(async (): Promise<AnalyticsSnapshot> => ({
+      activityBasis: 'DAILY_USERS',
       period: 'day',
       timezone: 'Asia/Shanghai',
       start: '2026-09-01',

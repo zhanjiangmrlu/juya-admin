@@ -3,9 +3,6 @@ import { createXhrUploader } from '@/services/upload/xhr-uploader'
 
 import type { UploadAdapter, UploadPreparation } from './use-upload-queue'
 import type { ApiClient } from '@/services/api/api-client'
-import type { components } from '@/shared/contracts/generated/admin-api'
-
-type ProcessingJobDto = components['schemas']['ProcessingJobResponse']
 
 /**
  * 创建图片上传策略、直传和确认适配器
@@ -15,33 +12,39 @@ type ProcessingJobDto = components['schemas']['ProcessingJobResponse']
  */
 export function createUploadAdapter(client: ApiClient): UploadAdapter {
   const uploader = createXhrUploader()
+  const confirmedAssets = new Map<string, string>()
   return {
     /**
      * 确认已成功写入对象存储的图片
      *
      * @param prepared - 已准备的对象键和上传字段
      * @param context - 加入队列时冻结的业务上下文
-     * @param idempotencyKey - OCR 任务逻辑操作幂等键
+     * @param idempotencyKey - 上传操作幂等键
      * @returns 确认完成后的 Promise
      */
     async confirm(prepared, context, idempotencyKey) {
-      const asset = await client.request<{ id: string }>({
-        body: { asset_type: 'images', object_key: prepared.objectKey },
+      const existingAsset = confirmedAssets.get(idempotencyKey)
+      const asset = existingAsset
+        ? { id: existingAsset }
+        : await client.request<{ id: string }>({
+            body: { asset_type: 'images', object_key: prepared.objectKey },
+            method: 'POST',
+            path: '/api/v1/admin/media/uploads/confirm'
+          })
+      confirmedAssets.set(idempotencyKey, asset.id)
+      const imported = await client.request<{ items: { id: string }[] }>({
         method: 'POST',
-        path: '/api/v1/admin/media/uploads/confirm'
-      })
-      const job = await client.request<ProcessingJobDto>({
+        path: '/api/v1/admin/content/imports',
         body: {
-          asset_id: asset.id,
-          object_key: prepared.objectKey,
+          asset_ids: [asset.id],
           series_id: context.seriesId,
-          template_id: context.templateId
+          template_type: context.templateId === 'vocabulary' ? 'vocabulary' : 'dialogue'
         },
-        idempotencyKey,
-        method: 'POST',
-        path: '/api/v1/admin/media/ocr/jobs'
+        idempotencyKey
       })
-      return { assetId: asset.id, jobId: job.id }
+      const sceneId = imported.items[0]?.id
+      if (!sceneId) throw new Error('图片导入未返回场景草稿')
+      return { assetId: asset.id, jobId: null, sceneId }
     },
     /**
      * 计算摘要并申请图片上传临时策略

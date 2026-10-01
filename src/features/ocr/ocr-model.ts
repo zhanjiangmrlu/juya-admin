@@ -35,9 +35,3 @@ export interface OcrCandidate {
   status: string
   templateType: string
 }
-
-export interface OcrConfirmation {
-  revisionId: string
-  revisionStatus: string
-  version: number
-}

@@ -50,7 +50,7 @@ const commandError = ref<string | null>(null)
 const hadConflict = ref(false)
 const form = reactive({
   operation: 'RENEW' as FormalEntitlementOperation,
-  term: 'MONTH_3' as FormalEntitlementTerm
+  term: 'month_3' as FormalEntitlementTerm
 })
 const confirmVisible = ref(false)
 const allowedOperations = computed(() =>
@@ -84,7 +84,7 @@ async function load(keepDraft = false): Promise<void> {
     detail.value = result
     if (!keepDraft) {
       form.operation = allowedOperations.value[0] ?? 'RENEW'
-      form.term = FORMAL_TERMS.find((value) => value === detail.value?.term) ?? 'MONTH_3'
+      form.term = FORMAL_TERMS.find((value) => value === detail.value?.term) ?? 'month_3'
     }
     state.value = 'ready'
   } catch (failure) {

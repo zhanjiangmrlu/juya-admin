@@ -238,7 +238,7 @@ describe('batch two page regressions', () => {
             user_id: 'USER-1',
             package_id: 'PACKAGE-1',
             status: 'ACTIVE',
-            term: 'MONTH_3',
+            term: 'month_3',
             version: 4,
             granted_at: '2026-09-29T00:00:00Z',
             expires_at: null

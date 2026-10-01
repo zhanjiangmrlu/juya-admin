@@ -9,7 +9,25 @@ import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 const controller = useBatchJobs(createBatchJobAdapter(useAdminApiClient()))
 const { error, jobs, page, pageSize, state, total, trash } = controller
-const batchForm = reactive({ jobType: 'VALIDATE', targetIds: '' })
+const batchForm = reactive({
+  jobType: 'VALIDATE',
+  targetIds: '',
+  tags: '',
+  copyright: '',
+  packageId: '',
+  expectedVersions: ''
+})
+const jobTypes = {
+  VALIDATE: '检查内容',
+  PUBLISH: '发布',
+  OFFLINE: '下线',
+  RESTORE: '恢复草稿',
+  EXPORT: '导出内容',
+  TAGS: '设置标签',
+  COPYRIGHT: '设置版权',
+  PACKAGE: '加入内容包',
+  OCR: '显式 OCR'
+}
 const trashForm = reactive({ revisionId: '', sceneId: '' })
 const busy = computed(() => state.value === 'loading' || state.value === 'saving')
 
@@ -27,11 +45,33 @@ async function createBatch(): Promise<void> {
     return
   }
   try {
-    await controller.create(batchForm.jobType, targetIds)
+    const inputPayload: Record<string, unknown> = {}
+    if (batchForm.jobType === 'TAGS')
+      inputPayload.tags = batchForm.tags
+        .split(/[,，\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    if (batchForm.jobType === 'COPYRIGHT') inputPayload.copyright = batchForm.copyright
+    if (batchForm.jobType === 'PACKAGE') inputPayload.package_id = batchForm.packageId.trim()
+    if (batchForm.jobType === 'PUBLISH') {
+      const versions = Object.fromEntries(
+        batchForm.expectedVersions
+          .split('\n')
+          .filter(Boolean)
+          .map((line) => {
+            const [id, version] = line.split(':')
+            return [id?.trim(), Number(version)]
+          })
+      )
+      if (targetIds.some((id) => !Number.isInteger(versions[id]) || versions[id] < 1))
+        throw new Error('每个场景必须填写检查过的草稿版本')
+      inputPayload.expected_versions = versions
+    }
+    await controller.create(batchForm.jobType, targetIds, inputPayload)
     batchForm.targetIds = ''
     ElMessage.success('批量任务已创建')
-  } catch {
-    // The controller exposes the operation error.
+  } catch (failure) {
+    ElMessage.error(failure instanceof Error ? failure.message : '批量任务创建失败')
   }
 }
 
@@ -87,6 +127,26 @@ async function commandTrash(entryId: string, operation: 'cleanup' | 'restore'): 
 function canCleanup(retentionUntil: string): boolean {
   return Date.now() >= Date.parse(retentionUntil)
 }
+/** 下载批量任务实际结果。
+ * @param id - 批量任务编号
+ */
+function exportResult(id: string): void {
+  const job = jobs.value.find((item) => item.id === id)
+  if (!job) return
+  const url = globalThis.URL.createObjectURL(
+    new globalThis.Blob(
+      [JSON.stringify({ items: job.items, results: job.resultPayload }, null, 2)],
+      {
+        type: 'application/json'
+      }
+    )
+  )
+  const link = globalThis.document.createElement('a')
+  link.href = url
+  link.download = `batch-${id}.json`
+  link.click()
+  globalThis.URL.revokeObjectURL(url)
+}
 </script>
 
 <template>
@@ -96,7 +156,10 @@ function canCleanup(retentionUntil: string): boolean {
         <span>A24</span>
         <h2>批量任务中心</h2>
       </div>
-      <ElTag type="info">共 {{ total }} 个任务</ElTag>
+      <div>
+        <ElButton @click="controller.load()">刷新执行结果</ElButton
+        ><ElTag type="info">共 {{ total }} 个任务</ElTag>
+      </div>
     </div>
     <ElAlert v-if="error" :closable="false" :title="error" type="error" show-icon />
     <div class="create-grid">
@@ -104,11 +167,37 @@ function canCleanup(retentionUntil: string): boolean {
         <template #header><h3>新建批量任务</h3></template>
         <ElForm label-position="top">
           <ElFormItem label="任务类型">
-            <ElInput v-model="batchForm.jobType" maxlength="32" />
+            <ElSelect v-model="batchForm.jobType"
+              ><ElOption
+                v-for="(label, value) in jobTypes"
+                :key="value"
+                :label="label"
+                :value="value"
+            /></ElSelect>
           </ElFormItem>
           <ElFormItem label="目标编号（逗号或换行分隔，最多 500 项）">
             <ElInput v-model="batchForm.targetIds" type="textarea" :rows="3" />
           </ElFormItem>
+          <ElFormItem v-if="batchForm.jobType === 'TAGS'" label="标签（逗号分隔）"
+            ><ElInput v-model="batchForm.tags"
+          /></ElFormItem>
+          <ElFormItem v-if="batchForm.jobType === 'COPYRIGHT'" label="版权声明"
+            ><ElInput v-model="batchForm.copyright" type="textarea"
+          /></ElFormItem>
+          <ElFormItem v-if="batchForm.jobType === 'PACKAGE'" label="内容包编号"
+            ><ElInput v-model="batchForm.packageId"
+          /></ElFormItem>
+          <ElFormItem
+            v-if="batchForm.jobType === 'PUBLISH'"
+            label="草稿版本（每行 场景编号:版本号）"
+            ><ElInput v-model="batchForm.expectedVersions" type="textarea" placeholder="SCENE-1:3"
+          /></ElFormItem>
+          <ElAlert
+            v-if="batchForm.jobType === 'OCR'"
+            :closable="false"
+            title="将显式调用 OCR，使用服务器安全额度；结果需回到同一场景逐项采纳。"
+            type="warning"
+          />
           <ElButton :disabled="busy" type="primary" @click="createBatch">创建任务</ElButton>
         </ElForm>
       </ElCard>
@@ -143,6 +232,7 @@ function canCleanup(retentionUntil: string): boolean {
               <ElTableColumn label="错误码" prop="errorCode" min-width="130" />
             </ElTable>
             <div class="job-actions">
+              <ElButton @click="exportResult(job.id)">下载执行结果</ElButton>
               <ElButton
                 v-if="['PENDING', 'RUNNING'].includes(job.status)"
                 @click="commandBatch(job.id, 'cancel')"

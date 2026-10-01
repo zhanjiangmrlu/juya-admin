@@ -3,6 +3,43 @@ import { describe, expect, it, vi } from 'vitest'
 import { createAudioAdapter } from './audio-adapter'
 
 describe('audio adapter', () => {
+  it('reconfirms the same pending safety task without reuploading or creating a version early', async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({
+        fields: { key: 'uploads/audio/7/${filename}' },
+        upload_url: 'https://upload.test'
+      })
+      .mockResolvedValueOnce({ id: 'A', status: 'PENDING' })
+      .mockResolvedValueOnce({ id: 'A', status: 'CONFIRMED' })
+      .mockResolvedValueOnce({
+        id: 'V',
+        asset_id: 'A',
+        created_at: '',
+        target_id: 'T',
+        version_no: 1,
+        source: 'MANUAL',
+        status: 'CANDIDATE'
+      })
+    const upload = vi.fn().mockResolvedValue(undefined)
+    const adapter = createAudioAdapter(
+      { request },
+      { hash: vi.fn().mockResolvedValue('hash'), uploader: { upload } }
+    )
+    const file = new File(['audio'], 'one.mp3')
+    await expect(
+      adapter.uploadFile('T', file, 'same-key', vi.fn(), new AbortController().signal)
+    ).rejects.toThrow('安全检查中')
+    expect(request).toHaveBeenCalledTimes(2)
+    await expect(
+      adapter.uploadFile('T', file, 'same-key', vi.fn(), new AbortController().signal)
+    ).resolves.toMatchObject({ id: 'V' })
+    expect(upload).toHaveBeenCalledTimes(1)
+    expect(request.mock.calls[2]?.[0]).toMatchObject({
+      path: '/api/v1/admin/media/uploads/confirm',
+      body: { object_key: 'uploads/audio/7/one.mp3' }
+    })
+  })
   it('maps target versions and keeps every write idempotent', async () => {
     const target = {
       active_version_id: 'VERSION-1',

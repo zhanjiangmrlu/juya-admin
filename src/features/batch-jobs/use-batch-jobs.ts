@@ -9,7 +9,11 @@ import type { DeepReadonly, Ref } from 'vue'
 export interface BatchJobsController {
   command(batchId: string, operation: 'cancel' | 'retry-failed'): Promise<void>
   commandTrash(entryId: string, operation: 'cleanup' | 'restore'): Promise<void>
-  create(jobType: string, targetIds: string[]): Promise<void>
+  create(
+    jobType: string,
+    targetIds: string[],
+    inputPayload?: Record<string, unknown>
+  ): Promise<void>
   error: Readonly<Ref<null | string>>
   jobs: DeepReadonly<Ref<BatchJob[]>>
   load(page?: number): Promise<void>
@@ -36,8 +40,8 @@ export function useBatchJobs(adapter: BatchJobAdapter): BatchJobsController {
   const error = ref<null | string>(null)
   const state = ref<'error' | 'idle' | 'loading' | 'saving' | 'success'>('idle')
   const createCommand = useIdempotentCommand(
-    (input: { jobType: string; targetIds: string[] }, key) =>
-      adapter.create(input.jobType, input.targetIds, key)
+    (input: { jobType: string; targetIds: string[]; inputPayload: Record<string, unknown> }, key) =>
+      adapter.create(input.jobType, input.targetIds, key, input.inputPayload)
   )
   const batchCommand = useIdempotentCommand(
     (input: { batchId: string; operation: 'cancel' | 'retry-failed' }, key) =>
@@ -80,10 +84,15 @@ export function useBatchJobs(adapter: BatchJobAdapter): BatchJobsController {
    * 创建批量任务
    * @param jobType - 任务类型
    * @param targetIds - 目标编号
+   * @param inputPayload - 任务参数
    */
-  async function create(jobType: string, targetIds: string[]): Promise<void> {
+  async function create(
+    jobType: string,
+    targetIds: string[],
+    inputPayload: Record<string, unknown> = {}
+  ): Promise<void> {
     await run(async () => {
-      const created = await createCommand.submit({ jobType, targetIds })
+      const created = await createCommand.submit({ jobType, targetIds, inputPayload })
       createCommand.reset()
       const existing = jobs.value.findIndex((item) => item.id === created.id)
       if (existing >= 0) jobs.value.splice(existing, 1, created)

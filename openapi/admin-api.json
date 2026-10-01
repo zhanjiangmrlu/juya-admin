@@ -49,6 +49,787 @@
         }
       }
     },
+    "/api/v1/admin/content/imports": {
+      "post": {
+        "tags": ["admin-content"],
+        "summary": "Import Images",
+        "operationId": "import_images_api_v1_admin_content_imports_post",
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "X-Idempotency-Key"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportImagesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportImagesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/content/series": {
+      "get": {
+        "tags": ["admin-content"],
+        "summary": "List Series",
+        "operationId": "list_series_api_v1_admin_content_series_get",
+        "parameters": [
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Series Api V1 Admin Content Series Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["admin-content"],
+        "summary": "Create Series",
+        "operationId": "create_series_api_v1_admin_content_series_post",
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "X-Idempotency-Key"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSeriesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Series Api V1 Admin Content Series Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/content/scenes": {
+      "post": {
+        "tags": ["admin-content"],
+        "summary": "Create Scene",
+        "operationId": "create_scene_api_v1_admin_content_scenes_post",
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "X-Idempotency-Key"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSceneRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SceneResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["admin-content"],
+        "summary": "List Scenes",
+        "operationId": "list_scenes_api_v1_admin_content_scenes_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query"
+            }
+          },
+          {
+            "name": "series_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Series Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["DRAFT", "PUBLISHED", "OFFLINE"],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenePageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/content/lexicon": {
+      "get": {
+        "tags": ["admin-content"],
+        "summary": "List Lexicon",
+        "operationId": "list_lexicon_api_v1_admin_content_lexicon_get",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 500,
+              "default": "",
+              "title": "Query"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Lexicon Api V1 Admin Content Lexicon Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["admin-content"],
+        "summary": "Create Lexicon",
+        "operationId": "create_lexicon_api_v1_admin_content_lexicon_post",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LexiconWriteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SceneEntry"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/content/lexicon/{entry_id}": {
+      "put": {
+        "tags": ["admin-content"],
+        "summary": "Update Lexicon",
+        "operationId": "update_lexicon_api_v1_admin_content_lexicon__entry_id__put",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LexiconWriteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SceneEntry"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/content/revisions/{revision_id}/ocr-adoptions": {
+      "post": {
+        "tags": ["admin-content"],
+        "summary": "Adopt Ocr",
+        "operationId": "adopt_ocr_api_v1_admin_content_revisions__revision_id__ocr_adoptions_post",
+        "parameters": [
+          {
+            "name": "revision_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Revision Id"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OcrAdoptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevisionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/content/revisions/{revision_id}/resources/{resource_id}/signed-url": {
+      "get": {
+        "tags": ["admin-content"],
+        "summary": "Draft Resource",
+        "operationId": "draft_resource_api_v1_admin_content_revisions__revision_id__resources__resource_id__signed_url_get",
+        "parameters": [
+          {
+            "name": "revision_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Revision Id"
+            }
+          },
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Id"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Draft Resource Api V1 Admin Content Revisions  Revision Id  Resources  Resource Id  Signed Url Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/analytics": {
       "get": {
         "tags": ["analytics"],
@@ -446,126 +1227,6 @@
                   "type": "object",
                   "additionalProperties": true,
                   "title": "Response List Audit Events Api V1 Admin Audit Events Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/content/scenes": {
-      "get": {
-        "tags": ["admin-content"],
-        "summary": "List Scenes",
-        "operationId": "list_scenes_api_v1_admin_content_scenes_get",
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "default": 1,
-              "title": "Page"
-            }
-          },
-          {
-            "name": "page_size",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 100,
-              "minimum": 1,
-              "default": 20,
-              "title": "Page Size"
-            }
-          },
-          {
-            "name": "query",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "maxLength": 200
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Query"
-            }
-          },
-          {
-            "name": "series_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Series Id"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "enum": ["DRAFT", "PUBLISHED", "OFFLINE"],
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Status"
-            }
-          },
-          {
-            "name": "juya_admin_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Juya Admin Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScenePageResponse"
                 }
               }
             }
@@ -1070,7 +1731,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PublishRevisionRequest"
+                "$ref": "#/components/schemas/PublishCheckRequest"
               }
             }
           }
@@ -4203,6 +4864,257 @@
         }
       }
     },
+    "/api/v1/admin/media/assets/{asset_id}": {
+      "get": {
+        "tags": ["admin-media"],
+        "summary": "Get Asset",
+        "operationId": "get_asset_api_v1_admin_media_assets__asset_id__get",
+        "parameters": [
+          {
+            "name": "asset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Asset Id"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Asset Api V1 Admin Media Assets  Asset Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/media/assets/{asset_id}/signed-url": {
+      "get": {
+        "tags": ["admin-media"],
+        "summary": "Preview Asset",
+        "operationId": "preview_asset_api_v1_admin_media_assets__asset_id__signed_url_get",
+        "parameters": [
+          {
+            "name": "asset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Asset Id"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Preview Asset Api V1 Admin Media Assets  Asset Id  Signed Url Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/media/ocr/quota": {
+      "get": {
+        "tags": ["admin-media"],
+        "summary": "Get Quota",
+        "operationId": "get_quota_api_v1_admin_media_ocr_quota_get",
+        "parameters": [
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Quota Api V1 Admin Media Ocr Quota Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/media/ocr/settings": {
+      "put": {
+        "tags": ["admin-media"],
+        "summary": "Configure Ocr",
+        "operationId": "configure_ocr_api_v1_admin_media_ocr_settings_put",
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "X-Idempotency-Key"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OcrSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Configure Ocr Api V1 Admin Media Ocr Settings Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/media/ocr/jobs": {
       "post": {
         "tags": ["admin-media"],
@@ -4510,6 +5422,88 @@
       }
     },
     "/api/v1/admin/media/audio-targets": {
+      "post": {
+        "tags": ["admin-media"],
+        "summary": "Create Audio Target",
+        "operationId": "create_audio_target_api_v1_admin_media_audio_targets_post",
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "X-Idempotency-Key"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "juya_admin_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAudioTargetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioTargetResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "get": {
         "tags": ["admin-media"],
         "summary": "List Audio Targets",
@@ -6052,9 +7046,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Open Scene Internal V1 Scenes  Scene Id  Open Post"
+                  "$ref": "#/components/schemas/SceneOpenResponse"
                 }
               }
             }
@@ -6102,7 +7094,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserQuery"
+                "$ref": "#/components/schemas/EntryQuery"
               }
             }
           }
@@ -6113,9 +7105,66 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Entry Internal V1 Scenes  Scene Id  Entries  Entry Id  Post"
+                  "$ref": "#/components/schemas/AuthorizedEntryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/scenes/{scene_id}/resources/{resource_id}/signed-url": {
+      "post": {
+        "tags": ["internal-content"],
+        "summary": "Signed Resource",
+        "operationId": "signed_resource_internal_v1_scenes__scene_id__resources__resource_id__signed_url_post",
+        "parameters": [
+          {
+            "name": "scene_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Scene Id"
+            }
+          },
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignedSceneResourceResponse"
                 }
               }
             }
@@ -6500,9 +7549,7 @@
             "title": "Series Title"
           },
           "content": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Content"
+            "$ref": "#/components/schemas/SceneContent"
           }
         },
         "type": "object",
@@ -6576,6 +7623,23 @@
           "basis": {
             "type": "string",
             "title": "Basis"
+          },
+          "dimension": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dimension"
+          },
+          "unit": {
+            "type": "string",
+            "enum": ["ratio", "seconds"],
+            "title": "Unit",
+            "default": "ratio"
           }
         },
         "type": "object",
@@ -6588,6 +7652,11 @@
             "type": "string",
             "enum": ["day", "week", "month"],
             "title": "Period"
+          },
+          "activity_basis": {
+            "type": "string",
+            "enum": ["DAILY_USERS", "CALENDAR_WEEK_USERS", "CALENDAR_MONTH_USERS", "PERSON_DAYS"],
+            "title": "Activity Basis"
           },
           "timezone": {
             "type": "string",
@@ -6621,8 +7690,33 @@
           }
         },
         "type": "object",
-        "required": ["period", "start", "end", "rows", "ratios"],
+        "required": ["period", "activity_basis", "start", "end", "rows", "ratios"],
         "title": "AnalyticsResponse"
+      },
+      "AudioReference": {
+        "properties": {
+          "target_id": {
+            "type": "string",
+            "title": "Target Id"
+          },
+          "version_id": {
+            "type": "string",
+            "title": "Version Id"
+          },
+          "asset_id": {
+            "type": "string",
+            "title": "Asset Id"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Duration Ms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["target_id", "version_id", "asset_id", "duration_ms"],
+        "title": "AudioReference"
       },
       "AudioTargetListResponse": {
         "properties": {
@@ -6754,6 +7848,124 @@
           "created_at"
         ],
         "title": "AudioVersionResponse"
+      },
+      "AuthorizedEntryResponse": {
+        "properties": {
+          "entry_id": {
+            "type": "string",
+            "title": "Entry Id",
+            "default": ""
+          },
+          "entry_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Entry Version",
+            "default": 1
+          },
+          "english": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "English",
+            "default": ""
+          },
+          "variants": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Variants"
+          },
+          "phonetic": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Phonetic",
+            "default": ""
+          },
+          "chinese": {
+            "type": "string",
+            "maxLength": 10000,
+            "title": "Chinese",
+            "default": ""
+          },
+          "explanation": {
+            "type": "string",
+            "maxLength": 10000,
+            "title": "Explanation",
+            "default": ""
+          },
+          "source_sentence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Sentence Ids"
+          },
+          "icon_asset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Asset Id"
+          },
+          "audio_target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Target Id"
+          },
+          "audio_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Version Id"
+          },
+          "scene_id": {
+            "type": "string",
+            "title": "Scene Id"
+          },
+          "revision_id": {
+            "type": "string",
+            "title": "Revision Id"
+          },
+          "source_locator": {
+            "type": "string",
+            "title": "Source Locator"
+          },
+          "sentence_snapshot": {
+            "type": "string",
+            "title": "Sentence Snapshot"
+          },
+          "entry_type": {
+            "type": "string",
+            "enum": ["VOCABULARY", "PHRASE"],
+            "title": "Entry Type"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "scene_id",
+          "revision_id",
+          "source_locator",
+          "sentence_snapshot",
+          "entry_type"
+        ],
+        "title": "AuthorizedEntryResponse"
       },
       "BatchJobItemResponse": {
         "properties": {
@@ -6924,6 +8136,16 @@
             },
             "type": "array",
             "title": "Items"
+          },
+          "input_payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input Payload"
+          },
+          "result_payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Result Payload"
           }
         },
         "type": "object",
@@ -6940,7 +8162,9 @@
           "updated_at",
           "completed_at",
           "cancel_requested_at",
-          "items"
+          "items",
+          "input_payload",
+          "result_payload"
         ],
         "title": "BatchJobResponse"
       },
@@ -7324,6 +8548,37 @@
         ],
         "title": "CampaignVersionResponse"
       },
+      "ClickableSpan": {
+        "properties": {
+          "start": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "End"
+          },
+          "entry_id": {
+            "type": "string",
+            "title": "Entry Id"
+          },
+          "entry_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Entry Version"
+          },
+          "source_locator": {
+            "type": "string",
+            "title": "Source Locator"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["start", "end", "entry_id", "entry_version", "source_locator"],
+        "title": "ClickableSpan"
+      },
       "CloseCommand": {
         "properties": {
           "reason": {
@@ -7614,6 +8869,26 @@
         "required": ["id", "status", "processed_at"],
         "title": "CorrectionDecisionResponse"
       },
+      "CreateAudioTargetRequest": {
+        "properties": {
+          "stable_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Stable Key"
+          },
+          "target_type": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Target Type"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["stable_key", "target_type"],
+        "title": "CreateAudioTargetRequest"
+      },
       "CreateAudioVersionRequest": {
         "properties": {
           "asset_id": {
@@ -7644,6 +8919,11 @@
             "maxItems": 500,
             "minItems": 1,
             "title": "Target Ids"
+          },
+          "input_payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input Payload"
           }
         },
         "additionalProperties": false,
@@ -7660,10 +8940,29 @@
             "title": "Asset Id"
           },
           "object_key": {
-            "type": "string",
-            "maxLength": 512,
-            "minLength": 1,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Object Key"
+          },
+          "scene_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Scene Id"
+          },
+          "revision_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Revision Id"
           },
           "series_id": {
             "type": "string",
@@ -7680,7 +8979,7 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "required": ["asset_id", "object_key", "series_id", "template_id"],
+        "required": ["asset_id", "scene_id", "revision_id", "series_id", "template_id"],
         "title": "CreateOcrJobRequest"
       },
       "CreateRevisionRequest": {
@@ -7700,6 +8999,56 @@
         "additionalProperties": false,
         "type": "object",
         "title": "CreateRevisionRequest"
+      },
+      "CreateSceneRequest": {
+        "properties": {
+          "series_id": {
+            "type": "string",
+            "title": "Series Id"
+          },
+          "template_type": {
+            "type": "string",
+            "enum": ["dialogue", "vocabulary"],
+            "title": "Template Type",
+            "default": "dialogue"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["series_id"],
+        "title": "CreateSceneRequest"
+      },
+      "CreateSeriesRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "title": "Slug"
+          },
+          "cover_asset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Asset Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["title", "slug"],
+        "title": "CreateSeriesRequest"
       },
       "CreateTrashRequest": {
         "properties": {
@@ -7734,6 +9083,84 @@
         "type": "object",
         "required": ["event_id"],
         "title": "DeletionRequest"
+      },
+      "DialogueSentence": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "speaker": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Speaker",
+            "default": ""
+          },
+          "english": {
+            "type": "string",
+            "maxLength": 10000,
+            "title": "English",
+            "default": ""
+          },
+          "chinese": {
+            "type": "string",
+            "maxLength": 10000,
+            "title": "Chinese",
+            "default": ""
+          },
+          "start_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Ms"
+          },
+          "end_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Ms"
+          },
+          "audio_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Version Id"
+          },
+          "timing_confirmed": {
+            "type": "boolean",
+            "title": "Timing Confirmed",
+            "default": false
+          },
+          "clickable_spans": {
+            "items": {
+              "$ref": "#/components/schemas/ClickableSpan"
+            },
+            "type": "array",
+            "title": "Clickable Spans"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DialogueSentence"
       },
       "DiscoveryConfigResponse": {
         "properties": {
@@ -7953,8 +9380,39 @@
       },
       "EntitlementTerm": {
         "type": "string",
-        "enum": ["MONTH_1", "MONTH_2", "MONTH_3", "MONTH_6", "MONTH_12", "PERMANENT"],
+        "enum": ["month_1", "month_2", "month_3", "month_6", "month_12", "permanent"],
         "title": "EntitlementTerm"
+      },
+      "EntryQuery": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "User Id"
+          },
+          "revision_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Revision Id"
+          },
+          "entry_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Entry Version"
+          },
+          "source_locator": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Source Locator"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["user_id", "revision_id", "entry_version", "source_locator"],
+        "title": "EntryQuery"
       },
       "FeedbackAdminDetailResponse": {
         "properties": {
@@ -8701,6 +10159,47 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "ImportImagesRequest": {
+        "properties": {
+          "series_id": {
+            "type": "string",
+            "title": "Series Id"
+          },
+          "template_type": {
+            "type": "string",
+            "enum": ["dialogue", "vocabulary"],
+            "title": "Template Type",
+            "default": "dialogue"
+          },
+          "asset_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Asset Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["series_id", "asset_ids"],
+        "title": "ImportImagesRequest"
+      },
+      "ImportImagesResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SceneResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": ["items"],
+        "title": "ImportImagesResponse"
+      },
       "InternalNoteRequest": {
         "properties": {
           "content": {
@@ -8714,6 +10213,22 @@
         "type": "object",
         "required": ["content"],
         "title": "InternalNoteRequest"
+      },
+      "LexiconWriteRequest": {
+        "properties": {
+          "entry_type": {
+            "type": "string",
+            "enum": ["VOCABULARY", "PHRASE"],
+            "title": "Entry Type"
+          },
+          "entry": {
+            "$ref": "#/components/schemas/SceneEntry"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["entry_type", "entry"],
+        "title": "LexiconWriteRequest"
       },
       "LimitedEntitlementDetailResponse": {
         "properties": {
@@ -8826,6 +10341,36 @@
           "available_operations"
         ],
         "title": "LimitedEntitlementDetailResponse"
+      },
+      "OcrAdoptionRequest": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Version"
+          },
+          "selected_fields": {
+            "items": {
+              "type": "string",
+              "enum": ["title_en", "title_zh", "dialogue", "vocabulary", "chunks"]
+            },
+            "type": "array",
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Selected Fields"
+          },
+          "content": {
+            "$ref": "#/components/schemas/SceneContent"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["job_id", "expected_version", "selected_fields", "content"],
+        "title": "OcrAdoptionRequest"
       },
       "OcrCandidateResponse": {
         "properties": {
@@ -8952,6 +10497,39 @@
         "required": ["revision_id", "revision_status", "version"],
         "title": "OcrConfirmationResponse"
       },
+      "OcrSettingsRequest": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "monthly_limit": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Monthly Limit"
+          },
+          "free_quota": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Free Quota"
+          },
+          "paid_disabled": {
+            "type": "boolean",
+            "title": "Paid Disabled"
+          },
+          "verify_quota": {
+            "type": "boolean",
+            "title": "Verify Quota",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["enabled", "monthly_limit", "free_quota", "paid_disabled"],
+        "title": "OcrSettingsRequest"
+      },
       "OpenScenesRequest": {
         "properties": {
           "scene_ids": {
@@ -9037,6 +10615,71 @@
         "type": "object",
         "required": ["username", "password"],
         "title": "PasswordLoginRequest"
+      },
+      "PreviewSceneResponse": {
+        "properties": {
+          "public_id": {
+            "type": "string",
+            "title": "Public Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "title_en": {
+            "type": "string",
+            "title": "Title En",
+            "default": ""
+          },
+          "title_zh": {
+            "type": "string",
+            "title": "Title Zh",
+            "default": ""
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series"
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Url"
+          },
+          "introduction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Introduction"
+          },
+          "preview_status": {
+            "type": "string",
+            "const": "PREVIEW",
+            "title": "Preview Status",
+            "default": "PREVIEW"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["public_id", "title"],
+        "title": "PreviewSceneResponse"
       },
       "PreviewScenesRequest": {
         "properties": {
@@ -9154,7 +10797,7 @@
         ],
         "title": "ProcessingJobResponse"
       },
-      "PublishRevisionRequest": {
+      "PublishCheckRequest": {
         "properties": {
           "acknowledged_warning_codes": {
             "items": {
@@ -9167,7 +10810,52 @@
         },
         "additionalProperties": false,
         "type": "object",
+        "title": "PublishCheckRequest"
+      },
+      "PublishRevisionRequest": {
+        "properties": {
+          "acknowledged_warning_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Acknowledged Warning Codes"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["expected_version"],
         "title": "PublishRevisionRequest"
+      },
+      "PublishedSceneResponse": {
+        "properties": {
+          "scene_id": {
+            "type": "string",
+            "title": "Scene Id"
+          },
+          "revision_id": {
+            "type": "string",
+            "title": "Revision Id"
+          },
+          "content_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Content Version"
+          },
+          "content": {
+            "$ref": "#/components/schemas/SceneContent"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["scene_id", "revision_id", "content_version", "content"],
+        "title": "PublishedSceneResponse"
       },
       "ReasonRequest": {
         "properties": {
@@ -9223,6 +10911,26 @@
         "required": ["template"],
         "title": "ResolveCommand"
       },
+      "ResourceQuery": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "User Id"
+          },
+          "revision_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Revision Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["user_id", "revision_id"],
+        "title": "ResourceQuery"
+      },
       "RevisionResponse": {
         "properties": {
           "id": {
@@ -9267,9 +10975,7 @@
             "title": "Stable Entry Ids"
           },
           "content": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Content"
+            "$ref": "#/components/schemas/SceneContent"
           },
           "created_by": {
             "type": "string",
@@ -9364,15 +11070,259 @@
             "title": "Expected Version"
           },
           "content": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Content"
+            "$ref": "#/components/schemas/SceneContent"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": ["expected_version", "content"],
         "title": "SaveRevisionRequest"
+      },
+      "SceneContent": {
+        "properties": {
+          "title_en": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title En",
+            "default": ""
+          },
+          "title_zh": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title Zh",
+            "default": ""
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Summary",
+            "default": ""
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Tags"
+          },
+          "original_image_asset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Image Asset Id"
+          },
+          "cover_asset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Asset Id"
+          },
+          "copyright": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Copyright",
+            "default": ""
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Source",
+            "default": ""
+          },
+          "audio": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AudioReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dialogue": {
+            "items": {
+              "$ref": "#/components/schemas/DialogueSentence"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Dialogue"
+          },
+          "vocabulary": {
+            "items": {
+              "$ref": "#/components/schemas/SceneEntry"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Vocabulary"
+          },
+          "chunks": {
+            "items": {
+              "$ref": "#/components/schemas/SceneEntry"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Chunks"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SceneContent"
+      },
+      "SceneEntry": {
+        "properties": {
+          "entry_id": {
+            "type": "string",
+            "title": "Entry Id",
+            "default": ""
+          },
+          "entry_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Entry Version",
+            "default": 1
+          },
+          "english": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "English",
+            "default": ""
+          },
+          "variants": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Variants"
+          },
+          "phonetic": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Phonetic",
+            "default": ""
+          },
+          "chinese": {
+            "type": "string",
+            "maxLength": 10000,
+            "title": "Chinese",
+            "default": ""
+          },
+          "explanation": {
+            "type": "string",
+            "maxLength": 10000,
+            "title": "Explanation",
+            "default": ""
+          },
+          "source_sentence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Sentence Ids"
+          },
+          "icon_asset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Asset Id"
+          },
+          "audio_target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Target Id"
+          },
+          "audio_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Version Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SceneEntry"
+      },
+      "SceneOpenResponse": {
+        "properties": {
+          "access": {
+            "type": "string",
+            "enum": ["OPEN", "FORMAL", "LIMITED", "PREVIEW"],
+            "title": "Access"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "earliest_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earliest Expires At"
+          },
+          "activated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          },
+          "scene": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublishedSceneResponse"
+              },
+              {
+                "$ref": "#/components/schemas/PreviewSceneResponse"
+              }
+            ],
+            "title": "Scene"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["access", "sources", "scene"],
+        "title": "SceneOpenResponse"
       },
       "ScenePageResponse": {
         "properties": {
@@ -9509,6 +11459,26 @@
         "type": "object",
         "required": ["url", "expires_at"],
         "title": "SignedFeedbackScreenshotResponse"
+      },
+      "SignedSceneResourceResponse": {
+        "properties": {
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": ["resource_id", "url", "expires_at"],
+        "title": "SignedSceneResourceResponse"
       },
       "SupplementCommand": {
         "properties": {

@@ -99,11 +99,49 @@ export const test = base.extend<{ adminApi: AdminApiMock }>({
       feedbackStatus: 'PROCESSING',
       revisionConflictPending: false,
       revisionContent: {
-        dialogue: [{ speaker: 'Clerk', text: 'What would you like?' }],
+        dialogue: [
+          {
+            id: 'SENTENCE-1',
+            speaker: 'Clerk',
+            english: 'What would you like?',
+            chinese: '您想要什么？',
+            start_ms: 0,
+            end_ms: 2000,
+            timing_confirmed: true,
+            audio_version_id: 'VERSION-1',
+            clickable_spans: []
+          }
+        ],
         summary: '咖啡店点单练习',
         tags: ['日常'],
-        title: 'Ordering coffee',
-        vocabulary: [{ term: 'latte', translation: '拿铁' }]
+        title_en: 'Ordering coffee',
+        title_zh: '点一杯咖啡',
+        vocabulary: [
+          {
+            entry_id: 'ENTRY-1',
+            entry_version: 1,
+            english: 'latte',
+            variants: [],
+            phonetic: '/ˈlɑːteɪ/',
+            chinese: '拿铁',
+            explanation: '咖啡饮品',
+            source_sentence_ids: ['SENTENCE-1'],
+            audio_target_id: null,
+            audio_version_id: null,
+            icon_asset_id: null
+          }
+        ],
+        chunks: [],
+        copyright: '已授权',
+        source: '学习素材',
+        original_image_asset_id: null,
+        cover_asset_id: null,
+        audio: {
+          target_id: 'TARGET-1',
+          version_id: 'VERSION-1',
+          asset_id: 'ASSET-AUDIO-1',
+          duration_ms: 4000
+        }
       },
       revisionVersion: 3,
       requests: [],
@@ -626,7 +664,7 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     return
   }
   if (url.pathname === '/api/v1/admin/media/ocr/jobs' && request.method() === 'POST') {
-    await replyJson(route, { ...createMediaJob(), id: 'JOB-UPLOAD', status: 'PENDING' }, 201)
+    await replyJson(route, { ...createMediaJob(), id: 'JOB-1', status: 'PENDING' }, 201)
     return
   }
   if (url.pathname === '/api/v1/admin/media/ocr/jobs/JOB-1' && request.method() === 'GET') {
@@ -645,7 +683,10 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
       id: 'CANDIDATE-1',
       job_id: 'JOB-1',
       status: 'READY',
-      structured_candidate: { title: 'Coffee time' },
+      structured_candidate: {
+        text: 'Coffee time',
+        blocks: [{ text: 'Coffee time', confidence: 0.98, location: {}, paragraph: 0 }]
+      },
       template_type: 'learning-card'
     })
     return
@@ -731,6 +772,72 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     })
     return
   }
+  if (url.pathname === '/api/v1/admin/content/series') {
+    await replyJson(
+      route,
+      request.method() === 'GET'
+        ? { items: [{ id: 'SERIES-1', title: '日常英语', slug: 'daily', cover_asset_id: null }] }
+        : { id: 'SERIES-2', ...(record.body as object), cover_asset_id: null }
+    )
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content/imports') {
+    await replyJson(route, { items: [createContentScene()] }, 201)
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content/scenes' && request.method() === 'POST') {
+    await replyJson(route, createContentScene(), 201)
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content/lexicon') {
+    await replyJson(
+      route,
+      request.method() === 'GET' ? { items: [] } : (record.body as { entry: object }).entry
+    )
+    return
+  }
+  if (
+    url.pathname === '/api/v1/admin/media/ocr/quota' ||
+    url.pathname === '/api/v1/admin/media/ocr/settings'
+  ) {
+    await replyJson(route, {
+      enabled: true,
+      monthly_limit: 100,
+      free_quota: 100,
+      paid_disabled: true,
+      quota_verified_at: '2026-10-01T00:00:00Z',
+      month: '2026-10',
+      reserved_count: 0,
+      remaining: 100
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/media/audio-targets' && request.method() === 'POST') {
+    await replyJson(route, { ...createAudioTarget(), target_type: 'scene', stable_key: 'SCENE-1' })
+    return
+  }
+  if (/^\/api\/v1\/admin\/media\/assets\/[^/]+$/.test(url.pathname)) {
+    await replyJson(route, {
+      id: url.pathname.split('/').at(-1),
+      duration_ms: 5000,
+      width: null,
+      height: null,
+      security_status: 'APPROVED',
+      status: 'CONFIRMED'
+    })
+    return
+  }
+  if (/\/signed-url$/.test(url.pathname)) {
+    await replyJson(route, { url: '/__e2e-resource', expires_at: '2026-10-01T00:30:00Z' })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content/revisions/REV-DRAFT-1/ocr-adoptions') {
+    const body = record.body as { selected_fields: string[]; content: Record<string, unknown> }
+    for (const field of body.selected_fields) state.revisionContent[field] = body.content[field]
+    state.revisionVersion += 1
+    await replyJson(route, createContentRevision(state))
+    return
+  }
   if (url.pathname === '/api/v1/admin/content/scenes/SCENE-1' && request.method() === 'GET') {
     await replyJson(route, createContentScene())
     return
@@ -811,6 +918,7 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
   if (url.pathname === '/api/v1/admin/content/revisions/REV-1/publish-checks') {
     await replyJson(route, {
       error_codes: [],
+      version: state.revisionVersion,
       ready: false,
       warning_codes: ['MISSING_OPTIONAL_AUDIO']
     })
@@ -836,6 +944,7 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
       end,
       period,
       start,
+      activity_basis: period === 'day' ? 'DAILY_USERS' : 'PERSON_DAYS',
       timezone: 'Asia/Shanghai',
       rows: [
         { day: bucket, metric: 'NEW_USERS', dimension: 'ALL', value: 12 },
@@ -1255,7 +1364,7 @@ const formalEntitlement = {
   id: 'FORMAL-1',
   package_id: 'PACKAGE-1',
   status: 'ACTIVE',
-  term: 'MONTH_3',
+  term: 'month_3',
   user_id: 'USER-1',
   version: 1
 }

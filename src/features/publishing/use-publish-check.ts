@@ -89,6 +89,7 @@ export function usePublishCheck(
     hasConflict.value = false
     try {
       await command.submit({
+        expectedVersion: result.value!.expectedVersion,
         acknowledgedWarningCodes: acknowledgedWarningCodes.value,
         revisionId: toValue(revisionId)
       })

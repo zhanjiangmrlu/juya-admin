@@ -41,6 +41,8 @@ export interface BatchJobItem {
 }
 
 export interface BatchJob {
+  inputPayload?: Record<string, unknown>
+  resultPayload?: Record<string, unknown>
   failureCount: number
   id: string
   items: BatchJobItem[]

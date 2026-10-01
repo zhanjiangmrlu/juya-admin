@@ -3,6 +3,7 @@ import { ElMessage } from 'element-plus'
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
+import ScenePreview from '@/features/content-editor/scene-preview.vue'
 import { createPublishAdapter } from '@/features/publishing/publish-adapter'
 import { useAdminPreview } from '@/features/publishing/use-admin-preview'
 import { usePublishCheck } from '@/features/publishing/use-publish-check'
@@ -106,11 +107,11 @@ async function handlePublish(): Promise<void> {
             <ElTag effect="plain">{{ previewController.preview.value.revisionStatus }}</ElTag
             ><span>{{ previewController.preview.value.seriesTitle }}</span>
           </div>
-          <h4>{{ previewController.preview.value.sceneTitle }}</h4>
-          <p v-if="typeof previewController.preview.value.content.summary === 'string'">
-            {{ previewController.preview.value.content.summary }}
-          </p>
-          <pre>{{ JSON.stringify(previewController.preview.value.content, null, 2) }}</pre>
+          <ScenePreview
+            :content="previewController.preview.value.content"
+            :revision-id="revisionId"
+            :title="previewController.preview.value.sceneTitle"
+          />
         </article>
         <ElAlert
           v-if="controller.error.value"

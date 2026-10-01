@@ -5,7 +5,11 @@ import { computed, onMounted, ref, watch } from 'vue'
 
 import MetricChart from '@/components/metric-chart/metric-chart.vue'
 import { createAnalyticsAdapter } from '@/features/analytics/analytics-adapter'
-import { groupAnalyticsRows, METRIC_LABELS } from '@/features/analytics/analytics-model'
+import {
+  ACTIVITY_BASIS_LABELS,
+  groupAnalyticsRows,
+  METRIC_LABELS
+} from '@/features/analytics/analytics-model'
 import { useAnalytics } from '@/features/analytics/use-analytics'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
@@ -21,7 +25,9 @@ const controller = useAnalytics(createAnalyticsAdapter(useAdminApiClient()))
 const loadedPeriod = ref<AnalyticsPeriod>('day')
 const series = computed(() =>
   groupAnalyticsRows(
-    controller.rows.value.filter((row) => !['NUMERATOR', 'DENOMINATOR'].includes(row.dimension)),
+    controller.rows.value.filter(
+      (row) => !/^(?:MODE_[35]_)?(?:NUMERATOR|DENOMINATOR)$/.test(row.dimension)
+    ),
     loadedPeriod.value
   )
 )
@@ -52,6 +58,7 @@ function downloadRows(): void {
         JSON.stringify(
           {
             period: loadedPeriod.value,
+            activity_basis: controller.activityBasis.value,
             timezone: 'Asia/Shanghai',
             rows: controller.rows.value,
             ratios: controller.ratios.value
@@ -125,12 +132,18 @@ function downloadRows(): void {
         description="当前区间没有匿名汇总数据，可调整日期后重试"
       />
       <MetricChart v-else-if="series.length" :series="series" />
+      <p v-if="controller.activityBasis.value" aria-label="活跃统计口径" class="metric-note">
+        活跃统计口径：{{
+          ACTIVITY_BASIS_LABELS[controller.activityBasis.value]
+        }}。查询完整自然周或自然月可查看对应周期的独立人数。
+      </p>
       <ElTable
         v-if="controller.ratios.value.length"
         :data="controller.ratios.value"
         aria-label="统计比率口径"
       >
         <ElTableColumn prop="day" label="周期起始日" width="120" />
+        <ElTableColumn prop="dimension" label="模式" width="100" />
         <ElTableColumn label="指标" width="140"
           ><template #default="{ row }">{{ METRIC_LABELS[row.metric] }}</template></ElTableColumn
         >
@@ -138,14 +151,18 @@ function downloadRows(): void {
         <ElTableColumn prop="denominator" label="分母" width="80" />
         <ElTableColumn label="比率" width="110"
           ><template #default="{ row }">{{
-            row.rate === null ? '无分母' : `${(row.rate * 100).toFixed(1)}%`
+            row.rate === null
+              ? '无分母'
+              : row.unit === 'seconds'
+                ? `${row.rate.toFixed(1)} 秒`
+                : `${(row.rate * 100).toFixed(1)}%`
           }}</template></ElTableColumn
         >
         <ElTableColumn prop="basis" label="口径" min-width="240" />
       </ElTable>
       <p class="metric-note">
-        按北京时间自然日、周一开始的自然周与自然月汇总，首尾周期仅包含查询区间。活跃用户跨日合计为人次，未去重；缺失统计显示为空，不补零。比率使用累计分子
-        / 累计分母。
+        按北京时间自然日、周一开始的自然周与自然月汇总，首尾周期仅包含查询区间；缺失统计显示为空，不补零。比率使用累计分子
+        / 累计分母。状态库存按区间最后一天展示，历史状态变更按动作计数。
       </p>
     </ElCard>
   </section>

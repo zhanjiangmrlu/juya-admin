@@ -28,34 +28,21 @@ describe('ocr adapter', () => {
         id: 'CANDIDATE-1',
         job_id: 'JOB-1',
         status: 'READY',
-        structured_candidate: { title: 'Coffee' },
+        structured_candidate: { text: 'Coffee', blocks: [{ text: 'Coffee' }] },
         template_type: 'learning-card'
       })
-      .mockResolvedValueOnce({ revision_id: 'REV-2', revision_status: 'DRAFT', version: 2 })
       .mockResolvedValueOnce({ status: 'CANCELLED' })
     const adapter = createOcrAdapter({ request })
 
     expect((await adapter.getJob('JOB-1')).status).toBe('SUCCEEDED')
-    expect((await adapter.getCandidate('JOB-1')).content).toEqual({ title: 'Coffee' })
-    expect(await adapter.confirm('JOB-1', 'SCENE-1', { title: 'Reviewed' }, 'confirm-key')).toEqual(
-      {
-        revisionId: 'REV-2',
-        revisionStatus: 'DRAFT',
-        version: 2
-      }
-    )
+    expect((await adapter.getCandidate('JOB-1')).content).toEqual({
+      text: 'Coffee',
+      blocks: [{ text: 'Coffee' }]
+    })
     await adapter.command('JOB-1', 'cancel', 'cancel-key')
 
     expect(request).toHaveBeenNthCalledWith(
       3,
-      expect.objectContaining({
-        body: { content: { title: 'Reviewed' }, scene_id: 'SCENE-1' },
-        idempotencyKey: 'confirm-key',
-        path: '/api/v1/admin/media/ocr/jobs/JOB-1/commands/confirm'
-      })
-    )
-    expect(request).toHaveBeenNthCalledWith(
-      4,
       expect.objectContaining({
         body: {},
         idempotencyKey: 'cancel-key',

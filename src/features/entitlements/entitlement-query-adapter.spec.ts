@@ -32,7 +32,7 @@ describe('entitlement query adapter', () => {
       package_id: 'PKG-1',
       package_name: '基础包',
       status: 'ACTIVE',
-      term: 'PERMANENT',
+      term: 'permanent',
       user_id: 'USER-1',
       version: 3
     })

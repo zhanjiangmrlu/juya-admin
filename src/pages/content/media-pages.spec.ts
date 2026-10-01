@@ -24,7 +24,7 @@ describe('media administration pages', () => {
           id: 'CANDIDATE-1',
           job_id: 'JOB-1',
           status: 'READY',
-          structured_candidate: { title: 'Coffee time' },
+          structured_candidate: { text: 'Coffee time', blocks: [{ text: 'Coffee time' }] },
           template_type: 'learning-card'
         })
       )

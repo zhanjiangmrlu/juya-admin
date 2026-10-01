@@ -1,6 +1,6 @@
 import dayjs from 'dayjs'
 
-import type { AnalyticsPeriod, AnalyticsSnapshot } from './analytics-model'
+import type { ActivityBasis, AnalyticsPeriod, AnalyticsSnapshot } from './analytics-model'
 import type { ApiClient } from '@/services/api/api-client'
 import type { components } from '@/shared/contracts/generated/admin-api'
 
@@ -47,6 +47,13 @@ export function createAnalyticsAdapter(client: ApiClient): AnalyticsAdapter {
         metric: row.metric,
         value: row.value
       }))
+      const activityBasis = 'activity_basis' in response ? response.activity_basis : undefined
+      if (
+        !['PERSON_DAYS', 'CALENDAR_WEEK_USERS', 'CALENDAR_MONTH_USERS', 'DAILY_USERS'].includes(
+          String(activityBasis)
+        )
+      )
+        throw new Error('活跃统计口径不正确')
       const validation = validateAnalyticsRows(rows)
       if (!validation.valid) throw new Error(validation.message)
       /**
@@ -72,20 +79,28 @@ export function createAnalyticsAdapter(client: ApiClient): AnalyticsAdapter {
         if (row.day < first || row.day > last || bucket(row.day) !== row.day || counts.has(key))
           throw new Error('统计行包含错误日期桶或重复计数')
         counts.set(key, row.value)
-        if (['NUMERATOR', 'DENOMINATOR'].includes(row.dimension))
-          components.add(`${row.day}/${row.metric}`)
+        if (/^(?:MODE_[35]_)?(?:NUMERATOR|DENOMINATOR)$/.test(row.dimension))
+          components.add(
+            `${row.day}/${row.metric}/${row.dimension.replace(/_?(NUMERATOR|DENOMINATOR)$/, '') || 'ALL'}`
+          )
       }
       const seenRatios = new Set<string>()
       const ratios = response.ratios.map((ratio) => {
         const { basis, day, denominator, metric, numerator, rate } = ratio
-        const key = `${day}/${metric}`
+        const dimension = ('dimension' in ratio ? ratio.dimension : undefined) ?? 'ALL'
+        const unit = ('unit' in ratio ? ratio.unit : undefined) ?? 'ratio'
+        if (unit !== 'ratio' && unit !== 'seconds') throw new Error('统计比率单位不正确')
+        if (!['ALL', 'MODE_3', 'MODE_5'].includes(String(dimension)))
+          throw new Error('统计比率维度不正确')
+        const prefix = dimension === 'ALL' ? '' : `${dimension}_`
+        const key = `${day}/${metric}/${dimension}`
         if (
           !RATIO_BASES[metric] ||
           basis !== RATIO_BASES[metric] ||
           !Number.isSafeInteger(numerator) ||
           !Number.isSafeInteger(denominator) ||
           numerator < 0 ||
-          numerator > denominator ||
+          (unit === 'ratio' && numerator > denominator) ||
           (denominator === 0
             ? rate !== null
             : rate === null ||
@@ -93,16 +108,33 @@ export function createAnalyticsAdapter(client: ApiClient): AnalyticsAdapter {
               Math.abs(rate - numerator / denominator) > 1e-10) ||
           !validateAnalyticsRows([{ day, dimension: 'ALL', metric, value: numerator }]).valid ||
           seenRatios.has(key) ||
-          counts.get(`${key}/NUMERATOR`) !== numerator ||
-          counts.get(`${key}/DENOMINATOR`) !== denominator
+          counts.get(`${day}/${metric}/${prefix}NUMERATOR`) !== numerator ||
+          counts.get(`${day}/${metric}/${prefix}DENOMINATOR`) !== denominator
         )
           throw new Error('统计比率缺少有效分子、分母或口径')
         seenRatios.add(key)
-        return { basis, day, denominator, metric, numerator, rate }
+        return {
+          basis,
+          day,
+          denominator,
+          metric,
+          numerator,
+          rate,
+          ...(unit === 'seconds' ? { unit: 'seconds' as const } : {}),
+          ...(dimension !== 'ALL' ? { dimension: String(dimension) } : {})
+        }
       })
       if ([...components].some((key) => !seenRatios.has(key)))
         throw new Error('统计比率缺少成对响应')
-      return { end, period, ratios, rows, start, timezone: 'Asia/Shanghai' }
+      return {
+        activityBasis: activityBasis as ActivityBasis,
+        end,
+        period,
+        ratios,
+        rows,
+        start,
+        timezone: 'Asia/Shanghai'
+      }
     }
   }
 }

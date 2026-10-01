@@ -7,9 +7,19 @@ import { usePublishCheck } from './use-publish-check'
 describe('publish check controller', () => {
   it('blocks errors and unacknowledged warnings', () => {
     const controller = usePublishCheck(adapter(), 'revision-1')
-    controller.applyCheck({ errorCodes: ['TITLE_REQUIRED'], ready: false, warningCodes: [] })
+    controller.applyCheck({
+      expectedVersion: 3,
+      errorCodes: ['TITLE_REQUIRED'],
+      ready: false,
+      warningCodes: []
+    })
     expect(controller.canPublish.value).toBe(false)
-    controller.applyCheck({ errorCodes: [], ready: false, warningCodes: ['COPYRIGHT_REVIEW'] })
+    controller.applyCheck({
+      expectedVersion: 3,
+      errorCodes: [],
+      ready: false,
+      warningCodes: ['COPYRIGHT_REVIEW']
+    })
     expect(controller.canPublish.value).toBe(false)
     controller.setWarningAcknowledged('COPYRIGHT_REVIEW', true)
     expect(controller.canPublish.value).toBe(true)
@@ -24,7 +34,7 @@ describe('publish check controller', () => {
     })
     const publish = vi.fn().mockRejectedValue(failure)
     const controller = usePublishCheck(adapter({ publish }), 'revision-1')
-    controller.applyCheck({ errorCodes: [], ready: true, warningCodes: [] })
+    controller.applyCheck({ expectedVersion: 3, errorCodes: [], ready: true, warningCodes: [] })
     await expect(controller.publish()).rejects.toBe(failure)
     expect(controller.result.value?.ready).toBe(true)
     expect(controller.hasConflict.value).toBe(true)

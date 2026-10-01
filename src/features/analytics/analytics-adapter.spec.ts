@@ -6,6 +6,7 @@ import { createAnalyticsAdapter } from './analytics-adapter'
 import { RATIO_BASES } from './analytics-model'
 
 const responseBody = {
+  activity_basis: 'PERSON_DAYS',
   end: '2026-09-30',
   period: 'week',
   start: '2026-09-01',
@@ -15,6 +16,92 @@ const responseBody = {
 }
 
 describe('analytics query adapter', () => {
+  it('preserves the server active-user counting basis', async () => {
+    const adapter = createAnalyticsAdapter(
+      createApiClient({
+        fetchImplementation: async () => new Response(JSON.stringify(responseBody))
+      })
+    )
+    expect((await adapter.query('2026-09-01', '2026-09-30', 'week')).activityBasis).toBe(
+      'PERSON_DAYS'
+    )
+  })
+  it('rejects an unknown active-user counting basis', async () => {
+    const adapter = createAnalyticsAdapter(
+      createApiClient({
+        fetchImplementation: async () =>
+          new Response(JSON.stringify({ ...responseBody, activity_basis: 'INVENTED' }))
+      })
+    )
+    await expect(adapter.query('2026-09-01', '2026-09-30', 'week')).rejects.toThrow('活跃统计口径')
+  })
+  it('displays weighted response seconds without percentage bounds', async () => {
+    const rows = [
+      {
+        day: '2026-09-28',
+        metric: 'FEEDBACK_RESPONSE_SECONDS',
+        dimension: 'NUMERATOR',
+        value: 1200
+      },
+      { day: '2026-09-28', metric: 'FEEDBACK_RESPONSE_SECONDS', dimension: 'DENOMINATOR', value: 2 }
+    ]
+    const ratios = [
+      {
+        day: '2026-09-28',
+        metric: 'FEEDBACK_RESPONSE_SECONDS',
+        dimension: null,
+        unit: 'seconds',
+        numerator: 1200,
+        denominator: 2,
+        rate: 600,
+        basis: RATIO_BASES.FEEDBACK_RESPONSE_SECONDS
+      }
+    ]
+    const adapter = createAnalyticsAdapter(
+      createApiClient({
+        fetchImplementation: async () =>
+          new Response(JSON.stringify({ ...responseBody, rows, ratios }))
+      })
+    )
+    expect((await adapter.query('2026-09-01', '2026-09-30', 'week')).ratios[0]).toMatchObject({
+      unit: 'seconds',
+      rate: 600
+    })
+  })
+  it('keeps mode-specific numerator and denominator pairs separate', async () => {
+    const rows = ['MODE_3', 'MODE_5'].flatMap((dimension) => [
+      {
+        day: '2026-09-28',
+        dimension: `${dimension}_NUMERATOR`,
+        metric: 'LIMITED_STARTS',
+        value: 1
+      },
+      {
+        day: '2026-09-28',
+        dimension: `${dimension}_DENOMINATOR`,
+        metric: 'LIMITED_STARTS',
+        value: 2
+      }
+    ])
+    const ratios = ['MODE_3', 'MODE_5'].map((dimension) => ({
+      dimension,
+      day: '2026-09-28',
+      metric: 'LIMITED_STARTS',
+      numerator: 1,
+      denominator: 2,
+      rate: 0.5,
+      basis: RATIO_BASES.LIMITED_STARTS
+    }))
+    const adapter = createAnalyticsAdapter(
+      createApiClient({
+        fetchImplementation: async () =>
+          new Response(JSON.stringify({ ...responseBody, rows, ratios }))
+      })
+    )
+    expect(
+      (await adapter.query('2026-09-01', '2026-09-30', 'week')).ratios.map((item) => item.dimension)
+    ).toEqual(['MODE_3', 'MODE_5'])
+  })
   const counts = [
     { day: '2026-09-28', dimension: 'NUMERATOR', metric: 'FEEDBACK_SLA', value: 4 },
     { day: '2026-09-28', dimension: 'DENOMINATOR', metric: 'FEEDBACK_SLA', value: 5 }

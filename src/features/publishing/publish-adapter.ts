@@ -1,12 +1,14 @@
 import type { ApiClient } from '@/services/api/api-client'
 
 export interface PublishCheckResult {
+  expectedVersion: number
   errorCodes: readonly string[]
   ready: boolean
   warningCodes: readonly string[]
 }
 
 export interface PublishInput {
+  expectedVersion: number
   acknowledgedWarningCodes: string[]
   revisionId: string
 }
@@ -71,7 +73,10 @@ export function createPublishAdapter(client: ApiClient): PublishAdapter {
      */
     async publish(input, idempotencyKey) {
       return client.request<Record<string, unknown>>({
-        body: { acknowledged_warning_codes: input.acknowledgedWarningCodes },
+        body: {
+          acknowledged_warning_codes: input.acknowledgedWarningCodes,
+          expected_version: input.expectedVersion
+        },
         idempotencyKey,
         method: 'POST',
         path: `/api/v1/admin/content/revisions/${encodeURIComponent(input.revisionId)}/commands/publish`
@@ -122,11 +127,13 @@ function parsePreview(source: Record<string, unknown>): AdminPreview {
 function parseCheck(source: Record<string, unknown>): PublishCheckResult {
   if (
     typeof source.ready !== 'boolean' ||
+    typeof source.version !== 'number' ||
     !isStringArray(source.error_codes) ||
     !isStringArray(source.warning_codes)
   )
     throw new Error('发布检查响应格式不正确')
   return {
+    expectedVersion: source.version,
     errorCodes: source.error_codes,
     ready: source.ready,
     warningCodes: source.warning_codes

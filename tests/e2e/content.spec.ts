@@ -7,8 +7,10 @@ test('图片上传开始后可以取消单个任务', async ({ adminApi, page })
   })
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/import')
-  await page.getByLabel('系列编号').fill('SERIES-1')
-  await page.getByLabel('识别模板').fill('TEMPLATE-1')
+  await page.getByLabel('系列编号').press('Enter')
+  await page.getByRole('option', { name: '日常英语' }).click()
+  await page.getByLabel('识别模板').press('Enter')
+  await page.getByRole('option', { name: '对话', exact: true }).click()
   await page.locator('input[type="file"]').setInputFiles({
     buffer: Buffer.from('e2e-image'),
     mimeType: 'image/png',
@@ -38,6 +40,9 @@ test('发布警告必须确认后才能提交发布命令', async ({ adminApi, p
     'POST',
     '/api/v1/admin/content/revisions/REV-1/commands/publish'
   )
-  expect(request?.body).toEqual({ acknowledged_warning_codes: ['MISSING_OPTIONAL_AUDIO'] })
+  expect(request?.body).toEqual({
+    acknowledged_warning_codes: ['MISSING_OPTIONAL_AUDIO'],
+    expected_version: 3
+  })
   expect(request?.headers['x-csrf-token']).toBe('csrf-e2e')
 })

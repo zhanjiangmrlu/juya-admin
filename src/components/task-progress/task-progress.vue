@@ -5,7 +5,7 @@ defineProps<{ item: Readonly<UploadQueueItem> }>()
 defineEmits<{ cancel: [id: string]; retry: [id: string] }>()
 
 const labels = {
-  'awaiting-ocr': '上传已确认，等待 OCR 处理',
+  confirmed: '上传已确认，场景草稿已建立',
   cancelled: '已取消',
   failed: '上传失败',
   preparing: '计算摘要并申请上传策略',

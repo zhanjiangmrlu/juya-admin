@@ -5,21 +5,21 @@ export type FormalEntitlementOperation = components['schemas']['EntitlementOpera
 export type FormalEntitlementStatus = 'ACTIVE' | 'EXPIRED' | 'PAUSED' | 'REVOKED'
 
 export const FORMAL_TERMS: readonly FormalEntitlementTerm[] = [
-  'MONTH_1',
-  'MONTH_2',
-  'MONTH_3',
-  'MONTH_6',
-  'MONTH_12',
-  'PERMANENT'
+  'month_1',
+  'month_2',
+  'month_3',
+  'month_6',
+  'month_12',
+  'permanent'
 ]
 
 export const FORMAL_TERM_LABELS: Readonly<Record<FormalEntitlementTerm, string>> = {
-  MONTH_1: '1 个自然月',
-  MONTH_2: '2 个自然月',
-  MONTH_3: '3 个自然月',
-  MONTH_6: '6 个自然月',
-  MONTH_12: '12 个自然月',
-  PERMANENT: '永久有效'
+  month_1: '1 个自然月',
+  month_2: '2 个自然月',
+  month_3: '3 个自然月',
+  month_6: '6 个自然月',
+  month_12: '12 个自然月',
+  permanent: '永久有效'
 }
 
 export const FORMAL_OPERATION_LABELS: Readonly<Record<FormalEntitlementOperation, string>> = {
@@ -42,10 +42,10 @@ export function getFormalOperations(
   term: FormalEntitlementTerm
 ): readonly FormalEntitlementOperation[] {
   if (status === 'ACTIVE') {
-    return term === 'PERMANENT' ? ['PAUSE', 'REVOKE'] : ['RENEW', 'PAUSE', 'REVOKE']
+    return term === 'permanent' ? ['PAUSE', 'REVOKE'] : ['RENEW', 'PAUSE', 'REVOKE']
   }
   if (status === 'PAUSED') {
-    return term === 'PERMANENT' ? ['RESUME', 'REVOKE'] : ['RENEW', 'RESUME', 'REVOKE']
+    return term === 'permanent' ? ['RESUME', 'REVOKE'] : ['RENEW', 'RESUME', 'REVOKE']
   }
   return ['GRANT']
 }

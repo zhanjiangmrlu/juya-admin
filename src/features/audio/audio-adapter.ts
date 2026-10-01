@@ -49,6 +49,7 @@ export function createAudioAdapter(
 ): AudioAdapter {
   const hash = dependencies.hash ?? hashFile
   const uploader = dependencies.uploader ?? createXhrUploader()
+  const pendingObjects = new WeakMap<File, string>()
   return {
     async confirmVersion(versionId, idempotencyKey) {
       return mapTarget(
@@ -102,22 +103,29 @@ export function createAudioAdapter(
       )
     },
     async uploadFile(targetId, file, idempotencyKey, onProgress, signal) {
-      const sha256 = await hash(file)
-      const policy = await client.request<Record<string, unknown>>({
-        body: { asset_type: 'audio' },
-        method: 'POST',
-        path: '/api/v1/admin/media/upload-policies',
-        signal
-      })
-      const prepared = parseUploadPolicy(policy, file, sha256)
-      await uploader.upload({ ...prepared, file, onProgress, signal })
-      const asset = await client.request<{ id: string }>({
-        body: { asset_type: 'audio', object_key: prepared.objectKey },
+      let objectKey = pendingObjects.get(file)
+      if (!objectKey) {
+        const sha256 = await hash(file)
+        const policy = await client.request<Record<string, unknown>>({
+          body: { asset_type: 'audio' },
+          method: 'POST',
+          path: '/api/v1/admin/media/upload-policies',
+          signal
+        })
+        const prepared = parseUploadPolicy(policy, file, sha256)
+        await uploader.upload({ ...prepared, file, onProgress, signal })
+        objectKey = prepared.objectKey
+        pendingObjects.set(file, objectKey)
+      }
+      const asset = await client.request<{ id: string; status?: string }>({
+        body: { asset_type: 'audio', object_key: objectKey },
         method: 'POST',
         path: '/api/v1/admin/media/uploads/confirm',
         signal
       })
-      return mapVersion(
+      if (asset.status === 'PENDING')
+        throw new Error('音频安全检查中，请稍后点击重试以重新确认同一素材')
+      const version = mapVersion(
         await client.request<VersionDto>({
           body: { asset_id: asset.id },
           idempotencyKey,
@@ -126,6 +134,8 @@ export function createAudioAdapter(
           signal
         })
       )
+      pendingObjects.delete(file)
+      return version
     },
     async uploadVersion(targetId, assetId, idempotencyKey) {
       return mapVersion(

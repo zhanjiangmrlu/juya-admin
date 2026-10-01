@@ -33,7 +33,7 @@ const authStore = useAuthStore()
 const form = reactive<GrantForm>({
   operation: 'GRANT',
   packageId: '',
-  term: 'MONTH_3',
+  term: 'month_3',
   userId: ''
 })
 const isConfirmVisible = ref(false)

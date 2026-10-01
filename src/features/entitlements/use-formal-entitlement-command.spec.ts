@@ -12,7 +12,7 @@ const previewResult: FormalEntitlement = {
   id: 'ENT-1',
   packageId: 'PACKAGE-1',
   status: 'ACTIVE',
-  term: 'MONTH_3',
+  term: 'month_3',
   userId: 'USER-1',
   version: 1
 }
@@ -27,7 +27,7 @@ describe('formal entitlement command', () => {
     controller.setDraft({
       operation: 'GRANT',
       packageId: 'PACKAGE-1',
-      term: 'MONTH_3',
+      term: 'month_3',
       userId: 'USER-1'
     })
 

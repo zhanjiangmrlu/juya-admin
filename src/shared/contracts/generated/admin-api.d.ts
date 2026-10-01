@@ -38,6 +38,128 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/content/imports': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Import Images */
+    post: operations['import_images_api_v1_admin_content_imports_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/series': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Series */
+    get: operations['list_series_api_v1_admin_content_series_get']
+    put?: never
+    /** Create Series */
+    post: operations['create_series_api_v1_admin_content_series_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/scenes': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Scenes */
+    get: operations['list_scenes_api_v1_admin_content_scenes_get']
+    put?: never
+    /** Create Scene */
+    post: operations['create_scene_api_v1_admin_content_scenes_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/lexicon': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Lexicon */
+    get: operations['list_lexicon_api_v1_admin_content_lexicon_get']
+    put?: never
+    /** Create Lexicon */
+    post: operations['create_lexicon_api_v1_admin_content_lexicon_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/lexicon/{entry_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Update Lexicon */
+    put: operations['update_lexicon_api_v1_admin_content_lexicon__entry_id__put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/revisions/{revision_id}/ocr-adoptions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Adopt Ocr */
+    post: operations['adopt_ocr_api_v1_admin_content_revisions__revision_id__ocr_adoptions_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/revisions/{revision_id}/resources/{resource_id}/signed-url': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Draft Resource */
+    get: operations['draft_resource_api_v1_admin_content_revisions__revision_id__resources__resource_id__signed_url_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/analytics': {
     parameters: {
       query?: never
@@ -133,23 +255,6 @@ export interface paths {
     }
     /** List Audit Events */
     get: operations['list_audit_events_api_v1_admin_audit_events_get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/scenes': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** List Scenes */
-    get: operations['list_scenes_api_v1_admin_content_scenes_get']
     put?: never
     post?: never
     delete?: never
@@ -859,6 +964,74 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/media/assets/{asset_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Asset */
+    get: operations['get_asset_api_v1_admin_media_assets__asset_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/assets/{asset_id}/signed-url': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Preview Asset */
+    get: operations['preview_asset_api_v1_admin_media_assets__asset_id__signed_url_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/ocr/quota': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Quota */
+    get: operations['get_quota_api_v1_admin_media_ocr_quota_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/ocr/settings': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Configure Ocr */
+    put: operations['configure_ocr_api_v1_admin_media_ocr_settings_put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/media/ocr/jobs': {
     parameters: {
       query?: never
@@ -937,7 +1110,8 @@ export interface paths {
     /** List Audio Targets */
     get: operations['list_audio_targets_api_v1_admin_media_audio_targets_get']
     put?: never
-    post?: never
+    /** Create Audio Target */
+    post: operations['create_audio_target_api_v1_admin_media_audio_targets_post']
     delete?: never
     options?: never
     head?: never
@@ -1287,6 +1461,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/internal/v1/scenes/{scene_id}/resources/{resource_id}/signed-url': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Signed Resource */
+    post: operations['signed_resource_internal_v1_scenes__scene_id__resources__resource_id__signed_url_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/internal/v1/feedback': {
     parameters: {
       query?: never
@@ -1412,10 +1603,7 @@ export interface components {
       scene_title: string
       /** Series Title */
       series_title: string
-      /** Content */
-      content: {
-        [key: string]: unknown
-      }
+      content: components['schemas']['SceneContent']
     }
     /** AnalyticsCountResponse */
     AnalyticsCountResponse: {
@@ -1448,6 +1636,14 @@ export interface components {
       rate: number | null
       /** Basis */
       basis: string
+      /** Dimension */
+      dimension?: string | null
+      /**
+       * Unit
+       * @default ratio
+       * @enum {string}
+       */
+      unit: 'ratio' | 'seconds'
     }
     /** AnalyticsResponse */
     AnalyticsResponse: {
@@ -1456,6 +1652,11 @@ export interface components {
        * @enum {string}
        */
       period: 'day' | 'week' | 'month'
+      /**
+       * Activity Basis
+       * @enum {string}
+       */
+      activity_basis: 'DAILY_USERS' | 'CALENDAR_WEEK_USERS' | 'CALENDAR_MONTH_USERS' | 'PERSON_DAYS'
       /**
        * Timezone
        * @default Asia/Shanghai
@@ -1476,6 +1677,17 @@ export interface components {
       rows: components['schemas']['AnalyticsCountResponse'][]
       /** Ratios */
       ratios: components['schemas']['AnalyticsRatioResponse'][]
+    }
+    /** AudioReference */
+    AudioReference: {
+      /** Target Id */
+      target_id: string
+      /** Version Id */
+      version_id: string
+      /** Asset Id */
+      asset_id: string
+      /** Duration Ms */
+      duration_ms: number
     }
     /** AudioTargetListResponse */
     AudioTargetListResponse: {
@@ -1523,6 +1735,62 @@ export interface components {
        * Format: date-time
        */
       created_at: string
+    }
+    /** AuthorizedEntryResponse */
+    AuthorizedEntryResponse: {
+      /**
+       * Entry Id
+       * @default
+       */
+      entry_id: string
+      /**
+       * Entry Version
+       * @default 1
+       */
+      entry_version: number
+      /**
+       * English
+       * @default
+       */
+      english: string
+      /** Variants */
+      variants?: string[]
+      /**
+       * Phonetic
+       * @default
+       */
+      phonetic: string
+      /**
+       * Chinese
+       * @default
+       */
+      chinese: string
+      /**
+       * Explanation
+       * @default
+       */
+      explanation: string
+      /** Source Sentence Ids */
+      source_sentence_ids?: string[]
+      /** Icon Asset Id */
+      icon_asset_id?: string | null
+      /** Audio Target Id */
+      audio_target_id?: string | null
+      /** Audio Version Id */
+      audio_version_id?: string | null
+      /** Scene Id */
+      scene_id: string
+      /** Revision Id */
+      revision_id: string
+      /** Source Locator */
+      source_locator: string
+      /** Sentence Snapshot */
+      sentence_snapshot: string
+      /**
+       * Entry Type
+       * @enum {string}
+       */
+      entry_type: 'VOCABULARY' | 'PHRASE'
     }
     /** BatchJobItemResponse */
     BatchJobItemResponse: {
@@ -1588,6 +1856,14 @@ export interface components {
       cancel_requested_at: string | null
       /** Items */
       items: components['schemas']['BatchJobItemResponse'][]
+      /** Input Payload */
+      input_payload: {
+        [key: string]: unknown
+      }
+      /** Result Payload */
+      result_payload: {
+        [key: string]: unknown
+      }
     }
     /** CampaignCommandRequest */
     CampaignCommandRequest: {
@@ -1705,6 +1981,19 @@ export interface components {
       version: number
       /** Scene Ids */
       scene_ids: string[]
+    }
+    /** ClickableSpan */
+    ClickableSpan: {
+      /** Start */
+      start: number
+      /** End */
+      end: number
+      /** Entry Id */
+      entry_id: string
+      /** Entry Version */
+      entry_version: number
+      /** Source Locator */
+      source_locator: string
     }
     /** CloseCommand */
     CloseCommand: {
@@ -1829,6 +2118,13 @@ export interface components {
        */
       processed_at: string
     }
+    /** CreateAudioTargetRequest */
+    CreateAudioTargetRequest: {
+      /** Stable Key */
+      stable_key: string
+      /** Target Type */
+      target_type: string
+    }
     /** CreateAudioVersionRequest */
     CreateAudioVersionRequest: {
       /** Asset Id */
@@ -1840,13 +2136,21 @@ export interface components {
       job_type: string
       /** Target Ids */
       target_ids: string[]
+      /** Input Payload */
+      input_payload?: {
+        [key: string]: unknown
+      }
     }
     /** CreateOcrJobRequest */
     CreateOcrJobRequest: {
       /** Asset Id */
       asset_id: string
       /** Object Key */
-      object_key: string
+      object_key?: string | null
+      /** Scene Id */
+      scene_id: string
+      /** Revision Id */
+      revision_id: string
       /** Series Id */
       series_id: string
       /** Template Id */
@@ -1856,6 +2160,26 @@ export interface components {
     CreateRevisionRequest: {
       /** Source Revision Id */
       source_revision_id?: string | null
+    }
+    /** CreateSceneRequest */
+    CreateSceneRequest: {
+      /** Series Id */
+      series_id: string
+      /**
+       * Template Type
+       * @default dialogue
+       * @enum {string}
+       */
+      template_type: 'dialogue' | 'vocabulary'
+    }
+    /** CreateSeriesRequest */
+    CreateSeriesRequest: {
+      /** Title */
+      title: string
+      /** Slug */
+      slug: string
+      /** Cover Asset Id */
+      cover_asset_id?: string | null
     }
     /** CreateTrashRequest */
     CreateTrashRequest: {
@@ -1868,6 +2192,39 @@ export interface components {
     DeletionRequest: {
       /** Event Id */
       event_id: string
+    }
+    /** DialogueSentence */
+    DialogueSentence: {
+      /** Id */
+      id?: string
+      /**
+       * Speaker
+       * @default
+       */
+      speaker: string
+      /**
+       * English
+       * @default
+       */
+      english: string
+      /**
+       * Chinese
+       * @default
+       */
+      chinese: string
+      /** Start Ms */
+      start_ms?: number | null
+      /** End Ms */
+      end_ms?: number | null
+      /** Audio Version Id */
+      audio_version_id?: string | null
+      /**
+       * Timing Confirmed
+       * @default false
+       */
+      timing_confirmed: boolean
+      /** Clickable Spans */
+      clickable_spans?: components['schemas']['ClickableSpan'][]
     }
     /** DiscoveryConfigResponse */
     DiscoveryConfigResponse: {
@@ -1945,7 +2302,18 @@ export interface components {
      * EntitlementTerm
      * @enum {string}
      */
-    EntitlementTerm: 'MONTH_1' | 'MONTH_2' | 'MONTH_3' | 'MONTH_6' | 'MONTH_12' | 'PERMANENT'
+    EntitlementTerm: 'month_1' | 'month_2' | 'month_3' | 'month_6' | 'month_12' | 'permanent'
+    /** EntryQuery */
+    EntryQuery: {
+      /** User Id */
+      user_id: string
+      /** Revision Id */
+      revision_id: string
+      /** Entry Version */
+      entry_version: number
+      /** Source Locator */
+      source_locator: string
+    }
     /** FeedbackAdminDetailResponse */
     FeedbackAdminDetailResponse: {
       /** Id */
@@ -2247,10 +2615,37 @@ export interface components {
       /** Detail */
       detail?: components['schemas']['ValidationError'][]
     }
+    /** ImportImagesRequest */
+    ImportImagesRequest: {
+      /** Series Id */
+      series_id: string
+      /**
+       * Template Type
+       * @default dialogue
+       * @enum {string}
+       */
+      template_type: 'dialogue' | 'vocabulary'
+      /** Asset Ids */
+      asset_ids: string[]
+    }
+    /** ImportImagesResponse */
+    ImportImagesResponse: {
+      /** Items */
+      items: components['schemas']['SceneResponse'][]
+    }
     /** InternalNoteRequest */
     InternalNoteRequest: {
       /** Content */
       content: string
+    }
+    /** LexiconWriteRequest */
+    LexiconWriteRequest: {
+      /**
+       * Entry Type
+       * @enum {string}
+       */
+      entry_type: 'VOCABULARY' | 'PHRASE'
+      entry: components['schemas']['SceneEntry']
     }
     /** LimitedEntitlementDetailResponse */
     LimitedEntitlementDetailResponse: {
@@ -2293,6 +2688,16 @@ export interface components {
       /** Available Operations */
       available_operations: string[]
     }
+    /** OcrAdoptionRequest */
+    OcrAdoptionRequest: {
+      /** Job Id */
+      job_id: string
+      /** Expected Version */
+      expected_version: number
+      /** Selected Fields */
+      selected_fields: ('title_en' | 'title_zh' | 'dialogue' | 'vocabulary' | 'chunks')[]
+      content: components['schemas']['SceneContent']
+    }
     /** OcrCandidateResponse */
     OcrCandidateResponse: {
       /** Id */
@@ -2334,6 +2739,22 @@ export interface components {
       /** Version */
       version: number
     }
+    /** OcrSettingsRequest */
+    OcrSettingsRequest: {
+      /** Enabled */
+      enabled: boolean
+      /** Monthly Limit */
+      monthly_limit: number
+      /** Free Quota */
+      free_quota: number
+      /** Paid Disabled */
+      paid_disabled: boolean
+      /**
+       * Verify Quota
+       * @default false
+       */
+      verify_quota: boolean
+    }
     /** OpenScenesRequest */
     OpenScenesRequest: {
       /** Scene Ids */
@@ -2367,6 +2788,35 @@ export interface components {
       username: string
       /** Password */
       password: string
+    }
+    /** PreviewSceneResponse */
+    PreviewSceneResponse: {
+      /** Public Id */
+      public_id: string
+      /** Title */
+      title: string
+      /**
+       * Title En
+       * @default
+       */
+      title_en: string
+      /**
+       * Title Zh
+       * @default
+       */
+      title_zh: string
+      /** Series */
+      series?: string | null
+      /** Cover Url */
+      cover_url?: string | null
+      /** Introduction */
+      introduction?: string | null
+      /**
+       * Preview Status
+       * @default PREVIEW
+       * @constant
+       */
+      preview_status: 'PREVIEW'
     }
     /** PreviewScenesRequest */
     PreviewScenesRequest: {
@@ -2406,10 +2856,27 @@ export interface components {
       /** Cancel Requested At */
       cancel_requested_at: string | null
     }
+    /** PublishCheckRequest */
+    PublishCheckRequest: {
+      /** Acknowledged Warning Codes */
+      acknowledged_warning_codes?: string[]
+    }
     /** PublishRevisionRequest */
     PublishRevisionRequest: {
       /** Acknowledged Warning Codes */
       acknowledged_warning_codes?: string[]
+      /** Expected Version */
+      expected_version: number
+    }
+    /** PublishedSceneResponse */
+    PublishedSceneResponse: {
+      /** Scene Id */
+      scene_id: string
+      /** Revision Id */
+      revision_id: string
+      /** Content Version */
+      content_version: number
+      content: components['schemas']['SceneContent']
     }
     /** ReasonRequest */
     ReasonRequest: {
@@ -2432,6 +2899,13 @@ export interface components {
       /** Note */
       note?: string | null
     }
+    /** ResourceQuery */
+    ResourceQuery: {
+      /** User Id */
+      user_id: string
+      /** Revision Id */
+      revision_id: string
+    }
     /** RevisionResponse */
     RevisionResponse: {
       /** Id */
@@ -2448,10 +2922,7 @@ export interface components {
       stable_sentence_ids: string[]
       /** Stable Entry Ids */
       stable_entry_ids: string[]
-      /** Content */
-      content: {
-        [key: string]: unknown
-      }
+      content: components['schemas']['SceneContent']
       /** Created By */
       created_by: string
       /** Created At */
@@ -2481,10 +2952,109 @@ export interface components {
     SaveRevisionRequest: {
       /** Expected Version */
       expected_version: number
-      /** Content */
-      content: {
-        [key: string]: unknown
-      }
+      content: components['schemas']['SceneContent']
+    }
+    /** SceneContent */
+    SceneContent: {
+      /**
+       * Title En
+       * @default
+       */
+      title_en: string
+      /**
+       * Title Zh
+       * @default
+       */
+      title_zh: string
+      /**
+       * Summary
+       * @default
+       */
+      summary: string
+      /** Tags */
+      tags?: string[]
+      /** Original Image Asset Id */
+      original_image_asset_id?: string | null
+      /** Cover Asset Id */
+      cover_asset_id?: string | null
+      /**
+       * Copyright
+       * @default
+       */
+      copyright: string
+      /**
+       * Source
+       * @default
+       */
+      source: string
+      audio?: components['schemas']['AudioReference'] | null
+      /** Dialogue */
+      dialogue?: components['schemas']['DialogueSentence'][]
+      /** Vocabulary */
+      vocabulary?: components['schemas']['SceneEntry'][]
+      /** Chunks */
+      chunks?: components['schemas']['SceneEntry'][]
+    }
+    /** SceneEntry */
+    SceneEntry: {
+      /**
+       * Entry Id
+       * @default
+       */
+      entry_id: string
+      /**
+       * Entry Version
+       * @default 1
+       */
+      entry_version: number
+      /**
+       * English
+       * @default
+       */
+      english: string
+      /** Variants */
+      variants?: string[]
+      /**
+       * Phonetic
+       * @default
+       */
+      phonetic: string
+      /**
+       * Chinese
+       * @default
+       */
+      chinese: string
+      /**
+       * Explanation
+       * @default
+       */
+      explanation: string
+      /** Source Sentence Ids */
+      source_sentence_ids?: string[]
+      /** Icon Asset Id */
+      icon_asset_id?: string | null
+      /** Audio Target Id */
+      audio_target_id?: string | null
+      /** Audio Version Id */
+      audio_version_id?: string | null
+    }
+    /** SceneOpenResponse */
+    SceneOpenResponse: {
+      /**
+       * Access
+       * @enum {string}
+       */
+      access: 'OPEN' | 'FORMAL' | 'LIMITED' | 'PREVIEW'
+      /** Sources */
+      sources: string[]
+      /** Earliest Expires At */
+      earliest_expires_at?: string | null
+      /** Activated At */
+      activated_at?: string | null
+      /** Scene */
+      scene:
+        | components['schemas']['PublishedSceneResponse']
+        | components['schemas']['PreviewSceneResponse']
     }
     /** ScenePageResponse */
     ScenePageResponse: {
@@ -2522,6 +3092,18 @@ export interface components {
     }
     /** SignedFeedbackScreenshotResponse */
     SignedFeedbackScreenshotResponse: {
+      /** Url */
+      url: string
+      /**
+       * Expires At
+       * Format: date-time
+       */
+      expires_at: string
+    }
+    /** SignedSceneResourceResponse */
+    SignedSceneResourceResponse: {
+      /** Resource Id */
+      resource_id: string
       /** Url */
       url: string
       /**
@@ -2725,6 +3307,378 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
+        }
+      }
+    }
+  }
+  import_images_api_v1_admin_content_imports_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ImportImagesRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ImportImagesResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_series_api_v1_admin_content_series_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_series_api_v1_admin_content_series_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateSeriesRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_scenes_api_v1_admin_content_scenes_get: {
+    parameters: {
+      query?: {
+        page?: number
+        page_size?: number
+        query?: string | null
+        series_id?: string | null
+        status?: ('DRAFT' | 'PUBLISHED' | 'OFFLINE') | null
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ScenePageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_scene_api_v1_admin_content_scenes_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateSceneRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SceneResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_lexicon_api_v1_admin_content_lexicon_get: {
+    parameters: {
+      query?: {
+        query?: string
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_lexicon_api_v1_admin_content_lexicon_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LexiconWriteRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SceneEntry']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  update_lexicon_api_v1_admin_content_lexicon__entry_id__put: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        entry_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LexiconWriteRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SceneEntry']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  adopt_ocr_api_v1_admin_content_revisions__revision_id__ocr_adoptions_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OcrAdoptionRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RevisionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  draft_resource_api_v1_admin_content_revisions__revision_id__resources__resource_id__signed_url_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        revision_id: string
+        resource_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
         }
       }
     }
@@ -2959,43 +3913,6 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  list_scenes_api_v1_admin_content_scenes_get: {
-    parameters: {
-      query?: {
-        page?: number
-        page_size?: number
-        query?: string | null
-        series_id?: string | null
-        status?: ('DRAFT' | 'PUBLISHED' | 'OFFLINE') | null
-      }
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ScenePageResponse']
         }
       }
       /** @description Validation Error */
@@ -3269,7 +4186,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['PublishRevisionRequest']
+        'application/json': components['schemas']['PublishCheckRequest']
       }
     }
     responses: {
@@ -4702,6 +5619,149 @@ export interface operations {
       }
     }
   }
+  get_asset_api_v1_admin_media_assets__asset_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        asset_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_asset_api_v1_admin_media_assets__asset_id__signed_url_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        asset_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_quota_api_v1_admin_media_ocr_quota_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  configure_ocr_api_v1_admin_media_ocr_settings_put: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OcrSettingsRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   create_ocr_job_api_v1_admin_media_ocr_jobs_post: {
     parameters: {
       query?: never
@@ -4869,6 +5929,44 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['AudioTargetListResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_audio_target_api_v1_admin_media_audio_targets_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateAudioTargetRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AudioTargetResponse']
         }
       }
       /** @description Validation Error */
@@ -5649,9 +6747,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['SceneOpenResponse']
         }
       }
       /** @description Validation Error */
@@ -5677,7 +6773,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['UserQuery']
+        'application/json': components['schemas']['EntryQuery']
       }
     }
     responses: {
@@ -5687,9 +6783,43 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['AuthorizedEntryResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  signed_resource_internal_v1_scenes__scene_id__resources__resource_id__signed_url_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        scene_id: string
+        resource_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResourceQuery']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SignedSceneResourceResponse']
         }
       }
       /** @description Validation Error */

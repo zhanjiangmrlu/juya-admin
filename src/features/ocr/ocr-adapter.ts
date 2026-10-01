@@ -1,21 +1,34 @@
-import type { OcrCandidate, OcrConfirmation, OcrJob } from './ocr-model'
+import type { OcrCandidate, OcrJob } from './ocr-model'
 import type { ApiClient } from '@/services/api/api-client'
 import type { components } from '@/shared/contracts/generated/admin-api'
 
 type JobDto = components['schemas']['ProcessingJobResponse']
 type CandidateDto = components['schemas']['OcrCandidateResponse']
-type ConfirmationDto = components['schemas']['OcrConfirmationResponse']
 
 export interface OcrAdapter {
+  createJob(assetId: string, seriesId: string, sceneId: string, revisionId: string): Promise<OcrJob>
+  getQuota(): Promise<OcrQuota>
+  updateSettings(input: {
+    enabled: boolean
+    monthly_limit: number
+    free_quota: number
+    paid_disabled: boolean
+    verify_quota: boolean
+  }): Promise<OcrQuota>
   command(jobId: string, operation: 'cancel' | 'retry', idempotencyKey: string): Promise<OcrJob>
-  confirm(
-    jobId: string,
-    sceneId: string,
-    content: Record<string, unknown>,
-    idempotencyKey: string
-  ): Promise<OcrConfirmation>
   getCandidate(jobId: string): Promise<OcrCandidate>
   getJob(jobId: string): Promise<OcrJob>
+}
+
+export interface OcrQuota {
+  enabled: boolean
+  monthly_limit: number
+  month: string
+  reserved_count: number
+  remaining: number
+  free_quota: number
+  paid_disabled: boolean
+  quota_verified_at: string | null
 }
 
 /**
@@ -26,6 +39,32 @@ export interface OcrAdapter {
  */
 export function createOcrAdapter(client: ApiClient): OcrAdapter {
   return {
+    async createJob(assetId, seriesId, sceneId, revisionId) {
+      return mapJob(
+        await client.request<JobDto>({
+          method: 'POST',
+          path: '/api/v1/admin/media/ocr/jobs',
+          body: {
+            asset_id: assetId,
+            series_id: seriesId,
+            template_id: 'dialogue',
+            scene_id: sceneId,
+            revision_id: revisionId
+          },
+          idempotencyKey: crypto.randomUUID()
+        })
+      )
+    },
+    async getQuota() {
+      return client.request<OcrQuota>({ method: 'GET', path: '/api/v1/admin/media/ocr/quota' })
+    },
+    async updateSettings(input) {
+      return client.request<OcrQuota>({
+        method: 'PUT',
+        path: '/api/v1/admin/media/ocr/settings',
+        body: input
+      })
+    },
     async command(jobId, operation, idempotencyKey) {
       const response = await client.request<JobDto>({
         body: {},
@@ -34,19 +73,6 @@ export function createOcrAdapter(client: ApiClient): OcrAdapter {
         path: `/api/v1/admin/media/ocr/jobs/${encodeURIComponent(jobId)}/commands/${operation}`
       })
       return mapJob(response)
-    },
-    async confirm(jobId, sceneId, content, idempotencyKey) {
-      const response = await client.request<ConfirmationDto>({
-        body: { content, scene_id: sceneId },
-        idempotencyKey,
-        method: 'POST',
-        path: `/api/v1/admin/media/ocr/jobs/${encodeURIComponent(jobId)}/commands/confirm`
-      })
-      return {
-        revisionId: response.revision_id,
-        revisionStatus: response.revision_status,
-        version: response.version
-      }
     },
     async getCandidate(jobId) {
       const response = await client.request<CandidateDto>({

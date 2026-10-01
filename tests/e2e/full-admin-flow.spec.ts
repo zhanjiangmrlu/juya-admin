@@ -64,6 +64,9 @@ test('A25 按日周月查询、显示真实比率分子分母并下载已校验�
       .toContain(`period=${period}`)
     await expect(page.getByText('80.0%', { exact: true })).toBeVisible()
     await expect(page.getByText('SLA 内处理数量 / 纳入 SLA 统计的反馈数量')).toBeVisible()
+    await expect(page.getByLabel('活跃统计口径')).toContainText(
+      period === 'day' ? '日活跃用户' : '活跃人日'
+    )
   }
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: '导出已校验数据' }).click()

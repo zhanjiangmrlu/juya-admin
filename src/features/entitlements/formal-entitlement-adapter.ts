@@ -119,12 +119,12 @@ function parseFormalEntitlement(source: unknown): FormalEntitlement {
  */
 function requireTerm(value: unknown): FormalEntitlementTerm {
   const terms: readonly string[] = [
-    'MONTH_1',
-    'MONTH_2',
-    'MONTH_3',
-    'MONTH_6',
-    'MONTH_12',
-    'PERMANENT'
+    'month_1',
+    'month_2',
+    'month_3',
+    'month_6',
+    'month_12',
+    'permanent'
   ]
   if (typeof value !== 'string' || !terms.includes(value)) {
     throw new Error('正式权益接口缺少有效期限')
