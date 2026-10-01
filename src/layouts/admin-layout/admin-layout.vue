@@ -36,21 +36,16 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const isCollapsed = ref(false)
-const activePageNumber = computed(() => String(route.meta.pageNumber ?? ''))
+const navigationPages = ADMIN_NAVIGATION_GROUPS.flatMap((item) => item.pages)
+const activePageNumber = computed(() => {
+  const currentPageNumber = String(route.meta.pageNumber ?? '')
+  const currentPage = navigationPages.find((page) => page.pageNumber === currentPageNumber)
+  if (currentPage) return currentPage.pageNumber
+  return navigationPages.find((page) => page.path === route.meta.navigationPath)?.pageNumber ?? ''
+})
 const defaultOpenGroups = ADMIN_NAVIGATION_GROUPS.filter((item) => item.pages.length > 1).map(
   (item) => item.path
 )
-
-/**
- * 判断页面是否缺少从业务列表获得的上下文标识
- *
- * @param pageNumber - A01-A26 页面编号
- * @param requiresContext - 路由是否包含业务对象参数
- * @returns 当前页面可用时返回 false，否则返回 true
- */
-function isContextUnavailable(pageNumber: string, requiresContext: boolean): boolean {
-  return requiresContext && activePageNumber.value !== pageNumber
-}
 
 /**
  * 从 Element Plus 菜单切换到无需业务上下文的页面
@@ -59,10 +54,8 @@ function isContextUnavailable(pageNumber: string, requiresContext: boolean): boo
  * @returns 路由切换完成后的 Promise
  */
 async function navigateToPage(pageNumber: string): Promise<void> {
-  const page = ADMIN_NAVIGATION_GROUPS.flatMap((item) => item.pages).find(
-    (item) => item.pageNumber === pageNumber
-  )
-  if (!page || page.requiresContext) return
+  const page = navigationPages.find((item) => item.pageNumber === pageNumber)
+  if (!page) return
   await router.push(page.path)
 }
 
@@ -139,9 +132,8 @@ async function logout(): Promise<void> {
                 <ElMenuItem
                   v-for="page in group.pages"
                   :key="page.pageNumber"
-                  :disabled="isContextUnavailable(page.pageNumber, page.requiresContext)"
                   :index="page.pageNumber"
-                  :title="page.requiresContext ? '请从所属列表选择具体对象后进入' : page.label"
+                  :title="page.label"
                 >
                   <span class="page-number">{{ page.pageNumber }}</span>
                   <span class="page-label">{{ page.label }}</span>
@@ -386,12 +378,6 @@ async function logout(): Promise<void> {
   .menu :deep(.el-menu-item.is-active) {
     background: #fbfcfb;
     font-weight: 600;
-  }
-
-  .menu :deep(.el-menu-item.is-disabled) {
-    color: rgb(255 255 255 / 52%);
-    cursor: not-allowed;
-    opacity: 1;
   }
 
   .page-number {

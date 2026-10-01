@@ -4,12 +4,40 @@ import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 test('A01–A26 全部业务页具备真实接口状态且没有待接入或未知请求', async ({ adminApi, page }) => {
   test.setTimeout(120_000)
   const errors: string[] = []
+  const owningListPageNumbers: Record<string, string> = {
+    A03: 'A02',
+    A04: 'A02',
+    A08: 'A05',
+    A09: 'A05',
+    A11: 'A10',
+    A12: 'A10',
+    A15: 'A14',
+    A16: 'A14',
+    A19: 'A17',
+    A20: 'A17',
+    A21: 'A17',
+    A22: 'A17'
+  }
   page.on('pageerror', (error) => errors.push(error.message))
   await loginAsAdmin(page)
   for (const item of pageManifest) {
     await navigateInApp(page, item.path)
     await expect(page.getByRole('heading', { level: 1, name: item.title })).toBeVisible()
     await expect(page.getByText(/接口待接入|页面开发中/)).toHaveCount(0)
+    const navigation = page.locator('.menu-scrollbar')
+    await expect(navigation.locator('.el-menu-item')).toHaveCount(14)
+    await expect(navigation.locator('.el-menu-item.is-disabled')).toHaveCount(0)
+    const activePageNumber = owningListPageNumbers[item.id] ?? item.id
+    const activePageTitle = pageManifest.find((entry) => entry.id === activePageNumber)?.title
+    const activeMenuItem = navigation.locator('.el-menu-item.is-active')
+    await expect(activeMenuItem).toHaveCount(1)
+    await expect(activeMenuItem).toContainText(
+      activePageNumber === 'A10'
+        ? '限时活动配置'
+        : activePageNumber === 'A14'
+          ? '问题反馈'
+          : activePageTitle!
+    )
   }
   expect(adminApi.unexpectedRequests).toEqual([])
   expect(errors).toEqual([])

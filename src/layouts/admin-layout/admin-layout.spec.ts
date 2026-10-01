@@ -10,7 +10,7 @@ import { ADMIN_NAVIGATION_GROUPS, ADMIN_PAGE_DEFINITIONS } from '@/app/admin-nav
 import AdminLayout from './admin-layout.vue'
 
 describe('admin layout', () => {
-  it('groups all A01-A26 pages into the fixed Element Plus navigation order', () => {
+  it('keeps all A01-A26 routes while showing only directly accessible navigation pages', () => {
     expect(ADMIN_PAGE_DEFINITIONS.map((page) => page.pageNumber)).toEqual(
       Array.from({ length: 26 }, (_, index) => `A${String(index + 1).padStart(2, '0')}`)
     )
@@ -28,15 +28,90 @@ describe('admin layout', () => {
     const groupedPageNumbers = ADMIN_NAVIGATION_GROUPS.flatMap((item) => item.pages).map(
       (page) => page.pageNumber
     )
-    expect(groupedPageNumbers).toHaveLength(26)
-    expect(groupedPageNumbers).toEqual(
-      expect.arrayContaining(ADMIN_PAGE_DEFINITIONS.map((page) => page.pageNumber))
-    )
+    expect(groupedPageNumbers).toEqual([
+      'A01',
+      'A02',
+      'A05',
+      'A06',
+      'A07',
+      'A10',
+      'A13',
+      'A14',
+      'A17',
+      'A18',
+      'A23',
+      'A24',
+      'A26',
+      'A25'
+    ])
     expect(
-      ADMIN_NAVIGATION_GROUPS.flatMap((item) => item.pages)
-        .filter((page) => page.requiresContext)
-        .map((page) => page.pageNumber)
-    ).toEqual(['A03', 'A04', 'A08', 'A09', 'A11', 'A12', 'A15', 'A16', 'A19', 'A20', 'A21', 'A22'])
+      ADMIN_NAVIGATION_GROUPS.flatMap((item) => item.pages).every(
+        (page) => !page.path.includes(':')
+      )
+    ).toBe(true)
+  })
+
+  it('highlights the owning list for hidden pages and the selected entry for visible pages', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: ADMIN_PAGE_DEFINITIONS.map((page) => ({
+        component: { template: '<div />' },
+        meta: {
+          navigationPath: page.navigationPath,
+          pageNumber: page.pageNumber,
+          title: page.title
+        },
+        path: page.path
+      }))
+    })
+    await router.push('/users/USER-1')
+    await router.isReady()
+    const wrapper = mount(AdminLayout, {
+      attachTo: document.body,
+      global: { plugins: [createPinia(), router, ElementPlus] }
+    })
+
+    const cases = [
+      ['/users/USER-1', 'A02'],
+      ['/contacts/corrections/COR-1', 'A02'],
+      ['/entitlements/formal/FORMAL-1/action', 'A05'],
+      ['/entitlements/limited/LIMITED-1/action', 'A05'],
+      ['/campaigns/CAMP-1/edit', 'A10'],
+      ['/campaigns/CAMP-1/versions', 'A10'],
+      ['/feedback/FB-1', 'A14'],
+      ['/feedback/FB-1/respond', 'A14'],
+      ['/content/ocr/JOB-1/ITEM-1', 'A17'],
+      ['/content/scenes/SCENE-1/edit', 'A17'],
+      ['/content/scenes/SCENE-1/audio', 'A17'],
+      ['/content/scenes/REV-1/publish', 'A17'],
+      ['/entitlements/formal/grant', 'A06'],
+      ['/entitlements/limited/grant', 'A07'],
+      ['/content/import', 'A18'],
+      ['/content/discovery-config', 'A23'],
+      ['/content/jobs', 'A24']
+    ] as const
+    try {
+      for (const [path, activePageNumber] of cases) {
+        await router.push(path)
+        await flushPromises()
+        const menu = wrapper.findComponent({ name: 'ElMenu' })
+        expect(menu.props('defaultActive'), path).toBe(activePageNumber)
+        const activeItems = wrapper
+          .findAllComponents({ name: 'ElMenuItem' })
+          .filter((item) => item.classes().includes('is-active'))
+        expect(
+          activeItems.map((item) => item.props('index')),
+          path
+        ).toEqual([activePageNumber])
+        expect(wrapper.findAll('.el-menu-item')).toHaveLength(14)
+        expect(wrapper.find('.el-menu-item.is-disabled').exists()).toBe(false)
+      }
+      await wrapper.find('.el-menu-item.is-active').trigger('click')
+      await flushPromises()
+      expect(router.currentRoute.value.path).toBe('/content/jobs')
+    } finally {
+      wrapper.unmount()
+    }
   })
 
   it('keeps the application shell within a 1280px viewport', async () => {
@@ -75,20 +150,23 @@ describe('admin layout', () => {
     expect(wrapper.find('.admin-layout').exists()).toBe(true)
     expect(wrapper.find('.menu-scrollbar').exists()).toBe(true)
     expect(wrapper.findComponent({ name: 'ElMenu' }).exists()).toBe(true)
-    expect(wrapper.findAll('.el-sub-menu__title')).toHaveLength(5)
+    expect(wrapper.findAll('.el-sub-menu__title')).toHaveLength(2)
     const directItems = wrapper.findAll('.top-level-item')
     expect(directItems.map((item) => item.text())).toEqual([
       '工作台',
+      '用户管理',
+      '限时活动配置',
       '消息中心',
+      '问题反馈',
       '系统配置',
       '汇总统计'
     ])
-    expect(wrapper.findAll('.el-menu-item')).toHaveLength(26)
+    expect(wrapper.findAll('.el-menu-item')).toHaveLength(14)
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
       document.documentElement.clientWidth
     )
 
-    await directItems[1]?.trigger('click')
+    await directItems[3]?.trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.path).toBe('/work-items')
     wrapper.unmount()

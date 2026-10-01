@@ -21,7 +21,6 @@ export interface NavigationPage {
   label: string
   pageNumber: string
   path: string
-  requiresContext: boolean
 }
 
 export interface NavigationGroup extends NavigationItem {
@@ -276,7 +275,7 @@ export const ADMIN_PAGE_DEFINITIONS: readonly AdminPageDefinition[] = [
 ]
 
 /**
- * 将顶级导航项与对应页面组合为菜单分组
+ * 将顶级导航项与无需业务对象参数的页面组合为菜单分组
  *
  * @param items - 顶级导航项
  * @returns 包含子页面的导航分组
@@ -284,14 +283,13 @@ export const ADMIN_PAGE_DEFINITIONS: readonly AdminPageDefinition[] = [
 function createNavigationGroups(items: readonly NavigationItem[]): readonly NavigationGroup[] {
   return items.map((item) => ({
     ...item,
-    pages: ADMIN_PAGE_DEFINITIONS.filter((page) => page.navigationPath === item.path).map(
-      (page) => ({
-        label: page.title,
-        pageNumber: page.pageNumber,
-        path: page.path,
-        requiresContext: page.path.includes(':')
-      })
-    )
+    pages: ADMIN_PAGE_DEFINITIONS.filter(
+      (page) => page.navigationPath === item.path && !page.path.includes(':')
+    ).map((page) => ({
+      label: page.title,
+      pageNumber: page.pageNumber,
+      path: page.path
+    }))
   }))
 }
 
