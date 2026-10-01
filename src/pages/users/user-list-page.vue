@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Search } from '@element-plus/icons-vue'
-import dayjs from 'dayjs'
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import DataTable from '@/components/data-table/data-table.vue'
 import StatusTag from '@/components/status-tag/status-tag.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
@@ -13,12 +13,14 @@ import { useUserList } from '@/features/users/use-user-list'
 import { createUserAdapter } from '@/features/users/user-adapter'
 import { getAccountStatusLabel, getAccountStatusTone } from '@/features/users/user-model'
 import { createApiClient } from '@/services/api/api-client'
+import { formatDateTime as formatTimestamp } from '@/shared/utils/date-time'
 
 import type { ContactStatus, UserSearchFilters } from '@/features/users/user-adapter'
 
 const router = useRouter()
 const route = useRoute()
 const page = ref(1)
+const pageSize = ref(10)
 const authStore = useAuthStore()
 const operationFilters = reactive<UserSearchFilters>({
   cohort:
@@ -71,7 +73,7 @@ async function submitSearch(): Promise<void> {
  */
 async function loadPage(value: number): Promise<void> {
   page.value = value
-  const query = { ...operationFilters, page: value, page_size: 20 }
+  const query = { ...operationFilters, page: value, page_size: pageSize.value }
   if (filters.mode === 'wechat') {
     await controller.searchByWechat(filters.query, {
       ...query,
@@ -94,7 +96,7 @@ async function toggleView(): Promise<void> {
  * @returns 管理端日期时间文案
  */
 function formatDateTime(value: string | null): string {
-  return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '暂无记录'
+  return formatTimestamp(value, '暂无记录')
 }
 
 /**
@@ -312,19 +314,13 @@ function contactStatusLabel(status: string | undefined): string {
             </template>
           </ElTableColumn>
         </DataTable>
-        <div class="pagination">
-          <ElButton
-            :disabled="page <= 1 || controller.state.value === 'loading'"
-            @click="loadPage(page - 1)"
-            >上一页</ElButton
-          >
-          <span>第 {{ page }} 页 · 每页 20 条</span>
-          <ElButton
-            :disabled="controller.users.value.length < 20 || controller.state.value === 'loading'"
-            @click="loadPage(page + 1)"
-            >下一页</ElButton
-          >
-        </div>
+        <AppPagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :has-next="controller.users.value.length >= pageSize"
+          :disabled="controller.state.value === 'loading'"
+          @change="loadPage"
+        />
       </template>
 
       <template v-else>
@@ -393,14 +389,6 @@ function contactStatusLabel(status: string | undefined): string {
     margin: 5px 0 0;
     color: var(--juya-color-text-secondary);
     font-size: 12px;
-  }
-
-  .pagination {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 16px;
   }
 
   .filters {

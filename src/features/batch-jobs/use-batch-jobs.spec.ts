@@ -45,7 +45,7 @@ describe('batch jobs controller', () => {
 
     expect(controller.jobs.value[0]?.successCount).toBe(1)
     expect(controller.page.value).toBe(2)
-    expect(adapter.list).toHaveBeenCalledWith(2, 20)
+    expect(adapter.list).toHaveBeenCalledWith(2, 10)
     expect(adapter.command).toHaveBeenCalledWith('B-1', 'retry-failed', expect.any(String))
   })
 

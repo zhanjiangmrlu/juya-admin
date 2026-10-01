@@ -31,7 +31,7 @@ describe('content list page', () => {
             }
           ],
           page: 1,
-          page_size: 20,
+          page_size: 10,
           total: 1
         }),
         { headers: { 'Content-Type': 'application/json' }, status: 200 }
@@ -51,6 +51,11 @@ describe('content list page', () => {
 
     await vi.waitFor(() => expect(wrapper.text()).toContain('Ordering coffee'))
     expect(wrapper.text()).toContain('日常英语')
+    expect(wrapper.text()).toContain('2026-09-30 18:00:00')
+    expect(wrapper.text()).not.toContain('2026-09-30T10:00:00Z')
+    expect(wrapper.text()).toContain('共 1 条')
+    expect(wrapper.text()).toContain('前往')
+    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('page_size=10')
     expect(wrapper.findAll('[role="tab"]').map((tab) => tab.text())).toEqual([
       '内容列表',
       '场景草稿',

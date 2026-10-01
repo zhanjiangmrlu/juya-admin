@@ -12,7 +12,11 @@ type ScenePageDto = components['schemas']['ScenePageResponse']
 type RevisionDto = components['schemas']['RevisionResponse']
 
 export interface ContentAdapter {
-  listRevisionHistory(sceneId: string, page: number): Promise<RevisionHistoryPage>
+  listRevisionHistory(
+    sceneId: string,
+    page: number,
+    pageSize?: number
+  ): Promise<RevisionHistoryPage>
   listSeries(): Promise<ContentSeries[]>
   createSeries(title: string, slug: string, idempotencyKey?: string): Promise<ContentSeries>
   createScene(
@@ -78,11 +82,11 @@ export interface RevisionHistoryPage {
  */
 export function createContentAdapter(client: ApiClient): ContentAdapter {
   return {
-    async listRevisionHistory(sceneId, page) {
+    async listRevisionHistory(sceneId, page, pageSize = 10) {
       return client.request<RevisionHistoryPage>({
         method: 'GET',
         path: `/api/v1/admin/content/scenes/${encodeURIComponent(sceneId)}/revisions`,
-        query: { page, page_size: 20 }
+        query: { page, page_size: pageSize }
       })
     },
     async listSeries() {

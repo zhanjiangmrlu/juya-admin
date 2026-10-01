@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import dayjs from 'dayjs'
 import { onBeforeUnmount, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
+import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import PlainTextContent from '@/components/plain-text-content/plain-text-content.vue'
 import StatusTag from '@/components/status-tag/status-tag.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
@@ -11,6 +11,7 @@ import { createFeedbackAdapter } from '@/features/feedback/feedback-adapter'
 import { FEEDBACK_STATUS_LABELS } from '@/features/feedback/feedback-copy'
 import { useFeedbackList } from '@/features/feedback/use-feedback-list'
 import { createApiClient } from '@/services/api/api-client'
+import { formatDateTime } from '@/shared/utils/date-time'
 
 import type {
   FeedbackCategory,
@@ -26,6 +27,7 @@ const filters = reactive({
   category: readQuery('category'),
   keyword: readQuery('keyword'),
   page: readPage(),
+  pageSize: 10,
   sla: readQuery('sla'),
   status: readQuery('status')
 })
@@ -87,7 +89,7 @@ function currentFilters(): FeedbackFilters {
     category: (filters.category || undefined) as FeedbackCategory | undefined,
     keyword: filters.keyword.trim() || undefined,
     page: filters.page,
-    pageSize: 20,
+    pageSize: filters.pageSize,
     sla: (filters.sla || undefined) as FeedbackSlaState | undefined,
     status: (filters.status || undefined) as FeedbackStatus | undefined
   }
@@ -121,15 +123,6 @@ function submitFilters(): void {
 function changePage(page: number): void {
   filters.page = page
   void load()
-}
-
-/**
- * 格式化管理端日期时间。
- * @param value - ISO 8601 日期时间
- * @returns 日期时间文案
- */
-function formatDateTime(value: string): string {
-  return dayjs(value).format('YYYY-MM-DD HH:mm')
 }
 
 /**
@@ -250,12 +243,12 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
         >
         <ElTableColumn label="提交时间" min-width="150"
           ><template #default="{ row }">{{
-            dayjs(row.createdAt).format('YYYY-MM-DD HH:mm')
+            formatDateTime(row.createdAt)
           }}</template></ElTableColumn
         >
         <ElTableColumn label="最近补充时间" min-width="150"
           ><template #default="{ row }">{{
-            row.suppliedAt ? dayjs(row.suppliedAt).format('YYYY-MM-DD HH:mm') : '未补充'
+            formatDateTime(row.suppliedAt, '未补充')
           }}</template></ElTableColumn
         >
         <ElTableColumn label="分类" width="96">
@@ -287,19 +280,17 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
             </ElTag>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="更新时间" width="142">
+        <ElTableColumn label="更新时间" width="180">
           <template #default="scope">{{ formatDateTime(scope.row.updatedAt) }}</template>
         </ElTableColumn>
       </ElTable>
 
-      <ElPagination
-        v-if="controller.page.value.total > controller.page.value.pageSize"
-        class="pagination"
-        :current-page="controller.page.value.page"
-        :page-size="controller.page.value.pageSize"
+      <AppPagination
+        v-model:current-page="filters.page"
+        v-model:page-size="filters.pageSize"
         :total="controller.page.value.total"
-        layout="prev, pager, next, total"
-        @current-change="changePage"
+        :disabled="controller.isLoading.value"
+        @change="changePage"
       />
     </ElCard>
   </section>
@@ -344,11 +335,6 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .pagination {
-    justify-content: flex-end;
-    margin-top: 16px;
   }
 
   @media (width <= 1050px) {

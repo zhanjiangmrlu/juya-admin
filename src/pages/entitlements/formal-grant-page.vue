@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 import { reactive, ref, shallowRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
+import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
@@ -17,6 +17,7 @@ import {
 import { useFormalEntitlementCommand } from '@/features/entitlements/use-formal-entitlement-command'
 import { createApiClient } from '@/services/api/api-client'
 import { ApiError } from '@/shared/errors/api-error'
+import { formatDateTime as formatTimestamp } from '@/shared/utils/date-time'
 
 import type { ContentPackage } from '@/features/entitlements/entitlement-query-adapter'
 import type { FormalEntitlementTerm } from '@/features/entitlements/formal-entitlement-model'
@@ -43,6 +44,7 @@ const packageError = shallowRef<ApiError | null>(null)
 const projectedVersion = ref<number | null>(null)
 const packages = ref<ContentPackage[]>([])
 const packagePage = ref(1)
+const packagePageSize = ref(10)
 const packageTotal = ref(0)
 const packageState = ref<'loading' | 'error' | 'ready'>('loading')
 const queryAdapter = createEntitlementQueryAdapter(
@@ -64,7 +66,7 @@ async function loadPackages(page = 1): Promise<void> {
   packageState.value = 'loading'
   packageError.value = null
   try {
-    const result = await queryAdapter.packages(page)
+    const result = await queryAdapter.packages(page, packagePageSize.value)
     packages.value = result.items
     packagePage.value = result.page
     packageTotal.value = result.total
@@ -151,7 +153,7 @@ async function handleConfirm(reason: string): Promise<void> {
  * @returns 本地展示时间或“永久有效”
  */
 function formatServerTime(value: string | null): string {
-  return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '永久有效'
+  return formatTimestamp(value, '永久有效')
 }
 </script>
 
@@ -184,6 +186,7 @@ function formatServerTime(value: string | null): string {
           <ElFormItem label="正式内容包" required>
             <ElSelect
               v-model="form.packageId"
+              aria-label="正式内容包"
               :loading="packageState === 'loading'"
               placeholder="选择服务端内容包"
               filterable
@@ -196,13 +199,12 @@ function formatServerTime(value: string | null): string {
                 :disabled="item.status !== 'ACTIVE'"
               />
             </ElSelect>
-            <ElPagination
-              v-if="packageTotal > 20"
-              :current-page="packagePage"
-              :page-size="20"
+            <AppPagination
+              v-model:current-page="packagePage"
+              v-model:page-size="packagePageSize"
               :total="packageTotal"
-              layout="prev, pager, next"
-              @current-change="loadPackages"
+              :disabled="packageState === 'loading'"
+              @change="loadPackages"
             />
           </ElFormItem>
           <ElFormItem label="有效期" required>

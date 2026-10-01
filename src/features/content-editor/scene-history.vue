@@ -3,8 +3,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import { createContentAdapter, type RevisionHistoryPage } from '@/features/content/content-adapter'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
+import { formatDateTime } from '@/shared/utils/date-time'
 
 import type { SceneRevision } from '@/features/content/content-model'
 
@@ -15,6 +17,7 @@ const props = defineProps<{ sceneId: string }>()
 const adapter = createContentAdapter(useAdminApiClient())
 const router = useRouter()
 const page = ref(1)
+const pageSize = ref(10)
 const history = ref<RevisionHistoryPage | null>(null)
 const preview = ref<SceneRevision | null>(null)
 const busy = ref(false)
@@ -26,7 +29,7 @@ async function load(): Promise<void> {
   busy.value = true
   error.value = ''
   try {
-    const result = await adapter.listRevisionHistory(props.sceneId, page.value)
+    const result = await adapter.listRevisionHistory(props.sceneId, page.value, pageSize.value)
     if (current === generation) history.value = result
   } catch (failure) {
     if (current === generation)
@@ -100,9 +103,9 @@ watch(
         ><template #default="{ row }"
           >{{ row.status }} {{ row.is_current ? '· 当前线上' : '' }}</template
         ></ElTableColumn
-      ><ElTableColumn label="创建时间" prop="created_at" min-width="160" /><ElTableColumn
-        label="操作"
-        width="210"
+      ><ElTableColumn label="创建时间" min-width="180"
+        ><template #default="{ row }">{{ formatDateTime(row.created_at) }}</template></ElTableColumn
+      ><ElTableColumn label="操作" width="210"
         ><template #default="{ row }"
           ><ElButton :disabled="busy" link @click="view(row.id)">查看完整版本</ElButton
           ><ElButton
@@ -115,12 +118,12 @@ watch(
         ></ElTableColumn
       ></ElTable
     >
-    <ElPagination
+    <AppPagination
       v-model:current-page="page"
-      :page-size="20"
+      v-model:page-size="pageSize"
       :total="history?.total ?? 0"
-      layout="total, prev, pager, next"
-      @current-change="load"
+      :disabled="busy"
+      @change="load"
     />
     <ScenePreview
       v-if="preview"

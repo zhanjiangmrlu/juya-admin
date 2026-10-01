@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { UserFilled } from '@element-plus/icons-vue'
-import dayjs from 'dayjs'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -16,6 +15,7 @@ import { createUserAdapter } from '@/features/users/user-adapter'
 import { getAccountStatusLabel, getAccountStatusTone } from '@/features/users/user-model'
 import UserRelatedRecords from '@/features/users/user-related-records.vue'
 import { createApiClient } from '@/services/api/api-client'
+import { formatDateTime as formatTimestamp } from '@/shared/utils/date-time'
 
 import type { ContactStatus } from '@/features/contacts/contact-capabilities'
 
@@ -61,7 +61,7 @@ onBeforeUnmount(controller.dispose)
  * @returns 管理端日期时间文案
  */
 function formatDateTime(value: string | null): string {
-  return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '暂无记录'
+  return formatTimestamp(value, '暂无记录')
 }
 
 /** 更新联系状态并重新读取详情。 */

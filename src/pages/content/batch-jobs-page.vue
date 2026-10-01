@@ -2,6 +2,7 @@
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive } from 'vue'
 
+import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import { createBatchJobAdapter } from '@/features/batch-jobs/batch-job-adapter'
 import { validateBatchJobSize } from '@/features/batch-jobs/batch-job-model'
 import { useBatchJobs } from '@/features/batch-jobs/use-batch-jobs'
@@ -247,14 +248,12 @@ function exportResult(id: string): void {
             </div>
           </ElCollapseItem>
         </ElCollapse>
-        <ElPagination
-          v-if="total > pageSize"
-          background
-          layout="prev, pager, next"
+        <AppPagination
           :current-page="page"
           :page-size="pageSize"
           :total="total"
-          @current-change="controller.load"
+          :disabled="state === 'loading' || state === 'saving'"
+          @change="controller.load"
         />
       </ElCard>
       <ElCard shadow="never">
@@ -339,11 +338,6 @@ function exportResult(id: string): void {
     justify-content: flex-end;
     gap: 8px;
     margin-top: 10px;
-  }
-
-  .el-pagination {
-    justify-content: flex-end;
-    margin-top: 14px;
   }
 
   .trash-entry {

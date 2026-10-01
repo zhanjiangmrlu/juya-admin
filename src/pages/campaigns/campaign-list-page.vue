@@ -3,6 +3,7 @@ import { reactive, ref, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
+import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
 import { createApiClient } from '@/services/api/api-client'
@@ -22,8 +23,8 @@ const adapter = createCampaignAdapter(
     }
   })
 )
-const filters = reactive({ page: 1, status: '' })
-const page = ref<CampaignPage>({ items: [], page: 1, pageSize: 20, total: 0 })
+const filters = reactive({ page: 1, pageSize: 10, status: '' })
+const page = ref<CampaignPage>({ items: [], page: 1, pageSize: 10, total: 0 })
 const state = ref<'loading' | 'empty' | 'error' | 'success'>('loading')
 const error = ref('')
 const apiError = shallowRef<ApiError | null>(null)
@@ -38,7 +39,7 @@ async function load(): Promise<void> {
   error.value = ''
   apiError.value = null
   try {
-    const result = await adapter.list(filters.page, filters.status || undefined)
+    const result = await adapter.list(filters.page, filters.status || undefined, filters.pageSize)
     if (sequence !== requestSequence) return
     page.value = result
     state.value = page.value.items.length ? 'success' : 'empty'
@@ -134,14 +135,12 @@ void load()
           ></ElTableColumn
         ></ElTable
       >
-      <ElPagination
-        v-if="page.total > 20"
-        class="pagination"
-        :current-page="page.page"
-        :page-size="page.pageSize"
+      <AppPagination
+        v-model:current-page="filters.page"
+        v-model:page-size="filters.pageSize"
         :total="page.total"
-        layout="prev, pager, next, total"
-        @current-change="changePage"
+        :disabled="state === 'loading'"
+        @change="changePage"
       />
     </ElCard>
   </section>
@@ -185,11 +184,6 @@ void load()
 
   .link {
     margin-left: 12px;
-  }
-
-  .pagination {
-    margin-top: 16px;
-    justify-content: flex-end;
   }
 }
 </style>

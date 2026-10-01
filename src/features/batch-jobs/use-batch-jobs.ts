@@ -16,7 +16,7 @@ export interface BatchJobsController {
   ): Promise<void>
   error: Readonly<Ref<null | string>>
   jobs: DeepReadonly<Ref<BatchJob[]>>
-  load(page?: number): Promise<void>
+  load(page?: number, pageSize?: number): Promise<void>
   page: Readonly<Ref<number>>
   pageSize: Readonly<Ref<number>>
   state: Readonly<Ref<'error' | 'idle' | 'loading' | 'saving' | 'success'>>
@@ -36,7 +36,7 @@ export function useBatchJobs(adapter: BatchJobAdapter): BatchJobsController {
   const trash = ref<TrashEntry[]>([])
   const total = ref(0)
   const page = ref(1)
-  const pageSize = ref(20)
+  const pageSize = ref(10)
   const error = ref<null | string>(null)
   const state = ref<'error' | 'idle' | 'loading' | 'saving' | 'success'>('idle')
   const createCommand = useIdempotentCommand(
@@ -59,13 +59,14 @@ export function useBatchJobs(adapter: BatchJobAdapter): BatchJobsController {
   /**
    * 加载任务分页和回收站
    * @param nextPage - 目标页码
+   * @param nextPageSize - 每页条数
    */
-  async function load(nextPage = page.value): Promise<void> {
+  async function load(nextPage = page.value, nextPageSize = pageSize.value): Promise<void> {
     state.value = 'loading'
     error.value = null
     try {
       const [nextBatchPage, trashEntries] = await Promise.all([
-        adapter.list(nextPage, pageSize.value),
+        adapter.list(nextPage, nextPageSize),
         adapter.listTrash()
       ])
       jobs.value = nextBatchPage.items

@@ -56,6 +56,7 @@ describe('entitlement query adapter', () => {
     const adapter = createEntitlementQueryAdapter({ request } as ApiClient)
     const result = await adapter.list({
       page: 2,
+      pageSize: 20,
       status: 'ACTIVE',
       type: 'FORMAL',
       userId: 'USER-1'
@@ -99,7 +100,7 @@ describe('entitlement query adapter', () => {
       page_size: 20,
       total: 1
     })
-    const page = await createEntitlementQueryAdapter({ request } as ApiClient).packages(1)
+    const page = await createEntitlementQueryAdapter({ request } as ApiClient).packages(1, 20)
     expect(request).toHaveBeenCalledWith({
       method: 'GET',
       path: '/api/v1/admin/content-packages',

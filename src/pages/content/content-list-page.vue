@@ -3,11 +3,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import { createContentAdapter } from '@/features/content/content-adapter'
 import SceneHistory from '@/features/content-editor/scene-history.vue'
 import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
+import { formatDateTime } from '@/shared/utils/date-time'
 
 import type { ContentSeries } from '@/features/content/content-adapter'
 import type { SceneFilters, SceneStatus, SceneSummary } from '@/features/content/content-model'
@@ -154,7 +156,7 @@ watch(creating, (opened) => {
  * @returns 已校验的筛选条件
  */
 function restoreFilters(): SceneFilters {
-  const defaults: SceneFilters = { page: 1, pageSize: 20, query: '', seriesId: '', status: '' }
+  const defaults: SceneFilters = { page: 1, pageSize: 10, query: '', seriesId: '', status: '' }
   try {
     const saved = JSON.parse(
       globalThis.sessionStorage.getItem(filterStorageKey) ?? '{}'
@@ -162,10 +164,7 @@ function restoreFilters(): SceneFilters {
     const statuses: SceneStatus[] = ['DRAFT', 'OFFLINE', 'PUBLISHED']
     return {
       page: Number.isInteger(saved.page) && Number(saved.page) > 0 ? Number(saved.page) : 1,
-      pageSize:
-        Number.isInteger(saved.pageSize) && Number(saved.pageSize) > 0
-          ? Number(saved.pageSize)
-          : 20,
+      pageSize: [10, 20, 50, 100].includes(Number(saved.pageSize)) ? Number(saved.pageSize) : 10,
       query: typeof saved.query === 'string' ? saved.query : '',
       seriesId: typeof saved.seriesId === 'string' ? saved.seriesId : '',
       status: statuses.includes(saved.status as SceneStatus) ? (saved.status as SceneStatus) : ''
@@ -324,8 +323,10 @@ onMounted(loadScenes)
               }}</ElTag></template
             ></ElTableColumn
           >
-          <ElTableColumn label="更新时间" min-width="160"
-            ><template #default="{ row }">{{ row.updatedAt || '—' }}</template></ElTableColumn
+          <ElTableColumn label="更新时间" min-width="180"
+            ><template #default="{ row }">{{
+              formatDateTime(row.updatedAt)
+            }}</template></ElTableColumn
           >
           <ElTableColumn fixed="right" label="操作" min-width="260"
             ><template #default="{ row }">
@@ -356,15 +357,14 @@ onMounted(loadScenes)
             </template></ElTableColumn
           >
         </ElTable>
-        <ElPagination
-          v-model:current-page="filters.page"
-          v-model:page-size="filters.pageSize"
-          class="pagination"
-          layout="total, prev, pager, next"
-          :total="total"
-          @current-change="loadScenes"
-        />
       </template>
+      <AppPagination
+        v-model:current-page="filters.page"
+        v-model:page-size="filters.pageSize"
+        :total="total"
+        :disabled="loading"
+        @change="loadScenes"
+      />
     </ElCard>
     <ElDialog
       v-model="pickingScene"
@@ -481,11 +481,6 @@ onMounted(loadScenes)
   margin: 4px 0 0;
   color: var(--juya-color-text-secondary);
   font-size: 12px;
-}
-
-.pagination {
-  justify-content: flex-end;
-  margin-top: 16px;
 }
 
 .workspace-select {

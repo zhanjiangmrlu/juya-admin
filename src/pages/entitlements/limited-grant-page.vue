@@ -4,6 +4,7 @@ import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
+import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
@@ -30,6 +31,7 @@ const form = reactive({ userId: '', campaignId: '' })
 const rows = ref<CampaignRow[]>([])
 const detail = ref<CampaignDetail | null>(null)
 const listPage = ref(1)
+const listPageSize = ref(10)
 const listTotal = ref(0)
 const state = ref<'loading' | 'ready' | 'error'>('loading')
 const error = ref('')
@@ -61,7 +63,7 @@ async function loadCampaigns(page = 1): Promise<void> {
   error.value = ''
   apiError.value = null
   try {
-    const result = await campaigns.list(page, 'OPEN')
+    const result = await campaigns.list(page, 'OPEN', listPageSize.value)
     rows.value = result.items
     listPage.value = result.page
     listTotal.value = result.total
@@ -171,13 +173,12 @@ void loadCampaigns()
               :key="row.id"
               :label="`${row.name} · ${row.id}`"
               :value="row.id" /></ElSelect></ElFormItem
-        ><ElPagination
-          v-if="listTotal > 20"
-          :current-page="listPage"
-          :page-size="20"
+        ><AppPagination
+          v-model:current-page="listPage"
+          v-model:page-size="listPageSize"
           :total="listTotal"
-          layout="prev, pager, next"
-          @current-change="loadCampaigns"
+          :disabled="state === 'loading'"
+          @change="loadCampaigns"
         />
         <ElAlert
           v-if="state === 'error' || error"

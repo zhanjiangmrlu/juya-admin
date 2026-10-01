@@ -196,7 +196,7 @@ test('历史分页可选择旧完整版本创建候选，不直接发布', async
   await navigateInApp(page, '/content/scenes')
   await page.getByRole('button', { name: '完整版本历史', exact: true }).first().click()
   await expect(page.getByText('Old whole version', { exact: true })).toBeVisible()
-  await expect(page.getByText('Total 25', { exact: true })).toBeVisible()
+  await expect(page.getByText('共 25 条', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '创建回退候选' }).click()
   await page.getByRole('button', { name: '创建候选', exact: true }).click()
   await expect(page).toHaveURL(/REV-DRAFT-1\/publish$/)

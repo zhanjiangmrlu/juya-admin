@@ -15,7 +15,7 @@ import type {
  * @returns 权益列表控制器
  */
 export function useEntitlementList(adapter: EntitlementQueryAdapter) {
-  const page = shallowRef<Page<EntitlementRow>>({ items: [], page: 1, pageSize: 20, total: 0 })
+  const page = shallowRef<Page<EntitlementRow>>({ items: [], page: 1, pageSize: 10, total: 0 })
   const state = ref<'idle' | 'loading' | 'empty' | 'error' | 'success'>('idle')
   const error = ref<string | null>(null)
   const apiError = shallowRef<ApiError | null>(null)

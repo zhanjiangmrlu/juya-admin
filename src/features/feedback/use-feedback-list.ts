@@ -20,7 +20,7 @@ export interface FeedbackListController {
  * @returns 反馈列表控制器
  */
 export function useFeedbackList(adapter: FeedbackAdapter): FeedbackListController {
-  const page = shallowRef<FeedbackPage>({ items: [], page: 1, pageSize: 20, total: 0 })
+  const page = shallowRef<FeedbackPage>({ items: [], page: 1, pageSize: 10, total: 0 })
   const error = ref<string | null>(null)
   const apiError = shallowRef<ApiError | null>(null)
   const isLoading = ref(false)

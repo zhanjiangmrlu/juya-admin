@@ -57,7 +57,7 @@ export interface CampaignDraft {
 export type CampaignOperation = 'open' | 'pause' | 'resume' | 'end' | 'archive' | 'capacity'
 export type CampaignAction = CampaignOperation | 'copy'
 export interface CampaignAdapter {
-  list(page: number, status?: string): Promise<CampaignPage>
+  list(page: number, status?: string, pageSize?: number): Promise<CampaignPage>
   detail(id: string): Promise<CampaignDetail>
   save(
     id: string | null,
@@ -116,11 +116,11 @@ function mapDetail(dto: DetailDto): CampaignDetail {
  */
 export function createCampaignAdapter(client: ApiClient): CampaignAdapter {
   return {
-    async list(page, status) {
+    async list(page, status, pageSize = 10) {
       const dto = await client.request<PageDto>({
         method: 'GET',
         path: '/api/v1/admin/campaigns',
-        query: { page, page_size: 20, ...(status ? { status } : {}) }
+        query: { page, page_size: pageSize, ...(status ? { status } : {}) }
       })
       return {
         items: dto.items.map((item) => ({

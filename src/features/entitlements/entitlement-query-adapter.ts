@@ -98,7 +98,7 @@ export interface EntitlementFilters {
 }
 export interface EntitlementQueryAdapter {
   list(filters: EntitlementFilters): Promise<Page<EntitlementRow>>
-  packages(page: number): Promise<Page<ContentPackage>>
+  packages(page: number, pageSize?: number): Promise<Page<ContentPackage>>
   formal(id: string): Promise<FormalDetail>
   limited(id: string): Promise<LimitedDetail>
 }
@@ -116,7 +116,7 @@ export function createEntitlementQueryAdapter(client: ApiClient): EntitlementQue
         path: '/api/v1/admin/entitlements',
         query: {
           page: filters.page,
-          page_size: filters.pageSize ?? 20,
+          page_size: filters.pageSize ?? 10,
           ...(filters.userId ? { user_id: filters.userId } : {}),
           ...(filters.type ? { type: filters.type } : {}),
           ...(filters.status ? { status: filters.status } : {}),
@@ -155,11 +155,11 @@ export function createEntitlementQueryAdapter(client: ApiClient): EntitlementQue
         total: dto.total
       }
     },
-    async packages(page) {
+    async packages(page, pageSize = 10) {
       const dto = await client.request<PackagePageDto>({
         method: 'GET',
         path: '/api/v1/admin/content-packages',
-        query: { page, page_size: 20 }
+        query: { page, page_size: pageSize }
       })
       return {
         items: dto.items.map((item) => ({

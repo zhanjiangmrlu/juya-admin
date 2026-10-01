@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import dayjs from 'dayjs'
 import { reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
+import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
 import { useEntitlementList } from '@/features/entitlements/use-entitlement-list'
 import { createApiClient } from '@/services/api/api-client'
+import { formatDateTime } from '@/shared/utils/date-time'
 
 import type { EntitlementFilters } from '@/features/entitlements/entitlement-query-adapter'
 
@@ -16,6 +17,7 @@ const route = useRoute()
 const auth = useAuthStore()
 const filters = reactive<EntitlementFilters>({
   page: 1,
+  pageSize: 10,
   userId: '',
   type:
     route.query.type === 'LIMITED' || route.query.type === 'FORMAL' ? route.query.type : undefined,
@@ -49,7 +51,7 @@ const statusLabels: Record<string, string> = {
  * @returns 可读的本地时间
  */
 function displayTime(value: string | null): string {
-  return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '永久 / 未设置'
+  return formatDateTime(value, '永久 / 未设置')
 }
 /**
  * 按筛选条件重新加载第一页权益。
@@ -231,14 +233,12 @@ void controller.load({ ...filters })
           >
         </ElTable>
       </template>
-      <ElPagination
-        v-if="controller.page.value.total > 20"
-        class="pagination"
-        :current-page="controller.page.value.page"
-        :page-size="controller.page.value.pageSize"
+      <AppPagination
+        v-model:current-page="filters.page"
+        v-model:page-size="filters.pageSize"
         :total="controller.page.value.total"
-        layout="prev, pager, next, total"
-        @current-change="changePage"
+        :disabled="controller.state.value === 'loading'"
+        @change="changePage"
       />
     </ElCard>
   </section>
@@ -289,11 +289,6 @@ void controller.load({ ...filters })
 
   .data-table {
     width: 100%;
-  }
-
-  .pagination {
-    margin-top: 16px;
-    justify-content: flex-end;
   }
 }
 </style>

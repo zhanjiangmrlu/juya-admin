@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import dayjs from 'dayjs'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -13,6 +12,7 @@ import { FEEDBACK_STATUS_LABELS } from '@/features/feedback/feedback-copy'
 import { formatFeedbackSla, getFeedbackOperations } from '@/features/feedback/feedback-model'
 import { useFeedbackDetail } from '@/features/feedback/use-feedback-detail'
 import { createApiClient } from '@/services/api/api-client'
+import { formatDateTime as formatTimestamp } from '@/shared/utils/date-time'
 
 import type { FeedbackCategory, FeedbackTimelineEvent } from '@/features/feedback/feedback-adapter'
 import type { FeedbackStatus } from '@/features/feedback/feedback-model'
@@ -73,7 +73,7 @@ onBeforeUnmount(controller.dispose)
  * @returns 日期时间文案
  */
 function formatDateTime(value: string): string {
-  return dayjs(value).format('YYYY-MM-DD HH:mm')
+  return formatTimestamp(value)
 }
 
 /**

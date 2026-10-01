@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import dayjs from 'dayjs'
 import { ElMessageBox } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -11,6 +10,7 @@ import {
 } from '@/features/contacts/contact-capabilities'
 import { useContactCorrections } from '@/features/contacts/use-contact-corrections'
 import { createApiClient } from '@/services/api/api-client'
+import { formatDateTime as formatTimestamp } from '@/shared/utils/date-time'
 
 const route = useRoute()
 const router = useRouter()
@@ -41,7 +41,7 @@ onBeforeUnmount(controller.dispose)
  * @returns 管理端日期时间文案
  */
 function formatDateTime(value: string | null): string {
-  return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '暂无记录'
+  return formatTimestamp(value, '暂无记录')
 }
 
 /**

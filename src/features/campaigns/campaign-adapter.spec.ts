@@ -26,7 +26,7 @@ describe('campaign adapter', () => {
     expect(request).toHaveBeenNthCalledWith(1, {
       method: 'GET',
       path: '/api/v1/admin/campaigns',
-      query: { page: 3, page_size: 20, status: 'DRAFT' }
+      query: { page: 3, page_size: 10, status: 'DRAFT' }
     })
     const detail = await adapter.detail('CAMP/1')
     expect(detail.version).toBe(2)
