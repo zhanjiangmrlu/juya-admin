@@ -51,6 +51,14 @@ describe('content list page', () => {
 
     await vi.waitFor(() => expect(wrapper.text()).toContain('Ordering coffee'))
     expect(wrapper.text()).toContain('日常英语')
+    expect(wrapper.findAll('[role="tab"]').map((tab) => tab.text())).toEqual([
+      '内容列表',
+      '场景草稿',
+      'OCR候选',
+      '内容校对',
+      '音频标时',
+      '预览发布'
+    ])
     expect(wrapper.text()).not.toContain('内容列表接口待接入')
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })

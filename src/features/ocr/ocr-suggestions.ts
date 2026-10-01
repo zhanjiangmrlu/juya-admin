@@ -1,10 +1,10 @@
 export interface OcrLine {
   id: number
   text: string
-  location: Record<string, number>
+  location: Record<string, number> | null
   confidence: number | null
   low_confidence: boolean
-  paragraph: Record<string, unknown>
+  paragraph: Record<string, unknown> | null
 }
 export interface OcrGroup {
   field: 'title' | 'dialogue' | 'vocabulary' | 'chunks'

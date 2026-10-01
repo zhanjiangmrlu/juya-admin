@@ -5,11 +5,13 @@ import { useRouter } from 'vue-router'
 
 import { createContentAdapter } from '@/features/content/content-adapter'
 import SceneHistory from '@/features/content-editor/scene-history.vue'
+import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 import type { ContentSeries } from '@/features/content/content-adapter'
 import type { SceneFilters, SceneStatus, SceneSummary } from '@/features/content/content-model'
+import type { ProductionStage } from '@/features/content-production/content-production-model'
 
 const historySceneId = ref('')
 const historyOpened = ref(false)
@@ -25,6 +27,10 @@ const series = ref<ContentSeries[]>([])
 const creating = ref(false)
 const creatingSeries = ref(false)
 const creatingScene = ref(false)
+const pickingScene = ref(false)
+const workspaceSceneId = ref('')
+const workspaceStage = ref<ProductionStage>('draft')
+const enteringWorkspace = ref(false)
 let pendingSeriesKey: string | null = null
 let pendingSceneKey: string | null = null
 const newScene = reactive({
@@ -33,6 +39,49 @@ const newScene = reactive({
   seriesTitle: '',
   seriesSlug: ''
 })
+
+/**
+ * 列表没有当前草稿时，先由管理员明确选择目标场景。
+ * @param stage - 目标工作区
+ */
+function openWorkspace(stage: ProductionStage): void {
+  if (stage === 'list') return
+  workspaceStage.value = stage
+  workspaceSceneId.value = ''
+  pickingScene.value = true
+}
+
+/** 创建或使用所选场景的草稿，再进入所选步骤。 */
+async function enterWorkspace(): Promise<void> {
+  const selected = scenes.value.find((item) => item.id === workspaceSceneId.value)
+  if (!selected || enteringWorkspace.value) return
+  enteringWorkspace.value = true
+  try {
+    const revisionId =
+      selected.draftRevisionId ??
+      (await adapter.createRevision(selected.id, selected.publishedRevisionId)).id
+    if (workspaceStage.value === 'publish') {
+      await router.push({ name: 'content-scene-publish', params: { id: revisionId } })
+    } else {
+      await router.push({
+        name: 'content-scene-edit',
+        params: { id: selected.id },
+        query: { stage: workspaceStage.value }
+      })
+    }
+    pickingScene.value = false
+  } catch (failure) {
+    ElMessage.error(failure instanceof Error ? failure.message : '工作区打开失败')
+  } finally {
+    enteringWorkspace.value = false
+  }
+}
+
+/** 从场景选择对话框进入既有新建场景表单。 */
+async function createFromWorkspace(): Promise<void> {
+  await openCreate()
+  if (creating.value) pickingScene.value = false
+}
 
 /** 打开指定场景的完整历史列表。
  * @param id - 稳定场景编号
@@ -217,6 +266,7 @@ onMounted(loadScenes)
 
 <template>
   <section class="content-list-page">
+    <ContentProductionNav active="list" :busy="enteringWorkspace" @select="openWorkspace" />
     <ElCard shadow="never">
       <template #header>
         <div class="page-heading">
@@ -316,6 +366,42 @@ onMounted(loadScenes)
         />
       </template>
     </ElCard>
+    <ElDialog
+      v-model="pickingScene"
+      title="选择场景"
+      width="min(560px, 94vw)"
+      :close-on-click-modal="!enteringWorkspace"
+      :close-on-press-escape="!enteringWorkspace"
+      :show-close="!enteringWorkspace"
+    >
+      <p>先选择当前列表中的场景；没有草稿时将创建候选草稿，已发布版本继续保留。</p>
+      <ElSelect
+        v-model="workspaceSceneId"
+        aria-label="工作区场景"
+        placeholder="请选择场景"
+        :disabled="enteringWorkspace"
+        class="workspace-select"
+      >
+        <ElOption
+          v-for="item in scenes"
+          :key="item.id"
+          :value="item.id"
+          :label="`${item.title} · ${item.id}`"
+        />
+      </ElSelect>
+      <ElEmpty v-if="!scenes.length" description="当前筛选没有场景，请调整筛选或新建场景" />
+      <template #footer>
+        <ElButton :disabled="enteringWorkspace" @click="createFromWorkspace">新建场景</ElButton>
+        <ElButton :disabled="enteringWorkspace" @click="pickingScene = false">取消</ElButton>
+        <ElButton
+          type="primary"
+          :disabled="!workspaceSceneId"
+          :loading="enteringWorkspace"
+          @click="enterWorkspace"
+          >进入工作区</ElButton
+        >
+      </template>
+    </ElDialog>
     <ElDialog v-model="creating" title="新建场景" width="560px"
       ><ElForm label-position="top"
         ><ElFormItem label="所属系列"
@@ -400,5 +486,9 @@ onMounted(loadScenes)
 .pagination {
   justify-content: flex-end;
   margin-top: 16px;
+}
+
+.workspace-select {
+  width: 100%;
 }
 </style>

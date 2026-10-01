@@ -43,7 +43,8 @@ test('OCR 额度首次读取挂起或失败时不能编辑保存，重新读取�
 test('OCR 创建响应丢失重试保持素材上下文幂等键，明确再次识别时换键', async ({ adminApi, page }) => {
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/scenes/SCENE-1/edit')
-  await page.getByLabel('学习原图素材编号').fill('ASSET-1')
+  await setLearningImage(page, 'ASSET-1')
+
   const keys: string[] = []
   await page.route('**/api/v1/admin/media/ocr/jobs', async (route) => {
     keys.push(route.request().headers()['x-idempotency-key'] ?? '')
@@ -62,7 +63,8 @@ test('OCR 创建响应丢失重试保持素材上下文幂等键，明确再次�
   await expect.poll(() => keys.length).toBe(3)
   expect(keys[2]).not.toBe(keys[1])
   await expect(start).toBeEnabled()
-  await page.getByLabel('学习原图素材编号').fill('ASSET-2')
+  await setLearningImage(page, 'ASSET-2')
+
   await start.click()
   await expect.poll(() => keys.length).toBe(4)
   expect(keys[3]).not.toBe(keys[2])
@@ -75,7 +77,7 @@ test('OCR 最后额度已预占时同键恢复任务，成功后的新识别及�
 }) => {
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/scenes/SCENE-1/edit')
-  await page.getByLabel('学习原图素材编号').fill('ASSET-1')
+  await setLearningImage(page, 'ASSET-1')
   const keys: string[] = []
   let remaining = 1
   await page.route('**/api/v1/admin/media/ocr/quota', (route) =>
@@ -93,13 +95,13 @@ test('OCR 最后额度已预占时同键恢复任务，成功后的新识别及�
   await start.click()
   await expect.poll(() => keys.length).toBe(1)
   await expect(start).toBeEnabled()
-  await page.getByLabel('学习原图素材编号').fill('ASSET-2')
+  await setLearningImage(page, 'ASSET-2')
   await start.click()
   await expect(
     page.getByRole('alert').filter({ hasText: 'OCR 未启用或本月额度已用完' })
   ).toBeVisible()
   expect(keys).toHaveLength(1)
-  await page.getByLabel('学习原图素材编号').fill('ASSET-1')
+  await setLearningImage(page, 'ASSET-1')
   await start.click()
   await expect(page.getByRole('button', { name: '刷新识别状态', exact: true })).toBeVisible()
   expect(keys).toHaveLength(2)
@@ -187,17 +189,19 @@ test('图片确认只上传素材并提供场景录入入口', async ({ adminApi
 test('显式 OCR 候选只采纳选择字段到同一草稿', async ({ adminApi, page }) => {
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/scenes/SCENE-1/edit')
-  await page.getByLabel('学习原图素材编号').fill('ASSET-1')
+  await setLearningImage(page, 'ASSET-1')
   await page.getByRole('button', { name: '保存并识别原图' }).click()
   await page.getByRole('button', { name: '刷新识别状态' }).click()
 
-  await expect(page.getByText('Coffee time')).toBeVisible()
+  await expect(page.getByText('Coffee time', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '分配候选字段' }).hover()
   await page.getByRole('menuitem', { name: '英文标题', exact: true }).click()
   await page.getByLabel('候选英文标题').fill('Reviewed coffee')
   await page.getByRole('button', { name: '刷新识别状态' }).click()
   await expect(page.getByLabel('候选英文标题')).toHaveValue('Reviewed coffee')
   await page.getByRole('button', { name: '采纳选中字段到当前草稿' }).click()
+  await expect(page.getByText('选中字段已采纳到当前草稿')).toBeVisible()
+  await page.getByRole('tab', { name: '内容校对', exact: true }).click()
   await expect(page.getByRole('textbox', { name: '英文标题', exact: true })).toHaveValue(
     'Reviewed coffee'
   )
@@ -281,3 +285,14 @@ test('媒体任务四页在两个验收视口无横向溢出', async ({ adminApi
   }
   expect(adminApi.unexpectedRequests).toEqual([])
 })
+
+/**
+ * 在统一草稿中修改原图，再返回 OCR 工作区，保持重试上下文。
+ * @param page - 当前浏览器页
+ * @param id - 学习原图素材编号
+ */
+async function setLearningImage(page: import('@playwright/test').Page, id: string): Promise<void> {
+  await page.getByRole('tab', { name: '场景草稿', exact: true }).click()
+  await page.getByLabel('学习原图素材编号').fill(id)
+  await page.getByRole('tab', { name: 'OCR候选', exact: true }).click()
+}

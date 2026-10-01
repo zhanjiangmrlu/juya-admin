@@ -1,22 +1,44 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
 import { computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import ScenePreview from '@/features/content-editor/scene-preview.vue'
+import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
 import { createPublishAdapter } from '@/features/publishing/publish-adapter'
 import { publishCheckLabel } from '@/features/publishing/publish-check-labels'
 import { useAdminPreview } from '@/features/publishing/use-admin-preview'
 import { usePublishCheck } from '@/features/publishing/use-publish-check'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
+import type { ProductionStage } from '@/features/content-production/content-production-model'
+
 const route = useRoute()
+const router = useRouter()
 const revisionId = computed(() => String(route.params.id))
 const adapter = createPublishAdapter(useAdminApiClient())
 const controller = usePublishCheck(adapter, revisionId)
 const previewController = useAdminPreview(adapter, revisionId)
 
 onMounted(() => previewController.load().catch(() => undefined))
+
+/**
+ * 使用管理员预览的场景编号返回同一内容生产工作区。
+ * @param stage - 选择的生产阶段
+ */
+async function selectStage(stage: ProductionStage): Promise<void> {
+  if (stage === 'publish') return
+  if (stage === 'list') {
+    await router.push({ name: 'content-scenes' })
+    return
+  }
+  const sceneId = previewController.preview.value?.sceneId
+  if (!sceneId) {
+    ElMessage.warning('缺少场景信息，请重新加载预览或返回内容列表选择场景')
+    return
+  }
+  await router.push({ name: 'content-scene-edit', params: { id: sceneId }, query: { stage } })
+}
 
 /**
  * 执行发布检查并展示失败提示
@@ -48,6 +70,7 @@ async function handlePublish(): Promise<void> {
 
 <template>
   <section class="publish-check-page">
+    <ContentProductionNav active="publish" @select="selectStage" />
     <div class="page-heading">
       <div>
         <span>A22</span>

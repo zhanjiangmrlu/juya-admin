@@ -39,7 +39,7 @@ test.beforeEach(async ({ page, adminApi }) => {
 
 test('绑定后立即装载整段音频，采集当前起止并保持暂停位置', async ({ page, adminApi }) => {
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/scenes/SCENE-1/edit')
+  await navigateInApp(page, '/content/scenes/SCENE-1/edit?stage=audio')
   const audio = page.locator('audio').first()
   await expect(audio).toHaveAttribute('src', '/c02/audio.wav')
   await expect
@@ -118,7 +118,7 @@ test('OCR显示位置低可信和四部分建议，确认分组后才填入候�
     })
   )
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/scenes/SCENE-1/edit?ocrJob=JOB-1')
+  await navigateInApp(page, '/content/scenes/SCENE-1/edit?stage=ocr&ocrJob=JOB-1')
   await expect(page.getByText(/本次识别将消耗 1 次/)).toBeVisible()
   await page.getByRole('button', { name: '刷新识别状态' }).click()
   await expect(page.getByText('低可信／需复核', { exact: true })).toBeVisible()
@@ -127,9 +127,12 @@ test('OCR显示位置低可信和四部分建议，确认分组后才填入候�
   await expect(page.getByLabel('候选英文标题', { exact: true })).toHaveValue('')
   await page.getByRole('button', { name: '确认分组并加入候选', exact: true }).first().click()
   await expect(page.getByLabel('候选英文标题', { exact: true })).toHaveValue('Coffee time')
+  await page.getByRole('tab', { name: '内容校对', exact: true }).click()
   await expect(page.getByRole('textbox', { name: '英文标题', exact: true })).toHaveValue(
     'Ordering coffee'
   )
+  await page.getByRole('tab', { name: 'OCR候选', exact: true }).click()
+  await expect(page.getByLabel('候选英文标题', { exact: true })).toHaveValue('Coffee time')
   for (const size of [
     { width: 1440, height: 900 },
     { width: 1280, height: 800 }
@@ -278,7 +281,7 @@ test('OCR保留不同位置的重复对话，复用旧句子编号且重复点�
     })
   )
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/scenes/SCENE-1/edit?ocrJob=JOB-1')
+  await navigateInApp(page, '/content/scenes/SCENE-1/edit?stage=ocr&ocrJob=JOB-1')
   await page.getByRole('button', { name: '刷新识别状态' }).click()
   await page.getByRole('button', { name: '确认分组并加入候选', exact: true }).click()
   const candidate = page.locator('.comparison-grid').locator(':scope > div').nth(1)

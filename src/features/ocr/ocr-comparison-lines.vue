@@ -33,12 +33,16 @@ const emit = defineEmits<{
       <div>
         <strong>{{ line.id + 1 }}. {{ line.text }}</strong>
         <p>
-          位置：{{ Object.keys(line.location).length ? JSON.stringify(line.location) : '未返回' }} ·
-          置信度：{{
+          位置：{{
+            Object.keys(line.location ?? {}).length ? JSON.stringify(line.location) : '未返回'
+          }}
+          · 置信度：{{
             line.confidence === null ? '未返回' : `${Math.round(line.confidence * 100)}%`
           }}
         </p>
-        <p v-if="Object.keys(line.paragraph).length">段落：{{ JSON.stringify(line.paragraph) }}</p>
+        <p v-if="Object.keys(line.paragraph ?? {}).length">
+          段落：{{ JSON.stringify(line.paragraph) }}
+        </p>
         <ElTag v-if="line.low_confidence" type="warning">低可信／需复核</ElTag>
       </div>
       <ElDropdown @command="emit('assign', line.text, $event, line.id)"

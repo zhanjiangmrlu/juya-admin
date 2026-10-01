@@ -6,8 +6,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { createAudioAdapter } from '@/features/audio/audio-adapter'
 import { createSegmentPlayer } from '@/features/audio/segment-player'
 import { createContentAdapter } from '@/features/content/content-adapter'
-import DialogueFields from '@/features/content-editor/dialogue-fields.vue'
-import LexiconFields from '@/features/content-editor/lexicon-fields.vue'
 import {
   createRevisionController,
   type RevisionController
@@ -21,8 +19,16 @@ import {
 import SceneHistory from '@/features/content-editor/scene-history.vue'
 import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
 import ScenePreview from '@/features/content-editor/scene-preview.vue'
+import {
+  parseEditorStage,
+  PRODUCTION_STAGES
+} from '@/features/content-production/content-production-model'
+import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
+import SceneAudioPanel from '@/features/content-production/scene-audio-panel.vue'
+import SceneDraftPanel from '@/features/content-production/scene-draft-panel.vue'
+import SceneOcrPanel from '@/features/content-production/scene-ocr-panel.vue'
+import SceneProofreadPanel from '@/features/content-production/scene-proofread-panel.vue'
 import { createOcrAdapter } from '@/features/ocr/ocr-adapter'
-import OcrComparisonLines from '@/features/ocr/ocr-comparison-lines.vue'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
@@ -30,6 +36,7 @@ import type { AudioVersion } from '@/features/audio/audio-version-model'
 import type { AudioElement } from '@/features/audio/segment-player'
 import type { SceneRevision, SceneSummary } from '@/features/content/content-model'
 import type { DialogueRow, LexiconRow } from '@/features/content-editor/scene-form'
+import type { ProductionStage } from '@/features/content-production/content-production-model'
 import type { OcrQuota } from '@/features/ocr/ocr-adapter'
 import type { OcrJob } from '@/features/ocr/ocr-model'
 import type { OcrGroup, OcrSuggestions } from '@/features/ocr/ocr-suggestions'
@@ -38,6 +45,10 @@ import type { UploadFile } from 'element-plus'
 const route = useRoute()
 const router = useRouter()
 const sceneId = computed(() => String(route.params.id))
+const stage = computed(() => parseEditorStage(route.query.stage))
+const stageLabel = computed(
+  () => PRODUCTION_STAGES.find((item) => item.stage === stage.value)?.label
+)
 const client = useAdminApiClient()
 const adapter = createContentAdapter(client)
 const media = createSceneMediaAdapter(client)
@@ -53,6 +64,7 @@ const error = ref('')
 const mediaBusy = ref(false)
 const lexiconBusy = reactive({ vocabulary: false, chunks: false })
 const assetsBusy = computed(() => mediaBusy.value || lexiconBusy.vocabulary || lexiconBusy.chunks)
+const workspaceBusy = computed(() => state.value !== 'ready' || ocrBusy.value || assetsBusy.value)
 const imageUrl = ref('')
 const audioVersions = ref<AudioVersion[]>([])
 const audioTargetId = ref('')
@@ -107,12 +119,14 @@ function accept(value: SceneRevision): void {
   if (!controller.value) controller.value = createRevisionController(value.version, value.content)
   else controller.value.acceptSavedVersion(value.version, value.content)
   Object.assign(form, normalizeSceneContent(value.content))
+  selectedAudioVersion.value = form.audio?.version_id ?? ''
 }
 /** 保存结构化草稿，冲突时保留全部输入。
  * @returns 是否保存成功
  */
 async function save(): Promise<boolean> {
-  if (!revision.value || hasConflict.value || assetsBusy.value) return false
+  if (!revision.value || state.value !== 'ready' || hasConflict.value || assetsBusy.value)
+    return false
   state.value = 'saving'
   error.value = ''
   try {
@@ -201,7 +215,6 @@ async function uploadAudio(file: UploadFile): Promise<void> {
     pendingAudioVersion = version
     await audioAdapter.confirmVersion(version.id, pendingAudioConfirmKey)
     audioVersions.value = await audioAdapter.listVersions(audioTargetId.value)
-    selectedAudioVersion.value = version.id
     await bindAudio(version.id)
     pendingAudioFile.value = null
     pendingAudioVersion = null
@@ -228,6 +241,7 @@ async function bindAudio(id: string): Promise<void> {
       asset_id: version.assetId,
       duration_ms: metadata.duration_ms
     })
+    selectedAudioVersion.value = version.id
   } catch (failure) {
     error.value = message(failure)
   }
@@ -478,12 +492,40 @@ function removeAudio(): void {
   audioGeneration++
   player.value?.stop()
   replaceSceneAudio(form, null)
+  selectedAudioVersion.value = ''
 }
 /** 打开已保存草稿的设备预览。 */
 async function preview(): Promise<void> {
   audioGeneration++
   player.value?.stop()
   if (await save()) showPreview.value = true
+}
+/**
+ * 同场景只切换展示步骤；进入列表或发布前保存当前草稿。
+ * @param next - 管理员选择的工作区
+ */
+async function switchWorkspace(next: ProductionStage): Promise<void> {
+  if (workspaceBusy.value || next === stage.value) return
+  if (next === 'list' || next === 'publish') {
+    if (!(await save()) || !revision.value) return
+    await router.push(
+      next === 'list'
+        ? { name: 'content-scenes' }
+        : { name: 'content-scene-publish', params: { id: revision.value.id } }
+    )
+    return
+  }
+  audioGeneration++
+  player.value?.stop()
+  await router.push({ query: { ...route.query, stage: next } })
+}
+/**
+ * 将校对子组件的素材任务状态纳入全页编辑保护。
+ * @param section - 词汇或语块区
+ * @param value - 是否正在执行素材任务
+ */
+function setLexiconBusy(section: 'vocabulary' | 'chunks', value: boolean): void {
+  lexiconBusy[section] = value
 }
 /** 返回错误文案。
  * @param failure - 操作异常
@@ -502,26 +544,28 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <section class="scene-editor-page">
+    <ContentProductionNav :active="stage" :busy="workspaceBusy" @select="switchWorkspace" />
     <div class="page-heading">
       <div>
-        <h2>场景编辑 · {{ scene?.title || sceneId }}</h2>
-        <p>手工录入或从学习原图识别；保存草稿时同步固定词库版本。</p>
+        <h2>{{ stageLabel }} · {{ scene?.title || sceneId }}</h2>
+        <p>同一场景草稿按步骤编辑；切换工作区保留输入，预览发布前保存当前版本。</p>
       </div>
       <div class="heading-actions">
-        <ElTag v-if="revision" effect="plain" type="warning">草稿 v{{ currentVersion }}</ElTag
-        ><ElButton :disabled="state !== 'ready' || hasConflict || assetsBusy" @click="preview"
-          >设备预览</ElButton
-        ><ElButton :disabled="assetsBusy" @click="historyOpened = true">完整版本历史</ElButton
-        ><ElButton
-          :disabled="state !== 'ready' || hasConflict || assetsBusy"
+        <ElTag v-if="revision" effect="plain" type="warning">草稿 v{{ currentVersion }}</ElTag>
+        <ElButton :disabled="workspaceBusy || hasConflict" @click="preview">设备预览</ElButton>
+        <ElButton :disabled="workspaceBusy" @click="historyOpened = true">完整版本历史</ElButton>
+        <ElButton
+          :disabled="workspaceBusy || hasConflict"
           :loading="state === 'saving'"
           type="primary"
           @click="save"
           >保存草稿</ElButton
-        ><RouterLink
+        >
+        <ElButton
           v-if="revision"
-          :to="{ name: 'content-scene-publish', params: { id: revision.id } }"
-          >检查发布</RouterLink
+          :disabled="workspaceBusy || hasConflict"
+          @click="switchWorkspace('publish')"
+          >检查发布</ElButton
         >
       </div>
     </div>
@@ -539,238 +583,83 @@ onBeforeUnmount(() => {
         :closable="false"
         :title="`远端已更新到 v${controller?.remoteVersion.value ?? '未知'}，本地输入已保留且自动保存已停止`"
         type="warning"
-        ><template #default
+      >
+        <template #default
           ><ElButton link @click="load">明确放弃本地内容并重新加载</ElButton></template
-        ></ElAlert
-      >
-      <ElAlert v-else-if="error" :closable="false" :title="error" type="error"
-        ><template #default
+        >
+      </ElAlert>
+      <ElAlert v-else-if="error" :closable="false" :title="error" type="error">
+        <template #default
           ><ElButton v-if="state === 'error'" @click="load">重新加载</ElButton></template
-        ></ElAlert
-      >
-      <div v-if="revision" class="editor-grid">
-        <div class="editor-stack">
-          <ElCard shadow="never"
-            ><template #header><h3>基础信息与学习原图</h3></template
-            ><ElForm label-position="top"
-              ><ElFormItem label="英文标题"
-                ><ElInput
-                  v-model="form.title_en"
-                  aria-label="英文标题"
-                  maxlength="120" /></ElFormItem
-              ><ElFormItem label="中文标题"
-                ><ElInput
-                  v-model="form.title_zh"
-                  aria-label="中文标题"
-                  maxlength="120" /></ElFormItem
-              ><ElFormItem label="所属系列"
-                ><ElInput :model-value="scene?.seriesTitle" disabled /></ElFormItem
-              ><ElFormItem label="场景说明"
-                ><ElInput v-model="form.summary" type="textarea" /></ElFormItem
-              ><ElFormItem label="标签"
-                ><ElSelect v-model="form.tags" multiple filterable allow-create default-first-option
-                  ><ElOption
-                    v-for="tag in form.tags"
-                    :key="tag"
-                    :label="tag"
-                    :value="tag" /></ElSelect></ElFormItem
-              ><ElFormItem label="学习原图素材编号"
-                ><ElInput
-                  v-model="form.original_image_asset_id"
-                  clearable
-                  @change="refreshImage" /></ElFormItem
-              ><ElUpload
-                :auto-upload="false"
-                :show-file-list="false"
-                accept="image/jpeg,image/png,image/webp"
-                :disabled="mediaBusy"
-                @change="uploadImage"
-                ><ElButton :loading="mediaBusy">上传学习原图</ElButton></ElUpload
-              ><img
-                v-if="imageUrl"
-                class="original-image"
-                :src="imageUrl"
-                alt="学习原图" /><ElFormItem label="封面素材编号"
-                ><ElInput v-model="form.cover_asset_id" clearable /></ElFormItem
-              ><ElFormItem label="版权声明"
-                ><ElInput v-model="form.copyright" type="textarea" /></ElFormItem
-              ><ElFormItem label="内容来源"><ElInput v-model="form.source" /></ElFormItem></ElForm
-          ></ElCard>
-          <ElCard shadow="never"
-            ><template #header><h3>整段音频</h3></template>
-            <p>绑定固定音频版本。更换版本后需重新标记并核对每句时间。</p>
-            <ElButton :loading="mediaBusy" @click="loadAudio">加载音频版本</ElButton
-            ><ElUpload
-              :auto-upload="false"
-              :show-file-list="false"
-              accept=".mp3,.m4a,.wav,.aac"
-              :disabled="mediaBusy"
-              @change="uploadAudio"
-              ><ElButton :loading="mediaBusy">上传整段音频</ElButton></ElUpload
-            ><ElButton
-              v-if="pendingAudioFile"
-              :loading="mediaBusy"
-              @click="uploadAudio(pendingAudioFile)"
-              >重新确认已上传音频</ElButton
-            ><ElSelect
-              v-model="selectedAudioVersion"
-              aria-label="整段音频版本"
-              placeholder="选择固定版本"
-              @change="bindAudio"
-              ><ElOption
-                v-for="version in audioVersions"
-                :key="version.id"
-                :label="`v${version.versionNo} · ${version.status} · ${version.assetId}`"
-                :value="version.id"
-            /></ElSelect>
-            <p v-if="form.audio">
-              当前 {{ form.audio.version_id }} · {{ form.audio.duration_ms }} 毫秒
-            </p>
-            <ElButton v-if="form.audio" @click="playRow()"
-              >{{ player?.label('scene') ?? '播放' }}整段音频</ElButton
-            >
-            <p v-if="form.audio" aria-live="polite">
-              当前 {{ player?.currentMs.value ?? 0 }} 毫秒 · {{ player?.statusText.value }}
-              {{ player?.error.value }}
-            </p>
-            <ElButton v-if="form.audio" @click="loadAudioSource">刷新音频地址</ElButton
-            ><ElButton v-if="form.audio" @click="removeAudio">移除整段音频</ElButton
-            ><audio ref="audioElement" controls preload="metadata"
-          /></ElCard>
-          <ElCard shadow="never"
-            ><template #header><h3>显式 OCR 识别</h3></template>
+        >
+      </ElAlert>
+      <template v-if="revision">
+        <div v-if="stage === 'draft' || stage === 'proofread'" class="editor-grid">
+          <SceneDraftPanel
+            :form="form"
+            :series-title="scene?.seriesTitle ?? ''"
+            :image-url="imageUrl"
+            :media-busy="mediaBusy"
+            @upload="uploadImage"
+            @refresh-image="refreshImage"
+          />
+          <SceneProofreadPanel v-if="stage === 'proofread'" :form="form" @busy="setLexiconBusy" />
+          <ElCard v-else shadow="never" class="entry-panel">
+            <template #header><h3>录入方式</h3></template>
             <p>
-              本次识别将消耗 1
-              次接口调用，成功或失败均计次；重识别是新的调用。上传原图不会启动识别。分组建议无需额外接口。
+              上传学习原图后可直接手工录入，或主动识别并逐项采纳候选。未完成的字段也可以保存草稿。
             </p>
-            <p v-if="quota">
-              {{ quota.month }} · 剩余 {{ quota.remaining }} / {{ quota.monthly_limit }} ·
-              {{ quota.enabled ? '已启用' : '已关闭' }}
-            </p>
-            <ElButton
-              :disabled="!form.original_image_asset_id || hasConflict || assetsBusy"
-              :loading="ocrBusy"
-              @click="startOcr"
-              >保存并识别原图</ElButton
-            ><template v-if="job"
-              ><p>
-                任务 {{ job.id }} · {{ job.status }} {{ job.errorCode || '' }} · 百度请求编号
-                {{ job.providerRequestId || '尚未返回' }}
-              </p>
-              <ElButton :loading="ocrBusy" @click="refreshOcr">刷新识别状态</ElButton></template
-            ></ElCard
-          >
+            <ElButton type="primary" @click="switchWorkspace('proofread')">进入内容校对</ElButton>
+            <ElButton @click="switchWorkspace('ocr')">使用 OCR 辅助识别</ElButton>
+          </ElCard>
         </div>
-        <div class="editor-stack">
-          <ElCard shadow="never"
-            ><template #header><h3>对话与句子标时</h3></template
-            ><DialogueFields
-              v-model="form.dialogue"
-              :audio="form.audio"
-              :playback="player"
-              :can-record="Boolean(audioUrl)"
-              timing
-              @play="playRow"
-              @record="recordTime"
-          /></ElCard>
-          <ElCard shadow="never"
-            ><template #header><h3>核心词汇</h3></template
-            ><LexiconFields
-              v-model="form.vocabulary"
-              entry-type="vocabulary"
-              :sentences="form.dialogue"
-              :original-image-asset-id="form.original_image_asset_id"
-              @busy="lexiconBusy.vocabulary = $event"
-          /></ElCard>
-          <ElCard shadow="never"
-            ><template #header><h3>常用语块</h3></template
-            ><LexiconFields
-              v-model="form.chunks"
-              entry-type="chunk"
-              :sentences="form.dialogue"
-              :original-image-asset-id="form.original_image_asset_id"
-              @busy="lexiconBusy.chunks = $event"
-          /></ElCard>
-        </div>
-      </div>
-      <ElCard v-if="candidateReady" class="ocr-comparison" shadow="never"
-        ><template #header><h3>候选比较与逐项采纳</h3></template>
-        <OcrComparisonLines
-          v-if="suggestions"
+        <SceneOcrPanel
+          v-if="stage === 'ocr'"
+          v-model:selected-fields="selectedFields"
+          :form="form"
+          :candidate="candidate"
+          :quota="quota"
+          :job="job"
+          :busy="ocrBusy"
+          :disabled="hasConflict || assetsBusy"
+          :candidate-ready="candidateReady"
           :suggestions="suggestions"
           :accepted-groups="acceptedGroups"
+          :raw-lines="rawLines"
+          :image-url="imageUrl"
+          @start="startOcr"
+          @refresh="refreshOcr"
           @assign="assignLine"
           @group="acceptGroup"
+          @adopt="adopt"
         />
-        <p v-else>分组建议暂不可用，可手动分配原始识别行并继续校对。</p>
-        <div v-for="(line, index) in suggestions ? [] : rawLines" :key="index" class="ocr-line">
-          <span>{{ line }}</span
-          ><ElDropdown @command="assignLine(line, $event, index)"
-            ><ElButton>分配候选字段</ElButton
-            ><template #dropdown
-              ><ElDropdownMenu
-                ><ElDropdownItem command="title_en">英文标题</ElDropdownItem
-                ><ElDropdownItem command="title_zh">中文标题</ElDropdownItem
-                ><ElDropdownItem command="dialogue">对话句子</ElDropdownItem
-                ><ElDropdownItem command="vocabulary">词汇</ElDropdownItem
-                ><ElDropdownItem command="chunks">语块</ElDropdownItem></ElDropdownMenu
-              ></template
-            ></ElDropdown
-          >
-        </div>
-        <div class="comparison-grid">
-          <div>
-            <h4>当前草稿</h4>
-            <p>{{ form.title_en }} / {{ form.title_zh }}</p>
-            <p v-for="row in form.dialogue" :key="row.id">
-              {{ row.speaker }} · {{ row.english }} / {{ row.chinese }}
-            </p>
-            <p
-              v-for="entry in [...form.vocabulary, ...form.chunks]"
-              :key="entry.entry_id + entry.english"
-            >
-              {{ entry.english }} · {{ entry.chinese }}
-            </p>
-          </div>
-          <div>
-            <h4>识别候选（可编辑）</h4>
-            <ElCheckboxGroup v-model="selectedFields"
-              ><ElCheckbox value="title_en">英文标题</ElCheckbox
-              ><ElCheckbox value="title_zh">中文标题</ElCheckbox
-              ><ElCheckbox value="dialogue">对话</ElCheckbox
-              ><ElCheckbox value="vocabulary">词汇</ElCheckbox
-              ><ElCheckbox value="chunks">语块</ElCheckbox></ElCheckboxGroup
-            ><ElInput v-model="candidate.title_en" aria-label="候选英文标题" /><ElInput
-              v-model="candidate.title_zh"
-              aria-label="候选中文标题"
-            /><DialogueFields v-model="candidate.dialogue" /><LexiconFields
-              v-model="candidate.vocabulary"
-              candidate
-              entry-type="vocabulary"
-              :sentences="candidate.dialogue"
-            /><LexiconFields
-              v-model="candidate.chunks"
-              candidate
-              entry-type="chunk"
-              :sentences="candidate.dialogue"
-            />
-          </div>
-        </div>
-        <ElButton
-          type="primary"
-          :loading="ocrBusy"
-          :disabled="!selectedFields.length || hasConflict || assetsBusy"
-          @click="adopt"
-          >采纳选中字段到当前草稿</ElButton
-        ></ElCard
-      >
+        <SceneAudioPanel
+          v-if="stage === 'audio'"
+          :form="form"
+          :versions="audioVersions"
+          :selected-version="selectedAudioVersion"
+          :pending-file="pendingAudioFile"
+          :busy="mediaBusy"
+          :player="player"
+          :can-record="Boolean(audioUrl)"
+          @load="loadAudio"
+          @upload="uploadAudio"
+          @bind="bindAudio"
+          @play="playRow"
+          @record="recordTime"
+          @refresh="loadAudioSource"
+          @remove="removeAudio"
+          @element="audioElement = $event"
+        />
+      </template>
     </fieldset>
-    <ElDialog v-model="showPreview" title="场景设备预览" width="min(960px, 94vw)"
-      ><ScenePreview
+    <ElDialog v-model="showPreview" title="场景设备预览" width="min(960px, 94vw)">
+      <ScenePreview
         v-if="showPreview && revision"
         :content="revision.content"
         :revision-id="revision.id"
-    /></ElDialog>
+      />
+    </ElDialog>
     <SceneHistory v-model="historyOpened" :scene-id="sceneId" />
   </section>
 </template>
@@ -810,6 +699,7 @@ p {
 .editor-grid {
   display: grid;
   grid-template-columns: minmax(280px, 2fr) minmax(420px, 3fr);
+  align-items: start;
   gap: 14px;
   margin-top: 14px;
 }
@@ -821,46 +711,12 @@ p {
   border: 0;
 }
 
-.editor-stack {
-  display: grid;
-  align-content: start;
-  gap: 14px;
-}
-
-.original-image {
-  width: 100%;
-  max-height: 320px;
-  margin: 12px 0;
-  object-fit: contain;
-}
-
-audio {
-  width: 100%;
-  margin-top: 12px;
-}
-
-.ocr-comparison {
-  margin-top: 14px;
-}
-
-.ocr-line {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.comparison-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
-  margin: 16px 0;
+.entry-panel {
+  min-width: 0;
 }
 
 @media (width <= 1050px) {
-  .editor-grid,
-  .comparison-grid {
+  .editor-grid {
     grid-template-columns: 1fr;
   }
 }
