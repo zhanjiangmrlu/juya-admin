@@ -1428,6 +1428,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/internal/v1/entitlements': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Entitlements */
+    post: operations['entitlements_internal_v1_entitlements_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/internal/v1/access/batch': {
     parameters: {
       query?: never
@@ -1490,6 +1507,23 @@ export interface paths {
     put?: never
     /** Signed Resource */
     post: operations['signed_resource_internal_v1_scenes__scene_id__resources__resource_id__signed_url_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/feedback/query': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Query Feedback */
+    post: operations['query_feedback_internal_v1_feedback_query_post']
     delete?: never
     options?: never
     head?: never
@@ -3303,6 +3337,8 @@ export interface components {
       user_id: string
       /** Text */
       text: string
+      /** Screenshots */
+      screenshots?: string[]
     }
     /** TrashEntryResponse */
     TrashEntryResponse: {
@@ -3409,6 +3445,11 @@ export interface components {
       records?: {
         [key: string]: unknown
       }
+    }
+    /** UserFeedbackQuery */
+    UserFeedbackQuery: {
+      /** User Id */
+      user_id: string
     }
     /** UserProjectionResponse */
     UserProjectionResponse: {
@@ -7020,6 +7061,41 @@ export interface operations {
       }
     }
   }
+  entitlements_internal_v1_entitlements_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UserQuery']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   access_batch_internal_v1_access_batch_post: {
     parameters: {
       query?: never
@@ -7149,6 +7225,41 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['SignedSceneResourceResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  query_feedback_internal_v1_feedback_query_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UserFeedbackQuery']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
         }
       }
       /** @description Validation Error */

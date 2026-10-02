@@ -7287,6 +7287,47 @@
         }
       }
     },
+    "/internal/v1/entitlements": {
+      "post": {
+        "tags": ["internal-content"],
+        "summary": "Entitlements",
+        "operationId": "entitlements_internal_v1_entitlements_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Entitlements Internal V1 Entitlements Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/v1/access/batch": {
       "post": {
         "tags": ["internal-content"],
@@ -7479,6 +7520,47 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SignedSceneResourceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/feedback/query": {
+      "post": {
+        "tags": ["internal-feedback"],
+        "summary": "Query Feedback",
+        "operationId": "query_feedback_internal_v1_feedback_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserFeedbackQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Query Feedback Internal V1 Feedback Query Post"
                 }
               }
             }
@@ -12226,6 +12308,14 @@
             "maxLength": 300,
             "minLength": 1,
             "title": "Text"
+          },
+          "screenshots": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1,
+            "title": "Screenshots"
           }
         },
         "additionalProperties": false,
@@ -12554,6 +12644,20 @@
           "favorite_count"
         ],
         "title": "UserDetailResponse"
+      },
+      "UserFeedbackQuery": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "User Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["user_id"],
+        "title": "UserFeedbackQuery"
       },
       "UserProjectionResponse": {
         "properties": {
