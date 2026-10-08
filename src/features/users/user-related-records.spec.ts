@@ -14,7 +14,8 @@ describe('user audit operators', () => {
               id: 'named',
               action: 'contact.view.detail',
               actor_public_id: '1',
-              actor_name: '运营管理员'
+              actor_name: '运营管理员',
+              reason: null
             },
             { id: 'legacy', action: 'contact.view.list', actor_public_id: '2' },
             { id: 'system', action: 'account.cleanup', actor_public_id: 'system' },
@@ -30,5 +31,12 @@ describe('user audit operators', () => {
       .map((row) => row.findAll('td')[1]?.text())
       .filter(Boolean)
     expect(operatorCells).toEqual(['运营管理员', '未知操作人（ID：2）', '系统', '未知操作人'])
+    expect(wrapper.findAll('tbody tr').map((row) => row.findAll('td')[3]?.text())).toEqual([
+      '-',
+      '-',
+      '-',
+      '-'
+    ])
+    wrapper.unmount()
   })
 })

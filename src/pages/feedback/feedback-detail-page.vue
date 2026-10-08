@@ -15,6 +15,7 @@ import { FEEDBACK_STATUS_LABELS } from '@/features/feedback/feedback-copy'
 import { formatFeedbackSla, getFeedbackOperations } from '@/features/feedback/feedback-model'
 import { useFeedbackDetail } from '@/features/feedback/use-feedback-detail'
 import { createApiClient } from '@/services/api/api-client'
+import { formatAdminActor } from '@/shared/utils/admin-actor'
 import { formatDateTime as formatTimestamp } from '@/shared/utils/date-time'
 
 import type { FeedbackCategory, FeedbackTimelineEvent } from '@/features/feedback/feedback-adapter'
@@ -60,7 +61,12 @@ const lastSuppliedAt = computed(
 )
 const timeline = computed(() =>
   (controller.ticket.value?.timeline ?? []).map((event, index) => ({
-    actor: `${event.actorType === 'ADMIN' ? '管理员' : '用户'} · ${event.actorId}`,
+    actor:
+      event.actorType === 'ADMIN'
+        ? formatAdminActor(event.actorId, event.actorName)
+        : event.actorType === 'SYSTEM'
+          ? '系统'
+          : `用户 · ${event.actorId}`,
     at: formatDateTime(event.occurredAt),
     content: timelineContent(event),
     id: `${event.occurredAt}-${event.eventType}-${index}`

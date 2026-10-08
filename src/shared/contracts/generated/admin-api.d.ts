@@ -2682,6 +2682,8 @@ export interface components {
       actor_type: string
       /** Actor Id */
       actor_id: string
+      /** Actor Name */
+      actor_name?: string | null
       /** Visibility */
       visibility: string
       /** Payload */
@@ -3394,6 +3396,8 @@ export interface components {
       verified_at: string | null
       /** Verified By */
       verified_by: string | null
+      /** Verified By Name */
+      verified_by_name?: string | null
       /**
        * Updated At
        * Format: date-time

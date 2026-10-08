@@ -1,3 +1,5 @@
+import { formatAdminActor } from '@/shared/utils/admin-actor'
+
 import type { ApiClient } from '@/services/api/api-client'
 
 export interface AuditEvent {
@@ -64,7 +66,7 @@ function parseEvent(source: unknown): AuditEvent {
   }
   return {
     action: text('action'),
-    actor: text('actor_public_id'),
+    actor: formatAdminActor(event.actor_public_id, event.actor_name),
     afterSummary: isRecord(event.after_summary) ? event.after_summary : {},
     beforeSummary: isRecord(event.before_summary) ? event.before_summary : {},
     objectId: text('object_public_id'),

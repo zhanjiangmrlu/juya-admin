@@ -19,6 +19,20 @@ const items: AuditEvent[] = Array.from({ length: 25 }, (_, index) => ({
 }))
 
 describe('AuditEventList', () => {
+  it('displays a dash for null, empty and whitespace reasons while preserving real reasons', async () => {
+    const wrapper = mount(AuditEventList, {
+      props: { items: [null, '', '   ', '人工核对'].map((reason) => ({ ...items[0]!, reason })) },
+      global: { plugins: [ElementPlus] }
+    })
+    await flushPromises()
+    expect(wrapper.findAll('tbody tr').map((row) => row.findAll('td')[4]?.text())).toEqual([
+      '-',
+      '-',
+      '-',
+      '人工核对'
+    ])
+    wrapper.unmount()
+  })
   it('shows ten records per page and displays the final partial page after jumping', async () => {
     const wrapper = mount(AuditEventList, { props: { items }, global: { plugins: [ElementPlus] } })
     await flushPromises()

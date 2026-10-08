@@ -55,6 +55,7 @@ export interface FeedbackListItem {
 
 export interface FeedbackTimelineEvent {
   actorId: string
+  actorName?: string | null
   actorType: string
   eventType: string
   occurredAt: string
@@ -195,6 +196,7 @@ export function createFeedbackAdapter(client: ApiClient): FeedbackAdapter {
         })),
         timeline: response.timeline.map((event) => ({
           actorId: event.actor_id,
+          actorName: event.actor_name ?? null,
           actorType: event.actor_type,
           eventType: event.event_type,
           occurredAt: event.occurred_at,

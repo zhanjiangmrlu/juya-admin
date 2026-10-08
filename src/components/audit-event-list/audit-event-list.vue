@@ -57,11 +57,11 @@ function formatTime(value: string): string {
         >{{ row.objectType }} · {{ row.objectId }}</template
       ></ElTableColumn
     >
-    <ElTableColumn label="原因" min-width="180" prop="reason" /><ElTableColumn
-      label="Request ID"
-      min-width="200"
-      prop="requestId"
-    />
+    <ElTableColumn label="原因" min-width="180"
+      ><template #default="{ row }">{{
+        row.reason?.trim() ? row.reason : '-'
+      }}</template></ElTableColumn
+    ><ElTableColumn label="Request ID" min-width="200" prop="requestId" />
   </ElTable>
   <ElEmpty v-else description="暂无审计事件" />
   <AppPagination

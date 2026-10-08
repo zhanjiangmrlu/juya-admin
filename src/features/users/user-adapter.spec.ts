@@ -10,6 +10,7 @@ const contact = {
   updated_at: '2026-09-29T08:00:00Z',
   verified_at: '2026-09-29T07:00:00Z',
   verified_by: 'admin-1',
+  verified_by_name: '核对管理员账号',
   wechat_id: 'wx-private'
 }
 

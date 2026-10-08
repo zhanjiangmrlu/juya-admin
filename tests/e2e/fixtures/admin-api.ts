@@ -1334,6 +1334,7 @@ const userProjection = {
     updated_at: '2026-09-29T09:00:00Z',
     verified_at: '2026-09-29T08:30:00Z',
     verified_by: 'ADMIN-1',
+    verified_by_name: '核对管理员账号',
     wechat_id: 'juya_verified'
   },
   contact_degraded: false,
@@ -1462,6 +1463,7 @@ const feedbackTicket = {
     {
       actor_id: 'ADMIN-1',
       actor_type: 'ADMIN',
+      actor_name: '反馈管理员账号',
       event_type: 'PROCESSING_STARTED',
       occurred_at: '2026-09-29T02:00:00Z',
       payload: {},
@@ -1475,6 +1477,7 @@ const feedbackTicket = {
 const auditEvent = {
   action: 'settings.update',
   actor_public_id: 'ADMIN-1',
+  actor_name: '运营管理员账号',
   after_summary: { value: 24 },
   before_summary: { value: 48 },
   object_public_id: 'feedback_sla_hours',

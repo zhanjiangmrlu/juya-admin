@@ -8,6 +8,7 @@ test('最近审计事件支持分页、固定表头和表格内部滚动', async
         items: Array.from({ length: 50 }, (_, index) => ({
           action: `audit.action-${index + 1}`,
           actor_public_id: '1',
+          actor_name: '运营管理员账号',
           after_summary: {},
           before_summary: {},
           object_public_id: `OBJECT-${index + 1}`,
@@ -25,6 +26,8 @@ test('最近审计事件支持分页、固定表头和表格内部滚动', async
   const pagination = card.getByRole('navigation', { name: '列表分页' })
   await expect(pagination.getByText('共 50 条')).toBeVisible()
   await expect(card.locator('.el-table__body tbody tr')).toHaveCount(10)
+  await expect(card.locator('tbody tr').first().locator('td').nth(1)).toHaveText('运营管理员账号')
+  await expect(card.locator('tbody tr').first().locator('td').nth(4)).toHaveText('-')
   await pagination.getByRole('button', { name: '下一页' }).click()
   await expect(card.getByText('audit.action-11', { exact: true })).toBeVisible()
   const jump = pagination.locator('.el-pagination__jump input')

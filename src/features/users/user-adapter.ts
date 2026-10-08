@@ -27,6 +27,7 @@ export interface UserContactDto {
   updated_at: string
   verified_at: string | null
   verified_by: string | null
+  verified_by_name?: string | null
   wechat_id: string | null
 }
 
@@ -184,6 +185,8 @@ function parseUserProjection(source: unknown): UserProjectionDto {
       updated_at: requireString(contactSource, 'updated_at'),
       verified_at: requireNullableString(contactSource, 'verified_at'),
       verified_by: requireNullableString(contactSource, 'verified_by'),
+      verified_by_name:
+        typeof contactSource.verified_by_name === 'string' ? contactSource.verified_by_name : null,
       wechat_id: requireNullableString(contactSource, 'wechat_id')
     }
   }

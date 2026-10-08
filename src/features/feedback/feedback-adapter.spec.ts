@@ -58,6 +58,7 @@ describe('feedback adapter', () => {
       slaState: 'ON_TRACK'
     })
     expect(detail.timeline.map((item) => item.eventType)).toEqual(['CREATED', 'PROCESSING_STARTED'])
+    expect(detail.timeline[1]).toMatchObject({ actorId: '7', actorName: '反馈管理员账号' })
     expect(detail.screenshots).toHaveLength(1)
     expect(detail.internalNotes[0]?.content).toBe('排查记录')
   })
@@ -133,6 +134,7 @@ const detailResponse = {
     },
     {
       actor_id: '7',
+      actor_name: '反馈管理员账号',
       actor_type: 'ADMIN',
       event_type: 'PROCESSING_STARTED',
       occurred_at: '2026-09-29T08:10:00Z',

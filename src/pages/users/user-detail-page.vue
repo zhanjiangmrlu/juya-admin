@@ -17,6 +17,7 @@ import { createUserAdapter } from '@/features/users/user-adapter'
 import { getAccountStatusLabel, getAccountStatusTone } from '@/features/users/user-model'
 import UserRelatedRecords from '@/features/users/user-related-records.vue'
 import { createApiClient } from '@/services/api/api-client'
+import { formatAdminActor } from '@/shared/utils/admin-actor'
 import { formatDateTime as formatTimestamp } from '@/shared/utils/date-time'
 
 import type { ContactStatus } from '@/features/contacts/contact-capabilities'
@@ -226,7 +227,16 @@ async function copyWechat(): Promise<void> {
                   formatDateTime(controller.detail.value.contact_changed_at ?? null)
                 }}</span
               >
-              <span>核对管理员：{{ controller.detail.value.contact?.verified_by || '暂无' }}</span>
+              <span
+                >核对管理员：{{
+                  controller.detail.value.contact?.verified_by
+                    ? formatAdminActor(
+                        controller.detail.value.contact.verified_by,
+                        controller.detail.value.contact.verified_by_name
+                      )
+                    : '暂无'
+                }}</span
+              >
             </div>
           </template>
           <div class="audit-item">

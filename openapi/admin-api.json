@@ -10587,6 +10587,17 @@
             "type": "string",
             "title": "Actor Id"
           },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name"
+          },
           "visibility": {
             "type": "string",
             "title": "Visibility"
@@ -12471,6 +12482,17 @@
               }
             ],
             "title": "Verified By"
+          },
+          "verified_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified By Name"
           },
           "updated_at": {
             "type": "string",

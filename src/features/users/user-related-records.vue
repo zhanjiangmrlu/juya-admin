@@ -7,6 +7,7 @@ import {
 } from '@/app/admin-records.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import DataTable from '@/components/data-table/data-table.vue'
+import { formatAdminActor } from '@/shared/utils/admin-actor'
 
 defineProps<{ records: Record<string, Record<string, unknown>[]> }>()
 const sections = ADMIN_RELATED_RECORD_SECTIONS.map((section) => ({
@@ -31,12 +32,10 @@ const /**
    */
   display = (key: string, value: unknown, row: Record<string, unknown>): string => {
     if (key === 'actor_public_id') {
-      if (typeof row.actor_name === 'string' && row.actor_name.trim()) return row.actor_name
-      if (value === 'system') return '系统'
-      return value === null || value === undefined || value === ''
-        ? '未知操作人'
-        : `未知操作人（ID：${String(value)}）`
+      return formatAdminActor(value, row.actor_name)
     }
+    if (key === 'reason' && (value === null || value === undefined || !String(value).trim()))
+      return '-'
     if (value === null || value === undefined) return '—'
     return key.endsWith('_at') || key === 'start_deadline'
       ? dayjs(String(value)).format('YYYY-MM-DD HH:mm')
