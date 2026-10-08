@@ -22,18 +22,26 @@ const sections = ADMIN_RELATED_RECORD_SECTIONS.map((section) => ({
     ...(section.route ? [{ key: 'actions', label: '操作', width: 80, slot: 'actions' }] : [])
   ]
 }))
-/**
- * 只格式化实际记录的时间，缺失数据保持空值。
- * @param key - 记录字段名
- * @param value - 服务端字段值或页码
- * @returns 可读字段文案
- */
-function display(key: string, value: unknown): string {
-  if (value === null || value === undefined) return '—'
-  return key.endsWith('_at') || key === 'start_deadline'
-    ? dayjs(String(value)).format('YYYY-MM-DD HH:mm')
-    : String(value)
-}
+const /**
+   * 格式化记录时间与操作人，保留无法解析的审计身份
+   * @param key - 记录字段名
+   * @param value - 服务端字段值或页码
+   * @param row - 当前业务记录，包含操作人账号名与原始审计标识
+   * @returns 可读字段文案
+   */
+  display = (key: string, value: unknown, row: Record<string, unknown>): string => {
+    if (key === 'actor_public_id') {
+      if (typeof row.actor_name === 'string' && row.actor_name.trim()) return row.actor_name
+      if (value === 'system') return '系统'
+      return value === null || value === undefined || value === ''
+        ? '未知操作人'
+        : `未知操作人（ID：${String(value)}）`
+    }
+    if (value === null || value === undefined) return '—'
+    return key.endsWith('_at') || key === 'start_deadline'
+      ? dayjs(String(value)).format('YYYY-MM-DD HH:mm')
+      : String(value)
+  }
 </script>
 
 <template>
@@ -46,7 +54,7 @@ function display(key: string, value: unknown): string {
         empty-text="暂无记录"
       >
         <template v-for="field in section.fields" :key="field" #[field]="{ row }">{{
-          display(field, row[field])
+          display(field, row[field], row)
         }}</template>
         <template #actions="{ row }"
           ><RouterLink :to="{ name: section.route, params: { id: String(row.id) } }"
