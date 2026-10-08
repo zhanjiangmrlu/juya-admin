@@ -49,8 +49,8 @@ async function loadResources(): Promise<void> {
   )
   if (current !== generation) return
   urls.value = nextUrls
-  if (content.value.audio && nextUrls[content.value.audio.asset_id])
-    player.value?.load(nextUrls[content.value.audio.asset_id]!)
+  const assetId = content.value.audio?.asset_id
+  player.value?.load(assetId ? (nextUrls[assetId] ?? '') : '')
   if (results.some((result) => result.status === 'rejected'))
     resourceError.value = '部分资源暂不可预览，请保存草稿后刷新预览'
 }
@@ -198,13 +198,17 @@ onBeforeUnmount(() => {
             >{{ player?.label('scene') ?? '播放' }}整段音频</ElButton
           ><ElButton v-if="content.audio" @click="pause">暂停</ElButton>
           <audio
+            v-show="content.audio"
             ref="audioElement"
             class="preview-audio"
             controls
             preload="metadata"
             aria-label="预览音频播放器"
           />
-          <p aria-live="polite">{{ player?.statusText.value }} {{ player?.error.value }}</p>
+          <p v-if="content.audio" aria-live="polite">
+            {{ player?.statusText.value }} {{ player?.error.value }}
+          </p>
+          <p v-else role="status">尚未绑定整段音频，请在音频标时步骤上传并绑定该场景的录音</p>
           <ElButton v-if="player?.status.value === 'error'" @click="loadResources"
             >刷新音频后重试</ElButton
           >

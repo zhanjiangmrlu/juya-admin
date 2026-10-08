@@ -125,4 +125,20 @@ describe('scene preview pronunciation', () => {
     expect(wrapper.text()).toContain('播放中')
     wrapper.unmount()
   })
+
+  /** 验证草稿撤去音频时隐藏控件并释放旧录音 */
+  it('hides an unbound player and clears the previous recording when a draft has no audio', async () => {
+    const wrapper = setup()
+    await flushPromises()
+    expect(wrapper.get('audio').element.src).toContain('/scene.wav')
+    await wrapper.setProps({ content: normalizeSceneContent({ title_en: 'Limited Scene' }) })
+    await flushPromises()
+    expect(wrapper.get('audio').isVisible()).toBe(false)
+    expect(wrapper.get('audio').attributes('src')).toBeUndefined()
+    expect(wrapper.findAll('button').some((button) => button.text().includes('整段音频'))).toBe(
+      false
+    )
+    expect(wrapper.text()).toContain('尚未绑定整段音频')
+    wrapper.unmount()
+  })
 })
