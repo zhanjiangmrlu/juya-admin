@@ -30,9 +30,11 @@ test('OCR 本月额度核验保存后及刷新页面后保持勾选', async ({ a
   await save.click()
   await expect(page.getByText('OCR 设置已保存', { exact: true })).toBeVisible()
   await expect(verification).toBeChecked()
+  await expect(page.getByText('控制台核验 2026-10-08 21:11:12', { exact: false })).toBeVisible()
   await page.reload()
   await expect(save).toBeEnabled()
   await expect(verification).toBeChecked()
+  await expect(page.getByText('控制台核验 2026-10-08 21:11:12', { exact: false })).toBeVisible()
   expect(adminApi.findRequest('POST', '/api/v1/admin/media/ocr/jobs')).toBeUndefined()
 })
 

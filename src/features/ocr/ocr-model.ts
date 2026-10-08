@@ -1,6 +1,18 @@
 import { formatDateTime } from '@/shared/utils/date-time'
 
 export const /**
+   * 将 OCR 额度核验时间显示为北京时间，精确到秒
+   * @param verifiedAt - 保存的核验时间，无时区的数据库时间按 UTC 处理
+   * @param fallback - 未核验或时间无效时的显示文案
+   * @returns YYYY-MM-DD HH:mm:ss 格式的核验时间或回退文案
+   */
+  formatOcrQuotaVerifiedAt = (verifiedAt: string | null, fallback = '尚未完成'): string => {
+    if (!verifiedAt) return fallback
+    const timestamp = /(?:Z|[+-]\d{2}:?\d{2})$/iu.test(verifiedAt) ? verifiedAt : `${verifiedAt}Z`
+    return formatDateTime(timestamp, fallback)
+  }
+
+export const /**
    * 根据服务端核验时间判断 OCR 免费额度是否已在本月核验
    * @param verifiedAt - 保存的核验时间，无时区的数据库时间按 UTC 处理
    * @param month - 服务端按北京时间计算的当前额度月份
@@ -8,8 +20,7 @@ export const /**
    */
   isOcrQuotaVerifiedThisMonth = (verifiedAt: string | null, month: string): boolean => {
     if (!verifiedAt) return false
-    const timestamp = /(?:Z|[+-]\d{2}:?\d{2})$/iu.test(verifiedAt) ? verifiedAt : `${verifiedAt}Z`
-    return formatDateTime(timestamp, '').slice(0, 7) === month
+    return formatOcrQuotaVerifiedAt(verifiedAt, '').slice(0, 7) === month
   }
 
 /**

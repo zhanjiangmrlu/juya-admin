@@ -1,8 +1,23 @@
 import { describe, expect, it } from 'vitest'
 
-import { isOcrQuotaVerifiedThisMonth, mergeAcceptedOcrFields } from './ocr-model'
+import {
+  formatOcrQuotaVerifiedAt,
+  isOcrQuotaVerifiedThisMonth,
+  mergeAcceptedOcrFields
+} from './ocr-model'
 
 describe('ocr model', () => {
+  it.each([
+    ['2026-10-08T13:11:12.130759', '2026-10-08 21:11:12'],
+    ['2026-10-01T13:46:35.123456Z', '2026-10-01 21:46:35'],
+    ['2026-10-01T21:46:35+08:00', '2026-10-01 21:46:35'],
+    ['2026-09-30T16:00:00.000001', '2026-10-01 00:00:00'],
+    [null, '尚未完成'],
+    ['invalid', '尚未完成']
+  ])('displays OCR verification %s as %s', (verifiedAt, expected) => {
+    expect(formatOcrQuotaVerifiedAt(verifiedAt)).toBe(expected)
+  })
+
   it.each([
     ['2026-10-08T13:11:12.130759', '2026-10', true],
     ['2026-10-08T13:11:12Z', '2026-10', true],

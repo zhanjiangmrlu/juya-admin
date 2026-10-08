@@ -11,7 +11,7 @@ import { validateImageBatch } from '@/features/content-import/import-validation'
 import { createUploadAdapter } from '@/features/content-import/upload-adapter'
 import { useUploadQueue } from '@/features/content-import/use-upload-queue'
 import { createOcrAdapter } from '@/features/ocr/ocr-adapter'
-import { isOcrQuotaVerifiedThisMonth } from '@/features/ocr/ocr-model'
+import { formatOcrQuotaVerifiedAt, isOcrQuotaVerifiedThisMonth } from '@/features/ocr/ocr-model'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 import { useIdempotentCommand } from '@/shared/commands/idempotent-command'
 
@@ -49,7 +49,7 @@ const /** 加载系列、OCR 额度及本月核验状态 */
       const quota = await ocr.getQuota()
       Object.assign(ocrSettings, quota)
       ocrSettings.verify_quota = isOcrQuotaVerifiedThisMonth(quota.quota_verified_at, quota.month)
-      quotaText.value = `${quota.month} 已使用 ${quota.reserved_count}，剩余 ${quota.remaining}，控制台核验 ${quota.quota_verified_at || '尚未完成'}`
+      quotaText.value = `${quota.month} 已使用 ${quota.reserved_count}，剩余 ${quota.remaining}，控制台核验 ${formatOcrQuotaVerifiedAt(quota.quota_verified_at)}`
       ocrSettingsReady.value = true
     } catch (failure) {
       ocrSettingsError.value = failure instanceof Error ? failure.message : '配置加载失败'
