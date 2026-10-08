@@ -1,5 +1,72 @@
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 
+test('OCR 本月额度核验保存后及刷新页面后保持勾选', async ({ adminApi, page }) => {
+  const quota = {
+    enabled: true,
+    monthly_limit: 100,
+    free_quota: 100,
+    paid_disabled: true,
+    quota_verified_at: null as string | null,
+    month: '2026-10',
+    reserved_count: 0,
+    remaining: 100
+  }
+  await page.route('**/api/v1/admin/media/ocr/quota', async (route) =>
+    route.fulfill({ json: quota })
+  )
+  await page.route('**/api/v1/admin/media/ocr/settings', async (route) => {
+    if (route.request().postDataJSON().verify_quota) {
+      quota.quota_verified_at = '2026-10-08T13:11:12.130759'
+    }
+    await route.fulfill({ json: quota })
+  })
+  await loginAsAdmin(page)
+  await navigateInApp(page, '/content/import')
+  const verification = page.getByRole('checkbox', { name: '已在百度控制台核验本月额度' })
+  const save = page.getByRole('button', { name: '保存 OCR 设置', exact: true })
+  await expect(save).toBeEnabled()
+  await expect(verification).not.toBeChecked()
+  await page.getByText('已在百度控制台核验本月额度', { exact: true }).click()
+  await save.click()
+  await expect(page.getByText('OCR 设置已保存', { exact: true })).toBeVisible()
+  await expect(verification).toBeChecked()
+  await page.reload()
+  await expect(save).toBeEnabled()
+  await expect(verification).toBeChecked()
+  expect(adminApi.findRequest('POST', '/api/v1/admin/media/ocr/jobs')).toBeUndefined()
+})
+
+for (const [verifiedAt, checked] of [
+  ['2026-10-01T00:00:00Z', true],
+  ['2026-09-30T16:00:00.000001', true],
+  ['2026-09-30T15:59:59Z', false],
+  [null, false]
+] as const) {
+  test(`OCR 本月额度核验按北京时间回显 ${verifiedAt} 为 ${checked}`, async ({ adminApi, page }) => {
+    await page.route('**/api/v1/admin/media/ocr/quota', async (route) =>
+      route.fulfill({
+        json: {
+          enabled: true,
+          monthly_limit: 100,
+          free_quota: 100,
+          paid_disabled: true,
+          quota_verified_at: verifiedAt,
+          month: '2026-10',
+          reserved_count: 0,
+          remaining: 100
+        }
+      })
+    )
+    await loginAsAdmin(page)
+    await navigateInApp(page, '/content/import')
+    await expect(page.getByRole('button', { name: '保存 OCR 设置', exact: true })).toBeEnabled()
+    const verification = page.getByRole('checkbox', { name: '已在百度控制台核验本月额度' })
+    if (checked) await expect(verification).toBeChecked()
+    else await expect(verification).not.toBeChecked()
+    expect(adminApi.unexpectedRequests).toEqual([])
+  })
+}
+
 test('OCR 额度首次读取挂起或失败时不能编辑保存，重新读取后恢复服务器值', async ({
   adminApi,
   page

@@ -11,6 +11,7 @@ import { validateImageBatch } from '@/features/content-import/import-validation'
 import { createUploadAdapter } from '@/features/content-import/upload-adapter'
 import { useUploadQueue } from '@/features/content-import/use-upload-queue'
 import { createOcrAdapter } from '@/features/ocr/ocr-adapter'
+import { isOcrQuotaVerifiedThisMonth } from '@/features/ocr/ocr-model'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 import { useIdempotentCommand } from '@/shared/commands/idempotent-command'
 
@@ -38,46 +39,46 @@ const ocrSettings = reactive({
   verify_quota: false
 })
 const quotaText = ref('')
-/** 加载系列和服务器 OCR 额度。 */
-async function loadContext(): Promise<void> {
-  loadingOcr.value = true
-  ocrSettingsReady.value = false
-  ocrSettingsError.value = ''
-  try {
-    series.value = await adapter.listSeries()
-    const quota = await ocr.getQuota()
-    Object.assign(ocrSettings, quota)
-    quotaText.value = `${quota.month} 已使用 ${quota.reserved_count}，剩余 ${quota.remaining}，控制台核验 ${quota.quota_verified_at || '尚未完成'}`
-    ocrSettingsReady.value = true
-  } catch (failure) {
-    ocrSettingsError.value = failure instanceof Error ? failure.message : '配置加载失败'
-    ElMessage.error(ocrSettingsError.value)
-  } finally {
-    loadingOcr.value = false
+const /** 加载系列、OCR 额度及本月核验状态 */
+  loadContext = async (): Promise<void> => {
+    loadingOcr.value = true
+    ocrSettingsReady.value = false
+    ocrSettingsError.value = ''
+    try {
+      series.value = await adapter.listSeries()
+      const quota = await ocr.getQuota()
+      Object.assign(ocrSettings, quota)
+      ocrSettings.verify_quota = isOcrQuotaVerifiedThisMonth(quota.quota_verified_at, quota.month)
+      quotaText.value = `${quota.month} 已使用 ${quota.reserved_count}，剩余 ${quota.remaining}，控制台核验 ${quota.quota_verified_at || '尚未完成'}`
+      ocrSettingsReady.value = true
+    } catch (failure) {
+      ocrSettingsError.value = failure instanceof Error ? failure.message : '配置加载失败'
+      ElMessage.error(ocrSettingsError.value)
+    } finally {
+      loadingOcr.value = false
+    }
   }
-}
-/** 保存 OCR 配置和管理员控制台核验记录。 */
-async function saveOcr(): Promise<void> {
-  if (savingOcr.value || !ocrSettingsReady.value) return
-  savingOcr.value = true
-  try {
-    await ocrSettingsCommand.submit({
-      enabled: ocrSettings.enabled,
-      monthly_limit: ocrSettings.monthly_limit,
-      free_quota: ocrSettings.free_quota,
-      paid_disabled: ocrSettings.paid_disabled,
-      verify_quota: ocrSettings.verify_quota
-    })
-    ocrSettingsCommand.reset()
-    ocrSettings.verify_quota = false
-    await loadContext()
-    ElMessage.success('OCR 设置已保存')
-  } catch (failure) {
-    ElMessage.error(failure instanceof Error ? failure.message : 'OCR 设置保存失败')
-  } finally {
-    savingOcr.value = false
+const /** 保存 OCR 配置和管理员控制台核验记录并恢复服务端状态 */
+  saveOcr = async (): Promise<void> => {
+    if (savingOcr.value || !ocrSettingsReady.value) return
+    savingOcr.value = true
+    try {
+      await ocrSettingsCommand.submit({
+        enabled: ocrSettings.enabled,
+        monthly_limit: ocrSettings.monthly_limit,
+        free_quota: ocrSettings.free_quota,
+        paid_disabled: ocrSettings.paid_disabled,
+        verify_quota: ocrSettings.verify_quota
+      })
+      ocrSettingsCommand.reset()
+      await loadContext()
+      ElMessage.success('OCR 设置已保存')
+    } catch (failure) {
+      ElMessage.error(failure instanceof Error ? failure.message : 'OCR 设置保存失败')
+    } finally {
+      savingOcr.value = false
+    }
   }
-}
 /** 编辑上传确认后自动建立的场景草稿。
  * @param item - 上传素材
  */
