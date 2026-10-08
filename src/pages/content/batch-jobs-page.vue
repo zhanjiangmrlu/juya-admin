@@ -245,10 +245,11 @@ function exportResult(id: string): void {
           </ElCollapseItem>
         </ElCollapse>
         <AppPagination
+          v-if="total > 0"
           :current-page="page"
           :page-size="pageSize"
           :total="total"
-          :disabled="state === 'loading' || state === 'saving'"
+          :disabled="['loading', 'saving'].includes(state)"
           @change="controller.load"
         />
       </AdminPanel>
