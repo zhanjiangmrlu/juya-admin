@@ -23,6 +23,7 @@ export const ANALYTICS_METRICS = [
   'OPEN_LEARNERS',
   'CONTACT_EXPOSURES',
   'CONTACT_SUBMISSIONS',
+  'CONTACT_CHANGES',
   'CONTACT_WITHDRAWALS',
   'CONTACT_STATES',
   'CONTACT_WITHDRAW_RATE',
@@ -135,7 +136,7 @@ const anonymousDimensions = new Set([
 
 export const RATIO_BASES: Readonly<Record<string, string>> = {
   FEEDBACK_RESPONSE_SECONDS: '累计首次响应秒数 / 首次响应反馈数量',
-  CONTACT_FUNNEL: '填写次数 / 提示曝光次数',
+  CONTACT_FUNNEL: '首次填写转化数(按曝光去重) / 提示曝光次数',
   LIMITED_START_EXPIRATIONS: '未开始失效人数 / 开通人数',
   CONTACT_WITHDRAW_RATE: '撤回次数 / 填写次数',
   OPEN_ALL_RATE: '三开放场景全部完成人数 / 开放场景启动人数',
@@ -159,6 +160,7 @@ export const METRIC_LABELS: Readonly<Record<string, string>> = {
   OPEN_LEARNERS: '开放场景学习人数',
   CONTACT_EXPOSURES: '联系提示曝光',
   CONTACT_SUBMISSIONS: '联系资料填写',
+  CONTACT_CHANGES: '联系资料修改',
   CONTACT_WITHDRAWALS: '联系资料撤回',
   CONTACT_STATES: '联系资料状态',
   CONTACT_WITHDRAW_RATE: '联系撤回率',

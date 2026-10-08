@@ -16,6 +16,51 @@ const responseBody = {
 }
 
 describe('analytics query adapter', () => {
+  it('keeps summary data when contact detail changes are included', async () => {
+    const rows = [
+      ...responseBody.rows,
+      { day: '2026-09-28', dimension: 'ALL', metric: 'CONTACT_CHANGES', value: 2 }
+    ]
+    const adapter = createAnalyticsAdapter(
+      createApiClient({
+        fetchImplementation: async () => new Response(JSON.stringify({ ...responseBody, rows }))
+      })
+    )
+    expect((await adapter.query('2026-09-01', '2026-09-30', 'week')).rows).toEqual(rows)
+  })
+
+  it('accepts the deduplicated first contact conversion basis from the backend', async () => {
+    const adapter = createAnalyticsAdapter(
+      createApiClient({
+        fetchImplementation: async () =>
+          new Response(
+            JSON.stringify({
+              ...responseBody,
+              rows: [
+                { day: '2026-09-28', dimension: 'NUMERATOR', metric: 'CONTACT_FUNNEL', value: 2 },
+                { day: '2026-09-28', dimension: 'DENOMINATOR', metric: 'CONTACT_FUNNEL', value: 4 }
+              ],
+              ratios: [
+                {
+                  day: '2026-09-28',
+                  metric: 'CONTACT_FUNNEL',
+                  numerator: 2,
+                  denominator: 4,
+                  rate: 0.5,
+                  basis: '首次填写转化数(按曝光去重) / 提示曝光次数'
+                }
+              ]
+            })
+          )
+      })
+    )
+    expect((await adapter.query('2026-09-01', '2026-09-30', 'week')).ratios[0]).toMatchObject({
+      numerator: 2,
+      denominator: 4,
+      rate: 0.5
+    })
+  })
+
   it('preserves the server active-user counting basis', async () => {
     const adapter = createAnalyticsAdapter(
       createApiClient({
