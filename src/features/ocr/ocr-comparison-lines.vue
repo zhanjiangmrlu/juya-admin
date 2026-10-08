@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+
 import type { OcrGroup, OcrSuggestions } from './ocr-suggestions'
 defineProps<{ suggestions: OcrSuggestions; acceptedGroups: string[] }>()
 const emit = defineEmits<{
@@ -13,7 +15,7 @@ const emit = defineEmits<{
       或无置信度的行需重点复核。四部分建议仅供人工选择，不提供原图中不存在的翻译。
     </p>
     <div class="group-grid">
-      <ElCard v-for="group in suggestions.groups" :key="group.field" shadow="never">
+      <AdminPanel v-for="group in suggestions.groups" :key="group.field">
         <h4>{{ group.label }} · {{ group.line_ids.length }} 行</h4>
         <p>{{ group.reason }}</p>
         <p v-for="id in group.line_ids" :key="id">
@@ -26,7 +28,7 @@ const emit = defineEmits<{
             acceptedGroups.includes(group.field) ? '已加入候选' : '确认分组并加入候选'
           }}</ElButton
         >
-      </ElCard>
+      </AdminPanel>
     </div>
     <p>未分组：{{ suggestions.unassigned_line_ids.length }} 行，请对照原图逐项判断。</p>
     <div v-for="line in suggestions.lines" :key="line.id" class="ocr-line">

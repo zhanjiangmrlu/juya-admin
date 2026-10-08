@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import DialogueFields from '@/features/content-editor/dialogue-fields.vue'
 import LexiconFields from '@/features/content-editor/lexicon-fields.vue'
 
@@ -11,13 +13,11 @@ const emit = defineEmits<{ busy: [section: 'vocabulary' | 'chunks', value: boole
 const form = computed(() => props.form)
 </script>
 <template>
-  <div class="scene-proofread-panel">
-    <ElCard shadow="never">
-      <template #header><h3>对话与句子</h3></template>
+  <div class="scene-proofread-panel admin-brand-headings">
+    <AdminPanel :title="ADMIN_SECTION_TITLES.sceneProofreadPanel.dialogue">
       <DialogueFields v-model="form.dialogue" />
-    </ElCard>
-    <ElCard shadow="never">
-      <template #header><h3>核心词汇</h3></template>
+    </AdminPanel>
+    <AdminPanel :title="ADMIN_SECTION_TITLES.sceneProofreadPanel.vocabulary">
       <LexiconFields
         v-model="form.vocabulary"
         entry-type="vocabulary"
@@ -25,9 +25,8 @@ const form = computed(() => props.form)
         :original-image-asset-id="form.original_image_asset_id"
         @busy="emit('busy', 'vocabulary', $event)"
       />
-    </ElCard>
-    <ElCard shadow="never">
-      <template #header><h3>常用语块</h3></template>
+    </AdminPanel>
+    <AdminPanel :title="ADMIN_SECTION_TITLES.sceneProofreadPanel.chunks">
       <LexiconFields
         v-model="form.chunks"
         entry-type="chunk"
@@ -35,7 +34,7 @@ const form = computed(() => props.form)
         :original-image-asset-id="form.original_image_asset_id"
         @busy="emit('busy', 'chunks', $event)"
       />
-    </ElCard>
+    </AdminPanel>
   </div>
 </template>
 <style scoped lang="scss">
@@ -44,12 +43,6 @@ const form = computed(() => props.form)
   display: grid;
   gap: 14px;
   min-width: 0;
-}
-
-h3 {
-  margin: 0;
-  color: var(--juya-color-sidebar);
-  font-size: 20px;
 }
 
 .scene-proofread-panel :deep(.el-card__header) {

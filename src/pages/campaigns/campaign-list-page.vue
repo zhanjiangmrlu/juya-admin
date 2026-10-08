@@ -2,8 +2,12 @@
 import { reactive, ref, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { ADMIN_TABLE_COLUMNS, ADMIN_UI_DEFAULTS } from '@/app/admin-ui.config'
+import AdminNotice from '@/components/admin-notice/admin-notice.vue'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
+import DataTable from '@/components/data-table/data-table.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
 import { createApiClient } from '@/services/api/api-client'
@@ -23,8 +27,17 @@ const adapter = createCampaignAdapter(
     }
   })
 )
-const filters = reactive({ page: 1, pageSize: 10, status: '' })
-const page = ref<CampaignPage>({ items: [], page: 1, pageSize: 10, total: 0 })
+const filters = reactive({
+  page: 1,
+  pageSize: ADMIN_UI_DEFAULTS.pagination.pageSize as number,
+  status: ''
+})
+const page = ref<CampaignPage>({
+  items: [],
+  page: 1,
+  pageSize: ADMIN_UI_DEFAULTS.pagination.pageSize as number,
+  total: 0
+})
 const state = ref<'loading' | 'empty' | 'error' | 'success'>('loading')
 const error = ref('')
 const apiError = shallowRef<ApiError | null>(null)
@@ -63,7 +76,7 @@ void load()
 </script>
 
 <template>
-  <section class="campaign-page">
+  <section class="campaign-page admin-operations-surface">
     <p class="page-context">活动按版本发布；首次开通后部分字段锁定，容量仍可调整。</p>
     <div class="filters">
       <ElFormItem label="活动状态">
@@ -101,7 +114,7 @@ void load()
         <ElButton type="primary" @click="navigate">新建活动</ElButton>
       </RouterLink>
     </div>
-    <ElCard shadow="never" class="table-card">
+    <AdminPanel class="table-card">
       <ElSkeleton v-if="state === 'loading'" :rows="5" animated aria-label="正在加载活动" />
       <ElAlert
         v-else-if="state === 'error'"
@@ -116,42 +129,35 @@ void load()
         v-else-if="state === 'empty'"
         description="暂无活动。可以新建活动，或清除状态筛选。"
       />
-      <ElTable v-else :data="page.items" class="data-table">
-        <ElTableColumn prop="name" label="活动" min-width="200" show-overflow-tooltip />
-        <ElTableColumn prop="id" label="活动编号" min-width="150" show-overflow-tooltip />
-        <ElTableColumn label="版本" width="90"
-          ><template #default="{ row }">v{{ row.version }}</template></ElTableColumn
+      <DataTable
+        v-else
+        :columns="ADMIN_TABLE_COLUMNS.campaigns"
+        :rows="page.items"
+        class="data-table"
+      >
+        <template #version="{ row }">v{{ row.version }}</template>
+        <template #capacity="{ row }"
+          >{{ row.grantedUserCount ?? '—' }} / {{ row.capacity ?? '—' }}</template
         >
-        <ElTableColumn label="开通人数 / 容量" min-width="160"
-          ><template #default="{ row }"
-            >{{ row.grantedUserCount ?? '—' }} / {{ row.capacity ?? '—' }}</template
-          ></ElTableColumn
-        >
-        <ElTableColumn prop="status" label="状态" width="100"
-          ><template #default="{ row }">{{
-            {
-              DRAFT: '草稿',
-              OPEN: '已启用',
-              PAUSED: '已暂停',
-              ENDED: '已结束',
-              ARCHIVED: '已归档',
-              CLOSED: '已关闭'
-            }[row.status as 'DRAFT'] ?? row.status
-          }}</template></ElTableColumn
-        >
-        <ElTableColumn label="操作" width="180"
-          ><template #default="scope">
-            <RouterLink :to="{ name: 'campaign-edit', params: { id: scope.row.id } }"
-              >编辑</RouterLink
-            >
-            <RouterLink
-              class="link"
-              :to="{ name: 'campaign-versions', params: { id: scope.row.id } }"
-              >版本与容量</RouterLink
-            >
-          </template></ElTableColumn
-        >
-      </ElTable>
+        <template #status="{ row }">{{
+          {
+            DRAFT: '草稿',
+            OPEN: '已启用',
+            PAUSED: '已暂停',
+            ENDED: '已结束',
+            ARCHIVED: '已归档',
+            CLOSED: '已关闭'
+          }[row.status as 'DRAFT'] ?? row.status
+        }}</template>
+        <template #actions="scope">
+          <RouterLink :to="{ name: 'campaign-edit', params: { id: scope.row.id } }"
+            >编辑</RouterLink
+          >
+          <RouterLink class="link" :to="{ name: 'campaign-versions', params: { id: scope.row.id } }"
+            >版本与容量</RouterLink
+          >
+        </template>
+      </DataTable>
       <AppPagination
         v-model:current-page="filters.page"
         v-model:page-size="filters.pageSize"
@@ -159,11 +165,10 @@ void load()
         :disabled="state === 'loading'"
         @change="changePage"
       />
-    </ElCard>
-    <aside class="notice">
-      <strong>操作说明</strong>
+    </AdminPanel>
+    <AdminNotice class="notice" title="操作说明">
       <p>活动支持草稿、启用、暂停、恢复、结束、复制和归档；保留版本记录。</p>
-    </aside>
+    </AdminNotice>
   </section>
 </template>
 
@@ -199,51 +204,6 @@ void load()
     margin: 8px 0 0;
     color: var(--juya-color-text-secondary);
     font-size: 13px;
-  }
-
-  .notice {
-    padding: 16px;
-    border-radius: 16px;
-    background: #e5f0dc;
-    font-size: 13px;
-    line-height: 1.8;
-  }
-
-  .notice strong {
-    color: #4e7f3b;
-    font-size: 14px;
-  }
-
-  .notice p {
-    margin: 20px 0 0;
-  }
-
-  :deep(.el-card) {
-    border-color: #d8e5d1;
-    border-radius: 18px;
-    background: #fffdf7;
-    box-shadow: none;
-  }
-
-  :deep(.el-card__header) {
-    padding: 16px 20px 12px;
-    border-bottom: 0;
-  }
-
-  :deep(.el-card__body) {
-    padding: 20px;
-  }
-
-  :deep(.el-button) {
-    min-height: 38px;
-    border-radius: 10px;
-  }
-
-  :deep(.el-input__wrapper),
-  :deep(.el-select__wrapper),
-  :deep(.el-textarea__inner) {
-    border-radius: 10px;
-    background: #fffdf7;
   }
 
   .filters {

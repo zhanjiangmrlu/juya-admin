@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import DialogueFields from '@/features/content-editor/dialogue-fields.vue'
 import LexiconFields from '@/features/content-editor/lexicon-fields.vue'
 import OcrComparisonLines from '@/features/ocr/ocr-comparison-lines.vue'
@@ -34,7 +35,7 @@ const emit = defineEmits<{
 <template>
   <!-- eslint-disable vue/no-mutating-props -- 接入约定允许编辑父页持有的候选对象嵌套字段。 -->
   <section class="scene-ocr-panel">
-    <ElCard class="recognition-card" shadow="never">
+    <AdminPanel class="recognition-card">
       <template #header
         ><h3>原图与 OCR 行位置</h3>
         <p>完整学习图片仅供管理员校对</p></template
@@ -112,8 +113,8 @@ const emit = defineEmits<{
           </ElDropdown>
         </div>
       </fieldset>
-    </ElCard>
-    <ElCard class="ocr-comparison" shadow="never">
+    </AdminPanel>
+    <AdminPanel class="ocr-comparison">
       <template #header
         ><h3>候选内容人工归类</h3>
         <p>与人工确认字段并排比较</p></template
@@ -202,7 +203,7 @@ const emit = defineEmits<{
           >采纳选中字段到当前草稿</ElButton
         >
       </fieldset>
-    </ElCard>
+    </AdminPanel>
   </section>
 </template>
 

@@ -3,6 +3,8 @@ import { ElMessage } from 'element-plus'
 import { reactive, ref, shallowRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
@@ -158,10 +160,9 @@ function formatServerTime(value: string | null): string {
 </script>
 
 <template>
-  <section class="formal-grant-page">
+  <section class="formal-grant-page admin-brand-headings">
     <ElForm class="grant-layout" label-position="top" @submit.prevent="handlePreview">
-      <ElCard class="editor-card" shadow="never"
-        ><template #header><h3>授予正式包</h3></template>
+      <AdminPanel :title="ADMIN_SECTION_TITLES.formalGrant.editorCard" class="editor-card">
         <p class="record-summary">核对用户、内容包和新到期日后提交。</p>
         <div class="form-grid">
           <ElFormItem label="操作类型" required>
@@ -259,9 +260,9 @@ function formatServerTime(value: string | null): string {
             ><strong>{{ formatServerTime(controller.previewResult.value.expiresAt) }}</strong>
           </div>
         </div>
-      </ElCard>
+      </AdminPanel>
       <div class="check-column">
-        <ElCard class="check-card" shadow="never"
+        <AdminPanel class="check-card"
           ><template #header
             ><div class="card-heading">
               <h3>提交核对</h3>
@@ -282,7 +283,7 @@ function formatServerTime(value: string | null): string {
               <strong>权益冲突</strong
               ><span>检查当前权益状态和到期时间，确认弹窗会再次展示操作对象。</span>
             </div>
-          </div></ElCard
+          </div></AdminPanel
         >
         <aside class="management-note">
           <strong>提交前确认</strong>

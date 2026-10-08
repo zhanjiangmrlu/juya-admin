@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import StatusTag from '@/components/status-tag/status-tag.vue'
 import ViewportFill from '@/components/viewport-fill/viewport-fill.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
@@ -98,19 +99,18 @@ function formatDueAt(value: string): string {
     <template v-else>
       <div class="metrics">
         <RouterLink v-for="(metric, index) in primaryMetrics" :key="metric.label" :to="metric.to">
-          <ElCard
+          <AdminPanel
             class="metric"
             :class="{ 'metric-highlight': index === 0, 'metric-warning': index === 3 }"
-            shadow="never"
           >
             <span>{{ metric.label }}</span>
             <strong>{{ metric.value }}</strong>
-          </ElCard>
+          </AdminPanel>
         </RouterLink>
       </div>
 
       <div class="content">
-        <ElCard class="panel" shadow="never">
+        <AdminPanel class="panel">
           <template #header>
             <div class="panel-heading">
               <h2>紧急待办</h2>
@@ -154,9 +154,9 @@ function formatDueAt(value: string): string {
           <RouterLink class="message-entry" to="/work-items"
             ><ElButton type="primary">打开消息中心</ElButton></RouterLink
           >
-        </ElCard>
+        </AdminPanel>
 
-        <ElCard class="panel" shadow="never">
+        <AdminPanel class="panel">
           <template #header>
             <div class="panel-heading">
               <h2>普通数据提醒</h2>
@@ -210,7 +210,7 @@ function formatDueAt(value: string): string {
               </RouterLink>
             </li>
           </ul>
-        </ElCard>
+        </AdminPanel>
       </div>
       <aside class="permission-note">
         <strong>权限与内容提醒</strong>

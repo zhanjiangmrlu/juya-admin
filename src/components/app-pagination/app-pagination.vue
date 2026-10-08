@@ -10,6 +10,8 @@ import {
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { ref, watch } from 'vue'
 
+import { ADMIN_UI_DEFAULTS } from '@/app/admin-ui.config'
+
 const props = withDefaults(
   defineProps<{
     currentPage?: number
@@ -17,8 +19,16 @@ const props = withDefaults(
     total?: number
     hasNext?: boolean
     disabled?: boolean
+    pageSizes?: readonly number[]
   }>(),
-  { currentPage: 1, pageSize: 10, total: undefined, hasNext: false, disabled: false }
+  {
+    currentPage: 1,
+    pageSize: ADMIN_UI_DEFAULTS.pagination.pageSize,
+    pageSizes: () => ADMIN_UI_DEFAULTS.pagination.pageSizes,
+    total: undefined,
+    hasNext: false,
+    disabled: false
+  }
 )
 const emit = defineEmits<{
   'update:currentPage': [page: number]
@@ -66,12 +76,7 @@ function changeSize(size: number): void {
         class="app-pagination-sizes"
         @update:model-value="changeSize"
       >
-        <ElOption
-          v-for="size in [10, 20, 50, 100]"
-          :key="size"
-          :label="`${size} 条/页`"
-          :value="size"
-        />
+        <ElOption v-for="size in pageSizes" :key="size" :label="`${size} 条/页`" :value="size" />
       </ElSelect>
       <ElPagination
         v-if="total !== undefined"

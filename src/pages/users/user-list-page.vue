@@ -3,6 +3,8 @@ import { Search } from '@element-plus/icons-vue'
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { ADMIN_TABLE_COLUMNS, ADMIN_UI_DEFAULTS } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import DataTable from '@/components/data-table/data-table.vue'
 import StatusTag from '@/components/status-tag/status-tag.vue'
@@ -20,7 +22,7 @@ import type { ContactStatus, UserSearchFilters } from '@/features/users/user-ada
 const router = useRouter()
 const route = useRoute()
 const page = ref(1)
-const pageSize = ref(10)
+const pageSize = ref<number>(ADMIN_UI_DEFAULTS.pagination.pageSize)
 const authStore = useAuthStore()
 const operationFilters = reactive<UserSearchFilters>({
   cohort:
@@ -248,74 +250,57 @@ function contactStatusLabel(status: string | undefined): string {
         show-icon
       />
 
-      <ElCard class="table-card" shadow="never">
+      <AdminPanel class="table-card">
         <DataTable
+          :columns="ADMIN_TABLE_COLUMNS.users"
           :empty-text="controller.state.value === 'empty' ? '未找到匹配用户' : '暂无用户数据'"
           :loading="controller.state.value === 'loading'"
           row-key="user_id"
           :rows="controller.users.value"
         >
-          <ElTableColumn label="用户" min-width="190">
-            <template #default="{ row }">
-              <div class="identity">
-                <ElAvatar :src="row.avatar_url || undefined" :size="32">{{
-                  (row.nickname || row.juya_number || row.user_id).slice(0, 1)
-                }}</ElAvatar>
-                <strong>{{ row.nickname || '未设置昵称' }}</strong>
-                <span>{{ row.juya_number || row.user_id }}</span>
-                <span>最近活跃：{{ formatDateTime(row.last_active_at) }}</span>
-              </div>
-            </template>
-          </ElTableColumn>
-          <ElTableColumn label="账号状态" min-width="100">
-            <template #default="{ row }">
-              <StatusTag
-                :label="getAccountStatusLabel(row.account_status)"
-                :tone="getAccountStatusTone(row.account_status)"
-              />
-            </template>
-          </ElTableColumn>
-          <ElTableColumn label="完整微信号" min-width="155">
-            <template #default="{ row }">
-              <span class="contact-value">{{ row.contact?.wechat_id || '未填写' }}</span>
-            </template>
-          </ElTableColumn>
-          <ElTableColumn label="联系状态" min-width="100">
-            <template #default="{ row }">{{
-              contactStatusLabel(row.contact?.contact_status)
-            }}</template>
-          </ElTableColumn>
-          <ElTableColumn label="微信号变更" min-width="90"
-            ><template #default="{ row }"
-              ><ElTag v-if="row.change_pending || row.contact?.change_pending" type="warning"
-                >待核对</ElTag
-              ><span v-else>—</span></template
-            ></ElTableColumn
+          <template #user="{ row }">
+            <div class="identity">
+              <ElAvatar :src="row.avatar_url || undefined" :size="32">{{
+                (row.nickname || row.juya_number || row.user_id).slice(0, 1)
+              }}</ElAvatar>
+              <strong>{{ row.nickname || '未设置昵称' }}</strong>
+              <span>{{ row.juya_number || row.user_id }}</span>
+              <span>最近活跃：{{ formatDateTime(row.last_active_at) }}</span>
+            </div>
+          </template>
+          <template #account="{ row }">
+            <StatusTag
+              :label="getAccountStatusLabel(row.account_status)"
+              :tone="getAccountStatusTone(row.account_status)"
+            />
+          </template>
+          <template #contact="{ row }">
+            <span class="contact-value">{{ row.contact?.wechat_id || '未填写' }}</span>
+          </template>
+          <template #contactStatus="{ row }">{{
+            contactStatusLabel(row.contact?.contact_status)
+          }}</template>
+          <template #changePending="{ row }"
+            ><ElTag v-if="row.change_pending || row.contact?.change_pending" type="warning"
+              >待核对</ElTag
+            ><span v-else>—</span></template
           >
-          <ElTableColumn prop="open_scene_completed_count" label="开放完成" min-width="95" />
-          <ElTableColumn label="反馈摘要" min-width="100"
-            ><template #default="{ row }"
-              >待处理 {{ row.open_feedback_count }}</template
-            ></ElTableColumn
-          >
-          <ElTableColumn label="权益摘要" min-width="130">
-            <template #default="{ row }">
-              正式 {{ row.formal_entitlement_count }} · 限时 {{ row.limited_entitlement_count }}
-            </template>
-          </ElTableColumn>
-          <ElTableColumn fixed="right" label="操作" width="90">
-            <template #default="{ row }">
-              <RouterLink
-                v-slot="{ navigate }"
-                custom
-                :to="{ name: 'user-detail', params: { userId: row.user_id } }"
-              >
-                <ElButton size="small" type="primary" link @click="navigate">查看</ElButton>
-              </RouterLink>
-            </template>
-          </ElTableColumn>
+
+          <template #feedback="{ row }">待处理 {{ row.open_feedback_count }}</template>
+          <template #entitlements="{ row }">
+            正式 {{ row.formal_entitlement_count }} · 限时 {{ row.limited_entitlement_count }}
+          </template>
+          <template #actions="{ row }">
+            <RouterLink
+              v-slot="{ navigate }"
+              custom
+              :to="{ name: 'user-detail', params: { userId: row.user_id } }"
+            >
+              <ElButton size="small" type="primary" link @click="navigate">查看</ElButton>
+            </RouterLink>
+          </template>
         </DataTable>
-      </ElCard>
+      </AdminPanel>
       <AppPagination
         v-model:current-page="page"
         v-model:page-size="pageSize"
@@ -334,41 +319,33 @@ function contactStatusLabel(status: string | undefined): string {
         type="error"
         show-icon
       />
-      <ElCard class="table-card" shadow="never">
+      <AdminPanel class="table-card">
         <DataTable
+          :columns="ADMIN_TABLE_COLUMNS.contactCorrections"
           :empty-text="corrections.state.value === 'empty' ? '暂无联系更正申请' : '暂无数据'"
           :loading="corrections.state.value === 'loading'"
           row-key="id"
           :rows="corrections.items.value"
         >
-          <ElTableColumn label="申请编号" min-width="140" prop="id" />
-          <ElTableColumn label="用户" min-width="180">
-            <template #default="{ row }">
-              <div class="identity">
-                <strong>{{ row.juya_number }}</strong
-                ><span>{{ row.nickname || row.user_id }}</span>
-              </div>
-            </template>
-          </ElTableColumn>
-          <ElTableColumn label="当前微信号" min-width="180" prop="wechat_id" />
-          <ElTableColumn label="更正原因" min-width="260" show-overflow-tooltip prop="reason" />
-          <ElTableColumn label="状态" min-width="110" prop="status" />
-          <ElTableColumn label="申请时间" min-width="160">
-            <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
-          </ElTableColumn>
-          <ElTableColumn fixed="right" label="操作" width="90">
-            <template #default="{ row }">
-              <RouterLink
-                v-slot="{ navigate }"
-                custom
-                :to="{ name: 'contact-correction', params: { id: row.id } }"
-              >
-                <ElButton size="small" type="primary" link @click="navigate">处理</ElButton>
-              </RouterLink>
-            </template>
-          </ElTableColumn>
+          <template #user="{ row }">
+            <div class="identity">
+              <strong>{{ row.juya_number }}</strong
+              ><span>{{ row.nickname || row.user_id }}</span>
+            </div>
+          </template>
+
+          <template #createdAt="{ row }">{{ formatDateTime(row.created_at) }}</template>
+          <template #actions="{ row }">
+            <RouterLink
+              v-slot="{ navigate }"
+              custom
+              :to="{ name: 'contact-correction', params: { id: row.id } }"
+            >
+              <ElButton size="small" type="primary" link @click="navigate">处理</ElButton>
+            </RouterLink>
+          </template>
         </DataTable>
-      </ElCard>
+      </AdminPanel>
     </template>
     <aside class="management-note">
       <strong>联系方式可见范围</strong>

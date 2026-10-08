@@ -2,6 +2,9 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminNotice from '@/components/admin-notice/admin-notice.vue'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import AuditTimeline from '@/components/audit-timeline/audit-timeline.vue'
 import PlainTextContent from '@/components/plain-text-content/plain-text-content.vue'
@@ -134,7 +137,7 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
 </script>
 
 <template>
-  <section class="feedback-detail-page">
+  <section class="feedback-detail-page admin-operations-surface">
     <ElAlert
       v-if="controller.error.value"
       :closable="false"
@@ -147,7 +150,7 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
     <template v-else-if="controller.ticket.value">
       <div class="detail-grid">
         <div class="primary-column">
-          <ElCard class="source-card" shadow="never">
+          <AdminPanel class="source-card">
             <template #header
               ><div class="card-heading">
                 <h3>用户说明与来源</h3>
@@ -202,11 +205,14 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
                 ></ElDescriptionsItem
               >
             </ElDescriptions>
-          </ElCard>
+          </AdminPanel>
         </div>
         <div class="secondary-column">
-          <ElCard class="timeline-card" shadow="never">
-            <template #header><h3 class="panel-title">完整处理时间线</h3></template>
+          <AdminPanel
+            :title="ADMIN_SECTION_TITLES.feedbackDetail.timelineCard"
+            title-class="panel-title"
+            class="timeline-card"
+          >
             <AuditTimeline :items="timeline" />
             <div class="timeline-action">
               <RouterLink
@@ -221,16 +227,18 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
                 ><ElButton type="primary" @click="navigate">处理反馈</ElButton></RouterLink
               >
             </div>
-          </ElCard>
+          </AdminPanel>
         </div>
       </div>
-      <aside class="notice">
-        <strong>管理提醒</strong>
+      <AdminNotice class="notice" title="管理提醒">
         <p>内部备注与对用户回复分开记录；每次动作前再次核对当前状态。</p>
-      </aside>
+      </AdminNotice>
       <div class="records-grid">
-        <ElCard v-if="controller.ticket.value.rounds.length" shadow="never">
-          <template #header><h3 class="panel-title">补充记录</h3></template>
+        <AdminPanel
+          v-if="controller.ticket.value.rounds.length"
+          :title="ADMIN_SECTION_TITLES.feedbackDetail.supplements"
+          title-class="panel-title"
+        >
           <div
             v-for="round in controller.ticket.value.rounds"
             :key="round.roundNumber"
@@ -245,9 +253,12 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
             <PlainTextContent :content="round.requestText ?? '未记录补充要求'" />
             <PlainTextContent :content="round.supplementText ?? '等待用户补充'" />
           </div>
-        </ElCard>
-        <ElCard v-if="controller.ticket.value.replies.length" shadow="never">
-          <template #header><h3 class="panel-title">回复记录</h3></template>
+        </AdminPanel>
+        <AdminPanel
+          v-if="controller.ticket.value.replies.length"
+          :title="ADMIN_SECTION_TITLES.feedbackDetail.replies"
+          title-class="panel-title"
+        >
           <div
             v-for="reply in controller.ticket.value.replies"
             :key="`${reply.sentAt}-${reply.adminId}`"
@@ -257,8 +268,8 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
             <PlainTextContent :content="reply.note ?? '未填写补充说明'" />
             <small>{{ reply.adminId }} · {{ formatDateTime(reply.sentAt) }}</small>
           </div>
-        </ElCard>
-        <ElCard shadow="never">
+        </AdminPanel>
+        <AdminPanel>
           <template #header>
             <div class="card-heading">
               <h3>反馈截图</h3>
@@ -283,9 +294,11 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
             <p>临时地址有效至 {{ formatDateTime(controller.screenshotExpiresAt.value ?? '') }}</p>
           </div>
           <p v-else class="capability-note">截图仅在点击后签发短期地址，离开页面即清除。</p>
-        </ElCard>
-        <ElCard shadow="never"
-          ><template #header><h3 class="panel-title">反馈信息</h3></template>
+        </AdminPanel>
+        <AdminPanel
+          :title="ADMIN_SECTION_TITLES.feedbackDetail.feedbackInfo"
+          title-class="panel-title"
+        >
           <ElDescriptions :column="1">
             <ElDescriptionsItem label="用户编号">{{
               controller.ticket.value.userId
@@ -303,9 +316,12 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
               >{{ controller.ticket.value.supplementRounds }} / 2</ElDescriptionsItem
             >
           </ElDescriptions>
-        </ElCard>
-        <ElCard v-if="controller.ticket.value.internalNotes.length" shadow="never">
-          <template #header><h3 class="panel-title">内部备注</h3></template>
+        </AdminPanel>
+        <AdminPanel
+          v-if="controller.ticket.value.internalNotes.length"
+          :title="ADMIN_SECTION_TITLES.feedbackDetail.internalNotes"
+          title-class="panel-title"
+        >
           <div
             v-for="note in controller.ticket.value.internalNotes"
             :key="note.id"
@@ -314,7 +330,7 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
             <PlainTextContent :content="note.content" />
             <small>{{ note.adminId }} · {{ formatDateTime(note.createdAt) }}</small>
           </div>
-        </ElCard>
+        </AdminPanel>
       </div>
     </template>
   </section>
@@ -352,51 +368,6 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
     margin: 8px 0 0;
     color: var(--juya-color-text-secondary);
     font-size: 13px;
-  }
-
-  .notice {
-    padding: 16px;
-    border-radius: 16px;
-    background: #e5f0dc;
-    font-size: 13px;
-    line-height: 1.8;
-  }
-
-  .notice strong {
-    color: #4e7f3b;
-    font-size: 14px;
-  }
-
-  .notice p {
-    margin: 20px 0 0;
-  }
-
-  :deep(.el-card) {
-    border-color: #d8e5d1;
-    border-radius: 18px;
-    background: #fffdf7;
-    box-shadow: none;
-  }
-
-  :deep(.el-card__header) {
-    padding: 16px 20px 12px;
-    border-bottom: 0;
-  }
-
-  :deep(.el-card__body) {
-    padding: 20px;
-  }
-
-  :deep(.el-button) {
-    min-height: 38px;
-    border-radius: 10px;
-  }
-
-  :deep(.el-input__wrapper),
-  :deep(.el-select__wrapper),
-  :deep(.el-textarea__inner) {
-    border-radius: 10px;
-    background: #fffdf7;
   }
 
   .records-grid {

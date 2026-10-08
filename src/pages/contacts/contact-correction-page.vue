@@ -3,6 +3,8 @@ import { ElMessageBox } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import {
   type ContactCorrectionAction,
@@ -68,7 +70,7 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
 </script>
 
 <template>
-  <section class="contact-correction-page">
+  <section class="contact-correction-page admin-brand-headings">
     <ElAlert
       v-if="controller.error.value"
       class="notice"
@@ -80,8 +82,10 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
     <ElSkeleton v-if="controller.state.value === 'loading'" :rows="8" animated />
 
     <div v-else-if="controller.detail.value" class="grid">
-      <ElCard class="application-card" shadow="never">
-        <template #header><h3>更正申请</h3></template>
+      <AdminPanel
+        :title="ADMIN_SECTION_TITLES.contactCorrection.applicationCard"
+        class="application-card"
+      >
         <p class="record-summary">
           <span>申请 {{ controller.detail.value.id }}</span
           ><span
@@ -112,9 +116,9 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
           type="info"
           show-icon
         />
-      </ElCard>
+      </AdminPanel>
 
-      <ElCard class="audit" shadow="never">
+      <AdminPanel class="audit">
         <template #header
           ><div class="card-heading">
             <h3>核对与处理</h3>
@@ -152,7 +156,7 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
             批准并重置修改机会
           </ElButton>
         </div>
-      </ElCard>
+      </AdminPanel>
     </div>
     <aside class="management-note">
       <strong>管理提醒</strong>

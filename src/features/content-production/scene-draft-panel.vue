@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+
 import type { SceneContent } from '@/features/content-editor/scene-form'
 import type { UploadFile } from 'element-plus'
 
@@ -14,7 +16,7 @@ const emit = defineEmits<{ upload: [file: UploadFile]; refreshImage: [] }>()
 const form = computed(() => props.form)
 </script>
 <template>
-  <ElCard class="scene-draft-panel" shadow="never">
+  <AdminPanel class="scene-draft-panel">
     <template #header>
       <h3>统一场景表单</h3>
       <p class="panel-description">人工录入与 OCR 候选都进入这份草稿</p>
@@ -58,7 +60,7 @@ const form = computed(() => props.form)
       </ElFormItem>
       <ElFormItem label="内容来源"><ElInput v-model="form.source" /></ElFormItem>
     </ElForm>
-  </ElCard>
+  </AdminPanel>
 </template>
 <style scoped lang="scss">
 /* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */

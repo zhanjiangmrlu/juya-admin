@@ -3,6 +3,9 @@ import { ElMessage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminNotice from '@/components/admin-notice/admin-notice.vue'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
@@ -101,7 +104,7 @@ async function confirm(): Promise<void> {
 </script>
 
 <template>
-  <section class="campaign-edit-page">
+  <section class="campaign-edit-page admin-operations-surface">
     <ElSkeleton
       v-if="editor.state.value === 'loading'"
       :rows="7"
@@ -131,7 +134,7 @@ async function confirm(): Promise<void> {
       >
     </ElAlert>
     <div class="editor-grid">
-      <ElCard class="configuration-card" shadow="never">
+      <AdminPanel class="configuration-card">
         <template #header
           ><h3>活动基础配置</h3>
           <p class="panel-subtitle">
@@ -186,10 +189,12 @@ async function confirm(): Promise<void> {
             >
           </div>
         </ElForm>
-      </ElCard>
+      </AdminPanel>
       <div class="secondary-column">
-        <ElCard shadow="never" class="validation-card">
-          <template #header><h3>发布前校验</h3></template>
+        <AdminPanel
+          :title="ADMIN_SECTION_TITLES.campaignEdit.validationCard"
+          class="validation-card"
+        >
           <div class="check-item">
             <strong>场景顺序</strong
             ><span>已配置 {{ editor.draft.value.sceneIds.length }} 个场景；保存时校验场景内容</span>
@@ -237,11 +242,10 @@ async function confirm(): Promise<void> {
               >
             </div>
           </template>
-        </ElCard>
-        <aside class="notice">
-          <strong>提交前确认</strong>
+        </AdminPanel>
+        <AdminNotice class="notice" title="提交前确认">
           <p>首次开通后期限和场景保持锁定。保存与状态操作将核对当前服务端版本。</p>
-        </aside>
+        </AdminNotice>
       </div>
     </div>
     <ConfirmDialog
@@ -293,51 +297,6 @@ async function confirm(): Promise<void> {
     margin: 8px 0 0;
     color: var(--juya-color-text-secondary);
     font-size: 13px;
-  }
-
-  .notice {
-    padding: 16px;
-    border-radius: 16px;
-    background: #e5f0dc;
-    font-size: 13px;
-    line-height: 1.8;
-  }
-
-  .notice strong {
-    color: #4e7f3b;
-    font-size: 14px;
-  }
-
-  .notice p {
-    margin: 20px 0 0;
-  }
-
-  :deep(.el-card) {
-    border-color: #d8e5d1;
-    border-radius: 18px;
-    background: #fffdf7;
-    box-shadow: none;
-  }
-
-  :deep(.el-card__header) {
-    padding: 16px 20px 12px;
-    border-bottom: 0;
-  }
-
-  :deep(.el-card__body) {
-    padding: 20px;
-  }
-
-  :deep(.el-button) {
-    min-height: 38px;
-    border-radius: 10px;
-  }
-
-  :deep(.el-input__wrapper),
-  :deep(.el-select__wrapper),
-  :deep(.el-textarea__inner) {
-    border-radius: 10px;
-    background: #fffdf7;
   }
 
   .editor-grid {

@@ -2,6 +2,8 @@
 import { ElMessage } from 'element-plus'
 import { onMounted, reactive } from 'vue'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import {
   createDiscoveryAdapter,
   type DiscoveryConfigDraft
@@ -135,7 +137,7 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="discovery-config-page">
+  <section class="discovery-config-page admin-brand-headings">
     <div class="page-heading">
       <div>
         <p class="page-description">开放场景自由学习；系列预览使用安全封面和专用片段。</p>
@@ -179,7 +181,7 @@ onMounted(load)
         show-icon
       />
       <div class="config-grid">
-        <ElCard shadow="never" class="open-scenes-panel"
+        <AdminPanel class="open-scenes-panel"
           ><template #header
             ><h3>开放学习场景</h3>
             <p class="field-help">固定选择 3 个已发布场景，自由学习顺序</p></template
@@ -197,9 +199,9 @@ onMounted(load)
             <dd>先替换，再下线当前开放场景</dd>
             <dt>历史记录</dt>
             <dd>替换后保留进度、收藏与来源句</dd>
-          </dl></ElCard
+          </dl></AdminPanel
         >
-        <ElCard shadow="never"
+        <AdminPanel
           ><template #header
             ><div class="card-heading">
               <h3>系列预览</h3>
@@ -218,9 +220,8 @@ onMounted(load)
             />
             <ElButton link type="danger" @click="form.previews.splice(index, 1)">移除</ElButton>
           </div>
-        </ElCard>
-        <ElCard shadow="never"
-          ><template #header><h3>学习模块</h3></template>
+        </AdminPanel>
+        <AdminPanel :title="ADMIN_SECTION_TITLES.discoveryConfig.learningModules">
           <ElEmpty
             v-if="Object.keys(form.learningModules).length === 0"
             description="暂无学习模块配置"
@@ -237,7 +238,7 @@ onMounted(load)
             />
           </div>
           <p class="field-help">V1.3 仅允许启用场景学习；其他模块只读展示。</p>
-        </ElCard>
+        </AdminPanel>
       </div>
     </template>
   </section>

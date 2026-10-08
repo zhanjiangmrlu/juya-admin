@@ -2,8 +2,12 @@
 import { onBeforeUnmount, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { ADMIN_TABLE_COLUMNS, ADMIN_UI_DEFAULTS } from '@/app/admin-ui.config'
+import AdminNotice from '@/components/admin-notice/admin-notice.vue'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
+import DataTable from '@/components/data-table/data-table.vue'
 import PlainTextContent from '@/components/plain-text-content/plain-text-content.vue'
 import StatusTag from '@/components/status-tag/status-tag.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
@@ -27,7 +31,7 @@ const filters = reactive({
   category: readQuery('category'),
   keyword: readQuery('keyword'),
   page: readPage(),
-  pageSize: 10,
+  pageSize: ADMIN_UI_DEFAULTS.pagination.pageSize as number,
   sla: readQuery('sla'),
   status: readQuery('status')
 })
@@ -139,9 +143,9 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
 </script>
 
 <template>
-  <section class="feedback-list-page">
+  <section class="feedback-list-page admin-operations-surface">
     <p class="page-context">按剩余处理时限排序，补充后重新计算 48 小时。</p>
-    <ElCard shadow="never" class="list-card">
+    <AdminPanel class="list-card">
       <ElForm class="filter-bar" aria-label="反馈筛选" @submit.prevent="submitFilters">
         <ElInput v-model="filters.keyword" clearable placeholder="反馈编号或用户编号" />
         <ElSelect
@@ -197,90 +201,78 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
         v-else-if="controller.page.value.items.length === 0"
         description="没有符合条件的反馈，请调整筛选条件。"
       />
-      <ElTable v-else :data="controller.page.value.items" class="feedback-table">
-        <ElTableColumn type="expand" width="40">
-          <template #default="{ row }"
-            ><ElDescriptions :column="2" class="row-details">
-              <ElDescriptionsItem label="提交时间">{{
-                formatDateTime(row.createdAt)
-              }}</ElDescriptionsItem>
-              <ElDescriptionsItem label="最近补充时间">{{
-                formatDateTime(row.suppliedAt, '未补充')
-              }}</ElDescriptionsItem>
-              <ElDescriptionsItem label="更新时间">{{
-                formatDateTime(row.updatedAt)
-              }}</ElDescriptionsItem>
-              <ElDescriptionsItem label="反馈分类">{{
-                categoryLabels[row.category as FeedbackCategory]
-              }}</ElDescriptionsItem>
-            </ElDescriptions></template
+      <DataTable
+        v-else
+        :columns="ADMIN_TABLE_COLUMNS.feedback"
+        :rows="controller.page.value.items"
+        class="feedback-table"
+      >
+        <template #details="{ row }"
+          ><ElDescriptions :column="2" class="row-details">
+            <ElDescriptionsItem label="提交时间">{{
+              formatDateTime(row.createdAt)
+            }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="最近补充时间">{{
+              formatDateTime(row.suppliedAt, '未补充')
+            }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="更新时间">{{
+              formatDateTime(row.updatedAt)
+            }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="反馈分类">{{
+              categoryLabels[row.category as FeedbackCategory]
+            }}</ElDescriptionsItem>
+          </ElDescriptions></template
+        >
+        <template #subject="{ row }">
+          <strong>{{ row.title }} · {{ categoryLabels[row.category as FeedbackCategory] }}</strong>
+          <PlainTextContent
+            v-if="row.description !== row.title"
+            class="description-cell"
+            :content="row.description"
+          />
+          <RouterLink
+            :to="{ name: 'feedback-detail', params: { id: row.id }, query: route.query }"
+            >{{ row.id }}</RouterLink
           >
-        </ElTableColumn>
-        <ElTableColumn label="标题与分类" min-width="240">
-          <template #default="{ row }">
-            <strong
-              >{{ row.title }} · {{ categoryLabels[row.category as FeedbackCategory] }}</strong
-            >
-            <PlainTextContent
-              v-if="row.description !== row.title"
-              class="description-cell"
-              :content="row.description"
-            />
-            <RouterLink
-              :to="{ name: 'feedback-detail', params: { id: row.id }, query: route.query }"
-              >{{ row.id }}</RouterLink
-            >
-          </template>
-        </ElTableColumn>
-        <ElTableColumn prop="userId" label="用户" min-width="100" show-overflow-tooltip />
-        <ElTableColumn label="来源" min-width="160"
-          ><template #default="{ row }"
-            >{{ row.source?.page || '未记录页面' }} ·
-            {{ row.source?.scene_id || row.source?.sceneId || '未关联场景' }}</template
-          ></ElTableColumn
+        </template>
+
+        <template #source="{ row }"
+          >{{ row.source?.page || '未记录页面' }} ·
+          {{ row.source?.scene_id || row.source?.sceneId || '未关联场景' }}</template
         >
-        <ElTableColumn label="截图状态" min-width="100"
-          ><template #default="{ row }">{{
-            row.screenshotStatus === 'NONE'
-              ? '未附截图'
-              : row.screenshotStatus === 'DELETED'
-                ? '已删除'
-                : row.screenshotStatus
-          }}</template></ElTableColumn
+        <template #screenshot="{ row }">{{
+          row.screenshotStatus === 'NONE'
+            ? '未附截图'
+            : row.screenshotStatus === 'DELETED'
+              ? '已删除'
+              : row.screenshotStatus
+        }}</template>
+        <template #status="scope">
+          <StatusTag
+            :label="FEEDBACK_STATUS_LABELS[scope.row.status as FeedbackStatus]"
+            :tone="statusTone(scope.row.status as FeedbackStatus)"
+          />
+        </template>
+        <template #sla="scope">
+          <ElTag
+            :type="
+              scope.row.slaState === 'OVERDUE'
+                ? 'danger'
+                : scope.row.slaState === 'DUE_SOON'
+                  ? 'warning'
+                  : 'info'
+            "
+            effect="plain"
+          >
+            {{ slaLabels[scope.row.slaState as FeedbackSlaState] }}
+          </ElTag>
+        </template>
+        <template #actions="{ row }"
+          ><RouterLink :to="{ name: 'feedback-detail', params: { id: row.id }, query: route.query }"
+            >查看</RouterLink
+          ></template
         >
-        <ElTableColumn label="状态" width="108">
-          <template #default="scope">
-            <StatusTag
-              :label="FEEDBACK_STATUS_LABELS[scope.row.status as FeedbackStatus]"
-              :tone="statusTone(scope.row.status as FeedbackStatus)"
-            />
-          </template>
-        </ElTableColumn>
-        <ElTableColumn label="处理时限" width="108">
-          <template #default="scope">
-            <ElTag
-              :type="
-                scope.row.slaState === 'OVERDUE'
-                  ? 'danger'
-                  : scope.row.slaState === 'DUE_SOON'
-                    ? 'warning'
-                    : 'info'
-              "
-              effect="plain"
-            >
-              {{ slaLabels[scope.row.slaState as FeedbackSlaState] }}
-            </ElTag>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn label="操作" width="85"
-          ><template #default="{ row }"
-            ><RouterLink
-              :to="{ name: 'feedback-detail', params: { id: row.id }, query: route.query }"
-              >查看</RouterLink
-            ></template
-          ></ElTableColumn
-        >
-      </ElTable>
+      </DataTable>
 
       <AppPagination
         v-model:current-page="filters.page"
@@ -289,11 +281,10 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
         :disabled="controller.isLoading.value"
         @change="changePage"
       />
-    </ElCard>
-    <aside class="notice">
-      <strong>操作说明</strong>
+    </AdminPanel>
+    <AdminNotice class="notice" title="操作说明">
       <p>反馈关闭后截图保留 30 天；7 天内可重开。</p>
-    </aside>
+    </AdminNotice>
   </section>
 </template>
 
@@ -329,51 +320,6 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
     margin: 8px 0 0;
     color: var(--juya-color-text-secondary);
     font-size: 13px;
-  }
-
-  .notice {
-    padding: 16px;
-    border-radius: 16px;
-    background: #e5f0dc;
-    font-size: 13px;
-    line-height: 1.8;
-  }
-
-  .notice strong {
-    color: #4e7f3b;
-    font-size: 14px;
-  }
-
-  .notice p {
-    margin: 20px 0 0;
-  }
-
-  :deep(.el-card) {
-    border-color: #d8e5d1;
-    border-radius: 18px;
-    background: #fffdf7;
-    box-shadow: none;
-  }
-
-  :deep(.el-card__header) {
-    padding: 16px 20px 12px;
-    border-bottom: 0;
-  }
-
-  :deep(.el-card__body) {
-    padding: 20px;
-  }
-
-  :deep(.el-button) {
-    min-height: 38px;
-    border-radius: 10px;
-  }
-
-  :deep(.el-input__wrapper),
-  :deep(.el-select__wrapper),
-  :deep(.el-textarea__inner) {
-    border-radius: 10px;
-    background: #fffdf7;
   }
 
   .list-card {

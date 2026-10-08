@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import { createOcrAdapter } from '@/features/ocr/ocr-adapter'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
@@ -76,7 +77,7 @@ onMounted(load)
       <p>原始 OCR 候选仅供人工校对，返回同一场景逐项采纳。</p>
       <ElButton @click="load">刷新状态</ElButton>
     </div>
-    <ElAlert v-if="error" :closable="false" :title="error" type="error" /><ElCard shadow="never"
+    <ElAlert v-if="error" :closable="false" :title="error" type="error" /><AdminPanel
       ><ElDescriptions v-if="job" :column="1"
         ><ElDescriptionsItem label="任务">{{ job.id }}</ElDescriptionsItem
         ><ElDescriptionsItem label="状态">{{ job.status }}</ElDescriptionsItem
@@ -110,7 +111,7 @@ onMounted(load)
         ><ElButton :disabled="!sceneId.trim()" type="primary" @click="edit"
           >返回场景逐项校对</ElButton
         ></ElForm
-      ></ElCard
+      ></AdminPanel
     >
   </section>
 </template>

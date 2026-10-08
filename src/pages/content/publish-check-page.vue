@@ -3,6 +3,8 @@ import { ElMessage } from 'element-plus'
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ScenePreview from '@/features/content-editor/scene-preview.vue'
 import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
 import { createPublishAdapter } from '@/features/publishing/publish-adapter'
@@ -69,7 +71,7 @@ async function handlePublish(): Promise<void> {
 </script>
 
 <template>
-  <section class="publish-check-page">
+  <section class="publish-check-page admin-brand-headings">
     <ContentProductionNav active="publish" @select="selectStage" />
     <div class="page-heading">
       <div>
@@ -78,8 +80,10 @@ async function handlePublish(): Promise<void> {
       <ElButton type="primary" @click="handleCheck">运行发布检查</ElButton>
     </div>
     <div class="publish-grid">
-      <ElCard class="validation-panel" shadow="never">
-        <template #header><h3>发布校验</h3></template>
+      <AdminPanel
+        :title="ADMIN_SECTION_TITLES.publishCheck.validationPanel"
+        class="validation-panel"
+      >
         <dl class="validation-list">
           <div
             v-for="label in [
@@ -133,8 +137,8 @@ async function handlePublish(): Promise<void> {
             >确认后发布统一内容版本，已发布版本在确认前保持不变。</ElAlert
           >
         </template>
-      </ElCard>
-      <ElCard class="preview-panel" shadow="never">
+      </AdminPanel>
+      <AdminPanel class="preview-panel">
         <template #header
           ><h3>管理员设备预览</h3>
           <p>手机 / 平板预览不产生学习进度</p></template
@@ -175,7 +179,7 @@ async function handlePublish(): Promise<void> {
         <ElAlert class="permission-note" title="权限隔离" type="success" :closable="false">
           无权限预览只使用安全封面与专用片段。
         </ElAlert>
-      </ElCard>
+      </AdminPanel>
     </div>
     <div class="publish-actions">
       <ElButton @click="selectStage('audio')">返回音频标时</ElButton>

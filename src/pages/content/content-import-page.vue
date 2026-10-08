@@ -3,6 +3,8 @@ import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import TaskProgress from '@/components/task-progress/task-progress.vue'
 import { createContentAdapter } from '@/features/content/content-adapter'
 import { validateImageBatch } from '@/features/content-import/import-validation'
@@ -110,15 +112,14 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
 </script>
 
 <template>
-  <section class="content-import-page">
+  <section class="content-import-page admin-brand-headings">
     <div class="page-heading">
       <div>
         <p class="page-description">批量图片上传只建立独立草稿，不自动调用 OCR。</p>
       </div>
     </div>
     <div class="content-grid">
-      <ElCard shadow="never">
-        <template #header><h3>上传批次</h3></template>
+      <AdminPanel :title="ADMIN_SECTION_TITLES.contentImport.uploadBatch">
         <ElAlert
           :closable="false"
           title="单批最多 30 张，且必须属于同一系列和模板"
@@ -161,10 +162,9 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
           @click="queue.startAll"
           >开始上传</ElButton
         >
-      </ElCard>
+      </AdminPanel>
 
-      <ElCard shadow="never">
-        <template #header><h3>任务队列</h3></template>
+      <AdminPanel :title="ADMIN_SECTION_TITLES.contentImport.taskQueue">
         <ElEmpty v-if="queue.items.value.length === 0" description="尚未选择图片" />
         <template v-else>
           <div v-for="item in queue.items.value" :key="item.id" class="queue-item">
@@ -181,10 +181,9 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
           type="success"
           show-icon
         />
-      </ElCard>
+      </AdminPanel>
     </div>
-    <ElCard class="ocr-note" shadow="never"
-      ><template #header><h3>OCR 安全额度设置</h3></template>
+    <AdminPanel :title="ADMIN_SECTION_TITLES.contentImport.ocrNote" class="ocr-note">
       <p>{{ quotaText }}</p>
       <p>内部月额度为 0 时不会发起识别，不代表不限量。</p>
       <ElAlert v-if="ocrSettingsError" :title="ocrSettingsError" :closable="false" type="error" />
@@ -214,7 +213,7 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
         ><ElButton :loading="savingOcr" :disabled="savingOcr || !ocrSettingsReady" @click="saveOcr"
           >保存 OCR 设置</ElButton
         ></ElForm
-      ></ElCard
+      ></AdminPanel
     >
   </section>
 </template>
@@ -242,12 +241,6 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
     display: grid;
     grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
     gap: 18px;
-  }
-
-  h3 {
-    margin: 0;
-    color: var(--juya-color-sidebar);
-    font-size: 20px;
   }
 
   .batch-form {

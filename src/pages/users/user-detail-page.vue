@@ -3,6 +3,8 @@ import { UserFilled } from '@element-plus/icons-vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import SensitiveValue from '@/components/sensitive-value/sensitive-value.vue'
 import StatusTag from '@/components/status-tag/status-tag.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
@@ -111,7 +113,7 @@ async function copyWechat(): Promise<void> {
 </script>
 
 <template>
-  <section class="user-detail-page">
+  <section class="user-detail-page admin-brand-headings">
     <ElAlert
       v-if="controller.error.value"
       :closable="false"
@@ -122,8 +124,11 @@ async function copyWechat(): Promise<void> {
     <ElSkeleton v-else-if="controller.state.value === 'loading'" :rows="8" animated />
     <template v-else-if="controller.detail.value">
       <div class="grid">
-        <ElCard class="identity-card" shadow="never">
-          <template #header><h3 class="panel-title">基本身份与学习概况</h3></template>
+        <AdminPanel
+          :title="ADMIN_SECTION_TITLES.userDetail.identityCard"
+          title-class="panel-title"
+          class="identity-card"
+        >
           <div class="profile">
             <ElAvatar :src="controller.detail.value.avatar_url || undefined" :size="48"
               ><ElIcon><UserFilled /></ElIcon
@@ -194,8 +199,8 @@ async function copyWechat(): Promise<void> {
               ><strong>{{ controller.detail.value.open_feedback_count }}</strong>
             </div>
           </div>
-        </ElCard>
-        <ElCard class="contact" shadow="never">
+        </AdminPanel>
+        <AdminPanel class="contact">
           <template #header
             ><div class="card-heading">
               <h3 class="panel-title">联系与操作审计</h3>
@@ -258,7 +263,7 @@ async function copyWechat(): Promise<void> {
               已核对微信号变更
             </ElButton>
           </div>
-        </ElCard>
+        </AdminPanel>
       </div>
       <aside class="management-note">
         <strong>管理提醒</strong>

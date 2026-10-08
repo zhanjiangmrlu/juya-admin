@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { onBeforeUnmount, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import StatusTag from '@/components/status-tag/status-tag.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { useWorkItems } from '@/features/work-items/use-work-items'
@@ -29,7 +30,7 @@ onBeforeUnmount(controller.dispose)
 </script>
 
 <template>
-  <section class="work-item-page">
+  <section class="work-item-page admin-operations-surface">
     <ElAlert
       v-if="controller.error.value"
       :closable="false"
@@ -37,7 +38,7 @@ onBeforeUnmount(controller.dispose)
       type="error"
       show-icon
     />
-    <ElCard shadow="never" class="message-card">
+    <AdminPanel class="message-card">
       <template #header>
         <div class="panel-title">
           <div>
@@ -94,7 +95,7 @@ onBeforeUnmount(controller.dispose)
           </div>
         </li>
       </ul>
-    </ElCard>
+    </AdminPanel>
   </section>
 </template>
 
@@ -130,51 +131,6 @@ onBeforeUnmount(controller.dispose)
     margin: 8px 0 0;
     color: var(--juya-color-text-secondary);
     font-size: 13px;
-  }
-
-  .notice {
-    padding: 16px;
-    border-radius: 16px;
-    background: #e5f0dc;
-    font-size: 13px;
-    line-height: 1.8;
-  }
-
-  .notice strong {
-    color: #4e7f3b;
-    font-size: 14px;
-  }
-
-  .notice p {
-    margin: 20px 0 0;
-  }
-
-  :deep(.el-card) {
-    border-color: #d8e5d1;
-    border-radius: 18px;
-    background: #fffdf7;
-    box-shadow: none;
-  }
-
-  :deep(.el-card__header) {
-    padding: 16px 20px 12px;
-    border-bottom: 0;
-  }
-
-  :deep(.el-card__body) {
-    padding: 20px;
-  }
-
-  :deep(.el-button) {
-    min-height: 38px;
-    border-radius: 10px;
-  }
-
-  :deep(.el-input__wrapper),
-  :deep(.el-select__wrapper),
-  :deep(.el-textarea__inner) {
-    border-radius: 10px;
-    background: #fffdf7;
   }
 
   .message-card {

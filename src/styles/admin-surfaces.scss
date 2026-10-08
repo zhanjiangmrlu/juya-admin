@@ -1,0 +1,39 @@
+/* stylelint-disable selector-class-pattern -- Element Plus 公共组件类名 */
+
+/* 活动、反馈、消息页共用的 Figma 表面；尺寸与颜色统一来自 tokens。 */
+.admin-operations-surface {
+  --juya-panel-title-line-height: 28px;
+
+  .el-card {
+    border-color: var(--juya-color-border-light);
+    border-radius: var(--juya-panel-radius);
+    background: var(--juya-color-sidebar-surface);
+    box-shadow: var(--juya-shadow-panel);
+  }
+
+  .el-card__header {
+    padding: 16px 20px 12px;
+    border-bottom: 0;
+  }
+
+  .el-card__body {
+    padding: 20px;
+  }
+
+  .el-button {
+    min-height: 38px;
+    border-radius: var(--juya-control-radius);
+  }
+
+  .el-input .el-input__wrapper,
+  .el-select .el-select__wrapper,
+  .el-textarea .el-textarea__inner {
+    border-radius: var(--juya-control-radius);
+    background: var(--juya-color-sidebar-surface);
+  }
+}
+
+.admin-brand-headings {
+  --juya-panel-title-color: var(--juya-color-sidebar);
+}
+/* stylelint-enable selector-class-pattern */

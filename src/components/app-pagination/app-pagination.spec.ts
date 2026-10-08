@@ -6,6 +6,16 @@ import { defineComponent, ref } from 'vue'
 import AppPagination from './app-pagination.vue'
 
 describe('AppPagination', () => {
+  it('allows pages to override the centrally managed page-size choices', () => {
+    const wrapper = mount(AppPagination, { props: { pageSizes: [15, 30], pageSize: 15 } })
+    expect(
+      wrapper
+        .findComponent(ElSelect)
+        .findAllComponents({ name: 'ElOption' })
+        .map((option) => option.props('value'))
+    ).toEqual([15, 30])
+    wrapper.unmount()
+  })
   it('renders Chinese controls even for a single or empty page', () => {
     for (const total of [0, 7]) {
       const wrapper = mount(AppPagination, { props: { total } })

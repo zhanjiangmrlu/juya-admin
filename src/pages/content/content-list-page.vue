@@ -3,7 +3,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { ADMIN_TABLE_COLUMNS, ADMIN_UI_DEFAULTS } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
+import DataTable from '@/components/data-table/data-table.vue'
 import { createContentAdapter } from '@/features/content/content-adapter'
 import SceneHistory from '@/features/content-editor/scene-history.vue'
 import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
@@ -156,7 +159,13 @@ watch(creating, (opened) => {
  * @returns 已校验的筛选条件
  */
 function restoreFilters(): SceneFilters {
-  const defaults: SceneFilters = { page: 1, pageSize: 10, query: '', seriesId: '', status: '' }
+  const defaults: SceneFilters = {
+    page: 1,
+    pageSize: ADMIN_UI_DEFAULTS.pagination.pageSize as number,
+    query: '',
+    seriesId: '',
+    status: ''
+  }
   try {
     const saved = JSON.parse(
       globalThis.sessionStorage.getItem(filterStorageKey) ?? '{}'
@@ -164,7 +173,9 @@ function restoreFilters(): SceneFilters {
     const statuses: SceneStatus[] = ['DRAFT', 'OFFLINE', 'PUBLISHED']
     return {
       page: Number.isInteger(saved.page) && Number(saved.page) > 0 ? Number(saved.page) : 1,
-      pageSize: [10, 20, 50, 100].includes(Number(saved.pageSize)) ? Number(saved.pageSize) : 10,
+      pageSize: ADMIN_UI_DEFAULTS.pagination.pageSizes.includes(Number(saved.pageSize))
+        ? Number(saved.pageSize)
+        : ADMIN_UI_DEFAULTS.pagination.pageSize,
       query: typeof saved.query === 'string' ? saved.query : '',
       seriesId: typeof saved.seriesId === 'string' ? saved.seriesId : '',
       status: statuses.includes(saved.status as SceneStatus) ? (saved.status as SceneStatus) : ''
@@ -267,7 +278,7 @@ onMounted(loadScenes)
   <section class="content-list-page">
     <ContentProductionNav active="list" :busy="enteringWorkspace" @select="openWorkspace" />
     <p class="page-description">人工录入与 OCR 辅助识别共用场景草稿和发布流程。</p>
-    <ElCard shadow="never">
+    <AdminPanel>
       <template #header>
         <div class="page-heading">
           <p>管理场景草稿、候选版本与已发布内容</p>
@@ -306,55 +317,45 @@ onMounted(loadScenes)
       >
       <ElEmpty v-else-if="scenes.length === 0" description="暂无符合条件的内容" />
       <template v-else>
-        <ElTable :data="scenes" row-key="id" stripe>
-          <ElTableColumn label="场景" min-width="260"
-            ><template #default="{ row }"
-              ><strong>{{ row.title }}</strong>
-              <p class="secondary">{{ row.id }} · {{ row.summary || '暂无简介' }}</p></template
-            ></ElTableColumn
+        <DataTable :columns="ADMIN_TABLE_COLUMNS.scenes" :rows="scenes" row-key="id" stripe>
+          <template #scene="{ row }"
+            ><strong>{{ row.title }}</strong>
+            <p class="secondary">{{ row.id }} · {{ row.summary || '暂无简介' }}</p></template
           >
-          <ElTableColumn label="系列" min-width="150" prop="seriesTitle" />
-          <ElTableColumn label="状态" width="100"
-            ><template #default="{ row }"
-              ><ElTag :type="statusType(row.status)" effect="plain">{{
-                statusLabel(row.status)
-              }}</ElTag></template
-            ></ElTableColumn
+
+          <template #status="{ row }"
+            ><ElTag :type="statusType(row.status)" effect="plain">{{
+              statusLabel(row.status)
+            }}</ElTag></template
           >
-          <ElTableColumn label="更新时间" min-width="180"
-            ><template #default="{ row }">{{
-              formatDateTime(row.updatedAt)
-            }}</template></ElTableColumn
-          >
-          <ElTableColumn fixed="right" label="操作" min-width="260"
-            ><template #default="{ row }">
-              <ElButton
-                v-if="row.draftRevisionId"
-                link
-                type="primary"
-                @click="router.push({ name: 'content-scene-edit', params: { id: row.id } })"
-                >编辑草稿</ElButton
-              >
-              <ElButton v-else link type="primary" @click="createDraft(row)">创建草稿</ElButton>
-              <ElButton
-                v-if="row.draftRevisionId"
-                link
-                type="primary"
-                @click="
-                  router.push({
-                    name: 'content-scene-publish',
-                    params: { id: row.draftRevisionId }
-                  })
-                "
-                >检查发布</ElButton
-              >
-              <ElButton link @click="openHistory(row.id)">完整版本历史</ElButton
-              ><ElButton v-if="row.status === 'PUBLISHED'" link type="danger" @click="offline(row)"
-                >下线</ElButton
-              >
-            </template></ElTableColumn
-          >
-        </ElTable>
+          <template #updatedAt="{ row }">{{ formatDateTime(row.updatedAt) }}</template>
+          <template #actions="{ row }">
+            <ElButton
+              v-if="row.draftRevisionId"
+              link
+              type="primary"
+              @click="router.push({ name: 'content-scene-edit', params: { id: row.id } })"
+              >编辑草稿</ElButton
+            >
+            <ElButton v-else link type="primary" @click="createDraft(row)">创建草稿</ElButton>
+            <ElButton
+              v-if="row.draftRevisionId"
+              link
+              type="primary"
+              @click="
+                router.push({
+                  name: 'content-scene-publish',
+                  params: { id: row.draftRevisionId }
+                })
+              "
+              >检查发布</ElButton
+            >
+            <ElButton link @click="openHistory(row.id)">完整版本历史</ElButton
+            ><ElButton v-if="row.status === 'PUBLISHED'" link type="danger" @click="offline(row)"
+              >下线</ElButton
+            >
+          </template>
+        </DataTable>
       </template>
       <AppPagination
         v-model:current-page="filters.page"
@@ -363,7 +364,7 @@ onMounted(loadScenes)
         :disabled="loading"
         @change="loadScenes"
       />
-    </ElCard>
+    </AdminPanel>
     <ElAlert class="operation-note" title="操作说明" type="success" :closable="false">
       批量图片上传只建立独立草稿，不自动调用 OCR；已发布内容不能永久删除。
     </ElAlert>

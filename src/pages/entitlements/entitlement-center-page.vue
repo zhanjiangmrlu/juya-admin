@@ -2,8 +2,11 @@
 import { reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { ADMIN_TABLE_COLUMNS, ADMIN_UI_DEFAULTS } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
+import DataTable from '@/components/data-table/data-table.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
 import { useEntitlementList } from '@/features/entitlements/use-entitlement-list'
@@ -17,7 +20,7 @@ const route = useRoute()
 const auth = useAuthStore()
 const filters = reactive<EntitlementFilters>({
   page: 1,
-  pageSize: 10,
+  pageSize: ADMIN_UI_DEFAULTS.pagination.pageSize as number,
   userId: '',
   type:
     route.query.type === 'LIMITED' || route.query.type === 'FORMAL' ? route.query.type : undefined,
@@ -161,74 +164,56 @@ void controller.load({ ...filters })
       description="当前筛选条件下没有权益记录。可调整筛选条件后重新查询。"
     />
     <template v-else>
-      <ElCard class="table-card" shadow="never"
-        ><ElTable :data="controller.page.value.items" class="data-table">
-          <ElTableColumn prop="id" label="权益编号" min-width="125" show-overflow-tooltip />
-          <ElTableColumn label="用户 / 句芽编号" min-width="145"
-            ><template #default="{ row }"
-              ><div class="cell-stack">
-                <strong>{{ row.nickname || '未设置昵称' }}</strong
-                ><span>{{ row.juyaNumber || row.userId }}</span>
-              </div></template
-            ></ElTableColumn
+      <AdminPanel class="table-card"
+        ><DataTable
+          :columns="ADMIN_TABLE_COLUMNS.entitlements"
+          :rows="controller.page.value.items"
+          class="data-table"
+        >
+          <template #user="{ row }"
+            ><div class="cell-stack">
+              <strong>{{ row.nickname || '未设置昵称' }}</strong
+              ><span>{{ row.juyaNumber || row.userId }}</span>
+            </div></template
           >
-          <ElTableColumn label="微信号 / 联系状态" min-width="155"
-            ><template #default="{ row }"
-              ><div class="cell-stack">
-                <span>{{
-                  row.contactDegraded ? '联系资料暂不可用' : row.wechatId || '未填写'
-                }}</span
-                ><small>{{ row.contactStatus }}</small>
-              </div></template
-            ></ElTableColumn
+          <template #contact="{ row }"
+            ><div class="cell-stack">
+              <span>{{ row.contactDegraded ? '联系资料暂不可用' : row.wechatId || '未填写' }}</span
+              ><small>{{ row.contactStatus }}</small>
+            </div></template
           >
-          <ElTableColumn label="权益类型" width="90"
-            ><template #default="{ row }">{{
-              row.type === 'FORMAL' ? '正式包' : '限时包'
-            }}</template></ElTableColumn
+          <template #type="{ row }">{{ row.type === 'FORMAL' ? '正式包' : '限时包' }}</template>
+          <template #package="{ row }"
+            ><div class="cell-stack">
+              <span>{{ row.contentName || row.packageId || row.campaignId || '—' }}</span
+              ><small
+                >{{ row.campaignVersionNo ? '第 ' + row.campaignVersionNo + ' 版' : '—'
+                }}<span v-if="row.campaignVersionId"> · {{ row.campaignVersionId }}</span></small
+              >
+            </div></template
           >
-          <ElTableColumn label="内容包 / 活动版本" min-width="150"
-            ><template #default="{ row }"
-              ><div class="cell-stack">
-                <span>{{ row.contentName || row.packageId || row.campaignId || '—' }}</span
-                ><small
-                  >{{ row.campaignVersionNo ? '第 ' + row.campaignVersionNo + ' 版' : '—'
-                  }}<span v-if="row.campaignVersionId"> · {{ row.campaignVersionId }}</span></small
-                >
-              </div></template
-            ></ElTableColumn
+          <template #status="{ row }">{{ statusLabels[row.status] ?? row.status }}</template>
+          <template #expires="{ row }"
+            ><div class="cell-stack">
+              <span>档位：{{ row.term === 'permanent' ? '永久' : row.term || '—' }}</span
+              ><small>生效：{{ row.effectiveAt ? displayTime(row.effectiveAt) : '尚未开始' }}</small
+              ><small>启动：{{ row.startDeadline ? displayTime(row.startDeadline) : '—' }}</small
+              ><small>到期：{{ displayTime(row.expiresAt) }}</small>
+            </div></template
           >
-          <ElTableColumn label="状态" width="100"
-            ><template #default="{ row }">{{
-              statusLabels[row.status] ?? row.status
-            }}</template></ElTableColumn
+          <template #actions="{ row }"
+            ><RouterLink
+              :to="{
+                name:
+                  row.type === 'FORMAL'
+                    ? 'formal-entitlement-action'
+                    : 'limited-entitlement-action',
+                params: { id: row.id }
+              }"
+              >查看</RouterLink
+            ></template
           >
-          <ElTableColumn label="期限" min-width="205"
-            ><template #default="{ row }"
-              ><div class="cell-stack">
-                <span>档位：{{ row.term === 'permanent' ? '永久' : row.term || '—' }}</span
-                ><small
-                  >生效：{{ row.effectiveAt ? displayTime(row.effectiveAt) : '尚未开始' }}</small
-                ><small>启动：{{ row.startDeadline ? displayTime(row.startDeadline) : '—' }}</small
-                ><small>到期：{{ displayTime(row.expiresAt) }}</small>
-              </div></template
-            ></ElTableColumn
-          >
-          <ElTableColumn label="操作" width="75" fixed="right"
-            ><template #default="{ row }"
-              ><RouterLink
-                :to="{
-                  name:
-                    row.type === 'FORMAL'
-                      ? 'formal-entitlement-action'
-                      : 'limited-entitlement-action',
-                  params: { id: row.id }
-                }"
-                >查看</RouterLink
-              ></template
-            ></ElTableColumn
-          >
-        </ElTable></ElCard
+        </DataTable></AdminPanel
       >
     </template>
     <AppPagination

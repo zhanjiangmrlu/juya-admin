@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import DialogueFields from '@/features/content-editor/dialogue-fields.vue'
 
 import type { AudioVersion } from '@/features/audio/audio-version-model'
@@ -35,9 +37,11 @@ onBeforeUnmount(() => emit('element', null))
 </script>
 
 <template>
-  <div class="scene-audio-panel">
-    <ElCard class="audio-source-panel" shadow="never">
-      <template #header><h3>整段对话音频</h3></template>
+  <div class="scene-audio-panel admin-brand-headings">
+    <AdminPanel
+      :title="ADMIN_SECTION_TITLES.sceneAudioPanel.audioSourcePanel"
+      class="audio-source-panel"
+    >
       <p>绑定固定音频版本。更换版本后需重新标记并核对每句时间。</p>
       <div class="audio-actions">
         <ElButton :loading="busy" @click="emit('load')">加载音频版本</ElButton>
@@ -83,8 +87,8 @@ onBeforeUnmount(() => emit('element', null))
         </div>
       </template>
       <audio ref="audioElement" controls preload="metadata" />
-    </ElCard>
-    <ElCard shadow="never">
+    </AdminPanel>
+    <AdminPanel>
       <template #header
         ><h3>逐句起止时间</h3>
         <p>0 ≤ 开始 ＜ 结束 ≤ 音频时长；逐句试听并人工核对后才可发布</p></template
@@ -98,7 +102,7 @@ onBeforeUnmount(() => emit('element', null))
         @play="emit('play', $event)"
         @record="(row, edge) => emit('record', row, edge)"
       />
-    </ElCard>
+    </AdminPanel>
   </div>
 </template>
 

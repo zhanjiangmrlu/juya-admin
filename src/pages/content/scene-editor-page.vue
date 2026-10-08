@@ -3,6 +3,8 @@ import { ElMessage } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import { createAudioAdapter } from '@/features/audio/audio-adapter'
 import { createSegmentPlayer } from '@/features/audio/segment-player'
 import { createContentAdapter } from '@/features/content/content-adapter'
@@ -543,7 +545,7 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
-  <section class="scene-editor-page">
+  <section class="scene-editor-page admin-brand-headings">
     <ContentProductionNav :active="stage" :busy="workspaceBusy" @select="switchWorkspace" />
     <div class="page-heading">
       <div>
@@ -605,8 +607,7 @@ onBeforeUnmount(() => {
           />
           <SceneProofreadPanel v-if="stage === 'proofread'" :form="form" @busy="setLexiconBusy" />
           <aside v-else class="draft-aside">
-            <ElCard shadow="never" class="entry-panel">
-              <template #header><h3>草稿与素材</h3></template>
+            <AdminPanel :title="ADMIN_SECTION_TITLES.sceneEditor.entryPanel" class="entry-panel">
               <dl class="material-list">
                 <div>
                   <dt>原图</dt>
@@ -631,7 +632,7 @@ onBeforeUnmount(() => {
                 >
                 <ElButton @click="switchWorkspace('ocr')">使用 OCR 辅助识别</ElButton>
               </div>
-            </ElCard>
+            </AdminPanel>
             <ElAlert title="提交前确认" type="success" :closable="false">
               草稿允许不完整，可分次保存；已发布内容修改形成候选版本。
             </ElAlert>
@@ -701,12 +702,6 @@ onBeforeUnmount(() => {
 h2 {
   margin: 0;
   font-size: 18px;
-}
-
-h3 {
-  margin: 0;
-  color: var(--juya-color-sidebar);
-  font-size: 20px;
 }
 
 p {

@@ -3,6 +3,9 @@
 import dayjs from 'dayjs'
 import { computed, onMounted, ref, watch } from 'vue'
 
+import { ADMIN_SECTION_TITLES, ADMIN_TABLE_COLUMNS } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+import DataTable from '@/components/data-table/data-table.vue'
 import MetricChart from '@/components/metric-chart/metric-chart.vue'
 import { createAnalyticsAdapter } from '@/features/analytics/analytics-adapter'
 import {
@@ -140,13 +143,13 @@ function downloadRows(): void {
 <template>
   <section class="analytics-page">
     <div class="summary-metrics">
-      <ElCard v-for="metric in summaryMetrics" :key="metric.label" shadow="never"
+      <AdminPanel v-for="metric in summaryMetrics" :key="metric.label"
         ><span>{{ metric.label }}</span
-        ><strong>{{ metric.value }}</strong></ElCard
+        ><strong>{{ metric.value }}</strong></AdminPanel
       >
     </div>
     <div class="analytics-grid">
-      <ElCard class="trend-card" shadow="never"
+      <AdminPanel class="trend-card"
         ><template #header
           ><h2>学习与权益趋势</h2>
           <p>
@@ -157,16 +160,19 @@ function downloadRows(): void {
         <ElSkeleton v-if="controller.isLoading.value" :rows="5" animated />
         <ElEmpty v-else-if="!series.length" description="当前区间暂无趋势数据" />
         <MetricChart v-else :series="series" type="bar" />
-      </ElCard>
-      <ElCard class="overview-card" shadow="never"
-        ><template #header><h2>内容与反馈概览</h2></template>
+      </AdminPanel>
+      <AdminPanel
+        :title="ADMIN_SECTION_TITLES.analytics.overviewCard"
+        :heading="2"
+        class="overview-card"
+      >
         <dl>
           <div v-for="metric in overviewMetrics" :key="metric.label">
             <dt>{{ metric.label }}</dt>
             <dd>{{ metric.value }}</dd>
           </div>
         </dl>
-        <p class="overview-note">状态库存取区间最后统计日；缺失指标保留为空。</p></ElCard
+        <p class="overview-note">状态库存取区间最后统计日；缺失指标保留为空。</p></AdminPanel
       >
     </div>
     <div class="query-heading">
@@ -177,7 +183,7 @@ function downloadRows(): void {
         >导出已校验数据</ElButton
       >
     </div>
-    <ElCard shadow="never">
+    <AdminPanel>
       <div class="query-bar">
         <ElDatePicker
           v-model="dateRange"
@@ -223,34 +229,27 @@ function downloadRows(): void {
           ACTIVITY_BASIS_LABELS[controller.activityBasis.value]
         }}。查询完整自然周或自然月可查看对应周期的独立人数。
       </p>
-      <ElTable
+      <DataTable
         v-if="controller.ratios.value.length"
-        :data="controller.ratios.value"
+        :columns="ADMIN_TABLE_COLUMNS.analyticsRatios"
+        :rows="controller.ratios.value"
         aria-label="统计比率口径"
       >
-        <ElTableColumn prop="day" label="周期起始日" width="120" />
-        <ElTableColumn prop="dimension" label="模式" width="100" />
-        <ElTableColumn label="指标" width="140"
-          ><template #default="{ row }">{{ METRIC_LABELS[row.metric] }}</template></ElTableColumn
-        >
-        <ElTableColumn prop="numerator" label="分子" width="80" />
-        <ElTableColumn prop="denominator" label="分母" width="80" />
-        <ElTableColumn label="比率" width="110"
-          ><template #default="{ row }">{{
-            row.rate === null
-              ? '无分母'
-              : row.unit === 'seconds'
-                ? `${row.rate.toFixed(1)} 秒`
-                : `${(row.rate * 100).toFixed(1)}%`
-          }}</template></ElTableColumn
-        >
-        <ElTableColumn prop="basis" label="口径" min-width="240" />
-      </ElTable>
+        <template #metric="{ row }">{{ METRIC_LABELS[row.metric] }}</template>
+
+        <template #rate="{ row }">{{
+          row.rate === null
+            ? '无分母'
+            : row.unit === 'seconds'
+              ? `${row.rate.toFixed(1)} 秒`
+              : `${(row.rate * 100).toFixed(1)}%`
+        }}</template>
+      </DataTable>
       <p class="metric-note">
         按北京时间自然日、周一开始的自然周与自然月汇总，首尾周期仅包含查询区间；缺失统计显示为空，不补零。比率使用累计分子
         / 累计分母。状态库存按区间最后一天展示，历史状态变更按动作计数。
       </p>
-    </ElCard>
+    </AdminPanel>
   </section>
 </template>
 

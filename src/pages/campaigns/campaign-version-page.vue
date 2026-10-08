@@ -3,6 +3,8 @@ import { ElMessage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import AdminNotice from '@/components/admin-notice/admin-notice.vue'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
@@ -68,7 +70,7 @@ async function confirm(): Promise<void> {
 </script>
 
 <template>
-  <section class="campaign-version-page">
+  <section class="campaign-version-page admin-operations-surface">
     <ElSkeleton
       v-if="editor.state.value === 'loading'"
       :rows="6"
@@ -95,7 +97,7 @@ async function confirm(): Promise<void> {
       >
     </ElAlert>
     <div class="grid">
-      <ElCard class="version-card" shadow="never">
+      <AdminPanel class="version-card">
         <template #header
           ><h3>活动版本</h3>
           <p class="panel-subtitle">{{ editor.server.value?.name || campaignId }}</p></template
@@ -122,8 +124,8 @@ async function confirm(): Promise<void> {
             {{ current.grantEndsAt ?? '—' }}</ElDescriptionsItem
           >
         </ElDescriptions>
-      </ElCard>
-      <ElCard class="capacity-card" shadow="never">
+      </AdminPanel>
+      <AdminPanel class="capacity-card">
         <template #header
           ><h3>容量调整</h3>
           <p class="panel-subtitle">容量不能低于服务端已开通人数</p></template
@@ -161,12 +163,11 @@ async function confirm(): Promise<void> {
           @click="confirmVisible = true"
           >确认调整容量</ElButton
         >
-      </ElCard>
+      </AdminPanel>
     </div>
-    <aside class="notice">
-      <strong>管理提醒</strong>
+    <AdminNotice class="notice" title="管理提醒">
       <p>首次开通后锁定期限和场景；容量变更不改写已开通用户的活动版本。</p>
-    </aside>
+    </AdminNotice>
     <div class="page-toolbar footer-toolbar">
       <RouterLink v-slot="{ navigate }" custom :to="{ name: 'campaigns' }"
         ><ElButton @click="navigate">返回活动列表</ElButton></RouterLink
@@ -219,51 +220,6 @@ async function confirm(): Promise<void> {
     margin: 8px 0 0;
     color: var(--juya-color-text-secondary);
     font-size: 13px;
-  }
-
-  .notice {
-    padding: 16px;
-    border-radius: 16px;
-    background: #e5f0dc;
-    font-size: 13px;
-    line-height: 1.8;
-  }
-
-  .notice strong {
-    color: #4e7f3b;
-    font-size: 14px;
-  }
-
-  .notice p {
-    margin: 20px 0 0;
-  }
-
-  :deep(.el-card) {
-    border-color: #d8e5d1;
-    border-radius: 18px;
-    background: #fffdf7;
-    box-shadow: none;
-  }
-
-  :deep(.el-card__header) {
-    padding: 16px 20px 12px;
-    border-bottom: 0;
-  }
-
-  :deep(.el-card__body) {
-    padding: 20px;
-  }
-
-  :deep(.el-button) {
-    min-height: 38px;
-    border-radius: 10px;
-  }
-
-  :deep(.el-input__wrapper),
-  :deep(.el-select__wrapper),
-  :deep(.el-textarea__inner) {
-    border-radius: 10px;
-    background: #fffdf7;
   }
 
   .grid {

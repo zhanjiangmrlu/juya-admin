@@ -2,6 +2,8 @@
 import { ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import AuditEventList from '@/components/audit-event-list/audit-event-list.vue'
 import { createAuditAdapter } from '@/features/audit/audit-adapter'
 import { createOcrAdapter } from '@/features/ocr/ocr-adapter'
@@ -81,7 +83,7 @@ async function saveConfig(): Promise<void> {
 <template>
   <section class="settings-page">
     <div class="settings-grid">
-      <ElCard class="config-card" shadow="never">
+      <AdminPanel class="config-card">
         <template #header
           ><h2>系统与审核配置</h2>
           <p>管理员权限下修改，所有变更写入审计</p></template
@@ -150,17 +152,20 @@ async function saveConfig(): Promise<void> {
         <ElAlert v-if="ocrQuotaError" :title="ocrQuotaError" :closable="false" type="error"
           ><ElButton size="small" @click="loadOcrQuota">重试读取 OCR 配置</ElButton></ElAlert
         >
-      </ElCard>
+      </AdminPanel>
       <div class="review-column">
-        <ElCard class="review-card" shadow="never"
-          ><template #header><h2>发布前复核</h2></template>
+        <AdminPanel
+          :title="ADMIN_SECTION_TITLES.settings.reviewCard"
+          :heading="2"
+          class="review-card"
+        >
           <ul class="review-list">
             <li><strong>小程序类目</strong><span>以当前 AppID 审核结果为准</span></li>
             <li><strong>OCR 费用</strong><span>百度控制台额度与付费状态需核实</span></li>
             <li><strong>联系资料</strong><span>仅管理员可查看完整微信号</span></li>
             <li><strong>受限素材</strong><span>接口逐次校验权益</span></li>
           </ul>
-        </ElCard>
+        </AdminPanel>
         <aside class="confirmation-note">
           <strong>提交前确认</strong>
           <p>审核边界、额度与时效规则可能变化；上线前重新核实。</p>
@@ -192,9 +197,9 @@ async function saveConfig(): Promise<void> {
         >重新读取配置</ElButton
       ></ElAlert
     >
-    <ElCard class="audit-card" shadow="never"
-      ><template #header><h3>最近审计事件</h3></template><AuditEventList :items="auditEvents"
-    /></ElCard>
+    <AdminPanel :title="ADMIN_SECTION_TITLES.settings.auditCard" class="audit-card"
+      ><AuditEventList :items="auditEvents"
+    /></AdminPanel>
     <ElDialog
       :model-value="Boolean(controller.conflict.value)"
       title="配置版本冲突"
@@ -230,8 +235,7 @@ async function saveConfig(): Promise<void> {
     background: #eaf2e3;
   }
 
-  h2,
-  h3 {
+  h2 {
     margin: 0;
     font-size: 20px;
   }

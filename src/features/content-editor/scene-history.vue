@@ -3,7 +3,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { ADMIN_TABLE_COLUMNS, ADMIN_UI_DEFAULTS } from '@/app/admin-ui.config'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
+import DataTable from '@/components/data-table/data-table.vue'
 import { createContentAdapter, type RevisionHistoryPage } from '@/features/content/content-adapter'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 import { formatDateTime } from '@/shared/utils/date-time'
@@ -17,7 +19,7 @@ const props = defineProps<{ sceneId: string }>()
 const adapter = createContentAdapter(useAdminApiClient())
 const router = useRouter()
 const page = ref(1)
-const pageSize = ref(10)
+const pageSize = ref<number>(ADMIN_UI_DEFAULTS.pagination.pageSize)
 const history = ref<RevisionHistoryPage | null>(null)
 const preview = ref<SceneRevision | null>(null)
 const busy = ref(false)
@@ -94,29 +96,23 @@ watch(
     <ElAlert v-if="error" :title="error" type="error" :closable="false" /><ElButton @click="load"
       >刷新历史</ElButton
     >
-    <ElTable v-loading="busy" :data="history?.items ?? []"
-      ><ElTableColumn label="版本" prop="version_no" width="70" /><ElTableColumn
-        label="英文标题"
-        prop="title_en"
-        min-width="180"
-      /><ElTableColumn label="状态" width="140"
-        ><template #default="{ row }"
-          >{{ row.status }} {{ row.is_current ? '· 当前线上' : '' }}</template
-        ></ElTableColumn
-      ><ElTableColumn label="创建时间" min-width="180"
-        ><template #default="{ row }">{{ formatDateTime(row.created_at) }}</template></ElTableColumn
-      ><ElTableColumn label="操作" width="210"
-        ><template #default="{ row }"
-          ><ElButton :disabled="busy" link @click="view(row.id)">查看完整版本</ElButton
-          ><ElButton
-            v-if="['PUBLISHED', 'SUPERSEDED'].includes(row.status)"
-            :disabled="busy"
-            link
-            @click="restore(row.id)"
-            >创建回退候选</ElButton
-          ></template
-        ></ElTableColumn
-      ></ElTable
+    <DataTable
+      v-loading="busy"
+      :columns="ADMIN_TABLE_COLUMNS.sceneHistory"
+      :rows="history?.items ?? []"
+      ><template #status="{ row }"
+        >{{ row.status }} {{ row.is_current ? '· 当前线上' : '' }}</template
+      ><template #createdAt="{ row }">{{ formatDateTime(row.created_at) }}</template
+      ><template #actions="{ row }"
+        ><ElButton :disabled="busy" link @click="view(row.id)">查看完整版本</ElButton
+        ><ElButton
+          v-if="['PUBLISHED', 'SUPERSEDED'].includes(row.status)"
+          :disabled="busy"
+          link
+          @click="restore(row.id)"
+          >创建回退候选</ElButton
+        ></template
+      ></DataTable
     >
     <AppPagination
       v-model:current-page="page"

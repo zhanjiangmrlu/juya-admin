@@ -3,6 +3,8 @@ import { ElMessage } from 'element-plus'
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
@@ -147,7 +149,7 @@ async function confirm(reason: string): Promise<void> {
 </script>
 
 <template>
-  <section class="limited-action-page">
+  <section class="limited-action-page admin-brand-headings">
     <ElSkeleton v-if="state === 'loading'" :rows="6" animated aria-label="正在加载限时权益" />
     <ElAlert v-if="error" class="notice" :title="error" type="error" :closable="false" show-icon
       ><ApiErrorDetails :error="apiError" /><ElButton size="small" @click="load(true)"
@@ -156,8 +158,7 @@ async function confirm(reason: string): Promise<void> {
     >
 
     <div v-if="detail" class="action-layout">
-      <ElCard class="detail-card" shadow="never"
-        ><template #header><h3>限时权益状态</h3></template>
+      <AdminPanel :title="ADMIN_SECTION_TITLES.limitedAction.detailCard" class="detail-card">
         <p class="record-summary">
           <span>权益 {{ entitlementId }}</span
           ><span>{{ detail.userId }} · {{ detail.campaignName }} · {{ detail.campaignId }}</span
@@ -174,9 +175,9 @@ async function confirm(reason: string): Promise<void> {
           ><ElDescriptionsItem label="到期时间">{{
             detail.expiresAt ?? '尚未开始'
           }}</ElDescriptionsItem></ElDescriptions
-        ></ElCard
+        ></AdminPanel
       >
-      <ElCard class="operation-card" shadow="never"
+      <AdminPanel class="operation-card"
         ><template #header
           ><div class="card-heading">
             <h3>状态操作</h3>
@@ -243,7 +244,7 @@ async function confirm(reason: string): Promise<void> {
           @click="confirmVisible = true"
           >二次确认并执行</ElButton
         >
-      </ElCard>
+      </AdminPanel>
     </div>
     <aside class="management-note">
       <strong>管理提醒</strong>

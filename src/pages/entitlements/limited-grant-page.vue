@@ -3,6 +3,8 @@ import { ElMessage } from 'element-plus'
 import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
@@ -146,10 +148,9 @@ void loadCampaigns()
 </script>
 
 <template>
-  <section class="limited-grant-page">
+  <section class="limited-grant-page admin-brand-headings">
     <ElForm class="grant-layout" label-position="top">
-      <ElCard class="editor-card" shadow="never"
-        ><template #header><h3>开通限时权益</h3></template
+      <AdminPanel :title="ADMIN_SECTION_TITLES.limitedGrant.editorCard" class="editor-card"
         ><ElFormItem label="用户编号" required
           ><ElInput v-model="form.userId" maxlength="64" placeholder="输入用户编号" /></ElFormItem
         ><ElFormItem label="开放中的活动" required
@@ -234,9 +235,9 @@ void loadCampaigns()
             controller.result.value.startDeadline
           }}</ElDescriptionsItem></ElDescriptions
         >
-      </ElCard>
+      </AdminPanel>
       <div class="check-column">
-        <ElCard class="check-card" shadow="never"
+        <AdminPanel class="check-card"
           ><template #header
             ><div class="card-heading">
               <h3>开通核对</h3>
@@ -262,7 +263,7 @@ void loadCampaigns()
               <strong>启动规则</strong
               ><span>首次进入学习才开始倒计时；启动窗口以活动配置为准。</span>
             </div>
-          </div></ElCard
+          </div></AdminPanel
         >
         <aside class="management-note">
           <strong>提交前确认</strong>

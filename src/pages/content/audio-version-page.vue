@@ -3,6 +3,9 @@ import { ElMessage } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { useRoute } from 'vue-router'
 
+import { ADMIN_SECTION_TITLES, ADMIN_TABLE_COLUMNS } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+import DataTable from '@/components/data-table/data-table.vue'
 import { createAudioAdapter } from '@/features/audio/audio-adapter'
 import { createSegmentPlayer } from '@/features/audio/segment-player'
 import { useAudioVersions } from '@/features/audio/use-audio-versions'
@@ -115,7 +118,7 @@ async function rollbackVersion(versionId: string): Promise<void> {
 </script>
 
 <template>
-  <section v-loading="state === 'loading'" class="audio-version-page">
+  <section v-loading="state === 'loading'" class="audio-version-page admin-brand-headings">
     <div class="page-heading">
       <div>
         <p>音频版本管理 · {{ sceneId }}</p>
@@ -127,8 +130,7 @@ async function rollbackVersion(versionId: string): Promise<void> {
     </p>
     <ElAlert v-if="error" :closable="false" :title="error" type="error" show-icon />
     <div class="audio-grid">
-      <ElCard shadow="never">
-        <template #header><h3>音频目标</h3></template>
+      <AdminPanel :title="ADMIN_SECTION_TITLES.audioVersion.audioTarget">
         <ElEmpty
           v-if="targets.length === 0 && state !== 'loading'"
           description="当前场景暂无音频目标"
@@ -206,37 +208,30 @@ async function rollbackVersion(versionId: string): Promise<void> {
             开始上传音频
           </ElButton>
         </div>
-      </ElCard>
-      <ElCard shadow="never">
-        <template #header><h3>音频版本</h3></template>
+      </AdminPanel>
+      <AdminPanel :title="ADMIN_SECTION_TITLES.audioVersion.versions">
         <ElEmpty v-if="versions.length === 0 && state !== 'loading'" description="暂无候选版本" />
-        <ElTable v-else :data="versions">
-          <ElTableColumn label="版本" prop="versionNo" width="72" />
-          <ElTableColumn label="来源" prop="source" width="96" />
-          <ElTableColumn label="状态" prop="status" min-width="120" />
-          <ElTableColumn label="素材编号" prop="assetId" min-width="150" />
-          <ElTableColumn label="操作" width="170">
-            <template #default="{ row }">
-              <ElButton link @click="listen(row.id, row.assetId)">{{
-                player?.label(row.id) ?? '试听'
-              }}</ElButton>
-              <ElButton
-                v-if="row.status === 'CANDIDATE'"
-                link
-                type="primary"
-                @click="confirmVersion(row.id)"
-                >确认</ElButton
-              >
-              <ElButton
-                v-if="row.id !== selectedTarget?.activeVersionId"
-                link
-                @click="rollbackVersion(row.id)"
-                >回退</ElButton
-              >
-            </template>
-          </ElTableColumn>
-        </ElTable>
-      </ElCard>
+        <DataTable v-else :columns="ADMIN_TABLE_COLUMNS.audioVersions" :rows="versions">
+          <template #actions="{ row }">
+            <ElButton link @click="listen(row.id, row.assetId)">{{
+              player?.label(row.id) ?? '试听'
+            }}</ElButton>
+            <ElButton
+              v-if="row.status === 'CANDIDATE'"
+              link
+              type="primary"
+              @click="confirmVersion(row.id)"
+              >确认</ElButton
+            >
+            <ElButton
+              v-if="row.id !== selectedTarget?.activeVersionId"
+              link
+              @click="rollbackVersion(row.id)"
+              >回退</ElButton
+            >
+          </template>
+        </DataTable>
+      </AdminPanel>
     </div>
     <p aria-live="polite">{{ player?.statusText.value }} · {{ player?.error.value }}</p>
     <audio ref="audioElement" controls preload="metadata" />
@@ -270,12 +265,6 @@ async function rollbackVersion(versionId: string): Promise<void> {
     grid-template-columns: minmax(0, 452fr) minmax(0, 690fr);
     gap: 14px;
     margin-top: 14px;
-  }
-
-  h3 {
-    margin: 0;
-    color: var(--juya-color-sidebar);
-    font-size: 20px;
   }
 
   .el-select,

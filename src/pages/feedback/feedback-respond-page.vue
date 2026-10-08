@@ -3,6 +3,9 @@ import { ElMessage } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, reactive, shallowRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
+import AdminNotice from '@/components/admin-notice/admin-notice.vue'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import PlainTextContent from '@/components/plain-text-content/plain-text-content.vue'
 import StatusTag from '@/components/status-tag/status-tag.vue'
@@ -148,7 +151,7 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
 </script>
 
 <template>
-  <section class="feedback-respond-page">
+  <section class="feedback-respond-page admin-operations-surface">
     <ElAlert v-if="loadError" :closable="false" :title="loadError" type="error" show-icon>
       <ApiErrorDetails :error="loadApiError" />
     </ElAlert>
@@ -156,7 +159,7 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
 
     <template v-else-if="ticket">
       <div class="response-grid">
-        <ElCard shadow="never" class="check-card">
+        <AdminPanel class="check-card">
           <template #header>
             <div class="card-heading">
               <h3>回复前检查</h3>
@@ -183,13 +186,12 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
           <div class="check-item">
             <strong>重复发送</strong><span>提交前校验状态，重复请求使用原幂等键</span>
           </div>
-          <aside class="notice">
-            <strong>提交前确认</strong>
+          <AdminNotice class="notice" title="提交前确认">
             <p>对用户回复与内部备注独立保存；反馈关闭后截图保留 30 天，7 天内用户可重开。</p>
-          </aside>
-        </ElCard>
+          </AdminNotice>
+        </AdminPanel>
 
-        <ElCard shadow="never" class="result-card">
+        <AdminPanel class="result-card">
           <template #header
             ><h3 class="panel-title">发送处理结果</h3>
             <p class="panel-subtitle">{{ ticket.id }}</p></template
@@ -273,18 +275,19 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
               保存内部备注
             </ElButton>
           </ElForm>
-        </ElCard>
+        </AdminPanel>
       </div>
-      <ElCard
+      <AdminPanel
         v-if="
           operations.some((operation) =>
             ['START', 'REQUEST_SUPPLEMENT', 'CLOSE'].includes(operation)
           )
         "
+        :title="ADMIN_SECTION_TITLES.feedbackRespond.additionalActions"
+        :heading="3"
         shadow="never"
         class="additional-actions"
       >
-        <template #header><h3>补充与其他处理</h3></template>
         <div class="additional-grid">
           <div v-if="operations.includes('START')" class="operation-panel">
             <div>
@@ -344,7 +347,7 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
             </ElButton>
           </ElForm>
         </div>
-      </ElCard>
+      </AdminPanel>
     </template>
   </section>
 </template>
@@ -381,51 +384,6 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
     margin: 8px 0 0;
     color: var(--juya-color-text-secondary);
     font-size: 13px;
-  }
-
-  .notice {
-    padding: 16px;
-    border-radius: 16px;
-    background: #e5f0dc;
-    font-size: 13px;
-    line-height: 1.8;
-  }
-
-  .notice strong {
-    color: #4e7f3b;
-    font-size: 14px;
-  }
-
-  .notice p {
-    margin: 20px 0 0;
-  }
-
-  :deep(.el-card) {
-    border-color: #d8e5d1;
-    border-radius: 18px;
-    background: #fffdf7;
-    box-shadow: none;
-  }
-
-  :deep(.el-card__header) {
-    padding: 16px 20px 12px;
-    border-bottom: 0;
-  }
-
-  :deep(.el-card__body) {
-    padding: 20px;
-  }
-
-  :deep(.el-button) {
-    min-height: 38px;
-    border-radius: 10px;
-  }
-
-  :deep(.el-input__wrapper),
-  :deep(.el-select__wrapper),
-  :deep(.el-textarea__inner) {
-    border-radius: 10px;
-    background: #fffdf7;
   }
 
   .additional-actions {

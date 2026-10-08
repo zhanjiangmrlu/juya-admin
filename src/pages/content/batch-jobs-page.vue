@@ -2,7 +2,10 @@
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive } from 'vue'
 
+import { ADMIN_SECTION_TITLES, ADMIN_TABLE_COLUMNS } from '@/app/admin-ui.config'
+import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
+import DataTable from '@/components/data-table/data-table.vue'
 import { createBatchJobAdapter } from '@/features/batch-jobs/batch-job-adapter'
 import { validateBatchJobSize } from '@/features/batch-jobs/batch-job-model'
 import { useBatchJobs } from '@/features/batch-jobs/use-batch-jobs'
@@ -151,7 +154,7 @@ function exportResult(id: string): void {
 </script>
 
 <template>
-  <section v-loading="state === 'loading'" class="batch-jobs-page">
+  <section v-loading="state === 'loading'" class="batch-jobs-page admin-brand-headings">
     <div class="page-heading">
       <div>
         <p class="page-description">单批图片最多 30 张；通用批量操作最多 500 个场景</p>
@@ -163,8 +166,7 @@ function exportResult(id: string): void {
     </div>
     <ElAlert v-if="error" :closable="false" :title="error" type="error" show-icon />
     <div class="create-grid">
-      <ElCard shadow="never">
-        <template #header><h3>新建批量任务</h3></template>
+      <AdminPanel :title="ADMIN_SECTION_TITLES.batchJobs.createJob">
         <ElForm label-position="top">
           <ElFormItem label="任务类型">
             <ElSelect v-model="batchForm.jobType"
@@ -200,9 +202,8 @@ function exportResult(id: string): void {
           />
           <ElButton :disabled="busy" type="primary" @click="createBatch">创建任务</ElButton>
         </ElForm>
-      </ElCard>
-      <ElCard shadow="never">
-        <template #header><h3>草稿移入回收站</h3></template>
+      </AdminPanel>
+      <AdminPanel :title="ADMIN_SECTION_TITLES.batchJobs.recycleDraft">
         <ElForm label-position="top">
           <div class="trash-fields">
             <ElFormItem label="场景编号"><ElInput v-model="trashForm.sceneId" /></ElFormItem>
@@ -212,11 +213,10 @@ function exportResult(id: string): void {
           </div>
           <ElButton :disabled="busy" @click="trashDraft">移入回收站</ElButton>
         </ElForm>
-      </ElCard>
+      </AdminPanel>
     </div>
     <div class="job-grid">
-      <ElCard shadow="never">
-        <template #header><h3>批量任务</h3></template>
+      <AdminPanel :title="ADMIN_SECTION_TITLES.batchJobs.jobs">
         <ElEmpty v-if="jobs.length === 0 && state !== 'loading'" description="暂无批量任务" />
         <ElCollapse v-else>
           <ElCollapseItem v-for="job in jobs" :key="job.id" :name="job.id">
@@ -226,12 +226,8 @@ function exportResult(id: string): void {
               <ElTag class="job-status">{{ job.status }}</ElTag>
               <span>{{ job.successCount }} 成功 / {{ job.failureCount }} 失败</span>
             </template>
-            <ElTable :data="job.items" size="small">
-              <ElTableColumn label="目标" prop="targetId" min-width="130" />
-              <ElTableColumn label="状态" prop="status" width="120" />
-              <ElTableColumn label="尝试" prop="attemptCount" width="72" />
-              <ElTableColumn label="错误码" prop="errorCode" min-width="130" />
-            </ElTable>
+            <DataTable :columns="ADMIN_TABLE_COLUMNS.batchItems" :rows="job.items" size="small">
+            </DataTable>
             <div class="job-actions">
               <ElButton @click="exportResult(job.id)">下载执行结果</ElButton>
               <ElButton
@@ -255,8 +251,8 @@ function exportResult(id: string): void {
           :disabled="state === 'loading' || state === 'saving'"
           @change="controller.load"
         />
-      </ElCard>
-      <ElCard shadow="never">
+      </AdminPanel>
+      <AdminPanel>
         <template #header
           ><h3>草稿回收站</h3>
           <p class="reference-note">仅草稿可回收，保留 30 天；被引用草稿不可清理</p></template
@@ -286,7 +282,7 @@ function exportResult(id: string): void {
           >
         </div>
         <p class="reference-note">被发布版本、活动或配置引用的草稿由服务端拒绝永久清理</p>
-      </ElCard>
+      </AdminPanel>
     </div>
   </section>
 </template>
