@@ -49,7 +49,7 @@ describe('upload queue', () => {
     const confirm = vi
       .fn()
       .mockRejectedValueOnce(new Error('network lost'))
-      .mockResolvedValueOnce({ assetId: 'A-1', jobId: null, sceneId: 'S-1' })
+      .mockResolvedValueOnce({ assetId: 'A-1', jobId: null, sceneId: 'S-1', reusedScene: true })
     const prepare = vi.fn(async () => ({ fields: {}, objectKey: 'uploads/a.png', url: '' }))
     const upload = vi.fn(async () => undefined)
     const controller = useUploadQueue({
@@ -69,5 +69,6 @@ describe('upload queue', () => {
     expect(prepare).toHaveBeenCalledTimes(1)
     expect(upload).toHaveBeenCalledTimes(1)
     expect(controller.items.value[0]?.sceneId).toBe('S-1')
+    expect(controller.items.value[0]?.reusedScene).toBe(true)
   })
 })

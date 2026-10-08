@@ -3,6 +3,21 @@ import { describe, expect, it, vi } from 'vitest'
 import { createUploadAdapter } from './upload-adapter'
 
 describe('upload adapter', () => {
+  it('reports an existing scene reused by a duplicate image import', async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 'ASSET-1' })
+      .mockResolvedValueOnce({ items: [{ id: 'SCENE-OLD' }], reused_scene_ids: ['SCENE-OLD'] })
+    const adapter = createUploadAdapter({ request })
+    await expect(
+      adapter.confirm(
+        { fields: {}, objectKey: 'uploads/a.png', url: '' },
+        { seriesId: 'SERIES-1', templateId: 'dialogue' },
+        'duplicate-key'
+      )
+    ).resolves.toMatchObject({ sceneId: 'SCENE-OLD', reusedScene: true })
+  })
+
   it('confirms the asset without creating an automatic OCR job', async () => {
     const request = vi
       .fn()

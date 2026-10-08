@@ -11,6 +11,7 @@ export interface UploadPreparation {
 }
 
 export interface UploadConfirmation {
+  reusedScene?: boolean
   sceneId?: string
   assetId: string
   jobId: string | null
@@ -40,6 +41,7 @@ export type UploadStatus =
   'confirmed' | 'cancelled' | 'failed' | 'preparing' | 'queued' | 'uploading'
 
 export interface UploadQueueItem {
+  reusedScene: boolean | null
   sceneId: string | null
   assetId: string | null
   context: UploadBatchContext
@@ -60,112 +62,118 @@ export interface UploadQueueController {
   startAll(): Promise<void>
 }
 
-/**
- * 创建相互隔离的图片上传队列
- *
- * @param adapter - 上传准备、直传和确认适配器
- * @returns 上传队列控制器
- */
-export function useUploadQueue(adapter: UploadAdapter): UploadQueueController {
-  const items = ref<UploadQueueItem[]>([])
-  const abortControllers = new Map<string, AbortController>()
-  const uploadedPreparations = new Map<string, UploadPreparation>()
-
-  /**
-   * 向队列加入一张图片
+export const /**
+   * 创建相互隔离的图片上传队列
    *
-   * @param file - 待上传图片
-   * @param context - 当前系列和模板上下文
-   * @returns 新建的队列项
+   * @param adapter - 上传准备、直传和确认适配器
+   * @returns 上传队列控制器
    */
-  function add(file: File, context: UploadBatchContext): UploadQueueItem {
-    const item: UploadQueueItem = {
-      sceneId: null,
-      assetId: null,
-      context: { ...context },
-      error: null,
-      file,
-      id: crypto.randomUUID(),
-      idempotencyKey: createIdempotencyKey(),
-      jobId: null,
-      progress: 0,
-      status: 'queued'
-    }
-    items.value.push(item)
-    return item
-  }
+  useUploadQueue = (adapter: UploadAdapter): UploadQueueController => {
+    const items = ref<UploadQueueItem[]>([])
+    const abortControllers = new Map<string, AbortController>()
+    const uploadedPreparations = new Map<string, UploadPreparation>()
 
-  /**
-   * 取消指定队列项
-   *
-   * @param id - 队列项编号
-   * @returns 无返回值
-   */
-  function cancel(id: string): void {
-    abortControllers.get(id)?.abort()
-    const item = items.value.find((candidate) => candidate.id === id)
-    if (item && item.status !== 'confirmed') item.status = 'cancelled'
-  }
-
-  /**
-   * 执行单个队列项的准备、直传和确认流程
-   *
-   * @param id - 队列项编号
-   * @returns 单项流程完成后的 Promise
-   */
-  async function start(id: string): Promise<void> {
-    const item = items.value.find((candidate) => candidate.id === id)
-    if (!item || ['confirmed', 'preparing', 'uploading'].includes(item.status)) return
-    const controller = new AbortController()
-    abortControllers.set(id, controller)
-    item.error = null
-    item.status = 'preparing'
-    try {
-      const uploaded = uploadedPreparations.get(id)
-      const prepared = uploaded ?? (await adapter.prepare(item.file))
-      if (controller.signal.aborted) return
-      item.status = 'uploading'
-      if (!uploaded)
-        await adapter.upload(
-          prepared,
-          item.file,
-          (progress) => {
-            item.progress = Math.min(100, Math.max(0, progress))
-          },
-          controller.signal
-        )
-      if (controller.signal.aborted) return
-      uploadedPreparations.set(id, prepared)
-      const confirmation = await adapter.confirm(prepared, { ...item.context }, item.idempotencyKey)
-      if (controller.signal.aborted) return
-      item.assetId = confirmation?.assetId ?? null
-      item.sceneId = confirmation?.sceneId ?? null
-      item.jobId = confirmation?.jobId ?? null
-      item.progress = 100
-      item.status = 'confirmed'
-      uploadedPreparations.delete(id)
-    } catch (failure) {
-      if (!controller.signal.aborted) {
-        item.error = failure instanceof Error ? failure.message : '上传失败'
-        item.status = 'failed'
+    const /**
+       * 向队列加入一张图片
+       *
+       * @param file - 待上传图片
+       * @param context - 当前系列和模板上下文
+       * @returns 新建的队列项
+       */
+      add = (file: File, context: UploadBatchContext): UploadQueueItem => {
+        const item: UploadQueueItem = {
+          reusedScene: null,
+          sceneId: null,
+          assetId: null,
+          context: { ...context },
+          error: null,
+          file,
+          id: crypto.randomUUID(),
+          idempotencyKey: createIdempotencyKey(),
+          jobId: null,
+          progress: 0,
+          status: 'queued'
+        }
+        items.value.push(item)
+        return item
       }
-    } finally {
-      abortControllers.delete(id)
+
+    /**
+     * 取消指定队列项
+     *
+     * @param id - 队列项编号
+     * @returns 无返回值
+     */
+    function cancel(id: string): void {
+      abortControllers.get(id)?.abort()
+      const item = items.value.find((candidate) => candidate.id === id)
+      if (item && item.status !== 'confirmed') item.status = 'cancelled'
     }
-  }
 
-  /**
-   * 并行启动所有排队或失败项
-   *
-   * @returns 全部可启动项结束后的 Promise
-   */
-  async function startAll(): Promise<void> {
-    await Promise.allSettled(
-      items.value
-        .filter((item) => item.status === 'queued' || item.status === 'failed')
-        .map((item) => start(item.id))
-    )
-  }
+    const /**
+       * 执行单个队列项的准备、直传和确认流程
+       *
+       * @param id - 队列项编号
+       * @returns 单项流程完成后的 Promise
+       */
+      start = async (id: string): Promise<void> => {
+        const item = items.value.find((candidate) => candidate.id === id)
+        if (!item || ['confirmed', 'preparing', 'uploading'].includes(item.status)) return
+        const controller = new AbortController()
+        abortControllers.set(id, controller)
+        item.error = null
+        item.status = 'preparing'
+        try {
+          const uploaded = uploadedPreparations.get(id)
+          const prepared = uploaded ?? (await adapter.prepare(item.file))
+          if (controller.signal.aborted) return
+          item.status = 'uploading'
+          if (!uploaded)
+            await adapter.upload(
+              prepared,
+              item.file,
+              (progress) => {
+                item.progress = Math.min(100, Math.max(0, progress))
+              },
+              controller.signal
+            )
+          if (controller.signal.aborted) return
+          uploadedPreparations.set(id, prepared)
+          const confirmation = await adapter.confirm(
+            prepared,
+            { ...item.context },
+            item.idempotencyKey
+          )
+          if (controller.signal.aborted) return
+          item.assetId = confirmation?.assetId ?? null
+          item.sceneId = confirmation?.sceneId ?? null
+          item.reusedScene = confirmation?.reusedScene ?? null
+          item.jobId = confirmation?.jobId ?? null
+          item.progress = 100
+          item.status = 'confirmed'
+          uploadedPreparations.delete(id)
+        } catch (failure) {
+          if (!controller.signal.aborted) {
+            item.error = failure instanceof Error ? failure.message : '上传失败'
+            item.status = 'failed'
+          }
+        } finally {
+          abortControllers.delete(id)
+        }
+      }
 
-  return { add, cancel, items: readonly(items), start, startAll }
-}
+    /**
+     * 并行启动所有排队或失败项
+     *
+     * @returns 全部可启动项结束后的 Promise
+     */
+    async function startAll(): Promise<void> {
+      await Promise.allSettled(
+        items.value
+          .filter((item) => item.status === 'queued' || item.status === 'failed')
+          .map((item) => start(item.id))
+      )
+    }
+
+    return { add, cancel, items: readonly(items), start, startAll }
+  }

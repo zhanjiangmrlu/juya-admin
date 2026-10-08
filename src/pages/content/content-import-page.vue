@@ -116,7 +116,9 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
   <section class="content-import-page admin-brand-headings">
     <div class="page-heading">
       <div>
-        <p class="page-description">批量图片上传只建立独立草稿，不自动调用 OCR。</p>
+        <p class="page-description">
+          批量图片上传建立场景草稿；同一系列和模板下的相同图片复用已有场景，不自动调用 OCR。
+        </p>
       </div>
     </div>
     <div class="content-grid">

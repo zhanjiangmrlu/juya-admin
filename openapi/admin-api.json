@@ -10783,10 +10783,17 @@
             },
             "type": "array",
             "title": "Items"
+          },
+          "reused_scene_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reused Scene Ids"
           }
         },
         "type": "object",
-        "required": ["items"],
+        "required": ["items", "reused_scene_ids"],
         "title": "ImportImagesResponse"
       },
       "InternalNoteRequest": {

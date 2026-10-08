@@ -2760,6 +2760,8 @@ export interface components {
     ImportImagesResponse: {
       /** Items */
       items: components['schemas']['SceneResponse'][]
+      /** Reused Scene Ids */
+      reused_scene_ids: string[]
     }
     /** InternalNoteRequest */
     InternalNoteRequest: {

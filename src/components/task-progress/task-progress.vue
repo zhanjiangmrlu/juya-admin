@@ -5,7 +5,7 @@ defineProps<{ item: Readonly<UploadQueueItem> }>()
 defineEmits<{ cancel: [id: string]; retry: [id: string] }>()
 
 const labels = {
-  confirmed: '上传已确认，场景草稿已建立',
+  confirmed: '上传已确认，场景已就绪',
   cancelled: '已取消',
   failed: '上传失败',
   preparing: '计算摘要并申请上传策略',
@@ -18,7 +18,12 @@ const labels = {
   <div class="task-progress">
     <div class="task-copy">
       <strong>{{ item.file.name }}</strong
-      ><span>{{ labels[item.status] }}</span>
+      ><span v-if="item.status === 'confirmed' && item.reusedScene === true"
+        >上传已确认，相同图片已复用已有场景，未新增记录</span
+      ><span v-else-if="item.status === 'confirmed' && item.reusedScene === false"
+        >上传已确认，已新建场景草稿</span
+      ><span v-else>{{ labels[item.status] }}</span>
+      <span v-if="item.sceneId">场景编号：{{ item.sceneId }}</span>
     </div>
     <ElProgress
       :percentage="item.progress"
