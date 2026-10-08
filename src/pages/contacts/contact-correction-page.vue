@@ -315,7 +315,6 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
   }
 
   .actions .el-button {
-    min-height: 44px;
     margin-left: 0;
   }
 

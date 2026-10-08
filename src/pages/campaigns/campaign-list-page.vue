@@ -123,7 +123,7 @@ void load()
         :closable="false"
         show-icon
       >
-        <ApiErrorDetails :error="apiError" /><ElButton size="small" @click="load">重试</ElButton>
+        <ApiErrorDetails :error="apiError" /><ElButton @click="load">重试</ElButton>
       </ElAlert>
       <ElEmpty
         v-else-if="state === 'empty'"

@@ -154,7 +154,6 @@ void controller.load({ ...filters })
       :closable="false"
       show-icon
       ><ApiErrorDetails :error="controller.apiError.value" /><ElButton
-        size="small"
         @click="controller.load({ ...filters })"
         >重试</ElButton
       ></ElAlert

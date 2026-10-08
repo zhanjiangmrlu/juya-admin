@@ -90,7 +90,7 @@ function formatDueAt(value: string): string {
       show-icon
     >
       <template #default>
-        <ElButton size="small" @click="dashboard.load">重新加载</ElButton>
+        <ElButton @click="dashboard.load">重新加载</ElButton>
       </template>
     </ElAlert>
 

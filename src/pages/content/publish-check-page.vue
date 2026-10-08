@@ -253,9 +253,7 @@ async function handlePublish(): Promise<void> {
     }
 
     pre {
-      max-height: 300px;
       margin: 12px 0 0;
-      overflow: auto;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
@@ -295,7 +293,7 @@ async function handlePublish(): Promise<void> {
 }
 
 .preview-panel :deep(.device-scroll) {
-  max-height: 380px;
+  --juya-preview-max-height: 380px;
 }
 
 .validation-panel {
@@ -341,7 +339,6 @@ async function handlePublish(): Promise<void> {
 
 .publish-actions :deep(.el-button) {
   min-width: 165px;
-  height: 44px;
   margin-left: 0;
 }
 

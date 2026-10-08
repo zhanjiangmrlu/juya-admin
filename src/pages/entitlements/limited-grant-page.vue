@@ -178,11 +178,9 @@ void loadCampaigns()
           type="error"
           :closable="false"
           show-icon
-          ><ApiErrorDetails :error="apiError" /><ElButton
-            size="small"
-            @click="loadCampaigns(listPage)"
+          ><ApiErrorDetails :error="apiError" /><ElButton @click="loadCampaigns(listPage)"
             >重新加载活动列表</ElButton
-          ><ElButton v-if="form.campaignId" size="small" @click="selectCampaign(form.campaignId)"
+          ><ElButton v-if="form.campaignId" @click="selectCampaign(form.campaignId)"
             >重新加载活动详情</ElButton
           ></ElAlert
         >
@@ -222,9 +220,7 @@ void loadCampaigns()
               detailFresh && detail ? `v${detail.version}` : '暂未获取，请刷新'
             }}，请核对状态和容量。
           </p>
-          <ElButton size="small" @click="selectCampaign(form.campaignId)"
-            >刷新活动状态</ElButton
-          ></ElAlert
+          <ElButton @click="selectCampaign(form.campaignId)">刷新活动状态</ElButton></ElAlert
         >
         <ElDescriptions v-if="controller.result.value" :column="2" border class="summary"
           ><ElDescriptionsItem label="权益编号">{{ controller.result.value.id }}</ElDescriptionsItem
@@ -475,7 +471,6 @@ void loadCampaigns()
   }
 
   .submit-row .el-button {
-    min-height: 44px;
     margin: 0;
   }
 

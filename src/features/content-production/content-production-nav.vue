@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ElScrollbar } from 'element-plus'
+
 import type { ProductionStage } from './content-production-model'
 
 import { PRODUCTION_STAGES } from './content-production-model'
@@ -31,30 +33,31 @@ function move(event: globalThis.KeyboardEvent, index: number): void {
 
 <template>
   <nav class="production-nav" aria-label="内容生产流程">
-    <div class="production-tabs" role="tablist" aria-label="内容生产步骤">
-      <button
-        v-for="(item, index) in PRODUCTION_STAGES"
-        :key="item.stage"
-        class="production-tab"
-        :class="{ active: active === item.stage }"
-        type="button"
-        role="tab"
-        :aria-selected="active === item.stage"
-        :tabindex="active === item.stage ? 0 : -1"
-        :disabled="busy"
-        @click="emit('select', item.stage)"
-        @keydown="move($event, index)"
-      >
-        {{ item.label }}
-      </button>
-    </div>
+    <ElScrollbar>
+      <div class="production-tabs" role="tablist" aria-label="内容生产步骤">
+        <button
+          v-for="(item, index) in PRODUCTION_STAGES"
+          :key="item.stage"
+          class="production-tab"
+          :class="{ active: active === item.stage }"
+          type="button"
+          role="tab"
+          :aria-selected="active === item.stage"
+          :tabindex="active === item.stage ? 0 : -1"
+          :disabled="busy"
+          @click="emit('select', item.stage)"
+          @keydown="move($event, index)"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+    </ElScrollbar>
   </nav>
 </template>
 
 <style scoped lang="scss">
 .production-nav {
   margin-bottom: 18px;
-  overflow-x: auto;
   border-bottom: 1px solid var(--el-border-color-light);
 }
 

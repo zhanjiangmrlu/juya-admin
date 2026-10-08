@@ -181,7 +181,16 @@ async function logout(): Promise<void> {
       </ElHeader>
 
       <ElMain class="main">
-        <RouterView />
+        <ElScrollbar
+          class="page-scrollbar"
+          aria-label="页面内容"
+          :always="true"
+          :tabindex="0"
+          wrap-class="page-scrollbar-wrap"
+          view-class="page-scrollbar-view"
+        >
+          <RouterView />
+        </ElScrollbar>
       </ElMain>
     </ElContainer>
   </ElContainer>
@@ -243,11 +252,6 @@ async function logout(): Promise<void> {
   }
 
   .menu-scrollbar {
-    --el-scrollbar-bg-color: var(--juya-color-primary);
-    --el-scrollbar-hover-bg-color: var(--juya-color-primary);
-    --el-scrollbar-hover-opacity: 0.6;
-    --el-scrollbar-opacity: 0.25;
-
     flex: 1;
     min-height: 0;
     width: 100%;
@@ -338,11 +342,31 @@ async function logout(): Promise<void> {
   }
 
   .main {
+    display: flex;
     min-width: 0;
-    overflow: auto;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+    background: var(--juya-color-page);
+  }
+
+  .page-scrollbar {
+    flex: 1;
+    min-width: 0;
+  }
+
+  :deep(.page-scrollbar-wrap) {
+    overflow-x: hidden;
+  }
+
+  :deep(.page-scrollbar-wrap:focus-visible) {
+    outline: 2px solid var(--juya-color-brand-accent);
+    outline-offset: -2px;
+  }
+
+  :deep(.page-scrollbar-view) {
     padding: var(--juya-main-padding-top) 26px var(--juya-main-padding-bottom)
       var(--juya-main-padding-inline);
-    background: var(--juya-color-page);
   }
 
   .menu.el-menu {

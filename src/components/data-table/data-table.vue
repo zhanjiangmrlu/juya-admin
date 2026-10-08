@@ -75,6 +75,5 @@ function readCell(row: T, prop?: string): unknown {
 <style scoped lang="scss">
 .data-table {
   width: 100%;
-  overflow-x: auto;
 }
 </style>

@@ -195,7 +195,7 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
         show-icon
       >
         <ApiErrorDetails :error="controller.apiError.value" />
-        <ElButton size="small" @click="load">重试</ElButton>
+        <ElButton @click="load">重试</ElButton>
       </ElAlert>
       <ElEmpty
         v-else-if="controller.page.value.items.length === 0"

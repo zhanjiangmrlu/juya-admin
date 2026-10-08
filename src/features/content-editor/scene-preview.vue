@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { VideoPause, VideoPlay } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElScrollbar } from 'element-plus'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 
 import { createSegmentPlayer } from '@/features/audio/segment-player'
@@ -179,7 +179,12 @@ onBeforeUnmount(() => {
       ><ElButton @click="loadResources">刷新预览</ElButton>
     </div>
     <ElAlert v-if="resourceError" :closable="false" :title="resourceError" type="warning" />
-    <div class="device-scroll">
+    <ElScrollbar
+      class="device-scroll"
+      max-height="var(--juya-preview-max-height)"
+      aria-label="场景预览内容"
+      :tabindex="0"
+    >
       <article class="device-frame" :class="device">
         <img
           v-if="content.original_image_asset_id && urls[content.original_image_asset_id]"
@@ -236,7 +241,6 @@ onBeforeUnmount(() => {
             </p>
             <p class="translation">{{ row.chinese }}</p>
             <ElButton
-              size="small"
               :disabled="
                 !content.audio ||
                 row.audio_version_id !== content.audio.version_id ||
@@ -275,7 +279,7 @@ onBeforeUnmount(() => {
           </p>
         </div>
       </article>
-    </div>
+    </ElScrollbar>
     <ElDialog
       :model-value="Boolean(selectedEntry)"
       title="词卡"
@@ -348,9 +352,9 @@ onBeforeUnmount(() => {
 }
 
 .device-scroll {
+  --juya-preview-max-height: 68vh;
+
   max-width: 100%;
-  max-height: 68vh;
-  overflow: auto;
 }
 
 .device-frame {
@@ -424,8 +428,8 @@ h3 {
 
 .entry-play {
   flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
   font-size: 20px;
 }
 

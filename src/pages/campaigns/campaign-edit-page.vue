@@ -126,10 +126,7 @@ async function confirm(): Promise<void> {
             : `v${editor.conflictVersion.value}`
         }}，请核对后再保存。
       </p>
-      <ElButton
-        v-if="!isNew"
-        size="small"
-        @click="editor.load(campaignId, true).catch(() => undefined)"
+      <ElButton v-if="!isNew" @click="editor.load(campaignId, true).catch(() => undefined)"
         >刷新服务端信息</ElButton
       >
     </ElAlert>

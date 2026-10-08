@@ -28,7 +28,7 @@ for (const adminPage of pageManifest) {
 
       await page.evaluate(() => {
         document.scrollingElement?.scrollTo(0, 0)
-        for (const container of document.querySelectorAll<HTMLElement>('.main'))
+        for (const container of document.querySelectorAll<HTMLElement>('.page-scrollbar-wrap'))
           container.scrollTo(0, 0)
       })
       await page.screenshot({
@@ -52,7 +52,7 @@ async function stabilizePage(page: import('@playwright/test').Page): Promise<voi
   await page.evaluate(async () => {
     await document.fonts.ready
     window.scrollTo(0, 0)
-    for (const container of document.querySelectorAll<HTMLElement>('.main'))
+    for (const container of document.querySelectorAll<HTMLElement>('.page-scrollbar-wrap'))
       container.scrollTo(0, 0)
     await new Promise<void>((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()))

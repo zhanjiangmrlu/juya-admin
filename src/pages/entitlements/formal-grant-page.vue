@@ -232,7 +232,7 @@ function formatServerTime(value: string | null): string {
           show-icon
         >
           <ApiErrorDetails :error="controller.apiError.value" />
-          <ElButton v-if="controller.hasConflict.value" size="small" @click="handlePreview"
+          <ElButton v-if="controller.hasConflict.value" @click="handlePreview"
             >刷新服务端预览</ElButton
           >
         </ElAlert>
@@ -242,9 +242,7 @@ function formatServerTime(value: string | null): string {
           title="内容包加载失败，请重试"
           type="error"
           :closable="false"
-          ><ApiErrorDetails :error="packageError" /><ElButton
-            size="small"
-            @click="loadPackages(packagePage)"
+          ><ApiErrorDetails :error="packageError" /><ElButton @click="loadPackages(packagePage)"
             >重试</ElButton
           ></ElAlert
         >
@@ -492,7 +490,6 @@ function formatServerTime(value: string | null): string {
   }
 
   .submit-row .el-button {
-    min-height: 44px;
     margin: 0;
   }
 

@@ -173,9 +173,7 @@ async function confirm(reason: string): Promise<void> {
   <section class="formal-action-page admin-brand-headings">
     <ElSkeleton v-if="state === 'loading'" :rows="6" animated aria-label="正在加载正式权益" />
     <ElAlert v-if="error" class="notice" :title="error" type="error" :closable="false" show-icon
-      ><ApiErrorDetails :error="apiError" /><ElButton size="small" @click="load(true)"
-        >重试</ElButton
-      ></ElAlert
+      ><ApiErrorDetails :error="apiError" /><ElButton @click="load(true)">重试</ElButton></ElAlert
     >
 
     <div v-if="detail" class="action-layout">
@@ -237,7 +235,7 @@ async function confirm(reason: string): Promise<void> {
                   state === 'ready' ? `v${detail.version}` : '暂未获取，请刷新'
                 }}，请核对当前状态并重新预览。
               </p>
-              <ElButton size="small" @click="load(true)">刷新服务端信息</ElButton></template
+              <ElButton @click="load(true)">刷新服务端信息</ElButton></template
             ></ElAlert
           >
           <ElDescriptions v-if="controller.previewResult.value" :column="2" border
@@ -298,10 +296,6 @@ async function confirm(reason: string): Promise<void> {
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
-  }
-
-  .card-heading .el-button {
-    font-size: 12px;
   }
 
   .record-summary {
@@ -461,7 +455,6 @@ async function confirm(reason: string): Promise<void> {
 
   .submit {
     align-self: flex-start;
-    min-height: 44px;
     margin-top: auto;
   }
 

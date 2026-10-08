@@ -15,12 +15,7 @@ defineEmits<{ copy: [] }>()
     <span class="text">{{ value || '未填写' }}</span>
     <ElTooltip :content="canCopy ? '复制敏感值' : '复制功能不可用'">
       <span>
-        <ElButton
-          :disabled="!canCopy || !value"
-          :loading="copying"
-          size="small"
-          @click="$emit('copy')"
-        >
+        <ElButton :disabled="!canCopy || !value" :loading="copying" @click="$emit('copy')">
           复制
         </ElButton>
       </span>

@@ -92,7 +92,7 @@ async function confirm(): Promise<void> {
             : `v${editor.conflictVersion.value}`
         }}，请核对后重试。
       </p>
-      <ElButton size="small" @click="editor.load(campaignId, true).catch(() => undefined)"
+      <ElButton @click="editor.load(campaignId, true).catch(() => undefined)"
         >刷新服务端信息</ElButton
       >
     </ElAlert>

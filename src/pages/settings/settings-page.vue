@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElScrollbar } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
 import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
@@ -150,7 +150,7 @@ async function saveConfig(): Promise<void> {
           <RouterLink class="ocr-entry" to="/content/import">管理 OCR 开关与额度</RouterLink>
         </ElForm>
         <ElAlert v-if="ocrQuotaError" :title="ocrQuotaError" :closable="false" type="error"
-          ><ElButton size="small" @click="loadOcrQuota">重试读取 OCR 配置</ElButton></ElAlert
+          ><ElButton @click="loadOcrQuota">重试读取 OCR 配置</ElButton></ElAlert
         >
       </AdminPanel>
       <div class="review-column">
@@ -210,11 +210,15 @@ async function saveConfig(): Promise<void> {
       <div v-if="controller.conflict.value" class="conflict-grid">
         <div>
           <strong>本地草稿</strong>
-          <pre>{{ JSON.stringify(form, null, 2) }}</pre>
+          <ElScrollbar>
+            <pre>{{ JSON.stringify(form, null, 2) }}</pre>
+          </ElScrollbar>
         </div>
         <div>
           <strong>远端版本 v{{ controller.conflict.value.remoteVersion }}</strong>
-          <pre>{{ JSON.stringify(controller.conflict.value.remoteDraft, null, 2) }}</pre>
+          <ElScrollbar>
+            <pre>{{ JSON.stringify(controller.conflict.value.remoteDraft, null, 2) }}</pre>
+          </ElScrollbar>
         </div>
       </div></ElDialog
     >
@@ -354,7 +358,6 @@ async function saveConfig(): Promise<void> {
 
   .save-actions .el-button {
     min-width: 196px;
-    height: 44px;
   }
 
   .page-alert,
@@ -369,7 +372,6 @@ async function saveConfig(): Promise<void> {
   }
 
   .conflict-grid pre {
-    overflow: auto;
     padding: 12px;
     border-radius: 10px;
     background: var(--juya-color-page);

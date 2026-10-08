@@ -21,7 +21,14 @@
   --el-bg-color-page: var(--juya-color-page);
   --el-fill-color-blank: var(--juya-color-surface);
   --el-fill-color-light: #eaf2e3;
-  --el-component-size: 38px;
+  --el-component-size: 32px;
+}
+
+.el-scrollbar {
+  --el-scrollbar-bg-color: var(--juya-color-primary);
+  --el-scrollbar-hover-bg-color: var(--juya-color-primary);
+  --el-scrollbar-hover-opacity: 0.6;
+  --el-scrollbar-opacity: 0.25;
 }
 
 .el-button {

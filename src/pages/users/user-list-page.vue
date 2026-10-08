@@ -296,7 +296,7 @@ function contactStatusLabel(status: string | undefined): string {
               custom
               :to="{ name: 'user-detail', params: { userId: row.user_id } }"
             >
-              <ElButton size="small" type="primary" link @click="navigate">查看</ElButton>
+              <ElButton type="primary" link @click="navigate">查看</ElButton>
             </RouterLink>
           </template>
         </DataTable>
@@ -341,7 +341,7 @@ function contactStatusLabel(status: string | undefined): string {
               custom
               :to="{ name: 'contact-correction', params: { id: row.id } }"
             >
-              <ElButton size="small" type="primary" link @click="navigate">处理</ElButton>
+              <ElButton type="primary" link @click="navigate">处理</ElButton>
             </RouterLink>
           </template>
         </DataTable>

@@ -1,4 +1,4 @@
-import { expect, loginAsAdmin, test } from './fixtures/admin-api'
+import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 
 const dashboardViewports = [
   { height: 900, width: 1440 },
@@ -6,6 +6,25 @@ const dashboardViewports = [
 ] as const
 
 for (const viewport of dashboardViewports) {
+  test(`权益筛选控件在 ${viewport.width}x${viewport.height} 下统一为中等尺寸`, async ({
+    adminApi,
+    page
+  }) => {
+    void adminApi
+    await page.setViewportSize(viewport)
+    await loginAsAdmin(page)
+    await navigateInApp(page, '/entitlements')
+    const controls = page.locator(
+      '.filters .el-input__wrapper, .filters .el-select__wrapper, .filters .el-button'
+    )
+    await expect(controls).toHaveCount(8)
+    const heights = await controls.evaluateAll((elements) =>
+      elements.map((element) => element.getBoundingClientRect().height)
+    )
+    expect(heights).toEqual([32, 32, 32, 32, 32, 32, 32, 32])
+    await expect(page.getByRole('button', { name: '授予正式权益' })).toHaveCSS('height', '32px')
+  })
+
   test(`工作台业务卡片在 ${viewport.width}x${viewport.height} 下按设计显示业务卡片与快捷入口`, async ({
     adminApi,
     page
@@ -141,7 +160,7 @@ test('窄屏单列下非空待办卡片保持自然高度', async ({ adminApi, p
 
   const geometry = await page.evaluate(() => {
     const content = document.querySelector<HTMLElement>('.dashboard-page .content')
-    const main = document.querySelector<HTMLElement>('.main')
+    const main = document.querySelector<HTMLElement>('.page-scrollbar-wrap')
     const panels = Array.from(document.querySelectorAll<HTMLElement>('.dashboard-page .panel'))
     if (!content || !main || panels.length !== 2) throw new Error('工作台窄屏布局节点缺失')
 

@@ -30,12 +30,9 @@ const labels = {
       :status="item.status === 'failed' ? 'exception' : undefined"
     />
     <div class="task-actions">
-      <ElButton v-if="item.status === 'failed'" size="small" @click="$emit('retry', item.id)"
-        >重试</ElButton
-      >
+      <ElButton v-if="item.status === 'failed'" @click="$emit('retry', item.id)">重试</ElButton>
       <ElButton
         v-if="['preparing', 'uploading'].includes(item.status)"
-        size="small"
         @click="$emit('cancel', item.id)"
         >取消</ElButton
       >

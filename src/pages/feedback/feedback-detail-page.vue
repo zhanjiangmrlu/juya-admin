@@ -277,7 +277,6 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
                 v-if="controller.ticket.value.screenshots.length"
                 :aria-label="controller.screenshotUrl.value ? '刷新临时地址' : '查看反馈截图'"
                 :loading="isLoadingScreenshot"
-                size="small"
                 @click="loadScreenshot"
               >
                 {{ controller.screenshotUrl.value ? '刷新临时地址' : '查看反馈截图' }}
@@ -466,7 +465,6 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
 
   .timeline-action :deep(.el-button) {
     min-width: 195px;
-    min-height: 44px;
   }
 
   .record-block + .record-block {
