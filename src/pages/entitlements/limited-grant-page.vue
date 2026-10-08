@@ -147,19 +147,9 @@ void loadCampaigns()
 
 <template>
   <section class="limited-grant-page">
-    <ElCard shadow="never"
-      ><template #header
-        ><div class="heading">
-          <div>
-            <span>A07</span>
-            <h2>开通限时学习权益</h2>
-          </div>
-          <RouterLink v-slot="{ navigate }" custom :to="{ name: 'entitlements' }"
-            ><ElButton @click="navigate">返回权益中心</ElButton></RouterLink
-          >
-        </div></template
-      >
-      <ElForm label-position="top"
+    <ElForm class="grant-layout" label-position="top">
+      <ElCard class="editor-card" shadow="never"
+        ><template #header><h3>开通限时权益</h3></template
         ><ElFormItem label="用户编号" required
           ><ElInput v-model="form.userId" maxlength="64" placeholder="输入用户编号" /></ElFormItem
         ><ElFormItem label="开放中的活动" required
@@ -244,18 +234,54 @@ void loadCampaigns()
             controller.result.value.startDeadline
           }}</ElDescriptionsItem></ElDescriptions
         >
-        <ElButton
-          type="primary"
-          class="submit"
-          :disabled="
-            !form.userId.trim() || !eligible || controller.commandState.value === 'submitting'
-          "
-          :loading="controller.commandState.value === 'submitting'"
-          @click="confirmVisible = true"
-          >二次确认并开通</ElButton
+      </ElCard>
+      <div class="check-column">
+        <ElCard class="check-card" shadow="never"
+          ><template #header
+            ><div class="card-heading">
+              <h3>开通核对</h3>
+              <RouterLink v-slot="{ navigate }" custom :to="{ name: 'entitlements' }"
+                ><ElButton @click="navigate">返回权益中心</ElButton></RouterLink
+              >
+            </div></template
+          >
+          <div class="check-items">
+            <div class="check-item">
+              <strong>容量</strong
+              ><span>{{
+                detail?.currentVersion
+                  ? detail.currentVersion.grantedUserCount + ' / ' + detail.currentVersion.capacity
+                  : '请选择活动后核对容量'
+              }}</span>
+            </div>
+            <div class="check-item">
+              <strong>活动版本</strong
+              ><span>开通将绑定左侧选定的活动版本，请核对版本与开放状态。</span>
+            </div>
+            <div class="check-item">
+              <strong>启动规则</strong
+              ><span>首次进入学习才开始倒计时；启动窗口以活动配置为准。</span>
+            </div>
+          </div></ElCard
         >
-      </ElForm></ElCard
-    >
+        <aside class="management-note">
+          <strong>提交前确认</strong>
+          <p>超过启动窗口仍未开始时按活动规则处理，可恢复或关闭。</p>
+        </aside>
+        <div class="submit-row">
+          <ElButton
+            type="primary"
+            class="submit"
+            :disabled="
+              !form.userId.trim() || !eligible || controller.commandState.value === 'submitting'
+            "
+            :loading="controller.commandState.value === 'submitting'"
+            @click="confirmVisible = true"
+            >二次确认并开通</ElButton
+          >
+        </div>
+      </div>
+    </ElForm>
     <ConfirmDialog
       v-if="detail?.currentVersion"
       v-model="confirmVisible"
@@ -274,33 +300,231 @@ void loadCampaigns()
 <style scoped lang="scss">
 .limited-grant-page {
   min-width: 0;
+  padding-top: 5px;
 
-  .heading {
+  .card-heading {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 14px;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
-  .heading span {
-    color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    font-weight: 700;
+  .card-heading .el-button {
+    font-size: 12px;
   }
 
-  h2 {
-    margin: 3px 0 0;
-    color: var(--juya-color-sidebar);
-    font-size: 16px;
+  .record-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin: 0 0 18px;
+    color: #657a68;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+  }
+
+  .toolbar p {
+    margin: 0;
+    color: #657a68;
+    font-size: 13px;
+  }
+
+  h3 {
+    margin: 0;
+    color: #244633;
+    font-size: 20px;
+  }
+
+  .grant-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
+    align-items: start;
+    gap: 18px;
+  }
+
+  .editor-card,
+  .check-card {
+    min-width: 0;
+    border: 1px solid #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+  }
+
+  .editor-card {
+    min-height: 630px;
+    background: #eaf2e3;
+  }
+
+  .check-card {
+    min-height: 455px;
+  }
+
+  :deep([class~='el-card__header']) {
+    padding: 18px 20px 12px;
+    border-bottom: 0;
+  }
+
+  :deep([class~='el-card__body']) {
+    padding: 12px 20px 20px;
+  }
+
+  .form-grid {
+    display: grid;
+    gap: 0;
+  }
+
+  .editor-card :deep(.el-form-item) {
+    margin-bottom: 24px;
+  }
+
+  .editor-card :deep([class~='el-form-item__label']) {
+    margin-bottom: 6px;
+    color: #657a68;
+    font-size: 13px;
+  }
+
+  .editor-card :deep([class~='el-form-item__content'] > .el-select) {
+    width: 100%;
   }
 
   .notice,
+  .alert,
   .summary {
     margin: 16px 0;
   }
 
-  .submit {
-    margin-top: 16px;
+  .preview {
+    display: grid;
+    gap: 16px;
+    margin: 18px 0;
+  }
+
+  .preview span,
+  .preview strong {
+    display: block;
+  }
+
+  .preview span {
+    margin-bottom: 6px;
+    color: #657a68;
+    font-size: 13px;
+  }
+
+  .preview strong {
+    padding: 10px 12px;
+    border: 1px solid #c9dac3;
+    border-radius: 10px;
+    background: #fffdf7;
+    color: #244633;
+    font-size: 14px;
+  }
+
+  .check-items {
+    display: grid;
+    gap: 32px;
+    margin: 28px 0;
+  }
+
+  .check-item {
+    padding-left: 16px;
+    border-left: 5px solid #4f833d;
+  }
+
+  .check-item strong,
+  .check-item span {
+    display: block;
+  }
+
+  .check-item strong {
+    color: #244633;
+    font-size: 13px;
+  }
+
+  .check-item span {
+    margin-top: 7px;
+    color: #657a68;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .check-column {
+    min-width: 0;
+  }
+
+  .check-column .management-note {
+    min-height: 156px;
+    box-sizing: border-box;
+  }
+
+  .submit-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .submit-row .el-button {
+    min-height: 44px;
+    margin: 0;
+  }
+
+  .management-note {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    color: #244633;
+  }
+
+  .management-note strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .management-note p {
+    margin: 20px 0 6px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+}
+
+@media (width <= 1000px) {
+  .limited-grant-page {
+    .grant-layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .toolbar {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 12px;
+    }
+  }
+}
+
+@media (height <= 820px) {
+  .limited-grant-page {
+    .editor-card {
+      min-height: 540px;
+    }
+
+    .check-card {
+      min-height: 365px;
+    }
+
+    .submit-row {
+      margin-top: 20px;
+    }
   }
 }
 </style>

@@ -118,8 +118,7 @@ async function rollbackVersion(versionId: string): Promise<void> {
   <section v-loading="state === 'loading'" class="audio-version-page">
     <div class="page-heading">
       <div>
-        <span>A21</span>
-        <h2>音频版本管理 · {{ sceneId }}</h2>
+        <p>音频版本管理 · {{ sceneId }}</p>
       </div>
       <ElTag type="info">单批最多 300 个</ElTag>
     </div>
@@ -245,6 +244,7 @@ async function rollbackVersion(versionId: string): Promise<void> {
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 .audio-version-page {
   .page-heading {
     display: flex;
@@ -267,7 +267,7 @@ async function rollbackVersion(versionId: string): Promise<void> {
 
   .audio-grid {
     display: grid;
-    grid-template-columns: minmax(260px, 1fr) minmax(440px, 2fr);
+    grid-template-columns: minmax(0, 452fr) minmax(0, 690fr);
     gap: 14px;
     margin-top: 14px;
   }
@@ -275,7 +275,7 @@ async function rollbackVersion(versionId: string): Promise<void> {
   h3 {
     margin: 0;
     color: var(--juya-color-sidebar);
-    font-size: 15px;
+    font-size: 20px;
   }
 
   .el-select,
@@ -323,5 +323,14 @@ async function rollbackVersion(versionId: string): Promise<void> {
       grid-template-columns: 1fr;
     }
   }
+}
+
+.audio-version-page :deep(.el-card__header) {
+  padding: 18px 20px 0;
+  border-bottom: 0;
+}
+
+.audio-grid > :deep(.el-card:first-child) {
+  background: #eaf2e3;
 }
 </style>

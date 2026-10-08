@@ -138,8 +138,7 @@ onMounted(load)
   <section class="discovery-config-page">
     <div class="page-heading">
       <div>
-        <span>A23</span>
-        <h2>发现页与开放场景配置</h2>
+        <p class="page-description">开放场景自由学习；系列预览使用安全封面和专用片段。</p>
       </div>
       <div class="heading-actions">
         <ElTag effect="plain">配置 v{{ controller.version.value }}</ElTag
@@ -180,8 +179,10 @@ onMounted(load)
         show-icon
       />
       <div class="config-grid">
-        <ElCard shadow="never"
-          ><template #header><h3>三个开放场景</h3></template
+        <ElCard shadow="never" class="open-scenes-panel"
+          ><template #header
+            ><h3>开放学习场景</h3>
+            <p class="field-help">固定选择 3 个已发布场景，自由学习顺序</p></template
           ><ElForm label-position="top">
             <ElFormItem
               v-for="(_id, index) in form.openScenes.slice(0, 3)"
@@ -189,8 +190,15 @@ onMounted(load)
               :label="`开放场景 ${index + 1}`"
               required
               ><ElInput v-model="form.openScenes[index]"
-            /></ElFormItem> </ElForm
-        ></ElCard>
+            /></ElFormItem>
+          </ElForm>
+          <dl class="open-scene-notes">
+            <dt>场景替换</dt>
+            <dd>先替换，再下线当前开放场景</dd>
+            <dt>历史记录</dt>
+            <dd>替换后保留进度、收藏与来源句</dd>
+          </dl></ElCard
+        >
         <ElCard shadow="never"
           ><template #header
             ><div class="card-heading">
@@ -236,6 +244,7 @@ onMounted(load)
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 .page-heading,
 .card-heading {
   display: flex;
@@ -271,14 +280,55 @@ onMounted(load)
 
 .config-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.open-scenes-panel {
+  grid-row: 1 / 3;
+  min-height: 630px;
+  background: #eaf2e3;
+}
+
+.config-grid {
+  grid-template-rows: auto 1fr;
+}
+
+.discovery-config-page :deep(.el-card__header) {
+  padding: 18px 20px 0;
+  border-bottom: 0;
+}
+
+.discovery-config-page :deep(.el-form-item) {
+  margin-bottom: 24px;
+}
+
+.open-scene-notes dt {
+  margin: 24px 0 8px;
+  color: var(--juya-color-text-regular);
+  font-size: 13px;
+}
+
+.open-scene-notes dd {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--juya-color-border);
+  border-radius: 10px;
+  background: var(--juya-color-surface);
+  font-size: 14px;
+}
+
+.page-description {
+  margin: 0;
+  color: var(--juya-color-text-regular);
+  font-size: 13px;
 }
 
 h3 {
   margin: 0;
   color: var(--juya-color-sidebar);
-  font-size: 15px;
+  font-size: 20px;
 }
 
 .preview-row {
@@ -304,6 +354,11 @@ h3 {
 @media (width <= 1100px) {
   .config-grid {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .open-scenes-panel {
+    grid-row: auto;
   }
 }
 </style>

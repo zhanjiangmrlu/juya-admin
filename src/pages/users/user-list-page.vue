@@ -111,150 +111,151 @@ function contactStatusLabel(status: string | undefined): string {
 
 <template>
   <section class="user-list-page">
-    <ElCard class="panel" shadow="never">
-      <template #header>
-        <div class="heading">
-          <div>
-            <h2>{{ view === 'users' ? '用户管理' : '联系资料更正申请' }}</h2>
-            <p>
-              {{
-                view === 'users'
-                  ? '查找用户并查看学习、联系资料、权益和反馈。'
-                  : '查看用户提交的修改机会申请，并进入详情执行批准或拒绝。'
-              }}
-            </p>
-          </div>
-          <ElButton type="primary" @click="toggleView">
-            {{ view === 'users' ? '查看联系更正申请' : '返回用户列表' }}
-          </ElButton>
+    <div class="page-toolbar">
+      <div class="heading">
+        <div>
+          <p>
+            {{
+              view === 'users'
+                ? '按句芽号、昵称或完整微信号搜索，并查看联系与权益状态。'
+                : '查看用户提交的修改机会申请，并进入详情执行批准或拒绝。'
+            }}
+          </p>
         </div>
-      </template>
+        <ElButton type="primary" @click="toggleView">
+          {{ view === 'users' ? '查看联系更正申请' : '返回用户列表' }}
+        </ElButton>
+      </div>
+    </div>
 
-      <template v-if="view === 'users'">
-        <ElForm class="filters" inline @submit.prevent="submitSearch">
-          <ElFormItem>
-            <ElSelect v-model="filters.mode" aria-label="搜索方式" class="mode">
-              <ElOption label="句芽编号 / 昵称" value="normal" />
-              <ElOption label="完整微信号" value="wechat" />
-            </ElSelect>
-          </ElFormItem>
-          <ElFormItem>
-            <ElInput
-              v-model="filters.query"
-              maxlength="64"
-              :placeholder="filters.mode === 'wechat' ? '输入完整微信号' : '输入句芽编号或昵称'"
-              :prefix-icon="Search"
-              clearable
-              @keyup.enter="submitSearch"
+    <template v-if="view === 'users'">
+      <ElForm class="filters" label-position="top" inline @submit.prevent="submitSearch">
+        <ElFormItem label="搜索方式">
+          <ElSelect v-model="filters.mode" aria-label="搜索方式" class="mode">
+            <ElOption label="句芽编号 / 昵称" value="normal" />
+            <ElOption label="完整微信号" value="wechat" />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem label="搜索">
+          <ElInput
+            v-model="filters.query"
+            maxlength="64"
+            :placeholder="filters.mode === 'wechat' ? '输入完整微信号' : '输入句芽编号或昵称'"
+            :prefix-icon="Search"
+            clearable
+            @keyup.enter="submitSearch"
+          />
+        </ElFormItem>
+        <ElFormItem class="search-action"
+          ><ElButton native-type="submit" type="primary">查询</ElButton></ElFormItem
+        >
+        <ElFormItem label="联系状态">
+          <ElSelect
+            v-model="filters.contactStatus"
+            aria-label="联系状态筛选"
+            class="status-filter"
+            clearable
+            placeholder="全部联系状态"
+            @change="submitSearch"
+          >
+            <ElOption
+              v-for="option in contactStatusOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
             />
-          </ElFormItem>
-          <ElFormItem><ElButton native-type="submit" type="primary">查询</ElButton></ElFormItem>
-          <ElFormItem>
-            <ElSelect
-              v-model="filters.contactStatus"
-              aria-label="联系状态筛选"
-              class="status-filter"
-              clearable
-              placeholder="全部联系状态"
-              @change="submitSearch"
-            >
-              <ElOption
-                v-for="option in contactStatusOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
-            </ElSelect>
-          </ElFormItem>
-          <ElFormItem>
-            <ElSelect
-              v-model="operationFilters.entitlement_type"
-              class="status-filter"
-              clearable
-              placeholder="全部权益类型"
-              aria-label="权益类型筛选"
-            >
-              <ElOption label="正式包" value="FORMAL" /><ElOption label="限时包" value="LIMITED" />
-            </ElSelect>
-          </ElFormItem>
-          <ElFormItem>
-            <ElSelect
-              v-model="operationFilters.entitlement_status"
-              class="status-filter"
-              clearable
-              placeholder="全部权益状态"
-              aria-label="权益状态筛选"
-            >
-              <ElOption
-                v-for="option in [
-                  { value: 'ACTIVE', label: '有效 / 学习中' },
-                  { value: 'PAUSED', label: '已暂停' },
-                  { value: 'REVOKED', label: '已撤销' },
-                  { value: 'PENDING', label: '待开始' },
-                  { value: 'EXPIRED', label: '正式权益已到期' },
-                  { value: 'ENDED', label: '限时权益已结束' },
-                  { value: 'START_EXPIRED', label: '未开始已失效' }
-                ]"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
-            </ElSelect>
-          </ElFormItem>
-          <ElFormItem>
-            <ElSelect
-              v-model="operationFilters.profile_completeness"
-              class="status-filter"
-              clearable
-              placeholder="全部资料完整度"
-              aria-label="资料完整度筛选"
-            >
-              <ElOption label="昵称头像完整" value="COMPLETE" /><ElOption
-                label="昵称或头像缺失"
-                value="INCOMPLETE"
-              />
-            </ElSelect>
-          </ElFormItem>
-          <ElFormItem>
-            <ElSelect
-              v-model="operationFilters.cohort"
-              class="status-filter"
-              clearable
-              placeholder="全部用户"
-              aria-label="用户分组"
-            >
-              <ElOption label="今日新增" value="NEW_TODAY" /><ElOption
-                label="完成开放未留微信号"
-                value="OPEN_WITHOUT_CONTACT"
-              />
-            </ElSelect>
-          </ElFormItem>
-        </ElForm>
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem label="权益类型">
+          <ElSelect
+            v-model="operationFilters.entitlement_type"
+            class="status-filter"
+            clearable
+            placeholder="全部权益类型"
+            aria-label="权益类型筛选"
+          >
+            <ElOption label="正式包" value="FORMAL" /><ElOption label="限时包" value="LIMITED" />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem label="权益状态">
+          <ElSelect
+            v-model="operationFilters.entitlement_status"
+            class="status-filter"
+            clearable
+            placeholder="全部权益状态"
+            aria-label="权益状态筛选"
+          >
+            <ElOption
+              v-for="option in [
+                { value: 'ACTIVE', label: '有效 / 学习中' },
+                { value: 'PAUSED', label: '已暂停' },
+                { value: 'REVOKED', label: '已撤销' },
+                { value: 'PENDING', label: '待开始' },
+                { value: 'EXPIRED', label: '正式权益已到期' },
+                { value: 'ENDED', label: '限时权益已结束' },
+                { value: 'START_EXPIRED', label: '未开始已失效' }
+              ]"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem label="资料完整度">
+          <ElSelect
+            v-model="operationFilters.profile_completeness"
+            class="status-filter"
+            clearable
+            placeholder="全部资料完整度"
+            aria-label="资料完整度筛选"
+          >
+            <ElOption label="昵称头像完整" value="COMPLETE" /><ElOption
+              label="昵称或头像缺失"
+              value="INCOMPLETE"
+            />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem label="用户分组">
+          <ElSelect
+            v-model="operationFilters.cohort"
+            class="status-filter"
+            clearable
+            placeholder="全部用户"
+            aria-label="用户分组"
+          >
+            <ElOption label="今日新增" value="NEW_TODAY" /><ElOption
+              label="完成开放未留微信号"
+              value="OPEN_WITHOUT_CONTACT"
+            />
+          </ElSelect>
+        </ElFormItem>
+      </ElForm>
 
-        <ElAlert
-          v-if="filters.mode === 'wechat'"
-          class="notice"
-          :closable="false"
-          title="敏感搜索不会进入 URL、浏览器存储或普通错误日志"
-          type="info"
-          show-icon
-        />
-        <ElAlert
-          v-if="controller.error.value"
-          class="notice"
-          :closable="false"
-          :title="controller.error.value"
-          type="error"
-          show-icon
-        />
+      <ElAlert
+        v-if="filters.mode === 'wechat'"
+        class="notice"
+        :closable="false"
+        title="敏感搜索不会进入 URL、浏览器存储或普通错误日志"
+        type="info"
+        show-icon
+      />
+      <ElAlert
+        v-if="controller.error.value"
+        class="notice"
+        :closable="false"
+        :title="controller.error.value"
+        type="error"
+        show-icon
+      />
 
+      <ElCard class="table-card" shadow="never">
         <DataTable
           :empty-text="controller.state.value === 'empty' ? '未找到匹配用户' : '暂无用户数据'"
           :loading="controller.state.value === 'loading'"
           row-key="user_id"
           :rows="controller.users.value"
         >
-          <ElTableColumn label="对象" min-width="200">
+          <ElTableColumn label="用户" min-width="190">
             <template #default="{ row }">
               <div class="identity">
                 <ElAvatar :src="row.avatar_url || undefined" :size="32">{{
@@ -266,7 +267,7 @@ function contactStatusLabel(status: string | undefined): string {
               </div>
             </template>
           </ElTableColumn>
-          <ElTableColumn label="账号状态" min-width="115">
+          <ElTableColumn label="账号状态" min-width="100">
             <template #default="{ row }">
               <StatusTag
                 :label="getAccountStatusLabel(row.account_status)"
@@ -274,17 +275,17 @@ function contactStatusLabel(status: string | undefined): string {
               />
             </template>
           </ElTableColumn>
-          <ElTableColumn label="微信号" min-width="180">
+          <ElTableColumn label="完整微信号" min-width="155">
             <template #default="{ row }">
               <span class="contact-value">{{ row.contact?.wechat_id || '未填写' }}</span>
             </template>
           </ElTableColumn>
-          <ElTableColumn label="联系状态" min-width="125">
+          <ElTableColumn label="联系状态" min-width="100">
             <template #default="{ row }">{{
               contactStatusLabel(row.contact?.contact_status)
             }}</template>
           </ElTableColumn>
-          <ElTableColumn label="微信号变更" min-width="110"
+          <ElTableColumn label="微信号变更" min-width="90"
             ><template #default="{ row }"
               ><ElTag v-if="row.change_pending || row.contact?.change_pending" type="warning"
                 >待核对</ElTag
@@ -292,12 +293,12 @@ function contactStatusLabel(status: string | undefined): string {
             ></ElTableColumn
           >
           <ElTableColumn prop="open_scene_completed_count" label="开放完成" min-width="95" />
-          <ElTableColumn label="反馈摘要" min-width="110"
+          <ElTableColumn label="反馈摘要" min-width="100"
             ><template #default="{ row }"
               >待处理 {{ row.open_feedback_count }}</template
             ></ElTableColumn
           >
-          <ElTableColumn label="权益" min-width="150">
+          <ElTableColumn label="权益摘要" min-width="130">
             <template #default="{ row }">
               正式 {{ row.formal_entitlement_count }} · 限时 {{ row.limited_entitlement_count }}
             </template>
@@ -314,24 +315,26 @@ function contactStatusLabel(status: string | undefined): string {
             </template>
           </ElTableColumn>
         </DataTable>
-        <AppPagination
-          v-model:current-page="page"
-          v-model:page-size="pageSize"
-          :has-next="controller.users.value.length >= pageSize"
-          :disabled="controller.state.value === 'loading'"
-          @change="loadPage"
-        />
-      </template>
+      </ElCard>
+      <AppPagination
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :has-next="controller.users.value.length >= pageSize"
+        :disabled="controller.state.value === 'loading'"
+        @change="loadPage"
+      />
+    </template>
 
-      <template v-else>
-        <ElAlert
-          v-if="corrections.error.value"
-          class="notice"
-          :closable="false"
-          :title="corrections.error.value"
-          type="error"
-          show-icon
-        />
+    <template v-else>
+      <ElAlert
+        v-if="corrections.error.value"
+        class="notice"
+        :closable="false"
+        :title="corrections.error.value"
+        type="error"
+        show-icon
+      />
+      <ElCard class="table-card" shadow="never">
         <DataTable
           :empty-text="corrections.state.value === 'empty' ? '暂无联系更正申请' : '暂无数据'"
           :loading="corrections.state.value === 'loading'"
@@ -365,47 +368,94 @@ function contactStatusLabel(status: string | undefined): string {
             </template>
           </ElTableColumn>
         </DataTable>
-      </template>
-    </ElCard>
+      </ElCard>
+    </template>
+    <aside class="management-note">
+      <strong>联系方式可见范围</strong>
+      <p>完整微信号只在管理员认证后的后台展示；用户资料变更须重新核对。</p>
+    </aside>
   </section>
 </template>
 
 <style scoped lang="scss">
 .user-list-page {
-  .heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 24px;
+  min-width: 0;
+
+  .page-toolbar {
+    margin-bottom: 18px;
   }
 
-  .heading h2 {
-    margin: 0;
-    color: var(--juya-color-sidebar);
-    font-size: 16px;
+  .heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
   }
 
   .heading p {
-    margin: 5px 0 0;
-    color: var(--juya-color-text-secondary);
-    font-size: 12px;
+    margin: 0;
+    color: #657a68;
+    font-size: 13px;
   }
 
   .filters {
     display: flex;
+    align-items: flex-end;
     flex-wrap: wrap;
+    gap: 14px 16px;
+    margin-bottom: 22px;
+    padding: 16px 18px;
+    border: 1px solid #d8e5d1;
+    border-radius: 18px;
+    background: #eaf2e3;
   }
 
-  .mode {
-    width: 148px;
+  .filters :deep(.el-form-item) {
+    margin: 0;
   }
 
+  .filters :deep([class~='el-form-item__label']) {
+    margin-bottom: 6px;
+    color: #657a68;
+    font-size: 13px;
+  }
+
+  .mode,
   .status-filter {
     width: 148px;
   }
 
-  .entitlement-filter {
-    width: 120px;
+  .filters :deep(.el-input) {
+    width: 260px;
+  }
+
+  .table-card {
+    border: 1px solid #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+  }
+
+  .table-card :deep([class~='el-card__body']) {
+    padding: 0;
+  }
+
+  .table-card :deep(.el-table) {
+    --el-table-header-bg-color: #e8f0e1;
+    --el-table-tr-bg-color: #fffdf7;
+    --el-table-border-color: #d8e5d1;
+
+    color: #244633;
+  }
+
+  .table-card :deep(th[class~='el-table__cell']) {
+    height: 42px;
+    color: #244633;
+    font-size: 13px;
+  }
+
+  .table-card :deep(td[class~='el-table__cell']) {
+    height: 58px;
+    font-size: 13px;
   }
 
   .notice {
@@ -414,21 +464,61 @@ function contactStatusLabel(status: string | undefined): string {
 
   .identity {
     display: grid;
-    min-width: 0;
-    gap: 3px;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 3px 10px;
+    align-items: center;
+  }
+
+  .identity :deep(.el-avatar) {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+
+  .identity span {
+    grid-column: 2;
+    color: #657a68;
+    font-size: 11px;
+  }
+
+  .identity strong {
+    grid-column: 2;
+    grid-row: 1;
   }
 
   .identity strong,
   .contact-value {
-    color: var(--juya-color-text-primary);
+    min-width: 0;
+    color: #244633;
     font-family: inherit;
     font-size: 13px;
     overflow-wrap: anywhere;
   }
 
-  .identity span {
-    color: var(--juya-color-text-secondary);
-    font-size: 11px;
+  .management-note {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    color: #244633;
+  }
+
+  .management-note strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .management-note p {
+    margin: 20px 0 6px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+}
+
+@media (width <= 1000px) {
+  .user-list-page .heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
   }
 }
 </style>

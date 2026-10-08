@@ -124,7 +124,7 @@ for (const viewport of viewports) {
     ] as const
     for (const [path, heading, number] of routes) {
       await navigateInApp(page, path)
-      await expect(page.getByRole('heading', { name: new RegExp(heading), level: 2 })).toBeVisible()
+      await expect(page.getByRole('heading', { name: new RegExp(heading), level: 1 })).toBeVisible()
       if (number === 'A05') await expect(page.getByRole('cell', { name: 'FORMAL-1' })).toBeVisible()
       if (number === 'A06') {
         await page.getByRole('combobox', { name: /正式内容包/ }).click()
@@ -140,8 +140,10 @@ for (const viewport of viewports) {
         await expect(page.getByRole('option', { name: /秋季限时学习/ })).toBeHidden()
         await expect(page.getByText('VERSION-1')).toBeVisible()
       }
-      if (number === 'A08' || number === 'A09' || number === 'A11')
-        await expect(page.getByText('v1').or(page.getByText('v3'))).toBeVisible()
+      if (number === 'A08' || number === 'A09')
+        await expect(page.getByText('v1', { exact: true })).toBeVisible()
+      if (number === 'A11')
+        await expect(page.getByText('当前服务端版本 v3', { exact: true })).toBeVisible()
       if (number === 'A10') await expect(page.getByRole('cell', { name: 'CAMP-1' })).toBeVisible()
       if (number === 'A12') await expect(page.getByText('VERSION-1')).toBeVisible()
       await expect(page.locator('main')).not.toContainText('接口待接入')

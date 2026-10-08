@@ -140,17 +140,8 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
 
 <template>
   <section class="feedback-list-page">
-    <ElCard shadow="never">
-      <template #header>
-        <div class="page-heading">
-          <div>
-            <span class="page-number">A14</span>
-            <h2>问题反馈列表</h2>
-          </div>
-          <ElButton disabled type="primary">导出反馈</ElButton>
-        </div>
-      </template>
-
+    <p class="page-context">按剩余处理时限排序，补充后重新计算 48 小时。</p>
+    <ElCard shadow="never" class="list-card">
       <ElForm class="filter-bar" aria-label="反馈筛选" @submit.prevent="submitFilters">
         <ElInput v-model="filters.keyword" clearable placeholder="反馈编号或用户编号" />
         <ElSelect
@@ -188,6 +179,7 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
           />
         </ElSelect>
         <ElButton native-type="submit" type="primary">查询</ElButton>
+        <ElButton class="export-button" disabled type="primary">导出反馈</ElButton>
       </ElForm>
 
       <ElSkeleton v-if="controller.isLoading.value" :rows="6" animated aria-label="正在加载反馈" />
@@ -205,28 +197,43 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
         v-else-if="controller.page.value.items.length === 0"
         description="没有符合条件的反馈，请调整筛选条件。"
       />
-      <ElTable v-else :data="controller.page.value.items" stripe class="feedback-table">
-        <ElTableColumn label="反馈编号" min-width="112">
-          <template #default="scope">
-            <RouterLink
-              :to="{ name: 'feedback-detail', params: { id: scope.row.id }, query: route.query }"
+      <ElTable v-else :data="controller.page.value.items" class="feedback-table">
+        <ElTableColumn type="expand" width="40">
+          <template #default="{ row }"
+            ><ElDescriptions :column="2" class="row-details">
+              <ElDescriptionsItem label="提交时间">{{
+                formatDateTime(row.createdAt)
+              }}</ElDescriptionsItem>
+              <ElDescriptionsItem label="最近补充时间">{{
+                formatDateTime(row.suppliedAt, '未补充')
+              }}</ElDescriptionsItem>
+              <ElDescriptionsItem label="更新时间">{{
+                formatDateTime(row.updatedAt)
+              }}</ElDescriptionsItem>
+              <ElDescriptionsItem label="反馈分类">{{
+                categoryLabels[row.category as FeedbackCategory]
+              }}</ElDescriptionsItem>
+            </ElDescriptions></template
+          >
+        </ElTableColumn>
+        <ElTableColumn label="标题与分类" min-width="240">
+          <template #default="{ row }">
+            <strong
+              >{{ row.title }} · {{ categoryLabels[row.category as FeedbackCategory] }}</strong
             >
-              {{ scope.row.id }}
-            </RouterLink>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn prop="userId" label="用户编号" min-width="112" show-overflow-tooltip />
-        <ElTableColumn label="反馈标题 / 说明" min-width="210">
-          <template #default="scope">
-            <strong>{{ scope.row.title }}</strong>
             <PlainTextContent
-              v-if="scope.row.description !== scope.row.title"
+              v-if="row.description !== row.title"
               class="description-cell"
-              :content="scope.row.description"
+              :content="row.description"
             />
+            <RouterLink
+              :to="{ name: 'feedback-detail', params: { id: row.id }, query: route.query }"
+              >{{ row.id }}</RouterLink
+            >
           </template>
         </ElTableColumn>
-        <ElTableColumn label="自动来源" min-width="180"
+        <ElTableColumn prop="userId" label="用户" min-width="100" show-overflow-tooltip />
+        <ElTableColumn label="来源" min-width="160"
           ><template #default="{ row }"
             >{{ row.source?.page || '未记录页面' }} ·
             {{ row.source?.scene_id || row.source?.sceneId || '未关联场景' }}</template
@@ -241,21 +248,6 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
                 : row.screenshotStatus
           }}</template></ElTableColumn
         >
-        <ElTableColumn label="提交时间" min-width="150"
-          ><template #default="{ row }">{{
-            formatDateTime(row.createdAt)
-          }}</template></ElTableColumn
-        >
-        <ElTableColumn label="最近补充时间" min-width="150"
-          ><template #default="{ row }">{{
-            formatDateTime(row.suppliedAt, '未补充')
-          }}</template></ElTableColumn
-        >
-        <ElTableColumn label="分类" width="96">
-          <template #default="scope">{{
-            categoryLabels[scope.row.category as FeedbackCategory]
-          }}</template>
-        </ElTableColumn>
         <ElTableColumn label="状态" width="108">
           <template #default="scope">
             <StatusTag
@@ -280,9 +272,14 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
             </ElTag>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="更新时间" width="180">
-          <template #default="scope">{{ formatDateTime(scope.row.updatedAt) }}</template>
-        </ElTableColumn>
+        <ElTableColumn label="操作" width="85"
+          ><template #default="{ row }"
+            ><RouterLink
+              :to="{ name: 'feedback-detail', params: { id: row.id }, query: route.query }"
+              >查看</RouterLink
+            ></template
+          ></ElTableColumn
+        >
       </ElTable>
 
       <AppPagination
@@ -293,41 +290,137 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
         @change="changePage"
       />
     </ElCard>
+    <aside class="notice">
+      <strong>操作说明</strong>
+      <p>反馈关闭后截图保留 30 天；7 天内可重开。</p>
+    </aside>
   </section>
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- 页面级 Element Plus BEM 覆盖，业务类名遵循仓库命名 */
 .feedback-list-page {
   min-width: 0;
+  color: var(--juya-color-text-primary);
 
-  .page-heading {
+  .page-toolbar {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
   }
 
-  .page-number {
+  .page-context {
+    margin: 0;
     color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    font-size: 13px;
+    overflow-wrap: anywhere;
   }
 
-  h2 {
-    margin: 3px 0 0;
-    color: var(--juya-color-sidebar);
-    font-size: 16px;
+  h3 {
+    margin: 0;
+    color: var(--juya-color-text-primary);
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .panel-subtitle {
+    margin: 8px 0 0;
+    color: var(--juya-color-text-secondary);
+    font-size: 13px;
+  }
+
+  .notice {
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  .notice strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .notice p {
+    margin: 20px 0 0;
+  }
+
+  :deep(.el-card) {
+    border-color: #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+    box-shadow: none;
+  }
+
+  :deep(.el-card__header) {
+    padding: 16px 20px 12px;
+    border-bottom: 0;
+  }
+
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
+
+  :deep(.el-button) {
+    min-height: 38px;
+    border-radius: 10px;
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-select__wrapper),
+  :deep(.el-textarea__inner) {
+    border-radius: 10px;
+    background: #fffdf7;
+  }
+
+  .list-card {
+    margin: 18px 0 24px;
+    overflow: hidden;
+  }
+
+  .list-card :deep(.el-card__body) {
+    padding: 0 0 16px;
   }
 
   .filter-bar {
     display: grid;
-    grid-template-columns: minmax(190px, 1fr) repeat(3, 150px) auto;
-    gap: 10px;
-    margin-bottom: 16px;
+    grid-template-columns: minmax(190px, 1fr) repeat(3, minmax(100px, 140px)) auto auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 96px;
+    padding: 20px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid #d8e5d1;
+    background: #eaf2e3;
   }
 
   .feedback-table {
     width: 100%;
+
+    --el-table-header-bg-color: #e8f0e1;
+  }
+
+  .feedback-table :deep(th.el-table__cell) {
+    height: 42px;
+    font-size: 13px;
+  }
+
+  .feedback-table :deep(td.el-table__cell) {
+    min-height: 58px;
+    padding-block: 16px;
+    font-size: 13px;
+  }
+
+  .feedback-table strong {
+    font-weight: 500;
+  }
+
+  .feedback-table :deep(.cell > a) {
+    display: block;
+    font-size: 12px;
   }
 
   .description-cell {
@@ -337,14 +430,34 @@ function statusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'wa
     white-space: nowrap;
   }
 
-  @media (width <= 1050px) {
-    .filter-bar {
-      grid-template-columns: minmax(190px, 1fr) repeat(2, 145px) auto;
+  .row-details {
+    padding: 16px 24px;
+  }
 
-      :deep(.el-select:nth-of-type(4)) {
-        grid-column: 1 / 2;
-      }
+  :deep(.app-pagination) {
+    padding-inline: 20px;
+  }
+
+  @media (width <= 1200px) {
+    .filter-bar {
+      grid-template-columns: minmax(190px, 1fr) repeat(3, minmax(100px, 1fr));
+    }
+
+    .export-button {
+      justify-self: end;
+      grid-column: 4;
+    }
+  }
+
+  @media (width <= 700px) {
+    .filter-bar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .export-button {
+      grid-column: 2;
     }
   }
 }
+/* stylelint-enable selector-class-pattern */
 </style>

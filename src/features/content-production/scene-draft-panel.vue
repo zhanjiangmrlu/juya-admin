@@ -15,16 +15,19 @@ const form = computed(() => props.form)
 </script>
 <template>
   <ElCard class="scene-draft-panel" shadow="never">
-    <template #header><h3>基础信息与学习原图</h3></template>
+    <template #header>
+      <h3>统一场景表单</h3>
+      <p class="panel-description">人工录入与 OCR 候选都进入这份草稿</p>
+    </template>
     <ElForm label-position="top">
-      <ElFormItem label="英文标题">
-        <ElInput v-model="form.title_en" aria-label="英文标题" maxlength="120" />
+      <ElFormItem label="所属系列">
+        <ElInput :model-value="seriesTitle" disabled />
       </ElFormItem>
       <ElFormItem label="中文标题">
         <ElInput v-model="form.title_zh" aria-label="中文标题" maxlength="120" />
       </ElFormItem>
-      <ElFormItem label="所属系列">
-        <ElInput :model-value="seriesTitle" disabled />
+      <ElFormItem label="英文标题">
+        <ElInput v-model="form.title_en" aria-label="英文标题" maxlength="120" />
       </ElFormItem>
       <ElFormItem label="场景说明">
         <ElInput v-model="form.summary" type="textarea" />
@@ -58,9 +61,56 @@ const form = computed(() => props.form)
   </ElCard>
 </template>
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 h3 {
   margin: 0;
-  font-size: 15px;
+  color: var(--juya-color-sidebar);
+  font-size: 20px;
+}
+
+.scene-draft-panel {
+  min-width: 0;
+  min-height: 630px;
+  background: #eaf2e3;
+}
+
+.scene-draft-panel :deep(.el-card__header) {
+  padding: 18px 20px 8px;
+  border-bottom: 0;
+}
+
+.scene-draft-panel :deep(.el-card__body) {
+  padding: 12px 20px 24px;
+}
+
+.scene-draft-panel :deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+.scene-draft-panel :deep(.el-form) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.scene-draft-panel :deep(.el-form-item:nth-child(-n + 3)),
+.scene-draft-panel :deep(.el-form-item:nth-child(6)),
+.scene-draft-panel :deep(.el-upload),
+.original-image {
+  grid-column: 1 / -1;
+}
+
+.scene-draft-panel :deep(.el-form-item__label) {
+  margin-bottom: 6px;
+  color: var(--juya-color-text-regular);
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.panel-description {
+  margin: 8px 0 0;
+  color: var(--juya-color-text-regular);
+  font-size: 13px;
 }
 
 .original-image {
@@ -68,5 +118,6 @@ h3 {
   max-height: 320px;
   margin: 12px 0;
   object-fit: contain;
+  border-radius: 12px;
 }
 </style>

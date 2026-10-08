@@ -102,15 +102,6 @@ async function confirm(): Promise<void> {
 
 <template>
   <section class="campaign-edit-page">
-    <div class="heading">
-      <div>
-        <span>A11</span>
-        <h2>{{ isNew ? '新建限时活动' : `限时活动编辑 · ${campaignId}` }}</h2>
-      </div>
-      <RouterLink v-slot="{ navigate }" custom :to="{ name: 'campaigns' }"
-        ><ElButton @click="navigate">返回活动列表</ElButton></RouterLink
-      >
-    </div>
     <ElSkeleton
       v-if="editor.state.value === 'loading'"
       :rows="7"
@@ -123,7 +114,8 @@ async function confirm(): Promise<void> {
       type="error"
       :closable="false"
       show-icon
-      ><ApiErrorDetails :error="editor.apiError.value" />
+    >
+      <ApiErrorDetails :error="editor.apiError.value" />
       <p v-if="editor.conflict.value">
         草稿已保留。服务端最新版本：{{
           editor.conflictVersion.value === null
@@ -136,11 +128,18 @@ async function confirm(): Promise<void> {
         size="small"
         @click="editor.load(campaignId, true).catch(() => undefined)"
         >刷新服务端信息</ElButton
-      ></ElAlert
-    >
-    <ElCard class="card" shadow="never"
-      ><ElForm label-position="top" @submit.prevent="save"
-        ><div class="grid">
+      >
+    </ElAlert>
+    <div class="editor-grid">
+      <ElCard class="configuration-card" shadow="never">
+        <template #header
+          ><h3>活动基础配置</h3>
+          <p class="panel-subtitle">
+            {{ editor.server.value?.name || '新建限时活动' }} ·
+            {{ editor.server.value ? `版本 v${editor.server.value.version}` : '草稿' }}
+          </p></template
+        >
+        <ElForm label-position="top" @submit.prevent="save">
           <ElFormItem label="活动名称" required
             ><ElInput
               v-model="editor.draft.value.name"
@@ -152,6 +151,9 @@ async function confirm(): Promise<void> {
             ><ElSelect v-model="editor.draft.value.durationDays" :disabled="!canEdit"
               ><ElOption label="3 天" :value="3" /><ElOption label="5 天" :value="5" /></ElSelect
           ></ElFormItem>
+          <ElFormItem label="场景顺序（每行一个场景编号）"
+            ><ElInput v-model="sceneText" :disabled="!canEdit" type="textarea" :rows="2"
+          /></ElFormItem>
           <ElFormItem label="启动窗口（天）" required
             ><ElInputNumber
               v-model="editor.draft.value.activationWindowDays"
@@ -161,57 +163,87 @@ async function confirm(): Promise<void> {
           <ElFormItem label="容量上限" required
             ><ElInputNumber v-model="editor.draft.value.capacity" :disabled="!canEdit" :min="1"
           /></ElFormItem>
-        </div>
-        <ElFormItem label="场景顺序（每行一个场景编号）"
-          ><ElInput v-model="sceneText" :disabled="!canEdit" type="textarea" :rows="4"
-        /></ElFormItem>
-        <p v-if="!canEdit" class="hint">
-          当前状态 {{ editor.server.value?.status }}。仅草稿活动可编辑；容量调整请前往版本与容量页。
-        </p>
-        <ElButton
-          v-if="canEdit"
-          :disabled="!editor.draft.value.name.trim()"
-          :loading="editor.state.value === 'submitting'"
-          native-type="submit"
-          type="primary"
-          >保存活动</ElButton
-        >
-      </ElForm></ElCard
-    >
-    <ElCard v-if="editor.server.value" class="card" shadow="never"
-      ><template #header><h3>当前状态与操作</h3></template
-      ><ElDescriptions :column="2" border
-        ><ElDescriptionsItem label="当前状态">{{ editor.server.value.status }}</ElDescriptionsItem
-        ><ElDescriptionsItem label="服务端版本"
-          >v{{ editor.server.value.version }}</ElDescriptionsItem
-        ><ElDescriptionsItem label="当前活动版本">{{
-          editor.server.value.currentVersion?.id ?? '尚未生成'
-        }}</ElDescriptionsItem
-        ><ElDescriptionsItem label="已开通人数">{{
-          editor.server.value.currentVersion?.grantedUserCount ?? 0
-        }}</ElDescriptionsItem></ElDescriptions
-      >
-      <div class="operations">
-        <ElButton
-          v-for="operation in availableOperations"
-          :key="operation"
-          :disabled="editor.state.value === 'submitting'"
-          @click="ask(operation)"
-          >{{
-            {
-              open: '开放',
-              pause: '暂停',
-              resume: '恢复',
-              end: '结束',
-              archive: '归档',
-              copy: '复制新版本'
-            }[operation]
-          }}</ElButton
-        ><RouterLink :to="{ name: 'campaign-versions', params: { id: campaignId } }"
-          ><ElButton>查看版本与容量</ElButton></RouterLink
-        >
-      </div></ElCard
-    >
+          <ElFormItem label="当前开通人数"
+            ><div class="field-value">
+              {{ editor.server.value?.currentVersion?.grantedUserCount ?? 0 }} 人
+            </div></ElFormItem
+          >
+          <p v-if="!canEdit" class="hint">
+            当前状态
+            {{ editor.server.value?.status }}。仅草稿活动可编辑；容量调整请前往版本与容量页。
+          </p>
+          <div class="save-actions">
+            <RouterLink v-slot="{ navigate }" custom :to="{ name: 'campaigns' }"
+              ><ElButton @click="navigate">返回活动列表</ElButton></RouterLink
+            >
+            <ElButton
+              v-if="canEdit"
+              :disabled="!editor.draft.value.name.trim()"
+              :loading="editor.state.value === 'submitting'"
+              native-type="submit"
+              type="primary"
+              >保存活动</ElButton
+            >
+          </div>
+        </ElForm>
+      </ElCard>
+      <div class="secondary-column">
+        <ElCard shadow="never" class="validation-card">
+          <template #header><h3>发布前校验</h3></template>
+          <div class="check-item">
+            <strong>场景顺序</strong
+            ><span>已配置 {{ editor.draft.value.sceneIds.length }} 个场景；保存时校验场景内容</span>
+          </div>
+          <div class="check-item">
+            <strong>版本</strong
+            ><span>{{
+              editor.server.value
+                ? `当前服务端版本 v${editor.server.value.version}`
+                : '新建活动保存为草稿'
+            }}</span>
+          </div>
+          <div class="check-item warning">
+            <strong>锁定字段</strong><span>首次开通后期限和场景锁定；容量前往版本页调整</span>
+          </div>
+          <template v-if="editor.server.value">
+            <h4>当前状态与操作</h4>
+            <ElDescriptions :column="1">
+              <ElDescriptionsItem label="当前状态">{{
+                editor.server.value.status
+              }}</ElDescriptionsItem>
+              <ElDescriptionsItem label="当前活动版本">{{
+                editor.server.value.currentVersion?.id ?? '尚未生成'
+              }}</ElDescriptionsItem>
+            </ElDescriptions>
+            <div class="operations">
+              <ElButton
+                v-for="operation in availableOperations"
+                :key="operation"
+                :disabled="editor.state.value === 'submitting'"
+                @click="ask(operation)"
+                >{{
+                  {
+                    open: '开放',
+                    pause: '暂停',
+                    resume: '恢复',
+                    end: '结束',
+                    archive: '归档',
+                    copy: '复制新版本'
+                  }[operation]
+                }}</ElButton
+              >
+              <RouterLink :to="{ name: 'campaign-versions', params: { id: campaignId } }"
+                ><ElButton>查看版本与容量</ElButton></RouterLink
+              >
+            </div>
+          </template>
+        </ElCard>
+        <aside class="notice">
+          <strong>提交前确认</strong>
+          <p>首次开通后期限和场景保持锁定。保存与状态操作将核对当前服务端版本。</p>
+        </aside>
+      </div>
+    </div>
     <ConfirmDialog
       v-if="editor.server.value"
       v-model="confirmVisible"
@@ -230,50 +262,154 @@ async function confirm(): Promise<void> {
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- 页面级 Element Plus BEM 覆盖，业务类名遵循仓库命名 */
 .campaign-edit-page {
   min-width: 0;
+  color: var(--juya-color-text-primary);
 
-  .heading {
+  .page-toolbar {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    align-items: flex-start;
     gap: 16px;
-    margin-bottom: 14px;
+    margin-bottom: 20px;
   }
 
-  .heading span {
+  .page-context {
+    margin: 0;
     color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    font-weight: 700;
-  }
-
-  h2,
-  h3 {
-    margin: 3px 0 0;
-    color: var(--juya-color-sidebar);
-  }
-
-  h2 {
-    font-size: 18px;
+    font-size: 13px;
     overflow-wrap: anywhere;
   }
 
   h3 {
-    font-size: 15px;
+    margin: 0;
+    color: var(--juya-color-text-primary);
+    font-size: 20px;
+    line-height: 28px;
   }
 
-  .card {
-    margin-top: 14px;
+  .panel-subtitle {
+    margin: 8px 0 0;
+    color: var(--juya-color-text-secondary);
+    font-size: 13px;
   }
 
-  .grid {
+  .notice {
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  .notice strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .notice p {
+    margin: 20px 0 0;
+  }
+
+  :deep(.el-card) {
+    border-color: #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+    box-shadow: none;
+  }
+
+  :deep(.el-card__header) {
+    padding: 16px 20px 12px;
+    border-bottom: 0;
+  }
+
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
+
+  :deep(.el-button) {
+    min-height: 38px;
+    border-radius: 10px;
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-select__wrapper),
+  :deep(.el-textarea__inner) {
+    border-radius: 10px;
+    background: #fffdf7;
+  }
+
+  .editor-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 14px;
+    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
+    align-items: start;
+    gap: 18px;
   }
 
+  .configuration-card {
+    min-height: 630px;
+    background: #eaf2e3;
+  }
+
+  .secondary-column {
+    display: grid;
+    gap: 18px;
+  }
+
+  .validation-card {
+    min-height: 455px;
+  }
+
+  :deep(.el-form-item) {
+    margin-bottom: 14px;
+  }
+
+  :deep(.el-form-item__label) {
+    height: 22px;
+    padding: 0;
+    margin-bottom: 4px;
+    line-height: 22px;
+  }
+
+  :deep(.el-select),
+  :deep(.el-input-number) {
+    width: 100%;
+  }
+
+  .field-value {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #c9dac3;
+    border-radius: 10px;
+    background: #fffdf7;
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .check-item {
+    display: grid;
+    gap: 4px;
+    padding-left: 14px;
+    margin: 16px 0 30px;
+    border-left: 5px solid #4f833d;
+    font-size: 13px;
+  }
+
+  .check-item span,
   .hint {
     color: var(--juya-color-text-secondary);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .warning {
+    border-color: #b37b32;
+  }
+
+  h4 {
+    margin: 20px 0 12px;
+    font-size: 14px;
   }
 
   .operations {
@@ -283,10 +419,25 @@ async function confirm(): Promise<void> {
     margin-top: 16px;
   }
 
-  @media (width <= 700px) {
-    .grid {
+  .operations :deep(.el-button) {
+    margin-left: 0;
+  }
+
+  .configuration-card :deep(.el-card__body) {
+    padding-top: 8px;
+  }
+
+  .save-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  @media (width <= 900px) {
+    .editor-grid {
       grid-template-columns: 1fr;
     }
   }
 }
+/* stylelint-enable selector-class-pattern */
 </style>

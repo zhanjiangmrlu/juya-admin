@@ -191,7 +191,8 @@ async function saveEntry(index: number): Promise<void> {
   margin-bottom: 16px;
   padding: 14px;
   border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
+  border-radius: 12px;
+  background: var(--juya-color-surface);
 }
 
 .row-heading {

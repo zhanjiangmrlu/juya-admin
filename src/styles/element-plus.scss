@@ -17,10 +17,16 @@
   --el-border-color-light: var(--juya-color-border-light);
   --el-border-radius-base: var(--juya-control-radius);
   --el-font-family: var(--juya-font-family);
+  --el-bg-color: var(--juya-color-surface);
+  --el-bg-color-page: var(--juya-color-page);
+  --el-fill-color-blank: var(--juya-color-surface);
+  --el-fill-color-light: #eaf2e3;
+  --el-component-size: 38px;
 }
 
 .el-button {
   font-weight: 500;
+  border-radius: var(--juya-control-radius);
 }
 
 .el-card {
@@ -30,6 +36,31 @@
 }
 
 .el-table {
-  --el-table-header-bg-color: #f8faf8;
-  --el-table-row-hover-bg-color: #f6faf8;
+  --el-table-header-bg-color: #edf4e7;
+  --el-table-row-hover-bg-color: #f2f6ec;
+  --el-table-border-color: var(--juya-color-border-light);
+  --el-table-bg-color: var(--juya-color-surface);
+  --el-table-tr-bg-color: var(--juya-color-surface);
 }
+
+.el-card h2,
+.el-card h3 {
+  color: var(--juya-color-text-primary);
+}
+
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
+.el-card__header {
+  padding: 18px 20px 12px;
+  border-bottom: 0;
+}
+
+.el-form-item__label {
+  color: var(--juya-color-text-regular);
+  font-size: 13px;
+}
+
+.el-alert--info.is-light {
+  background: var(--juya-color-primary-soft);
+  color: var(--juya-color-text-primary);
+}
+/* stylelint-enable selector-class-pattern */

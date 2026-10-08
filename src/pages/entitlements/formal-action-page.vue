@@ -169,39 +169,39 @@ async function confirm(reason: string): Promise<void> {
 
 <template>
   <section class="formal-action-page">
-    <ElCard shadow="never"
-      ><template #header
-        ><div class="heading">
-          <div>
-            <span>A08</span>
-            <h2>正式权益操作 · {{ entitlementId }}</h2>
-          </div>
-          <RouterLink v-slot="{ navigate }" custom :to="{ name: 'entitlements' }"
-            ><ElButton @click="navigate">返回权益中心</ElButton></RouterLink
-          >
-        </div></template
-      >
-      <ElSkeleton v-if="state === 'loading'" :rows="6" animated aria-label="正在加载正式权益" />
-      <ElAlert v-if="error" class="notice" :title="error" type="error" :closable="false" show-icon
-        ><ApiErrorDetails :error="apiError" /><ElButton size="small" @click="load(true)"
-          >重试</ElButton
-        ></ElAlert
-      >
-      <template v-if="detail"
-        ><ElDescriptions :column="2" border
-          ><ElDescriptionsItem label="用户编号">{{ detail.userId }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="内容包"
-            >{{ detail.packageName }} · {{ detail.packageId }}</ElDescriptionsItem
+    <ElSkeleton v-if="state === 'loading'" :rows="6" animated aria-label="正在加载正式权益" />
+    <ElAlert v-if="error" class="notice" :title="error" type="error" :closable="false" show-icon
+      ><ApiErrorDetails :error="apiError" /><ElButton size="small" @click="load(true)"
+        >重试</ElButton
+      ></ElAlert
+    >
+
+    <div v-if="detail" class="action-layout">
+      <ElCard class="detail-card" shadow="never"
+        ><template #header><h3>正式包权益</h3></template>
+        <p class="record-summary">
+          <span>权益 {{ entitlementId }}</span
+          ><span>{{ detail.userId }} · {{ detail.packageName }} · {{ detail.packageId }}</span
+          ><span>v{{ detail.version }}</span>
+        </p>
+        <ElDescriptions :column="1" direction="vertical" class="detail-fields"
           ><ElDescriptionsItem label="当前状态">{{ detail.status }}</ElDescriptionsItem
           ><ElDescriptionsItem label="当前期限">{{ detail.term }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="生效时间">{{ detail.grantedAt }}</ElDescriptionsItem
           ><ElDescriptionsItem label="到期时间">{{
             detail.expiresAt ?? '永久有效'
-          }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="服务端版本"
-            >v{{ detail.version }}</ElDescriptionsItem
-          ></ElDescriptions
-        >
-        <ElForm class="form" label-position="top" @submit.prevent="preview"
+          }}</ElDescriptionsItem></ElDescriptions
+        ></ElCard
+      >
+      <ElCard class="operation-card" shadow="never"
+        ><template #header
+          ><div class="card-heading">
+            <h3>操作确认</h3>
+            <RouterLink v-slot="{ navigate }" custom :to="{ name: 'entitlements' }"
+              ><ElButton @click="navigate">返回权益中心</ElButton></RouterLink
+            >
+          </div></template
+        ><ElForm class="form" label-position="top" @submit.prevent="preview"
           ><div class="grid">
             <ElFormItem label="可执行操作" required
               ><ElSelect v-model="form.operation" :disabled="allowedOperations.length === 0"
@@ -247,6 +247,17 @@ async function confirm(reason: string): Promise<void> {
               controller.previewResult.value.expiresAt ?? '永久有效'
             }}</ElDescriptionsItem></ElDescriptions
           >
+          <div class="check-items">
+            <div class="check-item">
+              <strong>核对权益</strong><span>核对当前用户、内容包和旧到期时间。</span>
+            </div>
+            <div class="check-item">
+              <strong>二次确认</strong><span>操作后的状态与到期时间以服务端预览为准。</span>
+            </div>
+            <div class="check-item">
+              <strong>审计记录</strong><span>操作原因和操作人进入审计；保留学习记录。</span>
+            </div>
+          </div>
           <ElButton
             class="submit"
             native-type="submit"
@@ -255,9 +266,14 @@ async function confirm(reason: string): Promise<void> {
             :loading="controller.commandState.value === 'submitting'"
             >获取服务端预览并二次确认</ElButton
           >
-        </ElForm></template
-      > </ElCard
-    ><ConfirmDialog
+        </ElForm></ElCard
+      >
+    </div>
+    <aside class="management-note">
+      <strong>管理提醒</strong>
+      <p>时间档位仅支持 1、2、3、6、12 个月或永久。</p>
+    </aside>
+    <ConfirmDialog
       v-if="detail && controller.previewResult.value"
       v-model="confirmVisible"
       :before-status="detail.status"
@@ -270,47 +286,215 @@ async function confirm(reason: string): Promise<void> {
     />
   </section>
 </template>
-
 <style scoped lang="scss">
 .formal-action-page {
   min-width: 0;
+  padding-top: 5px;
 
-  .heading {
+  .card-heading {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 14px;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
-  .heading span {
-    color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    font-weight: 700;
+  .card-heading .el-button {
+    font-size: 12px;
   }
 
-  h2 {
-    margin: 3px 0 0;
-    color: var(--juya-color-sidebar);
-    font-size: 16px;
+  .record-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin: 0 0 18px;
+    color: #657a68;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+  }
+
+  .toolbar p {
+    margin: 0;
+    color: #657a68;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  h3 {
+    margin: 0;
+    color: #244633;
+    font-size: 20px;
+  }
+
+  .action-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
+    gap: 18px;
+  }
+
+  .detail-card,
+  .operation-card {
+    min-width: 0;
+    min-height: 570px;
+    border: 1px solid #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+  }
+
+  .detail-card {
+    background: #eaf2e3;
+  }
+
+  :deep([class~='el-card__header']) {
+    padding: 18px 20px 12px;
+    border-bottom: 0;
+  }
+
+  :deep([class~='el-card__body']) {
+    padding: 12px 20px 20px;
+  }
+
+  .detail-fields :deep([class~='el-descriptions__body']) {
+    background: transparent;
+  }
+
+  .detail-fields :deep([class~='el-descriptions__label']) {
+    display: block;
+    padding: 0 0 6px;
+    font-weight: 500;
+    line-height: 22px;
+    color: #657a68;
+    font-size: 13px;
+  }
+
+  .detail-fields :deep([class~='el-descriptions__content']) {
+    display: block;
+    min-height: 38px;
+    margin-bottom: 12px;
+    line-height: 20px;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 1px solid #c9dac3;
+    border-radius: 10px;
+    background: #fffdf7;
+    color: #244633;
     overflow-wrap: anywhere;
   }
 
   .form {
-    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    min-height: 480px;
   }
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+    gap: 0;
+  }
+
+  .operation-card :deep(.el-select) {
+    width: 100%;
+  }
+
+  .operation-card :deep([class~='el-form-item__label']) {
+    color: #657a68;
+    font-size: 13px;
+  }
+
+  .operation {
+    display: block;
+    margin: 8px 0 24px;
+  }
+
+  .operation :deep([class~='el-form-item__label']) {
+    margin-bottom: 8px;
+  }
+
+  .operation :deep([class~='el-form-item__content']) {
+    margin-left: 0;
   }
 
   .notice {
     margin: 16px 0;
   }
 
+  .check-items {
+    display: grid;
+    gap: 28px;
+    margin: 24px 0 36px;
+  }
+
+  .check-item {
+    padding-left: 16px;
+    border-left: 5px solid #4f833d;
+  }
+
+  .check-item:nth-child(2) {
+    border-left-color: #b37b32;
+  }
+
+  .check-item strong,
+  .check-item span {
+    display: block;
+  }
+
+  .check-item strong {
+    color: #244633;
+    font-size: 13px;
+  }
+
+  .check-item span {
+    margin-top: 7px;
+    color: #657a68;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
   .submit {
-    margin-top: 16px;
+    align-self: flex-start;
+    min-height: 44px;
+    margin-top: auto;
+  }
+
+  .management-note {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    color: #244633;
+  }
+
+  .management-note strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .management-note p {
+    margin: 20px 0 6px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+}
+
+@media (width <= 1000px) {
+  .formal-action-page {
+    .action-layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .toolbar {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 12px;
+    }
   }
 }
 </style>

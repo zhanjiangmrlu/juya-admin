@@ -17,6 +17,7 @@ import { useFeedbackCommand } from '@/features/feedback/use-feedback-command'
 import { useFeedbackNote } from '@/features/feedback/use-feedback-note'
 import { createApiClient } from '@/services/api/api-client'
 import { ApiError } from '@/shared/errors/api-error'
+import { formatDateTime } from '@/shared/utils/date-time'
 
 import type { FeedbackTicket } from '@/features/feedback/feedback-adapter'
 
@@ -154,40 +155,45 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
     <ElSkeleton v-else-if="isLoading" :rows="9" animated />
 
     <template v-else-if="ticket">
-      <div class="page-heading">
-        <div>
-          <span class="page-number">A16</span>
-          <h2>反馈回复与关闭 · {{ ticket.id }}</h2>
-        </div>
-        <RouterLink
-          v-slot="{ navigate }"
-          custom
-          :to="{ name: 'feedback-detail', params: { id: ticket.id }, query: route.query }"
-        >
-          <ElButton @click="navigate">返回反馈详情</ElButton>
-        </RouterLink>
-      </div>
-
       <div class="response-grid">
-        <ElCard shadow="never">
+        <ElCard shadow="never" class="check-card">
           <template #header>
             <div class="card-heading">
-              <h3>待处理反馈</h3>
-              <StatusTag :label="FEEDBACK_STATUS_LABELS[ticket.status]" />
+              <h3>回复前检查</h3>
+              <StatusTag :label="FEEDBACK_STATUS_LABELS[ticket.status]" /><RouterLink
+                v-slot="{ navigate }"
+                custom
+                :to="{ name: 'feedback-detail', params: { id: ticket.id }, query: route.query }"
+              >
+                <ElButton @click="navigate">返回反馈详情</ElButton>
+              </RouterLink>
             </div>
           </template>
           <PlainTextContent :content="ticket.description" />
           <ElDivider />
-          <ElDescriptions :column="2" border>
+          <ElDescriptions :column="1">
             <ElDescriptionsItem label="用户编号">{{ ticket.userId }}</ElDescriptionsItem>
             <ElDescriptionsItem label="补充轮次"
               >{{ ticket.supplementRounds }} / 2</ElDescriptionsItem
             >
+            <ElDescriptionsItem label="处理期限">{{
+              formatDateTime(ticket.deadlineAt, '未设置')
+            }}</ElDescriptionsItem>
           </ElDescriptions>
+          <div class="check-item">
+            <strong>重复发送</strong><span>提交前校验状态，重复请求使用原幂等键</span>
+          </div>
+          <aside class="notice">
+            <strong>提交前确认</strong>
+            <p>对用户回复与内部备注独立保存；反馈关闭后截图保留 30 天，7 天内用户可重开。</p>
+          </aside>
         </ElCard>
 
-        <ElCard shadow="never">
-          <template #header><h3 class="panel-title">可执行操作</h3></template>
+        <ElCard shadow="never" class="result-card">
+          <template #header
+            ><h3 class="panel-title">发送处理结果</h3>
+            <p class="panel-subtitle">{{ ticket.id }}</p></template
+          >
 
           <ElAlert
             v-if="command.error.value"
@@ -204,41 +210,6 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
           </ElAlert>
 
           <ElEmpty v-if="operations.length === 0" description="当前反馈已结束，无可执行操作" />
-
-          <div v-if="operations.includes('START')" class="operation-panel">
-            <div>
-              <strong>{{ FEEDBACK_OPERATION_LABELS.START }}</strong
-              ><span>接单并进入处理中状态</span>
-            </div>
-            <ElButton :loading="command.isSubmitting.value" type="primary" @click="handleStart">
-              开始处理
-            </ElButton>
-          </div>
-
-          <ElForm
-            v-if="operations.includes('REQUEST_SUPPLEMENT')"
-            class="operation-panel stacked-panel"
-            label-position="top"
-            @submit.prevent="handleSupplement"
-          >
-            <ElFormItem label="要求用户补充的信息" required>
-              <ElInput
-                v-model="form.requestText"
-                maxlength="300"
-                placeholder="说明需要补充的步骤、截图或环境信息"
-                show-word-limit
-                type="textarea"
-              />
-            </ElFormItem>
-            <ElButton
-              :disabled="!form.requestText.trim()"
-              :loading="command.isSubmitting.value"
-              native-type="submit"
-              type="primary"
-            >
-              发送补充要求
-            </ElButton>
-          </ElForm>
 
           <ElForm
             v-if="operations.includes('RESOLVE')"
@@ -268,31 +239,6 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
               type="primary"
             >
               回复并解决
-            </ElButton>
-          </ElForm>
-
-          <ElForm
-            v-if="operations.includes('CLOSE')"
-            class="operation-panel stacked-panel"
-            label-position="top"
-            @submit.prevent="handleClose"
-          >
-            <ElFormItem label="信息不足关闭原因" required>
-              <ElInput
-                v-model="form.closeReason"
-                maxlength="200"
-                placeholder="说明无法继续处理的原因"
-                show-word-limit
-                type="textarea"
-              />
-            </ElFormItem>
-            <ElButton
-              :disabled="!form.closeReason.trim()"
-              :loading="command.isSubmitting.value"
-              native-type="submit"
-              type="danger"
-            >
-              确认关闭
             </ElButton>
           </ElForm>
 
@@ -329,100 +275,279 @@ async function submitCommand(action: () => Promise<void>, successMessage: string
           </ElForm>
         </ElCard>
       </div>
+      <ElCard
+        v-if="
+          operations.some((operation) =>
+            ['START', 'REQUEST_SUPPLEMENT', 'CLOSE'].includes(operation)
+          )
+        "
+        shadow="never"
+        class="additional-actions"
+      >
+        <template #header><h3>补充与其他处理</h3></template>
+        <div class="additional-grid">
+          <div v-if="operations.includes('START')" class="operation-panel">
+            <div>
+              <strong>{{ FEEDBACK_OPERATION_LABELS.START }}</strong
+              ><span>接单并进入处理中状态</span>
+            </div>
+            <ElButton :loading="command.isSubmitting.value" type="primary" @click="handleStart">
+              开始处理
+            </ElButton>
+          </div>
+          <ElForm
+            v-if="operations.includes('REQUEST_SUPPLEMENT')"
+            class="operation-panel stacked-panel"
+            label-position="top"
+            @submit.prevent="handleSupplement"
+          >
+            <ElFormItem label="要求用户补充的信息" required>
+              <ElInput
+                v-model="form.requestText"
+                maxlength="300"
+                placeholder="说明需要补充的步骤、截图或环境信息"
+                show-word-limit
+                type="textarea"
+              />
+            </ElFormItem>
+            <ElButton
+              :disabled="!form.requestText.trim()"
+              :loading="command.isSubmitting.value"
+              native-type="submit"
+              type="primary"
+            >
+              发送补充要求
+            </ElButton>
+          </ElForm>
+          <ElForm
+            v-if="operations.includes('CLOSE')"
+            class="operation-panel stacked-panel"
+            label-position="top"
+            @submit.prevent="handleClose"
+          >
+            <ElFormItem label="信息不足关闭原因" required>
+              <ElInput
+                v-model="form.closeReason"
+                maxlength="200"
+                placeholder="说明无法继续处理的原因"
+                show-word-limit
+                type="textarea"
+              />
+            </ElFormItem>
+            <ElButton
+              :disabled="!form.closeReason.trim()"
+              :loading="command.isSubmitting.value"
+              native-type="submit"
+              type="danger"
+            >
+              确认关闭
+            </ElButton>
+          </ElForm>
+        </div>
+      </ElCard>
     </template>
   </section>
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- 页面级 Element Plus BEM 覆盖，业务类名遵循仓库命名 */
 .feedback-respond-page {
-  .page-heading,
-  .card-heading,
-  .operation-panel {
+  min-width: 0;
+  color: var(--juya-color-text-primary);
+
+  .page-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
   }
 
-  .page-heading {
-    align-items: flex-start;
-    margin-bottom: 14px;
-
-    .page-number {
-      color: var(--juya-color-text-primary);
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-    }
-
-    h2 {
-      margin: 3px 0 0;
-      font-size: 18px;
-    }
-  }
-
-  .panel-title,
-  .card-heading h3 {
+  .page-context {
     margin: 0;
-    color: var(--juya-color-sidebar);
+    color: var(--juya-color-text-secondary);
+    font-size: 13px;
+    overflow-wrap: anywhere;
   }
 
-  .panel-title,
-  .card-heading h3 {
-    font-size: 15px;
+  h3 {
+    margin: 0;
+    color: var(--juya-color-text-primary);
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .panel-subtitle {
+    margin: 8px 0 0;
+    color: var(--juya-color-text-secondary);
+    font-size: 13px;
+  }
+
+  .notice {
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  .notice strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .notice p {
+    margin: 20px 0 0;
+  }
+
+  :deep(.el-card) {
+    border-color: #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+    box-shadow: none;
+  }
+
+  :deep(.el-card__header) {
+    padding: 16px 20px 12px;
+    border-bottom: 0;
+  }
+
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
+
+  :deep(.el-button) {
+    min-height: 38px;
+    border-radius: 10px;
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-select__wrapper),
+  :deep(.el-textarea__inner) {
+    border-radius: 10px;
+    background: #fffdf7;
+  }
+
+  .additional-actions {
+    margin-top: 18px;
+  }
+
+  .additional-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
   }
 
   .response-grid {
     display: grid;
-    grid-template-columns: minmax(300px, 2fr) minmax(420px, 3fr);
-    gap: 14px;
+    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
+    align-items: start;
+    gap: 18px;
+  }
+
+  .result-card {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 630px;
+    background: #eaf2e3;
+  }
+
+  .check-card {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 455px;
+  }
+
+  .card-heading {
+    flex-wrap: wrap;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
 
   .operation-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 16px;
-    padding: 16px;
-    border: 1px solid var(--juya-color-border);
-    border-radius: var(--juya-panel-radius);
+    padding: 0 0 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #d8e5d1;
+  }
 
-    + .operation-panel {
-      margin-top: 12px;
-    }
+  .operation-panel strong,
+  .operation-panel span,
+  .check-item strong,
+  .check-item span {
+    display: block;
+  }
 
-    strong,
-    span {
-      display: block;
-    }
-
-    span {
-      margin-top: 4px;
-      color: var(--juya-color-text-secondary);
-      font-size: 12px;
-    }
+  .operation-panel span,
+  .check-item span {
+    margin-top: 4px;
+    color: var(--juya-color-text-secondary);
+    font-size: 12px;
+    line-height: 1.8;
   }
 
   .stacked-panel {
     display: block;
-
-    .el-select {
-      width: 100%;
-    }
   }
 
-  .command-error {
-    margin-bottom: 12px;
+  :deep(.el-form-item) {
+    margin-bottom: 22px;
   }
 
-  .internal-note {
-    margin-top: 4px;
+  :deep(.el-select) {
+    width: 100%;
   }
 
+  :deep(.el-textarea__inner) {
+    min-height: 60px;
+  }
+
+  :deep(.el-form-item__label) {
+    margin-bottom: 8px;
+    line-height: 22px;
+  }
+
+  .command-error,
   .note-error {
-    margin-bottom: 12px;
+    margin-bottom: 16px;
   }
 
-  @media (width <= 1100px) {
+  .check-item {
+    padding-left: 14px;
+    margin: 28px 0;
+    border-left: 5px solid #4f833d;
+    font-size: 13px;
+  }
+
+  .check-card :deep(.el-descriptions) {
+    margin-top: 24px;
+  }
+
+  .check-card :deep(.el-descriptions__cell) {
+    padding-block: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  @media (width <= 900px) {
     .response-grid {
       grid-template-columns: 1fr;
     }
+
+    .result-card,
+    .check-card {
+      grid-column: auto;
+      grid-row: auto;
+    }
+
+    .result-card {
+      order: -1;
+    }
   }
 }
+/* stylelint-enable selector-class-pattern */
 </style>

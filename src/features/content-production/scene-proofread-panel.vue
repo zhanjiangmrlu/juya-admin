@@ -39,6 +39,7 @@ const form = computed(() => props.form)
   </div>
 </template>
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 .scene-proofread-panel {
   display: grid;
   gap: 14px;
@@ -47,6 +48,16 @@ const form = computed(() => props.form)
 
 h3 {
   margin: 0;
-  font-size: 15px;
+  color: var(--juya-color-sidebar);
+  font-size: 20px;
+}
+
+.scene-proofread-panel :deep(.el-card__header) {
+  padding: 18px 20px;
+  border-bottom: 0;
+}
+
+.scene-proofread-panel :deep(.el-card__body) {
+  padding-top: 0;
 }
 </style>

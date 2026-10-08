@@ -69,16 +69,6 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
 
 <template>
   <section class="contact-correction-page">
-    <div class="heading">
-      <div>
-        <span>A04</span>
-        <h2>联系资料更正申请</h2>
-      </div>
-      <RouterLink v-slot="{ navigate }" custom :to="{ name: 'users' }">
-        <ElButton @click="navigate">返回联系申请列表</ElButton>
-      </RouterLink>
-    </div>
-
     <ElAlert
       v-if="controller.error.value"
       class="notice"
@@ -90,16 +80,15 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
     <ElSkeleton v-if="controller.state.value === 'loading'" :rows="8" animated />
 
     <div v-else-if="controller.detail.value" class="grid">
-      <ElCard shadow="never">
-        <template #header><h3>申请信息</h3></template>
-        <ElDescriptions :column="1" border>
-          <ElDescriptionsItem label="申请编号">{{ controller.detail.value.id }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="用户编号">{{
-            controller.detail.value.user_id
-          }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="句芽编号">{{
-            controller.detail.value.juya_number
-          }}</ElDescriptionsItem>
+      <ElCard class="application-card" shadow="never">
+        <template #header><h3>更正申请</h3></template>
+        <p class="record-summary">
+          <span>申请 {{ controller.detail.value.id }}</span
+          ><span
+            >{{ controller.detail.value.juya_number }} · {{ controller.detail.value.user_id }}</span
+          >
+        </p>
+        <ElDescriptions :column="1" direction="vertical" class="application-fields">
           <ElDescriptionsItem label="当前微信号">
             <span class="contact-value">{{ controller.detail.value.wechat_id || '未填写' }}</span>
           </ElDescriptionsItem>
@@ -126,7 +115,14 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
       </ElCard>
 
       <ElCard class="audit" shadow="never">
-        <template #header><h3>联系与审计</h3></template>
+        <template #header
+          ><div class="card-heading">
+            <h3>核对与处理</h3>
+            <RouterLink v-slot="{ navigate }" custom :to="{ name: 'users' }">
+              <ElButton @click="navigate">返回联系申请列表</ElButton>
+            </RouterLink>
+          </div></template
+        >
         <ElTimeline v-if="controller.detail.value.timeline.length" class="timeline">
           <ElTimelineItem
             v-for="item in controller.detail.value.timeline"
@@ -158,52 +154,116 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
         </div>
       </ElCard>
     </div>
+    <aside class="management-note">
+      <strong>管理提醒</strong>
+      <p>批准仅重置用户自助修改机会；实际修改联系方式后，仍需核对最新资料。</p>
+    </aside>
   </section>
 </template>
 
 <style scoped lang="scss">
 .contact-correction-page {
+  min-width: 0;
+  padding-top: 5px;
+
+  .card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .card-heading .el-button {
+    font-size: 12px;
+  }
+
+  .record-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin: 0 0 18px;
+    color: #657a68;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
   .heading {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    margin-bottom: 14px;
+    gap: 20px;
+    margin-bottom: 18px;
   }
 
-  .heading span {
-    color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    font-weight: 700;
+  .heading p {
+    margin: 0;
+    color: #657a68;
+    font-size: 13px;
   }
 
-  .heading h2,
   h3 {
     margin: 0;
-    color: var(--juya-color-sidebar);
-  }
-
-  .heading h2 {
-    margin-top: 3px;
-    font-size: 18px;
-  }
-
-  h3 {
-    font-size: 15px;
+    color: #244633;
+    font-size: 20px;
   }
 
   .notice {
-    margin-bottom: 14px;
+    margin-bottom: 18px;
   }
 
   .grid {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr);
-    gap: 14px;
+    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
+    gap: 18px;
+    align-items: stretch;
   }
 
-  .audit {
+  .grid :deep(.el-card) {
     min-width: 0;
-    min-height: 390px;
+    min-height: 570px;
+    border: 1px solid #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+  }
+
+  .grid :deep([class~='el-card__header']) {
+    padding: 18px 20px 12px;
+    border-bottom: 0;
+  }
+
+  .grid :deep([class~='el-card__body']) {
+    padding: 12px 20px 20px;
+  }
+
+  .grid .application-card {
+    background: #eaf2e3;
+  }
+
+  .application-fields :deep([class~='el-descriptions__body']) {
+    background: transparent;
+  }
+
+  .application-fields :deep([class~='el-descriptions__label']) {
+    display: block;
+    padding: 0 0 6px;
+    font-weight: 500;
+    line-height: 22px;
+    color: #657a68;
+    font-size: 13px;
+  }
+
+  .application-fields :deep([class~='el-descriptions__content']) {
+    display: block;
+    min-height: 38px;
+    margin-bottom: 12px;
+    line-height: 20px;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 1px solid #c9dac3;
+    border-radius: 10px;
+    background: #fffdf7;
+    color: #244633;
   }
 
   .contact-value,
@@ -216,9 +276,20 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
     margin-top: 14px;
   }
 
+  .audit :deep([class~='el-card__body']) {
+    display: flex;
+    min-height: 480px;
+    box-sizing: border-box;
+    flex-direction: column;
+  }
+
   .timeline {
-    min-height: 205px;
-    padding-inline-start: 4px;
+    flex: 1;
+    padding: 32px 0 0 4px;
+  }
+
+  .timeline :deep(.el-timeline-item) {
+    padding-bottom: 32px;
   }
 
   .timeline strong,
@@ -227,26 +298,53 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
   }
 
   .timeline span {
-    margin-top: 4px;
-    color: var(--juya-color-text-secondary);
-    font-size: 11px;
+    margin-top: 8px;
+    color: #657a68;
+    font-size: 12px;
   }
 
   .actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
     gap: 10px;
+    flex-wrap: wrap;
+    margin-top: auto;
   }
 
   .actions .el-button {
-    width: 100%;
+    min-height: 44px;
+    margin-left: 0;
+  }
+
+  .management-note {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    color: #244633;
+  }
+
+  .management-note strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .management-note p {
+    margin: 20px 0 6px;
+    font-size: 13px;
+    line-height: 1.7;
   }
 }
 
-@media (width <= 1100px) {
+@media (width <= 1000px) {
   .contact-correction-page {
     .grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .heading {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 12px;
     }
   }
 }

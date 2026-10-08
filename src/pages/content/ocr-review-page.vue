@@ -71,9 +71,9 @@ function edit(): void {
 onMounted(load)
 </script>
 <template>
-  <section v-loading="busy">
+  <section v-loading="busy" class="ocr-review-page">
     <div class="page-heading">
-      <h2>OCR 任务与原始候选</h2>
+      <p>原始 OCR 候选仅供人工校对，返回同一场景逐项采纳。</p>
       <ElButton @click="load">刷新状态</ElButton>
     </div>
     <ElAlert v-if="error" :closable="false" :title="error" type="error" /><ElCard shadow="never"
@@ -115,6 +115,7 @@ onMounted(load)
   </section>
 </template>
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 .page-heading {
   display: flex;
   justify-content: space-between;
@@ -124,6 +125,21 @@ onMounted(load)
 h2 {
   margin: 0;
   font-size: 18px;
+}
+
+.ocr-review-page > :deep(.el-card) {
+  background: #eaf2e3;
+}
+
+.ocr-review-page h3 {
+  color: var(--juya-color-sidebar);
+  font-size: 20px;
+}
+
+.ocr-review-page p {
+  color: var(--juya-color-text-regular);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .el-form {

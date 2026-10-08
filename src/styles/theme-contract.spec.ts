@@ -8,7 +8,7 @@ describe('management theme contract', () => {
     const tokens = await readFile(resolve(process.cwd(), 'src/styles/tokens.scss'), 'utf8')
 
     expect(tokens).toContain('--juya-sidebar-width: 222px')
-    expect(tokens).toContain('--juya-color-primary: #2f7d61')
-    expect(tokens).toContain('--juya-panel-radius: 8px')
+    expect(tokens).toContain('--juya-color-primary: #326b44')
+    expect(tokens).toContain('--juya-panel-radius: 18px')
   })
 })

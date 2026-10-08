@@ -99,7 +99,7 @@ test('A14 至 A16 在双视口下保持关键内容和无横向溢出', async ({
     for (const target of pages) {
       await navigateInApp(page, target.path)
       await expect(
-        page.getByRole('heading', { level: 2, name: new RegExp(target.heading) })
+        page.getByRole('heading', { level: 1, name: new RegExp(target.heading) })
       ).toBeVisible()
       await expect
         .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))

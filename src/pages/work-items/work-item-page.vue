@@ -30,13 +30,6 @@ onBeforeUnmount(controller.dispose)
 
 <template>
   <section class="work-item-page">
-    <div class="heading">
-      <div>
-        <span>A13</span>
-        <h2>消息中心</h2>
-      </div>
-      <ElButton :loading="controller.isLoading.value" @click="controller.load">刷新待办</ElButton>
-    </div>
     <ElAlert
       v-if="controller.error.value"
       :closable="false"
@@ -44,124 +37,226 @@ onBeforeUnmount(controller.dispose)
       type="error"
       show-icon
     />
-    <div class="grid">
-      <ElCard shadow="never">
-        <template #header
-          ><div class="panel-title">
-            <h3>优先处理</h3>
-            <StatusTag
-              :label="`${controller.actionable.value.length} 项`"
-              :tone="controller.actionable.value.length ? 'warning' : 'success'"
-            /></div
-        ></template>
-        <ElEmpty v-if="controller.actionable.value.length === 0" description="暂无优先待办" />
-        <ul v-else class="list">
-          <li v-for="item in controller.actionable.value" :key="item.key" class="item">
-            <div>
-              <strong>{{ toWorkItemViewModel(item).title }}</strong
-              ><span
-                >{{ toWorkItemViewModel(item).description }} ·
-                {{ dayjs(item.due_at).format('YYYY-MM-DD HH:mm') }}</span
-              >
-            </div>
-            <RouterLink v-slot="{ navigate }" custom :to="toWorkItemViewModel(item).destination"
-              ><ElButton plain type="primary" @click="navigate">{{
-                toWorkItemViewModel(item).actionLabel
-              }}</ElButton></RouterLink
+    <ElCard shadow="never" class="message-card">
+      <template #header>
+        <div class="panel-title">
+          <div>
+            <h3>待办消息</h3>
+            <p class="panel-subtitle">按时限和业务状态自动排序，不支持手动删除未完成任务</p>
+          </div>
+          <ElButton :loading="controller.isLoading.value" @click="controller.load"
+            >刷新待办</ElButton
+          >
+        </div>
+      </template>
+      <div class="group-heading">
+        <strong>优先处理</strong
+        ><StatusTag
+          :label="`${controller.actionable.value.length} 项`"
+          :tone="controller.actionable.value.length ? 'warning' : 'success'"
+        />
+      </div>
+      <ElEmpty v-if="controller.actionable.value.length === 0" description="暂无优先待办" />
+      <ul v-else class="list">
+        <li
+          v-for="item in controller.actionable.value"
+          :key="item.key"
+          class="item"
+          :class="toWorkItemViewModel(item).tone"
+        >
+          <div>
+            <strong>{{ toWorkItemViewModel(item).title }}</strong
+            ><span
+              >{{ toWorkItemViewModel(item).description }} ·
+              {{ dayjs(item.due_at).format('YYYY-MM-DD HH:mm') }}</span
             >
-          </li>
-        </ul>
-      </ElCard>
-      <ElCard shadow="never">
-        <template #header
-          ><div class="panel-title">
-            <h3>信息提醒</h3>
-            <StatusTag :label="`${controller.informational.value.length} 项`" /></div
-        ></template>
-        <ElEmpty v-if="controller.informational.value.length === 0" description="暂无信息提醒" />
-        <ul v-else class="list">
-          <li v-for="item in controller.informational.value" :key="item.key" class="item">
-            <div>
-              <strong>{{ toWorkItemViewModel(item).title }}</strong
-              ><span>{{ dayjs(item.due_at).format('YYYY-MM-DD HH:mm') }}</span>
-            </div>
-          </li>
-        </ul>
-      </ElCard>
-    </div>
+          </div>
+          <RouterLink v-slot="{ navigate }" custom :to="toWorkItemViewModel(item).destination"
+            ><ElButton
+              :plain="toWorkItemViewModel(item).tone !== 'danger'"
+              :type="toWorkItemViewModel(item).tone === 'danger' ? 'danger' : 'primary'"
+              @click="navigate"
+              >{{ toWorkItemViewModel(item).actionLabel }}</ElButton
+            ></RouterLink
+          >
+        </li>
+      </ul>
+      <div class="group-heading">
+        <strong>信息提醒</strong
+        ><StatusTag :label="`${controller.informational.value.length} 项`" />
+      </div>
+      <ElEmpty v-if="controller.informational.value.length === 0" description="暂无信息提醒" />
+      <ul v-else class="list">
+        <li v-for="item in controller.informational.value" :key="item.key" class="item info">
+          <div>
+            <strong>{{ toWorkItemViewModel(item).title }}</strong
+            ><span>{{ dayjs(item.due_at).format('YYYY-MM-DD HH:mm') }}</span>
+          </div>
+        </li>
+      </ul>
+    </ElCard>
   </section>
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- 页面级 Element Plus BEM 覆盖，业务类名遵循仓库命名 */
 .work-item-page {
-  .heading,
+  min-width: 0;
+  color: var(--juya-color-text-primary);
+
+  .page-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .page-context {
+    margin: 0;
+    color: var(--juya-color-text-secondary);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  h3 {
+    margin: 0;
+    color: var(--juya-color-text-primary);
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .panel-subtitle {
+    margin: 8px 0 0;
+    color: var(--juya-color-text-secondary);
+    font-size: 13px;
+  }
+
+  .notice {
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  .notice strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .notice p {
+    margin: 20px 0 0;
+  }
+
+  :deep(.el-card) {
+    border-color: #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+    box-shadow: none;
+  }
+
+  :deep(.el-card__header) {
+    padding: 16px 20px 12px;
+    border-bottom: 0;
+  }
+
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
+
+  :deep(.el-button) {
+    min-height: 38px;
+    border-radius: 10px;
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-select__wrapper),
+  :deep(.el-textarea__inner) {
+    border-radius: 10px;
+    background: #fffdf7;
+  }
+
+  .message-card {
+    min-height: 624px;
+    background: #eaf2e3;
+  }
+
   .panel-title,
+  .group-heading,
   .item {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
   }
 
-  .heading {
-    margin-bottom: 14px;
-  }
-
-  .heading span {
+  .group-heading {
+    justify-content: flex-start;
+    margin: 10px 0;
     color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    font-weight: 700;
-  }
-
-  .heading h2,
-  .panel-title h3 {
-    margin: 3px 0 0;
-    color: var(--juya-color-sidebar);
-  }
-
-  .heading h2 {
-    font-size: 18px;
-  }
-
-  .panel-title h3 {
-    font-size: 15px;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
-    gap: 14px;
-    margin-top: 14px;
+    font-size: 12px;
   }
 
   .list {
-    margin: 0;
     padding: 0;
+    margin: 0;
     list-style: none;
   }
 
   .item {
-    min-height: 72px;
-    gap: 14px;
-    border-bottom: 1px solid var(--juya-color-border-light);
-
-    &:last-child {
-      border-bottom: 0;
-    }
+    min-height: 70px;
+    padding-left: 18px;
+    position: relative;
   }
 
-  .list div {
+  .item::before {
+    position: absolute;
+    left: 0;
+    width: 5px;
+    height: 36px;
+    border-radius: 3px;
+    background: #b37b32;
+    content: '';
+  }
+
+  .danger::before {
+    background: #b85240;
+  }
+
+  .info::before {
+    background: #4f833d;
+  }
+
+  .item div {
     display: grid;
+    min-width: 0;
     gap: 4px;
   }
 
-  .list strong {
-    color: var(--juya-color-text-primary);
+  .item strong {
     font-size: 13px;
   }
 
-  .list span {
+  .item span {
     color: var(--juya-color-text-secondary);
-    font-size: 11px;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .item :deep(.el-button) {
+    min-width: 145px;
+  }
+
+  @media (width <= 700px) {
+    .panel-title {
+      flex-wrap: wrap;
+    }
+
+    .item :deep(.el-button) {
+      min-width: 90px;
+    }
   }
 }
+/* stylelint-enable selector-class-pattern */
 </style>

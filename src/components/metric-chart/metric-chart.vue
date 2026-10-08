@@ -9,7 +9,10 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { AnalyticsSeries } from '@/features/analytics/analytics-model'
 import type { ECharts } from 'echarts/core'
 
-const props = defineProps<{ series: readonly AnalyticsSeries[] }>()
+const props = withDefaults(
+  defineProps<{ series: readonly AnalyticsSeries[]; type?: 'bar' | 'line' }>(),
+  { type: 'line' }
+)
 const container = ref<HTMLDivElement | null>(null)
 let chart: ECharts | null = null
 let observer: ResizeObserver | null = null
@@ -27,6 +30,7 @@ function renderChart(): void {
   chart.setOption(
     {
       animation: false,
+      color: ['#326b44', '#91b782', '#b37b32', '#748678', '#b85240'],
       legend: { data: props.series.map((item) => item.label), type: 'scroll' },
       grid: { bottom: 36, containLabel: true, left: 16, right: 20, top: 48 },
       series: props.series.map((item) => ({
@@ -34,7 +38,9 @@ function renderChart(): void {
         name: item.label,
         showSymbol: true,
         smooth: true,
-        type: 'line'
+        type: props.type,
+        barMaxWidth: 35,
+        itemStyle: { borderRadius: [5, 5, 0, 0] }
       })),
       tooltip: { trigger: 'axis' },
       xAxis: { data: xAxis, type: 'category' },

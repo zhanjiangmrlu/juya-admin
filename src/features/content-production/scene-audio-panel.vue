@@ -36,8 +36,8 @@ onBeforeUnmount(() => emit('element', null))
 
 <template>
   <div class="scene-audio-panel">
-    <ElCard shadow="never">
-      <template #header><h3>整段音频</h3></template>
+    <ElCard class="audio-source-panel" shadow="never">
+      <template #header><h3>整段对话音频</h3></template>
       <p>绑定固定音频版本。更换版本后需重新标记并核对每句时间。</p>
       <div class="audio-actions">
         <ElButton :loading="busy" @click="emit('load')">加载音频版本</ElButton>
@@ -69,9 +69,11 @@ onBeforeUnmount(() => emit('element', null))
         />
       </ElSelect>
       <template v-if="form.audio">
-        <p>当前 {{ form.audio.version_id }} · {{ form.audio.duration_ms }} 毫秒</p>
+        <p class="audio-version-meta">
+          当前 {{ form.audio.version_id }} · {{ form.audio.duration_ms }} 毫秒
+        </p>
         <ElButton @click="emit('play')">{{ player?.label('scene') ?? '播放' }}整段音频</ElButton>
-        <p aria-live="polite">
+        <p class="player-status" aria-live="polite">
           当前 {{ player?.currentMs.value ?? 0 }} 毫秒 · {{ player?.statusText.value }}
           {{ player?.error.value }}
         </p>
@@ -83,7 +85,10 @@ onBeforeUnmount(() => emit('element', null))
       <audio ref="audioElement" controls preload="metadata" />
     </ElCard>
     <ElCard shadow="never">
-      <template #header><h3>对话与句子标时</h3></template>
+      <template #header
+        ><h3>逐句起止时间</h3>
+        <p>0 ≤ 开始 ＜ 结束 ≤ 音频时长；逐句试听并人工核对后才可发布</p></template
+      >
       <DialogueFields
         v-model="form.dialogue"
         :audio="form.audio"
@@ -98,16 +103,79 @@ onBeforeUnmount(() => emit('element', null))
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 .scene-audio-panel {
   display: grid;
-  grid-template-columns: minmax(280px, 2fr) minmax(420px, 3fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 14px;
+  gap: 18px;
+}
+
+.scene-audio-panel > :deep(.el-card:first-child) {
+  background: #eaf2e3;
+}
+
+.scene-audio-panel :deep(.el-card__header) {
+  padding: 18px 20px 0;
+  border-bottom: 0;
+}
+
+.scene-audio-panel :deep(.el-card__body) {
+  padding-top: 12px;
+}
+
+.scene-audio-panel :deep(.el-select) {
+  max-width: 620px;
+}
+
+.audio-source-panel :deep(.el-card__body) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px 18px;
+}
+
+.audio-source-panel p {
+  margin: 0;
+}
+
+.audio-source-panel p:first-child,
+.audio-source-panel .player-status {
+  grid-column: 1 / -1;
+}
+
+.audio-source-panel .audio-actions {
+  margin: 0;
+}
+
+.audio-source-panel audio {
+  height: 40px;
+  margin: 0;
+}
+
+.scene-audio-panel :deep(.dialogue-row .el-form) {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px 16px;
+}
+
+.scene-audio-panel :deep(.dialogue-row .el-form-item) {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.scene-audio-panel :deep(.timing-fields) {
+  grid-column: 1 / -1;
+}
+
+.scene-audio-panel :deep(.timing-fields .el-input-number) {
+  width: 130px;
 }
 
 h3 {
   margin: 0;
-  font-size: 15px;
+  color: var(--juya-color-sidebar);
+  font-size: 20px;
 }
 
 p {
@@ -130,7 +198,9 @@ audio {
 }
 
 @media (width <= 1050px) {
-  .scene-audio-panel {
+  .scene-audio-panel,
+  .audio-source-panel :deep(.el-card__body),
+  .scene-audio-panel :deep(.dialogue-row .el-form) {
     grid-template-columns: minmax(0, 1fr);
   }
 }

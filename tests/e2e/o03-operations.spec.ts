@@ -1,7 +1,7 @@
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 
 for (const width of [1280, 1440]) {
-  test(`运营六类卡片和数据库分页筛选 ${width}`, async ({ adminApi, page }) => {
+  test(`运营六类指标和数据库分页筛选 ${width}`, async ({ adminApi, page }) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 800 })
@@ -51,10 +51,10 @@ for (const width of [1280, 1440]) {
     await navigateInApp(page, '/dashboard')
     for (const name of [
       '今日新增用户',
-      '完成3个开放场景未留微信号',
+      '完成开放场景但未填写微信号',
       '待联系用户',
       '限时权益待开始',
-      '限时权益学习中',
+      '限时学习中',
       '反馈紧急待办'
     ])
       await expect(page.getByText(name, { exact: true })).toBeVisible()

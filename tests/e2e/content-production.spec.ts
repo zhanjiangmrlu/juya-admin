@@ -67,7 +67,7 @@ test('内容生产六个 Tab 从列表选择明确场景并打开指定步骤', 
     'aria-selected',
     'true'
   )
-  await expect(page.getByRole('heading', { name: '对话与句子标时', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '逐句起止时间', exact: true })).toBeVisible()
   expect(adminApi.unexpectedRequests).toEqual([])
 })
 

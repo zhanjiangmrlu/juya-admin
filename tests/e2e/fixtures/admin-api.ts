@@ -170,6 +170,7 @@ export async function loginAsAdmin(page: Page): Promise<void> {
   await page.getByLabel('密码').fill('Admin-pass-2026')
   await page.getByRole('button', { name: '登录', exact: true }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
+  await expect(page.getByRole('heading', { level: 1, name: '工作台', exact: true })).toBeVisible()
 }
 
 /**

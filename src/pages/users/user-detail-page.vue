@@ -120,73 +120,27 @@ async function copyWechat(): Promise<void> {
       show-icon
     />
     <ElSkeleton v-else-if="controller.state.value === 'loading'" :rows="8" animated />
-
     <template v-else-if="controller.detail.value">
-      <div class="toolbar">
-        <div>
-          <span>A03</span>
-          <h2>
-            用户详情 · {{ controller.detail.value.juya_number || controller.detail.value.user_id }}
-          </h2>
-        </div>
-        <RouterLink v-slot="{ navigate }" custom :to="{ name: 'users' }">
-          <ElButton @click="navigate">返回用户列表</ElButton>
-        </RouterLink>
-      </div>
-
       <div class="grid">
-        <div class="column">
-          <ElCard shadow="never">
-            <template #header><h3 class="panel-title">基本身份</h3></template>
-            <div class="profile">
-              <ElAvatar :src="controller.detail.value.avatar_url || undefined" :size="48"
-                ><ElIcon><UserFilled /></ElIcon
-              ></ElAvatar>
-              <div class="profile-copy">
-                <strong>{{ controller.detail.value.nickname || '未设置昵称' }}</strong
-                ><span>{{
-                  controller.detail.value.juya_number || controller.detail.value.user_id
-                }}</span>
-                <StatusTag
-                  :label="getAccountStatusLabel(controller.detail.value.account_status)"
-                  :tone="getAccountStatusTone(controller.detail.value.account_status)"
-                />
-                <span>最近活跃：{{ formatDateTime(controller.detail.value.last_active_at) }}</span>
-              </div>
+        <ElCard class="identity-card" shadow="never">
+          <template #header><h3 class="panel-title">基本身份与学习概况</h3></template>
+          <div class="profile">
+            <ElAvatar :src="controller.detail.value.avatar_url || undefined" :size="48"
+              ><ElIcon><UserFilled /></ElIcon
+            ></ElAvatar>
+            <div class="profile-copy">
+              <strong>{{ controller.detail.value.nickname || '未设置昵称' }}</strong
+              ><span>{{
+                controller.detail.value.juya_number || controller.detail.value.user_id
+              }}</span>
+              <StatusTag
+                :label="getAccountStatusLabel(controller.detail.value.account_status)"
+                :tone="getAccountStatusTone(controller.detail.value.account_status)"
+              />
+              <span>最近活跃：{{ formatDateTime(controller.detail.value.last_active_at) }}</span>
             </div>
-          </ElCard>
+          </div>
 
-          <ElCard shadow="never">
-            <template #header><h3 class="panel-title">学习与运营概况</h3></template>
-            <ElAlert
-              v-if="controller.sectionStates.value.learning === 'error'"
-              class="notice"
-              :closable="false"
-              title="学习概况上游暂时不可用，其他区块仍可正常查看"
-              type="warning"
-              show-icon
-            />
-            <div v-else class="metrics">
-              <div>
-                <span>开放场景完成数</span
-                ><strong>{{ controller.detail.value.open_scene_completed_count }}</strong>
-              </div>
-              <div>
-                <span>学习天数</span><strong>{{ controller.detail.value.learning_days }}</strong>
-              </div>
-              <div>
-                <span>收藏数</span><strong>{{ controller.detail.value.favorite_count }}</strong>
-              </div>
-              <div>
-                <span>待处理反馈</span
-                ><strong>{{ controller.detail.value.open_feedback_count }}</strong>
-              </div>
-            </div>
-          </ElCard>
-        </div>
-
-        <ElCard class="contact" shadow="never">
-          <template #header><h3 class="panel-title">联系与审计</h3></template>
           <ElAlert
             v-if="controller.sectionStates.value.contact === 'error'"
             :closable="false"
@@ -215,6 +169,42 @@ async function copyWechat(): Promise<void> {
                 />
               </ElSelect>
             </div>
+          </template>
+          <ElAlert
+            v-if="controller.sectionStates.value.learning === 'error'"
+            class="notice"
+            :closable="false"
+            title="学习概况上游暂时不可用，其他区块仍可正常查看"
+            type="warning"
+            show-icon
+          />
+          <div v-else class="metrics">
+            <div>
+              <span>开放场景完成数</span
+              ><strong>{{ controller.detail.value.open_scene_completed_count }}</strong>
+            </div>
+            <div>
+              <span>学习天数</span><strong>{{ controller.detail.value.learning_days }}</strong>
+            </div>
+            <div>
+              <span>收藏数</span><strong>{{ controller.detail.value.favorite_count }}</strong>
+            </div>
+            <div>
+              <span>待处理反馈</span
+              ><strong>{{ controller.detail.value.open_feedback_count }}</strong>
+            </div>
+          </div>
+        </ElCard>
+        <ElCard class="contact" shadow="never">
+          <template #header
+            ><div class="card-heading">
+              <h3 class="panel-title">联系与操作审计</h3>
+              <RouterLink v-slot="{ navigate }" custom :to="{ name: 'users' }"
+                ><ElButton @click="navigate">返回用户列表</ElButton></RouterLink
+              >
+            </div></template
+          >
+          <template v-if="controller.sectionStates.value.contact !== 'error'">
             <div class="contact-meta">
               <span
                 >待核对变更：{{
@@ -234,6 +224,14 @@ async function copyWechat(): Promise<void> {
               <span>核对管理员：{{ controller.detail.value.contact?.verified_by || '暂无' }}</span>
             </div>
           </template>
+          <div class="audit-item">
+            <strong>反馈记录</strong
+            ><span>待处理 {{ controller.detail.value.open_feedback_count }} 条</span>
+          </div>
+          <div class="audit-item">
+            <strong>账号状态</strong
+            ><span>{{ getAccountStatusLabel(controller.detail.value.account_status) }}</span>
+          </div>
           <ElAlert
             v-if="actionError"
             class="notice"
@@ -262,6 +260,10 @@ async function copyWechat(): Promise<void> {
           </div>
         </ElCard>
       </div>
+      <aside class="management-note">
+        <strong>管理提醒</strong>
+        <p>同一用户详情串联身份、学习、权益、反馈、注销与审计，不建立冲突档案。</p>
+      </aside>
       <UserRelatedRecords :records="controller.detail.value.records ?? {}" />
     </template>
   </section>
@@ -269,93 +271,133 @@ async function copyWechat(): Promise<void> {
 
 <style scoped lang="scss">
 .user-detail-page {
+  min-width: 0;
+  padding-top: 5px;
+
+  .card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .card-heading .el-button {
+    font-size: 12px;
+  }
+
+  .record-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin: 0 0 18px;
+    color: #657a68;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
   .toolbar {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    margin-bottom: 14px;
+    gap: 20px;
+    margin-bottom: 18px;
   }
 
-  .toolbar span {
-    color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    font-weight: 700;
+  .toolbar p {
+    margin: 0;
+    color: #657a68;
+    font-size: 13px;
   }
 
-  .toolbar h2,
   .panel-title {
     margin: 0;
-    color: var(--juya-color-sidebar);
-  }
-
-  .toolbar h2 {
-    margin-top: 3px;
-    font-size: 18px;
-  }
-
-  .panel-title {
-    font-size: 15px;
+    color: #244633;
+    font-size: 20px;
   }
 
   .grid {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr);
-    gap: 14px;
+    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
+    gap: 18px;
   }
 
-  .column {
-    display: grid;
+  .grid :deep(.el-card) {
     min-width: 0;
-    gap: 14px;
+    min-height: 570px;
+    border: 1px solid #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+  }
+
+  .grid :deep([class~='el-card__header']) {
+    padding: 18px 20px 12px;
+    border-bottom: 0;
+  }
+
+  .grid :deep([class~='el-card__body']) {
+    padding: 12px 20px 20px;
+  }
+
+  .grid .identity-card {
+    background: #eaf2e3;
   }
 
   .profile {
     display: flex;
     align-items: center;
     gap: 14px;
-  }
-
-  .avatar {
-    display: grid;
-    width: 58px;
-    height: 58px;
-    border-radius: 18px;
-    background: #d8eee3;
-    color: var(--juya-color-primary);
-    font-size: 26px;
-    place-items: center;
+    margin-bottom: 24px;
   }
 
   .profile-copy {
     display: flex;
     align-items: center;
     min-width: 0;
-    gap: 12px;
+    gap: 6px 12px;
     flex-wrap: wrap;
   }
 
   .profile-copy strong {
     width: 100%;
+    color: #244633;
+    font-size: 16px;
     overflow-wrap: anywhere;
-    font-size: 17px;
   }
 
   .profile-copy span {
-    color: var(--juya-color-text-secondary);
+    color: #657a68;
     font-size: 12px;
+  }
+
+  .contact-row {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+
+  .contact-row > span {
+    color: #657a68;
+    font-size: 13px;
+  }
+
+  .contact-row :deep(.sensitive-value) {
+    min-height: 38px;
+    box-sizing: border-box;
+    padding: 4px 12px;
+    border: 1px solid #c9dac3;
+    border-radius: 10px;
+    background: #fffdf7;
   }
 
   .metrics {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
   }
 
   .metrics div {
-    min-height: 92px;
-    padding: 16px;
-    border: 1px solid var(--juya-color-border);
-    border-radius: var(--juya-panel-radius);
+    min-width: 0;
   }
 
   .metrics span,
@@ -364,65 +406,121 @@ async function copyWechat(): Promise<void> {
   }
 
   .metrics span {
-    margin-bottom: 8px;
-    color: var(--juya-color-text-secondary);
-    font-size: 12px;
+    margin-bottom: 6px;
+    color: #657a68;
+    font-size: 13px;
   }
 
   .metrics strong {
-    color: var(--juya-color-sidebar);
-    font-size: 24px;
+    min-height: 38px;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 1px solid #c9dac3;
+    border-radius: 10px;
+    background: #fffdf7;
+    color: #244633;
+    font-size: 14px;
+  }
+
+  .contact :deep([class~='el-card__body']) {
+    display: flex;
+    min-height: 480px;
+    box-sizing: border-box;
+    flex-direction: column;
+  }
+
+  .contact-meta {
+    display: grid;
+    gap: 24px;
+    padding-top: 26px;
+    margin-bottom: 28px;
+    color: #657a68;
+    font-size: 12px;
+  }
+
+  .contact-meta span,
+  .audit-item {
+    padding-left: 16px;
+    border-left: 5px solid #4f833d;
+    overflow-wrap: anywhere;
+  }
+
+  .contact-meta :where(span:first-child) {
+    border-left-color: #b37b32;
+  }
+
+  .audit-item {
+    margin-bottom: 28px;
+  }
+
+  .audit-item strong,
+  .audit-item span {
+    display: block;
+  }
+
+  .audit-item strong {
+    color: #244633;
+    font-size: 13px;
+  }
+
+  .audit-item span {
+    margin-top: 7px;
+    color: #657a68;
+    font-size: 12px;
   }
 
   .notice {
     margin-bottom: 14px;
   }
 
-  .contact {
-    min-width: 0;
-    min-height: 390px;
-  }
-
-  .contact-row {
-    display: grid;
-    gap: 7px;
-    margin-bottom: 20px;
-  }
-
-  .contact-row > span,
-  .contact-meta {
-    color: var(--juya-color-text-secondary);
-    font-size: 12px;
-  }
-
-  .contact-meta {
-    display: grid;
-    gap: 6px;
-    margin-bottom: 16px;
-  }
-
   .copy-feedback {
-    margin: 12px 0 0;
-    color: var(--juya-color-success);
+    margin: 12px 0;
+    color: #4e7f3b;
     font-size: 12px;
   }
 
   .actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
     gap: 10px;
-    margin-top: 16px;
+    flex-wrap: wrap;
+    margin-top: auto;
+  }
+
+  .actions .el-button {
+    min-height: 44px;
+    margin-left: 0;
+  }
+
+  .management-note {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    color: #244633;
+  }
+
+  .management-note strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .management-note p {
+    margin: 20px 0 6px;
+    font-size: 13px;
+    line-height: 1.7;
   }
 }
 
-@media (width <= 1100px) {
+@media (width <= 1000px) {
   .user-detail-page {
     .grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
 
-    .metrics {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .toolbar {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 12px;
     }
   }
 }

@@ -6,7 +6,7 @@ const dashboardViewports = [
 ] as const
 
 for (const viewport of dashboardViewports) {
-  test(`工作台业务卡片在 ${viewport.width}x${viewport.height} 下填满主内容区`, async ({
+  test(`工作台业务卡片在 ${viewport.width}x${viewport.height} 下按设计显示业务卡片与快捷入口`, async ({
     adminApi,
     page
   }) => {
@@ -16,23 +16,31 @@ for (const viewport of dashboardViewports) {
     await expect(page.locator('.dashboard-page .panel')).toHaveCount(2)
 
     const geometry = await page.evaluate(() => {
-      const main = document.querySelector<HTMLElement>('.main')
       const panels = Array.from(document.querySelectorAll<HTMLElement>('.dashboard-page .panel'))
-      if (!main || panels.length !== 2) throw new Error('工作台布局节点缺失')
-
-      const mainRect = main.getBoundingClientRect()
-      const mainStyle = getComputedStyle(main)
-      const expectedBottom = mainRect.bottom - Number.parseFloat(mainStyle.paddingBottom)
+      const metrics = document.querySelector<HTMLElement>('.dashboard-page .metrics')
+      const note = document.querySelector<HTMLElement>('.permission-note')
+      if (!metrics || !note || panels.length !== 2) throw new Error('工作台布局节点缺失')
       return {
-        expectedBottom,
-        panelBottoms: panels.map((panel) => panel.getBoundingClientRect().bottom),
+        metricBottom: metrics.getBoundingClientRect().bottom,
+        panelRects: panels.map((panel) => {
+          const rect = panel.getBoundingClientRect()
+          return { top: rect.top, bottom: rect.bottom, height: rect.height }
+        }),
+        noteTop: note.getBoundingClientRect().top,
         viewportFillCount: document.querySelectorAll('.viewport-fill').length
       }
     })
 
     expect(geometry.viewportFillCount).toBe(1)
-    for (const panelBottom of geometry.panelBottoms)
-      expect(Math.abs(panelBottom - geometry.expectedBottom)).toBeLessThanOrEqual(1)
+    for (const panel of geometry.panelRects) {
+      expect(panel.height).toBeGreaterThanOrEqual(342)
+      expect(panel.top - geometry.metricBottom).toBeCloseTo(22, 0)
+    }
+    expect(geometry.panelRects[0]?.bottom).toBe(geometry.panelRects[1]?.bottom)
+    expect(geometry.noteTop - geometry.panelRects[0]!.bottom).toBeCloseTo(24, 0)
+    await expect(page.getByRole('region', { name: '常用管理入口' }).getByRole('link')).toHaveCount(
+      4
+    )
   })
 }
 
@@ -42,6 +50,8 @@ test('侧栏使用可滚动的 Element Plus 导航并可到达最后一个入口
   await loginAsAdmin(page)
 
   const scrollbar = page.locator('.menu-scrollbar')
+  await scrollbar.locator('.el-sub-menu__title', { hasText: '统一权益中心' }).click()
+  await scrollbar.locator('.el-sub-menu__title', { hasText: '内容生产' }).click()
   await expect(scrollbar.locator('.el-menu-item')).toHaveCount(14)
   await expect(scrollbar.locator('.el-menu-item.is-disabled')).toHaveCount(0)
   await expect(scrollbar).not.toContainText(/A03|A04|A08|A09|A11|A12|A15|A16|A19|A20|A21|A22/)
@@ -77,7 +87,16 @@ test('隐藏菜单后仍可从列表进入详情和操作页并返回所属栏�
   await page.getByRole('button', { name: '返回用户列表' }).click()
   await expect(page).toHaveURL(/\/users(?:\?|$)/)
 
+  await navigation.locator('.el-sub-menu__title', { hasText: '统一权益中心' }).click()
+  await navigation.evaluate(async (element) => {
+    await Promise.all(
+      element
+        .getAnimations({ subtree: true })
+        .map((animation) => animation.finished.catch(() => undefined))
+    )
+  })
   await navigation.getByRole('menuitem', { name: 'A05 统一权益中心' }).click()
+  await expect(page).toHaveURL(/\/entitlements$/)
   await page
     .getByRole('row')
     .filter({ hasText: 'FORMAL-1' })

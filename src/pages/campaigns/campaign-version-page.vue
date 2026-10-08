@@ -69,15 +69,6 @@ async function confirm(): Promise<void> {
 
 <template>
   <section class="campaign-version-page">
-    <div class="heading">
-      <div>
-        <span>A12</span>
-        <h2>活动版本与容量 · {{ campaignId }}</h2>
-      </div>
-      <RouterLink v-slot="{ navigate }" custom :to="{ name: 'campaigns' }"
-        ><ElButton @click="navigate">返回活动列表</ElButton></RouterLink
-      >
-    </div>
     <ElSkeleton
       v-if="editor.state.value === 'loading'"
       :rows="6"
@@ -90,7 +81,8 @@ async function confirm(): Promise<void> {
       type="error"
       :closable="false"
       show-icon
-      ><ApiErrorDetails :error="editor.apiError.value" />
+    >
+      <ApiErrorDetails :error="editor.apiError.value" />
       <p v-if="editor.conflict.value">
         原容量输入已保留。服务端最新版本：{{
           editor.conflictVersion.value === null
@@ -100,56 +92,64 @@ async function confirm(): Promise<void> {
       </p>
       <ElButton size="small" @click="editor.load(campaignId, true).catch(() => undefined)"
         >刷新服务端信息</ElButton
-      ></ElAlert
-    >
+      >
+    </ElAlert>
     <div class="grid">
-      <ElCard shadow="never"
-        ><template #header><h3>当前版本</h3></template
-        ><ElEmpty v-if="!current" description="活动尚无当前版本" /><ElDescriptions
-          v-else
-          :column="1"
-          border
-          ><ElDescriptionsItem label="版本编号">{{ current.id }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="版本序号">{{ current.versionNo }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="状态">{{ current.status }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="学习时长">{{ current.durationDays }} 天</ElDescriptionsItem
-          ><ElDescriptionsItem label="启动窗口"
-            >{{ current.activationWindowDays }} 天</ElDescriptionsItem
-          ><ElDescriptionsItem label="开通时间"
+      <ElCard class="version-card" shadow="never">
+        <template #header
+          ><h3>活动版本</h3>
+          <p class="panel-subtitle">{{ editor.server.value?.name || campaignId }}</p></template
+        >
+        <ElEmpty v-if="!current" description="活动尚无当前版本" />
+        <ElDescriptions v-else :column="1" border direction="vertical">
+          <ElDescriptionsItem label="启用版本"
+            ><span>{{ current.id }}</span> · 第 {{ current.versionNo }} 版 ·
+            {{ current.status }}</ElDescriptionsItem
+          >
+          <ElDescriptionsItem label="期限模式"
+            >{{ current.durationDays }} 天 · 启动窗口
+            {{ current.activationWindowDays }} 天</ElDescriptionsItem
+          >
+          <ElDescriptionsItem label="场景顺序"
+            ><span class="wrap">{{
+              current.sceneIds.join(' → ') || '未配置'
+            }}</span></ElDescriptionsItem
+          >
+          <ElDescriptionsItem label="容量上限">{{ current.capacity }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="已开通人数">{{ current.grantedUserCount }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="开通时间"
             >{{ current.grantStartsAt ?? '—' }} 至
             {{ current.grantEndsAt ?? '—' }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="场景顺序"
-            ><span class="wrap">{{
-              current.sceneIds.join('、') || '未配置'
-            }}</span></ElDescriptionsItem
-          ></ElDescriptions
-        ></ElCard
-      >
-      <ElCard shadow="never"
-        ><template #header><h3>容量调整</h3></template
-        ><ElAlert
-          title="容量不能低于服务端已开通人数"
-          type="info"
-          :closable="false"
-          show-icon
-        /><ElDescriptions v-if="current" :column="1" border class="summary"
-          ><ElDescriptionsItem label="当前容量">{{ current.capacity }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="已开通人数">{{ current.grantedUserCount }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="服务端版本"
+          >
+        </ElDescriptions>
+      </ElCard>
+      <ElCard class="capacity-card" shadow="never">
+        <template #header
+          ><h3>容量调整</h3>
+          <p class="panel-subtitle">容量不能低于服务端已开通人数</p></template
+        >
+        <ElDescriptions v-if="current" :column="1" class="summary">
+          <ElDescriptionsItem label="当前容量">{{ current.capacity }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="已开通人数">{{ current.grantedUserCount }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="服务端版本"
             >v{{ editor.server.value?.version }}</ElDescriptionsItem
-          ></ElDescriptions
-        ><ElFormItem label="新容量" class="capacity"
-          ><ElInputNumber
-            :key="String(canChangeCapacity)"
-            v-model="capacity"
-            :disabled="!current || !canChangeCapacity"
-            :min="1" /></ElFormItem
-        ><ElAlert
+          >
+        </ElDescriptions>
+        <ElForm label-position="top"
+          ><ElFormItem label="新容量" class="capacity"
+            ><ElInputNumber
+              :key="String(canChangeCapacity)"
+              v-model="capacity"
+              :disabled="!current || !canChangeCapacity"
+              :min="1" /></ElFormItem
+        ></ElForm>
+        <ElAlert
           v-if="capacityValidation && !capacityValidation.valid"
           :title="capacityValidation.message"
           type="error"
           :closable="false"
-        /><ElButton
+        />
+        <ElButton
           type="primary"
           :disabled="
             !current ||
@@ -160,7 +160,16 @@ async function confirm(): Promise<void> {
           :loading="editor.state.value === 'submitting'"
           @click="confirmVisible = true"
           >确认调整容量</ElButton
-        ></ElCard
+        >
+      </ElCard>
+    </div>
+    <aside class="notice">
+      <strong>管理提醒</strong>
+      <p>首次开通后锁定期限和场景；容量变更不改写已开通用户的活动版本。</p>
+    </aside>
+    <div class="page-toolbar footer-toolbar">
+      <RouterLink v-slot="{ navigate }" custom :to="{ name: 'campaigns' }"
+        ><ElButton @click="navigate">返回活动列表</ElButton></RouterLink
       >
     </div>
     <ConfirmDialog
@@ -179,54 +188,153 @@ async function confirm(): Promise<void> {
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- 页面级 Element Plus BEM 覆盖，业务类名遵循仓库命名 */
 .campaign-version-page {
   min-width: 0;
+  color: var(--juya-color-text-primary);
 
-  .heading {
+  .page-toolbar {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    margin-bottom: 14px;
+    gap: 16px;
+    margin-bottom: 20px;
   }
 
-  .heading span {
+  .page-context {
+    margin: 0;
     color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    font-weight: 700;
-  }
-
-  h2,
-  h3 {
-    margin: 3px 0 0;
-    color: var(--juya-color-sidebar);
+    font-size: 13px;
     overflow-wrap: anywhere;
   }
 
-  h2 {
-    font-size: 18px;
+  h3 {
+    margin: 0;
+    color: var(--juya-color-text-primary);
+    font-size: 20px;
+    line-height: 28px;
   }
 
-  h3 {
-    font-size: 15px;
+  .panel-subtitle {
+    margin: 8px 0 0;
+    color: var(--juya-color-text-secondary);
+    font-size: 13px;
+  }
+
+  .notice {
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  .notice strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .notice p {
+    margin: 20px 0 0;
+  }
+
+  :deep(.el-card) {
+    border-color: #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+    box-shadow: none;
+  }
+
+  :deep(.el-card__header) {
+    padding: 16px 20px 12px;
+    border-bottom: 0;
+  }
+
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
+
+  :deep(.el-button) {
+    min-height: 38px;
+    border-radius: 10px;
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-select__wrapper),
+  :deep(.el-textarea__inner) {
+    border-radius: 10px;
+    background: #fffdf7;
   }
 
   .grid {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(340px, 2fr);
-    gap: 14px;
+    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
+    gap: 18px;
+    margin-bottom: 18px;
   }
 
   .grid > * {
     min-width: 0;
+    min-height: 570px;
+  }
+
+  .version-card {
+    background: #eaf2e3;
+  }
+
+  .version-card :deep(.el-descriptions__body) {
+    background: transparent;
+  }
+
+  .version-card :deep(.el-descriptions__table) {
+    border-collapse: separate;
+    border-spacing: 0 8px;
+    background: transparent;
+  }
+
+  .version-card :deep(.el-descriptions__label) {
+    height: 22px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--juya-color-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .version-card :deep(.el-descriptions__content) {
+    padding: 8px 12px;
+    border: 1px solid #c9dac3;
+    border-radius: 10px;
+    background: #fffdf7;
+    overflow-wrap: anywhere;
+  }
+
+  .capacity-card :deep(.el-descriptions__cell) {
+    padding: 16px 0 16px 14px;
+    border-left: 5px solid #4f833d;
   }
 
   .summary {
-    margin-top: 18px;
+    margin-top: 14px;
   }
 
   .capacity {
-    margin-top: 18px;
+    margin-top: 30px;
+  }
+
+  :deep(.el-input-number) {
+    width: 100%;
+  }
+
+  .capacity-card :deep(.el-button) {
+    min-width: 195px;
+    margin-top: 20px;
+  }
+
+  .footer-toolbar {
+    justify-content: flex-end;
+    margin-top: 16px;
   }
 
   .wrap {
@@ -239,4 +347,5 @@ async function confirm(): Promise<void> {
     }
   }
 }
+/* stylelint-enable selector-class-pattern */
 </style>

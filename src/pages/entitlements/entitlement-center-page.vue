@@ -75,172 +75,173 @@ void controller.load({ ...filters })
 
 <template>
   <section class="entitlement-center-page">
-    <ElCard shadow="never">
-      <template #header>
-        <div class="heading">
-          <div>
-            <span>A05</span>
-            <h2>统一权益中心</h2>
-          </div>
-          <div class="actions">
-            <RouterLink v-slot="{ navigate }" custom :to="{ name: 'formal-entitlement-grant' }"
-              ><ElButton type="primary" @click="navigate">授予正式权益</ElButton></RouterLink
-            ><RouterLink v-slot="{ navigate }" custom :to="{ name: 'limited-entitlement-grant' }"
-              ><ElButton @click="navigate">开通限时权益</ElButton></RouterLink
-            >
-          </div>
+    <div class="page-toolbar">
+      <div class="heading">
+        <div>
+          <p>正式包与限时包在同一中心管理，筛选到期和待开始状态。</p>
         </div>
-      </template>
-      <ElForm class="filters" @submit.prevent="search">
-        <ElInput v-model="filters.userId" aria-label="用户编号" placeholder="用户编号" clearable />
-        <ElSelect v-model="filters.type" aria-label="权益类型" placeholder="全部类型" clearable
-          ><ElOption label="正式包" value="FORMAL" /><ElOption label="限时包" value="LIMITED"
-        /></ElSelect>
-        <ElSelect v-model="filters.status" aria-label="权益状态" placeholder="全部状态" clearable
-          ><ElOption
-            v-for="status in [
-              'ACTIVE',
-              'PAUSED',
-              'PENDING',
-              'START_EXPIRED',
-              'ENDED',
-              'REVOKED',
-              'EXPIRED'
-            ]"
-            :key="status"
-            :label="statusLabels[status]"
-            :value="status"
-        /></ElSelect>
-        <ElInput
-          v-model="filters.campaignVersionId"
-          aria-label="活动版本"
-          placeholder="活动版本编号"
-          clearable
-        />
-        <ElSelect v-model="filters.expiry" aria-label="临近期限" placeholder="全部期限" clearable>
-          <ElOption label="正式权益即将到期" value="EXPIRING" /><ElOption
-            label="限时学习24小时内结束"
-            value="ENDING"
-          /><ElOption label="待开始24小时内失效" value="START_EXPIRING" />
-        </ElSelect>
-        <ElDatePicker
-          v-model="filters.dateFrom"
-          type="date"
-          value-format="YYYY-MM-DD"
-          placeholder="授予开始日期"
-          aria-label="授予开始日期"
-        />
-        <ElDatePicker
-          v-model="filters.dateTo"
-          type="date"
-          value-format="YYYY-MM-DD"
-          placeholder="授予结束日期"
-          aria-label="授予结束日期"
-        />
-        <ElButton native-type="submit" type="primary">查询</ElButton>
-        <RouterLink to="/settings">配置正式权益预警天数</RouterLink>
-      </ElForm>
-      <ElSkeleton
-        v-if="controller.state.value === 'loading'"
-        :rows="5"
-        animated
-        aria-label="正在加载权益列表"
+        <div class="actions">
+          <RouterLink v-slot="{ navigate }" custom :to="{ name: 'formal-entitlement-grant' }"
+            ><ElButton type="primary" @click="navigate">授予正式权益</ElButton></RouterLink
+          ><RouterLink v-slot="{ navigate }" custom :to="{ name: 'limited-entitlement-grant' }"
+            ><ElButton @click="navigate">开通限时权益</ElButton></RouterLink
+          >
+        </div>
+      </div>
+    </div>
+    <ElForm class="filters" @submit.prevent="search">
+      <ElInput v-model="filters.userId" aria-label="用户编号" placeholder="用户编号" clearable />
+      <ElSelect v-model="filters.type" aria-label="权益类型" placeholder="全部类型" clearable
+        ><ElOption label="正式包" value="FORMAL" /><ElOption label="限时包" value="LIMITED"
+      /></ElSelect>
+      <ElSelect v-model="filters.status" aria-label="权益状态" placeholder="全部状态" clearable
+        ><ElOption
+          v-for="status in [
+            'ACTIVE',
+            'PAUSED',
+            'PENDING',
+            'START_EXPIRED',
+            'ENDED',
+            'REVOKED',
+            'EXPIRED'
+          ]"
+          :key="status"
+          :label="statusLabels[status]"
+          :value="status"
+      /></ElSelect>
+      <ElInput
+        v-model="filters.campaignVersionId"
+        aria-label="活动版本"
+        placeholder="活动版本编号"
+        clearable
       />
-      <ElAlert
-        v-else-if="controller.state.value === 'error'"
-        :title="controller.error.value ?? ''"
-        type="error"
-        :closable="false"
-        show-icon
-        ><ApiErrorDetails :error="controller.apiError.value" /><ElButton
-          size="small"
-          @click="controller.load({ ...filters })"
-          >重试</ElButton
-        ></ElAlert
-      >
-      <ElEmpty
-        v-else-if="controller.state.value === 'empty'"
-        description="当前筛选条件下没有权益记录。可调整筛选条件后重新查询。"
+      <ElSelect v-model="filters.expiry" aria-label="临近期限" placeholder="全部期限" clearable>
+        <ElOption label="正式权益即将到期" value="EXPIRING" /><ElOption
+          label="限时学习24小时内结束"
+          value="ENDING"
+        /><ElOption label="待开始24小时内失效" value="START_EXPIRING" />
+      </ElSelect>
+      <ElDatePicker
+        v-model="filters.dateFrom"
+        type="date"
+        value-format="YYYY-MM-DD"
+        placeholder="授予开始日期"
+        aria-label="授予开始日期"
       />
-      <template v-else>
-        <ElTable :data="controller.page.value.items" class="data-table" stripe>
-          <ElTableColumn prop="id" label="权益编号" min-width="145" show-overflow-tooltip />
-          <ElTableColumn label="用户 / 句芽编号" min-width="160"
+      <ElDatePicker
+        v-model="filters.dateTo"
+        type="date"
+        value-format="YYYY-MM-DD"
+        placeholder="授予结束日期"
+        aria-label="授予结束日期"
+      />
+      <ElButton native-type="submit" type="primary">查询</ElButton>
+      <RouterLink to="/settings">配置正式权益预警天数</RouterLink>
+    </ElForm>
+    <ElSkeleton
+      v-if="controller.state.value === 'loading'"
+      :rows="5"
+      animated
+      aria-label="正在加载权益列表"
+    />
+    <ElAlert
+      v-else-if="controller.state.value === 'error'"
+      :title="controller.error.value ?? ''"
+      type="error"
+      :closable="false"
+      show-icon
+      ><ApiErrorDetails :error="controller.apiError.value" /><ElButton
+        size="small"
+        @click="controller.load({ ...filters })"
+        >重试</ElButton
+      ></ElAlert
+    >
+    <ElEmpty
+      v-else-if="controller.state.value === 'empty'"
+      description="当前筛选条件下没有权益记录。可调整筛选条件后重新查询。"
+    />
+    <template v-else>
+      <ElCard class="table-card" shadow="never"
+        ><ElTable :data="controller.page.value.items" class="data-table">
+          <ElTableColumn prop="id" label="权益编号" min-width="125" show-overflow-tooltip />
+          <ElTableColumn label="用户 / 句芽编号" min-width="145"
             ><template #default="{ row }"
-              >{{ row.nickname || '未设置昵称' }} · {{ row.juyaNumber || row.userId }}</template
+              ><div class="cell-stack">
+                <strong>{{ row.nickname || '未设置昵称' }}</strong
+                ><span>{{ row.juyaNumber || row.userId }}</span>
+              </div></template
             ></ElTableColumn
           >
-          <ElTableColumn label="微信号 / 联系状态" min-width="170"
+          <ElTableColumn label="微信号 / 联系状态" min-width="155"
             ><template #default="{ row }"
-              >{{ row.contactDegraded ? '联系资料暂不可用' : row.wechatId || '未填写' }} ·
-              {{ row.contactStatus }}</template
+              ><div class="cell-stack">
+                <span>{{
+                  row.contactDegraded ? '联系资料暂不可用' : row.wechatId || '未填写'
+                }}</span
+                ><small>{{ row.contactStatus }}</small>
+              </div></template
             ></ElTableColumn
           >
-          <ElTableColumn label="类型" width="90"
-            ><template #default="scope">{{
-              scope.row.type === 'FORMAL' ? '正式包' : '限时包'
+          <ElTableColumn label="权益类型" width="90"
+            ><template #default="{ row }">{{
+              row.type === 'FORMAL' ? '正式包' : '限时包'
             }}</template></ElTableColumn
           >
-          <ElTableColumn label="状态" width="105"
-            ><template #default="scope">{{
-              statusLabels[scope.row.status] ?? scope.row.status
-            }}</template></ElTableColumn
-          >
-          <ElTableColumn label="内容包 / 活动" min-width="145" show-overflow-tooltip
-            ><template #default="scope">{{
-              scope.row.contentName || scope.row.packageId || scope.row.campaignId || '—'
-            }}</template></ElTableColumn
-          >
-          <ElTableColumn label="活动版本" min-width="130"
+          <ElTableColumn label="内容包 / 活动版本" min-width="150"
             ><template #default="{ row }"
-              >{{ row.campaignVersionNo ? `第 ${row.campaignVersionNo} 版` : '—'
-              }}<span v-if="row.campaignVersionId"> · {{ row.campaignVersionId }}</span></template
+              ><div class="cell-stack">
+                <span>{{ row.contentName || row.packageId || row.campaignId || '—' }}</span
+                ><small
+                  >{{ row.campaignVersionNo ? '第 ' + row.campaignVersionNo + ' 版' : '—'
+                  }}<span v-if="row.campaignVersionId"> · {{ row.campaignVersionId }}</span></small
+                >
+              </div></template
             ></ElTableColumn
           >
-          <ElTableColumn label="期限档位" min-width="110"
+          <ElTableColumn label="状态" width="100"
             ><template #default="{ row }">{{
-              row.term === 'permanent' ? '永久' : row.term
+              statusLabels[row.status] ?? row.status
             }}</template></ElTableColumn
           >
-          <ElTableColumn label="生效时间" min-width="150"
-            ><template #default="{ row }">{{
-              row.effectiveAt ? displayTime(row.effectiveAt) : '尚未开始'
-            }}</template></ElTableColumn
+          <ElTableColumn label="期限" min-width="205"
+            ><template #default="{ row }"
+              ><div class="cell-stack">
+                <span>档位：{{ row.term === 'permanent' ? '永久' : row.term || '—' }}</span
+                ><small
+                  >生效：{{ row.effectiveAt ? displayTime(row.effectiveAt) : '尚未开始' }}</small
+                ><small>启动：{{ row.startDeadline ? displayTime(row.startDeadline) : '—' }}</small
+                ><small>到期：{{ displayTime(row.expiresAt) }}</small>
+              </div></template
+            ></ElTableColumn
           >
-          <ElTableColumn label="启动期限" min-width="150"
-            ><template #default="{ row }">{{
-              row.startDeadline ? displayTime(row.startDeadline) : '—'
-            }}</template></ElTableColumn
-          >
-          <ElTableColumn prop="expiresAt" label="到期时间" min-width="150"
-            ><template #default="scope">{{
-              displayTime(scope.row.expiresAt)
-            }}</template></ElTableColumn
-          >
-          <ElTableColumn label="操作" width="75"
-            ><template #default="scope"
+          <ElTableColumn label="操作" width="75" fixed="right"
+            ><template #default="{ row }"
               ><RouterLink
                 :to="{
                   name:
-                    scope.row.type === 'FORMAL'
+                    row.type === 'FORMAL'
                       ? 'formal-entitlement-action'
                       : 'limited-entitlement-action',
-                  params: { id: scope.row.id }
+                  params: { id: row.id }
                 }"
                 >查看</RouterLink
               ></template
             ></ElTableColumn
           >
-        </ElTable>
-      </template>
-      <AppPagination
-        v-model:current-page="filters.page"
-        v-model:page-size="filters.pageSize"
-        :total="controller.page.value.total"
-        :disabled="controller.state.value === 'loading'"
-        @change="changePage"
-      />
-    </ElCard>
+        </ElTable></ElCard
+      >
+    </template>
+    <AppPagination
+      v-model:current-page="filters.page"
+      v-model:page-size="filters.pageSize"
+      :total="controller.page.value.total"
+      :disabled="controller.state.value === 'loading'"
+      @change="changePage"
+    />
+    <aside class="management-note">
+      <strong>操作说明</strong>
+      <p>正式包授予与延期选择 1、2、3、6、12 个月或永久，并二次核对新到期时间。</p>
+    </aside>
   </section>
 </template>
 
@@ -248,47 +249,137 @@ void controller.load({ ...filters })
 .entitlement-center-page {
   min-width: 0;
 
+  .page-toolbar {
+    margin-bottom: 18px;
+  }
+
   .heading {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 20px;
   }
 
-  .heading span {
-    color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    font-weight: 700;
+  .heading p {
+    margin: 0;
+    color: #657a68;
+    font-size: 13px;
   }
 
-  h2 {
-    margin: 3px 0 0;
-    color: var(--juya-color-sidebar);
-    font-size: 16px;
+  .actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 
-  .actions,
+  .actions .el-button {
+    margin-left: 0;
+  }
+
   .filters {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
-  }
-
-  .filters {
-    margin-bottom: 18px;
+    gap: 14px 16px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+    padding: 18px;
+    border: 1px solid #d8e5d1;
+    border-radius: 18px;
+    background: #eaf2e3;
   }
 
   .filters .el-input {
-    width: 230px;
+    width: 240px;
   }
 
   .filters .el-select {
     width: 155px;
   }
 
+  .filters :deep(.el-date-editor) {
+    width: 190px;
+  }
+
+  .filters a {
+    color: #4e7f3b;
+    font-size: 13px;
+  }
+
+  .table-card {
+    border: 1px solid #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+  }
+
+  .table-card :deep([class~='el-card__body']) {
+    padding: 0;
+  }
+
+  .cell-stack {
+    display: grid;
+    gap: 4px;
+    overflow-wrap: anywhere;
+  }
+
+  .cell-stack strong {
+    font-weight: 500;
+  }
+
+  .cell-stack small {
+    color: #657a68;
+    font-size: 11px;
+  }
+
   .data-table {
     width: 100%;
+
+    --el-table-header-bg-color: #e8f0e1;
+    --el-table-tr-bg-color: #fffdf7;
+    --el-table-border-color: #d8e5d1;
+
+    color: #244633;
+  }
+
+  .data-table :deep(th[class~='el-table__cell']) {
+    height: 42px;
+    color: #244633;
+    font-size: 13px;
+  }
+
+  .data-table :deep(td[class~='el-table__cell']) {
+    height: 58px;
+    font-size: 13px;
+  }
+
+  .data-table :deep(a) {
+    color: #4e7f3b;
+  }
+
+  .management-note {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    color: #244633;
+  }
+
+  .management-note strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .management-note p {
+    margin: 20px 0 6px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+}
+
+@media (width <= 1000px) {
+  .entitlement-center-page .heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
   }
 }
 </style>

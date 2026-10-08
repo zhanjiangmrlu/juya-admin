@@ -4,7 +4,7 @@ test('配置冲突展示远端版本并保留本地草稿', async ({ adminApi, p
   await loginAsAdmin(page)
   adminApi.conflictOnNextSettingsUpdate()
   await navigateInApp(page, '/settings')
-  await expect(page.getByRole('heading', { level: 2, name: '系统配置' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: '系统配置与审核开关' })).toBeVisible()
   const feedbackHours = page.getByRole('spinbutton').first()
   await feedbackHours.fill('48')
   await page.getByRole('button', { name: '保存配置' }).click()

@@ -113,8 +113,7 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
   <section class="content-import-page">
     <div class="page-heading">
       <div>
-        <span>A18</span>
-        <h2>批量图片上传</h2>
+        <p class="page-description">批量图片上传只建立独立草稿，不自动调用 OCR。</p>
       </div>
     </div>
     <div class="content-grid">
@@ -221,6 +220,7 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 .content-import-page {
   .page-heading {
     margin-bottom: 14px;
@@ -240,14 +240,14 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
 
   .content-grid {
     display: grid;
-    grid-template-columns: minmax(360px, 2fr) minmax(420px, 3fr);
-    gap: 14px;
+    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
+    gap: 18px;
   }
 
   h3 {
     margin: 0;
     color: var(--juya-color-sidebar);
-    font-size: 15px;
+    font-size: 20px;
   }
 
   .batch-form {
@@ -288,5 +288,20 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
       grid-template-columns: 1fr;
     }
   }
+}
+
+.content-import-page :deep(.el-card__header) {
+  padding: 18px 20px 0;
+  border-bottom: 0;
+}
+
+.content-grid > :deep(.el-card:first-child) {
+  background: #eaf2e3;
+}
+
+.page-description {
+  margin: 0;
+  color: var(--juya-color-text-regular);
+  font-size: 13px;
 }
 </style>

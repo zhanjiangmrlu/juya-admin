@@ -116,11 +116,13 @@ function invalidate(row: DialogueRow): void {
   </div>
 </template>
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 .dialogue-row {
   margin-bottom: 16px;
   padding: 14px;
   border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
+  border-radius: 12px;
+  background: var(--juya-color-surface);
 }
 
 .row-heading {
@@ -129,6 +131,7 @@ function invalidate(row: DialogueRow): void {
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
+  color: var(--juya-color-sidebar);
 }
 
 small {
@@ -142,5 +145,10 @@ small {
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+}
+
+.dialogue-fields :deep(.el-form-item__label) {
+  color: var(--juya-color-text-regular);
+  font-size: 13px;
 }
 </style>

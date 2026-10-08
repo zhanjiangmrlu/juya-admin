@@ -17,7 +17,7 @@ export const ACCEPTANCE_VIEWPORTS: readonly AcceptanceViewport[] = [
 
 export const pageManifest: readonly AdminPageManifestItem[] = [
   { id: 'A01', path: '/dashboard', title: '工作台', viewports: ACCEPTANCE_VIEWPORTS },
-  { id: 'A02', path: '/users', title: '用户管理', viewports: ACCEPTANCE_VIEWPORTS },
+  { id: 'A02', path: '/users', title: '用户列表', viewports: ACCEPTANCE_VIEWPORTS },
   { id: 'A03', path: '/users/USER-1', title: '用户详情', viewports: ACCEPTANCE_VIEWPORTS },
   {
     id: 'A04',
@@ -87,34 +87,34 @@ export const pageManifest: readonly AdminPageManifestItem[] = [
   {
     id: 'A19',
     path: '/content/ocr/JOB-1/ITEM-1',
-    title: 'OCR 校对',
+    title: 'OCR候选对照',
     viewports: ACCEPTANCE_VIEWPORTS
   },
   {
     id: 'A20',
     path: '/content/scenes/SCENE-1/edit',
-    title: '结构化场景编辑',
+    title: '结构化内容校对',
     viewports: ACCEPTANCE_VIEWPORTS
   },
   {
     id: 'A21',
     path: '/content/scenes/SCENE-1/audio',
-    title: '音频版本管理',
+    title: '整段音频与逐句标时',
     viewports: ACCEPTANCE_VIEWPORTS
   },
   {
     id: 'A22',
     path: '/content/scenes/REV-1/publish',
-    title: '发布检查与发布',
+    title: '预览与发布检查',
     viewports: ACCEPTANCE_VIEWPORTS
   },
   {
     id: 'A23',
     path: '/content/discovery-config',
-    title: '发现页配置',
+    title: '开放场景与预览配置',
     viewports: ACCEPTANCE_VIEWPORTS
   },
-  { id: 'A24', path: '/content/jobs', title: '批量任务中心', viewports: ACCEPTANCE_VIEWPORTS },
+  { id: 'A24', path: '/content/jobs', title: '批量任务与回收站', viewports: ACCEPTANCE_VIEWPORTS },
   { id: 'A25', path: '/analytics', title: '汇总统计', viewports: ACCEPTANCE_VIEWPORTS },
-  { id: 'A26', path: '/settings', title: '系统配置', viewports: ACCEPTANCE_VIEWPORTS }
+  { id: 'A26', path: '/settings', title: '系统配置与审核开关', viewports: ACCEPTANCE_VIEWPORTS }
 ]

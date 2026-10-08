@@ -64,77 +64,94 @@ void load()
 
 <template>
   <section class="campaign-page">
-    <ElCard shadow="never">
-      <template #header
-        ><div class="heading">
-          <div>
-            <span>A10</span>
-            <h2>限时活动列表</h2>
-          </div>
-          <RouterLink
-            v-slot="{ navigate }"
-            custom
-            :to="{ name: 'campaign-edit', params: { id: 'new' } }"
-            ><ElButton type="primary" @click="navigate">新建活动</ElButton></RouterLink
-          >
-        </div></template
-      >
-      <div class="filters">
+    <p class="page-context">活动按版本发布；首次开通后部分字段锁定，容量仍可调整。</p>
+    <div class="filters">
+      <ElFormItem label="活动状态">
         <ElSelect
           v-model="filters.status"
           aria-label="活动状态"
           placeholder="全部状态"
           clearable
           @change="changePage(1)"
-          ><ElOption
+        >
+          <ElOption
             v-for="status in ['DRAFT', 'OPEN', 'PAUSED', 'ENDED', 'ARCHIVED', 'CLOSED']"
             :key="status"
             :value="status"
-            :label="status" /></ElSelect
-        ><ElButton @click="load">刷新</ElButton>
-      </div>
-      <ElSkeleton v-if="state === 'loading'" :rows="5" animated aria-label="正在加载活动" />
-      <ElAlert v-else-if="state === 'error'" :title="error" type="error" :closable="false" show-icon
-        ><ApiErrorDetails :error="apiError" /><ElButton size="small" @click="load"
-          >重试</ElButton
-        ></ElAlert
+            :label="
+              {
+                DRAFT: '草稿',
+                OPEN: '已启用',
+                PAUSED: '已暂停',
+                ENDED: '已结束',
+                ARCHIVED: '已归档',
+                CLOSED: '已关闭'
+              }[status as 'DRAFT']
+            "
+          />
+        </ElSelect>
+      </ElFormItem>
+      <ElButton @click="load">刷新</ElButton>
+      <RouterLink
+        v-slot="{ navigate }"
+        custom
+        class="create-link"
+        :to="{ name: 'campaign-edit', params: { id: 'new' } }"
       >
+        <ElButton type="primary" @click="navigate">新建活动</ElButton>
+      </RouterLink>
+    </div>
+    <ElCard shadow="never" class="table-card">
+      <ElSkeleton v-if="state === 'loading'" :rows="5" animated aria-label="正在加载活动" />
+      <ElAlert
+        v-else-if="state === 'error'"
+        :title="error"
+        type="error"
+        :closable="false"
+        show-icon
+      >
+        <ApiErrorDetails :error="apiError" /><ElButton size="small" @click="load">重试</ElButton>
+      </ElAlert>
       <ElEmpty
         v-else-if="state === 'empty'"
         description="暂无活动。可以新建活动，或清除状态筛选。"
       />
-      <ElTable v-else :data="page.items" stripe class="data-table"
-        ><ElTableColumn
-          prop="id"
-          label="活动编号"
-          min-width="180"
-          show-overflow-tooltip
-        /><ElTableColumn
-          prop="name"
-          label="活动名称"
-          min-width="200"
-          show-overflow-tooltip
-        /><ElTableColumn prop="status" label="状态" width="110" /><ElTableColumn
-          prop="capacity"
-          label="容量"
-          width="100"
-          ><template #default="scope">{{ scope.row.capacity ?? '—' }}</template></ElTableColumn
-        ><ElTableColumn prop="grantedUserCount" label="已开通" width="100"
-          ><template #default="scope">{{
-            scope.row.grantedUserCount ?? '—'
+      <ElTable v-else :data="page.items" class="data-table">
+        <ElTableColumn prop="name" label="活动" min-width="200" show-overflow-tooltip />
+        <ElTableColumn prop="id" label="活动编号" min-width="150" show-overflow-tooltip />
+        <ElTableColumn label="版本" width="90"
+          ><template #default="{ row }">v{{ row.version }}</template></ElTableColumn
+        >
+        <ElTableColumn label="开通人数 / 容量" min-width="160"
+          ><template #default="{ row }"
+            >{{ row.grantedUserCount ?? '—' }} / {{ row.capacity ?? '—' }}</template
+          ></ElTableColumn
+        >
+        <ElTableColumn prop="status" label="状态" width="100"
+          ><template #default="{ row }">{{
+            {
+              DRAFT: '草稿',
+              OPEN: '已启用',
+              PAUSED: '已暂停',
+              ENDED: '已结束',
+              ARCHIVED: '已归档',
+              CLOSED: '已关闭'
+            }[row.status as 'DRAFT'] ?? row.status
           }}</template></ElTableColumn
-        ><ElTableColumn label="操作" width="160"
-          ><template #default="scope"
-            ><RouterLink :to="{ name: 'campaign-edit', params: { id: scope.row.id } }"
+        >
+        <ElTableColumn label="操作" width="180"
+          ><template #default="scope">
+            <RouterLink :to="{ name: 'campaign-edit', params: { id: scope.row.id } }"
               >编辑</RouterLink
-            ><RouterLink
+            >
+            <RouterLink
               class="link"
               :to="{ name: 'campaign-versions', params: { id: scope.row.id } }"
               >版本与容量</RouterLink
-            ></template
-          ></ElTableColumn
-        ></ElTable
-      >
+            >
+          </template></ElTableColumn
+        >
+      </ElTable>
       <AppPagination
         v-model:current-page="filters.page"
         v-model:page-size="filters.pageSize"
@@ -143,47 +160,166 @@ void load()
         @change="changePage"
       />
     </ElCard>
+    <aside class="notice">
+      <strong>操作说明</strong>
+      <p>活动支持草稿、启用、暂停、恢复、结束、复制和归档；保留版本记录。</p>
+    </aside>
   </section>
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- 页面级 Element Plus BEM 覆盖，业务类名遵循仓库命名 */
 .campaign-page {
   min-width: 0;
+  color: var(--juya-color-text-primary);
 
-  .heading {
+  .page-toolbar {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
   }
 
-  .heading span {
+  .page-context {
+    margin: 0;
     color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 13px;
+    overflow-wrap: anywhere;
   }
 
-  h2 {
-    margin: 3px 0 0;
-    color: var(--juya-color-sidebar);
-    font-size: 16px;
+  h3 {
+    margin: 0;
+    color: var(--juya-color-text-primary);
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .panel-subtitle {
+    margin: 8px 0 0;
+    color: var(--juya-color-text-secondary);
+    font-size: 13px;
+  }
+
+  .notice {
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  .notice strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .notice p {
+    margin: 20px 0 0;
+  }
+
+  :deep(.el-card) {
+    border-color: #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+    box-shadow: none;
+  }
+
+  :deep(.el-card__header) {
+    padding: 16px 20px 12px;
+    border-bottom: 0;
+  }
+
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
+
+  :deep(.el-button) {
+    min-height: 38px;
+    border-radius: 10px;
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-select__wrapper),
+  :deep(.el-textarea__inner) {
+    border-radius: 10px;
+    background: #fffdf7;
   }
 
   .filters {
     display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
+    align-items: center;
+    gap: 12px;
+    min-height: 96px;
+    padding: 16px 20px;
+    margin: 18px 0 22px;
+    border: 1px solid #d8e5d1;
+    border-radius: 18px;
+    background: #eaf2e3;
   }
 
-  .filters .el-select {
-    width: 160px;
+  .filters :deep(.el-form-item) {
+    display: block;
+    margin: 0;
+  }
+
+  .filters :deep(.el-form-item__label) {
+    display: block;
+    height: 24px;
+    line-height: 24px;
+  }
+
+  .filters :deep(.el-select) {
+    width: 220px;
+  }
+
+  .filters :deep(.el-button:last-child) {
+    margin-left: auto;
+    min-width: 150px;
+  }
+
+  .table-card {
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .table-card :deep(.el-card__body) {
+    padding: 0 0 16px;
+  }
+
+  :deep(.app-pagination) {
+    padding-inline: 20px;
   }
 
   .data-table {
     width: 100%;
+
+    --el-table-header-bg-color: #e8f0e1;
+  }
+
+  .data-table :deep(th.el-table__cell) {
+    height: 42px;
+    font-size: 13px;
+  }
+
+  .data-table :deep(td.el-table__cell) {
+    height: 58px;
+    font-size: 13px;
+  }
+
+  .data-table :deep(.cell) {
+    padding-inline: 16px;
   }
 
   .link {
     margin-left: 12px;
   }
+
+  @media (width <= 700px) {
+    .filters {
+      flex-wrap: wrap;
+    }
+  }
 }
+/* stylelint-enable selector-class-pattern */
 </style>

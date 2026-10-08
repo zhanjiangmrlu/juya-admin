@@ -266,13 +266,11 @@ onMounted(loadScenes)
 <template>
   <section class="content-list-page">
     <ContentProductionNav active="list" :busy="enteringWorkspace" @select="openWorkspace" />
+    <p class="page-description">人工录入与 OCR 辅助识别共用场景草稿和发布流程。</p>
     <ElCard shadow="never">
       <template #header>
         <div class="page-heading">
-          <div>
-            <span>A17</span>
-            <h2>内容列表</h2>
-          </div>
+          <p>管理场景草稿、候选版本与已发布内容</p>
           <div class="heading-actions">
             <ElButton type="primary" @click="openCreate">新建场景</ElButton
             ><RouterLink v-slot="{ navigate }" custom :to="{ name: 'content-import' }"
@@ -366,6 +364,9 @@ onMounted(loadScenes)
         @change="loadScenes"
       />
     </ElCard>
+    <ElAlert class="operation-note" title="操作说明" type="success" :closable="false">
+      批量图片上传只建立独立草稿，不自动调用 OCR；已发布内容不能永久删除。
+    </ElAlert>
     <ElDialog
       v-model="pickingScene"
       title="选择场景"
@@ -442,10 +443,44 @@ onMounted(loadScenes)
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 .page-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+}
+
+.content-list-page > :deep(.el-card) {
+  overflow: hidden;
+}
+
+.content-list-page :deep(.el-card__header) {
+  padding: 18px 20px 0;
+  border-bottom: 0;
+  background: #eaf2e3;
+}
+
+.content-list-page :deep(.el-card__body) {
+  padding: 0;
+}
+
+.page-description,
+.page-heading p {
+  margin: 0;
+  color: var(--juya-color-text-regular);
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.page-description {
+  margin-bottom: 20px;
+}
+
+.operation-note {
+  min-height: 100px;
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 16px;
 }
 
 .heading-actions {
@@ -468,8 +503,38 @@ onMounted(loadScenes)
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 10px;
-  margin-bottom: 4px;
+  align-items: end;
+  gap: 0 18px;
+  margin-bottom: 22px;
+  padding: 14px 20px 4px;
+  background: #eaf2e3;
+}
+
+.filter-bar :deep(.el-form-item) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-right: 0;
+}
+
+.filter-bar :deep(.el-form-item__label) {
+  height: 26px;
+  color: var(--juya-color-text-regular);
+  font-size: 13px;
+  line-height: 26px;
+}
+
+.content-list-page :deep(.el-table__cell) {
+  padding: 15px 0;
+}
+
+.content-list-page :deep(.el-table th.el-table__cell) {
+  padding: 10px 0;
+  background: #e8f0e1;
+}
+
+.content-list-page :deep(.el-pagination) {
+  padding: 16px 20px;
 }
 
 .filter-bar :deep(.el-input),

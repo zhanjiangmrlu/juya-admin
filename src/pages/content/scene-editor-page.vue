@@ -547,7 +547,7 @@ onBeforeUnmount(() => {
     <ContentProductionNav :active="stage" :busy="workspaceBusy" @select="switchWorkspace" />
     <div class="page-heading">
       <div>
-        <h2>{{ stageLabel }} · {{ scene?.title || sceneId }}</h2>
+        <p class="scene-context">{{ stageLabel }} · {{ scene?.title || sceneId }}</p>
         <p>同一场景草稿按步骤编辑；切换工作区保留输入，预览发布前保存当前版本。</p>
       </div>
       <div class="heading-actions">
@@ -604,14 +604,38 @@ onBeforeUnmount(() => {
             @refresh-image="refreshImage"
           />
           <SceneProofreadPanel v-if="stage === 'proofread'" :form="form" @busy="setLexiconBusy" />
-          <ElCard v-else shadow="never" class="entry-panel">
-            <template #header><h3>录入方式</h3></template>
-            <p>
-              上传学习原图后可直接手工录入，或主动识别并逐项采纳候选。未完成的字段也可以保存草稿。
-            </p>
-            <ElButton type="primary" @click="switchWorkspace('proofread')">进入内容校对</ElButton>
-            <ElButton @click="switchWorkspace('ocr')">使用 OCR 辅助识别</ElButton>
-          </ElCard>
+          <aside v-else class="draft-aside">
+            <ElCard shadow="never" class="entry-panel">
+              <template #header><h3>草稿与素材</h3></template>
+              <dl class="material-list">
+                <div>
+                  <dt>原图</dt>
+                  <dd>仅授权场景可查看完整原图</dd>
+                </div>
+                <div>
+                  <dt>逐句对话</dt>
+                  <dd>可新增、排序、删除</dd>
+                </div>
+                <div>
+                  <dt>词汇与语块</dt>
+                  <dd>使用自建词汇库引用</dd>
+                </div>
+                <div>
+                  <dt>整段音频</dt>
+                  <dd>上传后逐句标时并核对</dd>
+                </div>
+              </dl>
+              <div class="entry-actions">
+                <ElButton type="primary" @click="switchWorkspace('proofread')"
+                  >进入内容校对</ElButton
+                >
+                <ElButton @click="switchWorkspace('ocr')">使用 OCR 辅助识别</ElButton>
+              </div>
+            </ElCard>
+            <ElAlert title="提交前确认" type="success" :closable="false">
+              草稿允许不完整，可分次保存；已发布内容修改形成候选版本。
+            </ElAlert>
+          </aside>
         </div>
         <SceneOcrPanel
           v-if="stage === 'ocr'"
@@ -664,6 +688,7 @@ onBeforeUnmount(() => {
   </section>
 </template>
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 .page-heading {
   display: flex;
   flex-wrap: wrap;
@@ -680,7 +705,8 @@ h2 {
 
 h3 {
   margin: 0;
-  font-size: 15px;
+  color: var(--juya-color-sidebar);
+  font-size: 20px;
 }
 
 p {
@@ -698,9 +724,9 @@ p {
 
 .editor-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 2fr) minmax(420px, 3fr);
+  grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
   align-items: start;
-  gap: 14px;
+  gap: 18px;
   margin-top: 14px;
 }
 
@@ -713,6 +739,61 @@ p {
 
 .entry-panel {
   min-width: 0;
+  min-height: 455px;
+}
+
+.scene-context {
+  margin: 0;
+  font-weight: 600;
+}
+
+.draft-aside {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.draft-aside > :deep(.el-alert) {
+  min-height: 156px;
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.entry-panel :deep(.el-card__header) {
+  border-bottom: 0;
+}
+
+.material-list {
+  display: grid;
+  gap: 32px;
+  margin: 12px 0 32px;
+}
+
+.material-list > div {
+  padding-left: 14px;
+  border-left: 5px solid var(--juya-color-success);
+}
+
+.material-list dt {
+  margin-bottom: 5px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.material-list dd {
+  margin: 0;
+  color: var(--juya-color-text-regular);
+  font-size: 12px;
+}
+
+.entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.entry-actions :deep(.el-button) {
+  margin: 0;
 }
 
 @media (width <= 1050px) {

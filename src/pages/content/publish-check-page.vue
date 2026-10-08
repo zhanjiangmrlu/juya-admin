@@ -73,14 +73,36 @@ async function handlePublish(): Promise<void> {
     <ContentProductionNav active="publish" @select="selectStage" />
     <div class="page-heading">
       <div>
-        <span>A22</span>
-        <h2>发布检查与发布 · {{ revisionId }}</h2>
+        <p>同一版本的文字、原图、音频与时间点整体切换 · {{ revisionId }}</p>
       </div>
       <ElButton type="primary" @click="handleCheck">运行发布检查</ElButton>
     </div>
     <div class="publish-grid">
-      <ElCard shadow="never">
-        <template #header><h3>检查结果</h3></template>
+      <ElCard class="validation-panel" shadow="never">
+        <template #header><h3>发布校验</h3></template>
+        <dl class="validation-list">
+          <div
+            v-for="label in [
+              '中英文标题 · 完整原图 · 对话',
+              '重点词汇 · Useful Chunks',
+              '版权与素材来源',
+              '整段音频及同版本引用',
+              '全部句子的有效时间点'
+            ]"
+            :key="label"
+          >
+            <dt>{{ label }}</dt>
+            <dd>
+              {{
+                !controller.result.value
+                  ? '等待服务端检查'
+                  : controller.result.value.errorCodes.length
+                    ? '请核对下方检查结果'
+                    : '通过'
+              }}
+            </dd>
+          </div>
+        </dl>
         <ElEmpty v-if="!controller.result.value" description="请先运行服务端发布检查" />
         <template v-else>
           <ElAlert
@@ -100,18 +122,23 @@ async function handlePublish(): Promise<void> {
             @change="controller.setWarningAcknowledged(code, Boolean($event))"
             >确认警告：{{ code }}</ElCheckbox
           >
-          <ElResult
+          <ElAlert
             v-if="
               controller.result.value.errorCodes.length === 0 &&
               controller.result.value.warningCodes.length === 0
             "
-            icon="success"
+            :closable="false"
+            type="success"
             title="发布检查通过"
-          />
+            >确认后发布统一内容版本，已发布版本在确认前保持不变。</ElAlert
+          >
         </template>
       </ElCard>
-      <ElCard shadow="never">
-        <template #header><h3>管理员预览与发布</h3></template>
+      <ElCard class="preview-panel" shadow="never">
+        <template #header
+          ><h3>管理员设备预览</h3>
+          <p>手机 / 平板预览不产生学习进度</p></template
+        >
         <ElSkeleton v-if="previewController.state.value === 'loading'" :rows="6" animated />
         <ElAlert
           v-else-if="previewController.error.value"
@@ -145,19 +172,26 @@ async function handlePublish(): Promise<void> {
           type="error"
           show-icon
         />
-        <ElButton
-          class="publish-button"
-          :disabled="!controller.canPublish.value"
-          type="primary"
-          @click="handlePublish"
-          >确认发布</ElButton
-        >
+        <ElAlert class="permission-note" title="权限隔离" type="success" :closable="false">
+          无权限预览只使用安全封面与专用片段。
+        </ElAlert>
       </ElCard>
+    </div>
+    <div class="publish-actions">
+      <ElButton @click="selectStage('audio')">返回音频标时</ElButton>
+      <ElButton
+        class="publish-button"
+        :disabled="!controller.canPublish.value"
+        type="primary"
+        @click="handlePublish"
+        >确认发布</ElButton
+      >
     </div>
   </section>
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 .publish-check-page {
   .page-heading {
     display: flex;
@@ -180,14 +214,15 @@ async function handlePublish(): Promise<void> {
 
   .publish-grid {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
-    gap: 14px;
+    grid-template-columns: minmax(0, 548fr) minmax(0, 594fr);
+    align-items: start;
+    gap: 18px;
   }
 
   h3 {
     margin: 0;
     color: var(--juya-color-sidebar);
-    font-size: 15px;
+    font-size: 20px;
   }
 
   .check-item,
@@ -196,17 +231,12 @@ async function handlePublish(): Promise<void> {
     margin-bottom: 10px;
   }
 
-  .publish-error,
-  .publish-button {
-    width: 100%;
+  .publish-error {
     margin-top: 14px;
   }
 
   .preview-card {
-    padding: 14px;
-    border: 1px solid var(--el-border-color-light);
-    border-radius: 6px;
-    background: var(--el-fill-color-lighter);
+    min-width: 0;
 
     h4 {
       margin: 12px 0 6px;
@@ -239,6 +269,87 @@ async function handlePublish(): Promise<void> {
     .publish-grid {
       grid-template-columns: 1fr;
     }
+  }
+}
+
+.publish-check-page :deep(.el-card__header) {
+  padding: 18px 20px 0;
+  border-bottom: 0;
+}
+
+.publish-check-page p {
+  color: var(--juya-color-text-regular);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.preview-panel {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 600px;
+  background: #eaf2e3;
+}
+
+.preview-panel :deep(.device-scroll) {
+  max-height: 380px;
+}
+
+.validation-panel {
+  grid-column: 2;
+  min-height: 600px;
+}
+
+.validation-list {
+  display: grid;
+  gap: 32px;
+  margin: 12px 0 32px;
+}
+
+.validation-list > div {
+  padding-left: 14px;
+  border-left: 5px solid var(--juya-color-success);
+}
+
+.validation-list dt {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.validation-list dd {
+  margin: 0;
+  color: var(--juya-color-text-regular);
+  font-size: 12px;
+}
+
+.permission-note {
+  margin-top: 22px;
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.publish-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.publish-actions :deep(.el-button) {
+  min-width: 165px;
+  height: 44px;
+  margin-left: 0;
+}
+
+@media (width <= 1000px) {
+  .preview-panel,
+  .validation-panel {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .preview-panel {
+    order: -1;
   }
 }
 </style>

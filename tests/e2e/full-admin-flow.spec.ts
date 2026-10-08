@@ -1,3 +1,4 @@
+import { ADMIN_PAGE_DEFINITIONS } from '../../src/app/admin-navigation'
 import { pageManifest } from '../visual/page-manifest'
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 
@@ -28,7 +29,9 @@ test('A01–A26 全部业务页具备真实接口状态且没有待接入或未�
     await expect(navigation.locator('.el-menu-item')).toHaveCount(14)
     await expect(navigation.locator('.el-menu-item.is-disabled')).toHaveCount(0)
     const activePageNumber = owningListPageNumbers[item.id] ?? item.id
-    const activePageTitle = pageManifest.find((entry) => entry.id === activePageNumber)?.title
+    const activePageTitle = ADMIN_PAGE_DEFINITIONS.find(
+      (entry) => entry.pageNumber === activePageNumber
+    )?.title
     const activeMenuItem = navigation.locator('.el-menu-item.is-active')
     await expect(activeMenuItem).toHaveCount(1)
     await expect(activeMenuItem).toContainText(

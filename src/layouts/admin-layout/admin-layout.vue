@@ -6,18 +6,20 @@ import {
   DataAnalysis,
   Document,
   Expand,
-  Fold,
   House,
-  Reading,
   Setting,
   Tickets,
-  User,
-  UserFilled
+  User
 } from '@element-plus/icons-vue'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { ADMIN_NAVIGATION_GROUPS } from '@/app/admin-navigation'
+import {
+  ADMIN_DESIGN_DESCRIPTIONS,
+  ADMIN_DESIGN_TITLES,
+  CONTENT_STAGE_TITLES
+} from '@/app/admin-presentation'
 import { useAuthStore } from '@/features/auth/auth-store'
 
 const navigationIconMap = {
@@ -43,8 +45,14 @@ const activePageNumber = computed(() => {
   if (currentPage) return currentPage.pageNumber
   return navigationPages.find((page) => page.path === route.meta.navigationPath)?.pageNumber ?? ''
 })
-const defaultOpenGroups = ADMIN_NAVIGATION_GROUPS.filter((item) => item.pages.length > 1).map(
-  (item) => item.path
+const defaultOpenGroups: string[] = []
+const pageTitle = computed(() => {
+  if (route.name === 'content-scene-edit')
+    return CONTENT_STAGE_TITLES[String(route.query.stage ?? 'proofread')] ?? route.meta.title
+  return ADMIN_DESIGN_TITLES[String(route.meta.pageNumber)] ?? route.meta.title
+})
+const pageDescription = computed(
+  () => ADMIN_DESIGN_DESCRIPTIONS[String(route.meta.pageNumber)] ?? '句芽英语 V1.3 · 单管理员后台'
 )
 
 /**
@@ -87,9 +95,12 @@ async function logout(): Promise<void> {
       :width="isCollapsed ? '72px' : 'var(--juya-sidebar-width)'"
     >
       <div class="brand">
-        <span class="logo"
-          ><ElIcon><Reading /></ElIcon
-        ></span>
+        <ElButton
+          class="logo"
+          :aria-label="isCollapsed ? '展开侧栏' : '折叠侧栏'"
+          @click="toggleAside"
+          ><ElIcon v-if="isCollapsed"><Expand /></ElIcon><span v-else>芽</span></ElButton
+        >
         <div v-if="!isCollapsed" class="brand-copy">
           <strong>句芽英语</strong>
           <span>单管理员后台</span>
@@ -111,6 +122,9 @@ async function logout(): Promise<void> {
           @select="navigateToPage"
         >
           <template v-for="(group, groupIndex) in ADMIN_NAVIGATION_GROUPS" :key="group.path">
+            <li v-if="groupIndex === 0 && !isCollapsed" class="section-label" role="presentation">
+              核心管理
+            </li>
             <li v-if="groupIndex === 6 && !isCollapsed" class="section-label" role="presentation">
               基础能力
             </li>
@@ -120,12 +134,14 @@ async function logout(): Promise<void> {
               class="top-level-item"
               :index="group.pages[0]?.pageNumber"
             >
-              <ElIcon><component :is="navigationIconMap[group.icon]" /></ElIcon>
+              <ElIcon v-if="isCollapsed"><component :is="navigationIconMap[group.icon]" /></ElIcon>
               <template #title>{{ group.label }}</template>
             </ElMenuItem>
             <ElSubMenu v-else :index="group.path">
               <template #title>
-                <ElIcon><component :is="navigationIconMap[group.icon]" /></ElIcon>
+                <ElIcon v-if="isCollapsed"
+                  ><component :is="navigationIconMap[group.icon]"
+                /></ElIcon>
                 <span>{{ group.label }}</span>
               </template>
               <ElMenuItemGroup>
@@ -148,23 +164,13 @@ async function logout(): Promise<void> {
     <ElContainer class="workspace">
       <ElHeader class="header">
         <div class="title-group">
-          <ElButton
-            :aria-label="isCollapsed ? '展开侧栏' : '折叠侧栏'"
-            circle
-            text
-            @click="toggleAside"
-          >
-            <ElIcon><Expand v-if="isCollapsed" /><Fold v-else /></ElIcon>
-          </ElButton>
-          <h1 class="title">{{ route.meta.title }}</h1>
+          <h1 class="title">{{ pageTitle }}</h1>
+          <p class="subtitle">{{ pageDescription }}</p>
         </div>
 
         <ElDropdown trigger="click">
           <button class="admin" type="button">
             <span class="admin-badge">管理员 · 已认证</span>
-            <span class="avatar"
-              ><ElIcon><UserFilled /></ElIcon
-            ></span>
           </button>
           <template #dropdown>
             <ElDropdownMenu>
@@ -192,27 +198,31 @@ async function logout(): Promise<void> {
     display: flex;
     flex-direction: column;
     overflow-x: hidden;
-    background: var(--juya-color-sidebar);
+    border-right: 1px solid var(--juya-color-border-light);
+    background: var(--juya-color-sidebar-surface);
   }
 
   .brand {
     display: flex;
-    height: var(--juya-header-height);
+    flex: 0 0 82px;
     align-items: center;
     gap: 12px;
-    padding: 0 18px;
-    color: #fff;
+    padding: 24px 20px 12px;
+    color: var(--juya-color-text-primary);
   }
 
   .logo {
     display: grid;
-    flex: 0 0 48px;
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: #f7f5eb;
-    color: var(--juya-color-sidebar);
-    font-size: 25px;
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    border: 0;
+    border-radius: 14px;
+    background: var(--juya-color-primary-soft);
+    color: var(--juya-color-primary);
+    font-size: 22px;
+    font-weight: 700;
     place-items: center;
   }
 
@@ -224,19 +234,19 @@ async function logout(): Promise<void> {
   }
 
   .brand-copy strong {
-    font-size: 16px;
+    font-size: 20px;
   }
 
   .brand-copy span {
-    color: rgb(255 255 255 / 62%);
+    color: var(--juya-color-text-regular);
     font-size: 11px;
   }
 
   .menu-scrollbar {
-    --el-scrollbar-bg-color: rgb(255 255 255 / 32%);
-    --el-scrollbar-hover-bg-color: rgb(255 255 255 / 46%);
-    --el-scrollbar-hover-opacity: 1;
-    --el-scrollbar-opacity: 1;
+    --el-scrollbar-bg-color: var(--juya-color-primary);
+    --el-scrollbar-hover-bg-color: var(--juya-color-primary);
+    --el-scrollbar-hover-opacity: 0.6;
+    --el-scrollbar-opacity: 0.25;
 
     flex: 1;
     min-height: 0;
@@ -259,11 +269,16 @@ async function logout(): Promise<void> {
   }
 
   .section-label {
-    padding: 24px 26px 10px;
-    color: rgb(255 255 255 / 66%);
-    font-size: 11px;
-    letter-spacing: 0.08em;
+    height: 22px;
+    padding: 0 26px;
+    color: #78917a;
+    font-size: 10px;
+    line-height: 22px;
     list-style: none;
+  }
+
+  .section-label:not(:first-child) {
+    margin-top: 32px;
   }
 
   .workspace {
@@ -276,29 +291,34 @@ async function logout(): Promise<void> {
     flex: 0 0 var(--juya-header-height);
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid var(--juya-color-border);
-    background: var(--juya-color-surface);
-    padding-inline: 24px;
-  }
-
-  .title-group,
-  .admin {
-    display: flex;
-    align-items: center;
+    gap: 24px;
+    border-bottom: 1px solid var(--juya-color-border-light);
+    background: var(--juya-color-page);
+    padding-inline: 32px 50px;
   }
 
   .title-group {
-    gap: 10px;
+    min-width: 0;
   }
 
   .title {
     margin: 0;
-    color: var(--juya-color-sidebar);
-    font-size: 20px;
+    color: var(--juya-color-text-primary);
+    font-size: 28px;
+    line-height: 40px;
+  }
+
+  .subtitle {
+    margin: 0;
+    color: var(--juya-color-text-secondary);
+    font-size: 13px;
+    line-height: 22px;
   }
 
   .admin {
-    gap: 12px;
+    display: flex;
+    align-items: center;
+    padding: 0;
     border: 0;
     background: transparent;
     color: inherit;
@@ -306,40 +326,28 @@ async function logout(): Promise<void> {
   }
 
   .admin-badge {
-    padding: 4px 10px;
-    border-radius: 999px;
+    width: 150px;
+    height: 25px;
+    border-radius: 12px;
     background: var(--juya-color-primary-soft);
-    color: var(--juya-color-primary-hover);
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .avatar {
-    display: grid;
-    width: 40px;
-    height: 40px;
-    border: 1px solid var(--juya-color-border-light);
-    border-radius: 50%;
-    background: #fbfaf6;
     color: var(--juya-color-primary);
-    place-items: center;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 25px;
+    text-align: center;
   }
 
   .main {
-    --juya-main-margin-block: 40px;
-
     min-width: 0;
     overflow: auto;
-    padding: var(--juya-main-padding-top) var(--juya-main-padding-inline)
-      var(--juya-main-padding-bottom);
-    background: #fff;
-    margin: 20px;
-    border-radius: 5px;
+    padding: var(--juya-main-padding-top) 26px var(--juya-main-padding-bottom)
+      var(--juya-main-padding-inline);
+    background: var(--juya-color-page);
   }
 
   .menu.el-menu {
     --el-menu-bg-color: transparent;
-    --el-menu-text-color: rgb(255 255 255 / 72%);
+    --el-menu-text-color: var(--juya-color-text-primary);
     --el-menu-hover-bg-color: var(--juya-color-sidebar-hover);
     --el-menu-active-color: var(--juya-color-primary);
   }
@@ -348,36 +356,39 @@ async function logout(): Promise<void> {
     background: transparent;
   }
 
-  /* stylelint-disable-next-line selector-class-pattern -- Element Plus 外部组件类名 */
+  /* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
   .menu :deep(.el-sub-menu__title) {
-    height: 44px;
-    margin: 4px 14px;
-    border-radius: 8px;
-    padding-inline: 12px;
+    height: 40px;
+    margin: 0 14px 10px;
+    border-radius: 12px;
+    padding-inline: 13px;
+    font-size: 15px;
   }
 
-  /* stylelint-disable-next-line selector-class-pattern -- Element Plus 外部组件类名 */
-  .menu :deep(.el-sub-menu__title:hover) {
-    background: var(--juya-color-sidebar-hover);
+  .menu :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+    background: #e4f0dc;
+    color: var(--juya-color-primary);
+    font-weight: 700;
   }
 
   .menu :deep(.el-menu-item) {
     height: 36px;
-    margin: 2px 14px 2px 24px;
-    border-radius: 6px;
+    margin: 0 14px 8px 24px;
+    border-radius: 10px;
     padding-inline: 12px;
   }
 
   .menu :deep(.el-menu-item.top-level-item) {
-    height: 44px;
-    margin: 4px 14px;
-    border-radius: 8px;
-    padding-inline: 12px;
+    height: 40px;
+    margin: 0 14px 10px;
+    border-radius: 12px;
+    padding-inline: 13px;
+    font-size: 15px;
   }
 
   .menu :deep(.el-menu-item.is-active) {
-    background: #fbfcfb;
-    font-weight: 600;
+    background: #e4f0dc;
+    font-weight: 700;
   }
 
   .collapsed .brand {
@@ -385,14 +396,9 @@ async function logout(): Promise<void> {
     padding-inline: 0;
   }
 
-  /* stylelint-disable selector-class-pattern -- Element Plus 外部组件类名 */
   .menu:where(.el-menu--collapse) {
     :deep(> .el-menu-item),
-    :deep(> .el-sub-menu > .el-sub-menu__title) {
-      justify-content: center;
-      padding-inline: 0;
-    }
-
+    :deep(> .el-sub-menu > .el-sub-menu__title),
     :deep(> .el-menu-item .el-menu-tooltip__trigger) {
       justify-content: center;
       padding-inline: 0;
@@ -405,13 +411,28 @@ async function logout(): Promise<void> {
     color: var(--juya-color-brand-accent);
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.04em;
   }
 
   .page-label {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+
+@media (width <= 1080px) {
+  .admin-layout {
+    .header {
+      padding-inline: 24px;
+    }
+
+    .main {
+      padding-inline: 24px;
+    }
+
+    .title {
+      font-size: 24px;
+    }
   }
 }
 </style>

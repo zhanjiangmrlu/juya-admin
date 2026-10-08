@@ -154,8 +154,7 @@ function exportResult(id: string): void {
   <section v-loading="state === 'loading'" class="batch-jobs-page">
     <div class="page-heading">
       <div>
-        <span>A24</span>
-        <h2>批量任务中心</h2>
+        <p class="page-description">单批图片最多 30 张；通用批量操作最多 500 个场景</p>
       </div>
       <div>
         <ElButton @click="controller.load()">刷新执行结果</ElButton
@@ -217,11 +216,12 @@ function exportResult(id: string): void {
     </div>
     <div class="job-grid">
       <ElCard shadow="never">
-        <template #header><h3>执行中与历史任务</h3></template>
+        <template #header><h3>批量任务</h3></template>
         <ElEmpty v-if="jobs.length === 0 && state !== 'loading'" description="暂无批量任务" />
         <ElCollapse v-else>
           <ElCollapseItem v-for="job in jobs" :key="job.id" :name="job.id">
             <template #title>
+              <span class="job-id">{{ job.id }}</span>
               <strong>{{ job.jobType }}</strong>
               <ElTag class="job-status">{{ job.status }}</ElTag>
               <span>{{ job.successCount }} 成功 / {{ job.failureCount }} 失败</span>
@@ -257,7 +257,10 @@ function exportResult(id: string): void {
         />
       </ElCard>
       <ElCard shadow="never">
-        <template #header><h3>草稿回收站</h3></template>
+        <template #header
+          ><h3>草稿回收站</h3>
+          <p class="reference-note">仅草稿可回收，保留 30 天；被引用草稿不可清理</p></template
+        >
         <ElEmpty v-if="trash.length === 0 && state !== 'loading'" description="回收站为空" />
         <div v-for="entry in trash" v-else :key="entry.id" class="trash-entry">
           <div>
@@ -289,7 +292,12 @@ function exportResult(id: string): void {
 </template>
 
 <style scoped lang="scss">
+/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 .batch-jobs-page {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
   .page-heading {
     display: flex;
     align-items: flex-start;
@@ -313,8 +321,73 @@ function exportResult(id: string): void {
   .job-grid {
     display: grid;
     grid-template-columns: 2fr 1fr;
-    gap: 14px;
-    margin-top: 14px;
+    gap: 20px;
+    margin-top: 20px;
+  }
+
+  .create-grid {
+    order: 2;
+  }
+
+  .job-grid {
+    grid-template-columns: minmax(0, 1fr);
+    order: 1;
+    margin-top: 0;
+  }
+
+  .job-grid > :deep(.el-card:first-child) {
+    min-height: 385px;
+    background: #eaf2e3;
+  }
+
+  .job-grid > :deep(.el-card:last-child) {
+    min-height: 268px;
+  }
+
+  :deep(.el-card__header) {
+    padding: 18px 20px 0;
+    border-bottom: 0;
+  }
+
+  :deep(.el-collapse) {
+    overflow: hidden;
+    border: 1px solid var(--juya-color-border-light);
+    border-radius: 12px;
+  }
+
+  :deep(.el-collapse-item__header) {
+    gap: 18px;
+    min-height: 58px;
+    padding: 0 16px;
+    background: var(--juya-color-surface);
+    font-size: 13px;
+  }
+
+  :deep(.el-collapse-item__title) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 18px;
+    padding: 8px 0;
+  }
+
+  :deep(.el-collapse-item__wrap) {
+    background: var(--juya-color-surface);
+  }
+
+  :deep(.el-collapse-item__content) {
+    padding: 16px;
+  }
+
+  .job-id {
+    min-width: 180px;
+    overflow-wrap: anywhere;
+  }
+
+  .page-description {
+    margin: 0;
+    color: var(--juya-color-text-regular);
+    font-size: 13px;
   }
 
   .trash-fields {
@@ -326,7 +399,7 @@ function exportResult(id: string): void {
   h3 {
     margin: 0;
     color: var(--juya-color-sidebar);
-    font-size: 15px;
+    font-size: 20px;
   }
 
   .job-status {
@@ -344,8 +417,9 @@ function exportResult(id: string): void {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 0;
+    padding: 16px;
     border-bottom: 1px solid var(--el-border-color-lighter);
+    background: var(--juya-color-surface);
 
     div {
       flex: 1;

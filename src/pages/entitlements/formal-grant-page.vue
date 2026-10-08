@@ -159,20 +159,10 @@ function formatServerTime(value: string | null): string {
 
 <template>
   <section class="formal-grant-page">
-    <ElCard shadow="never">
-      <template #header>
-        <div class="heading">
-          <div>
-            <span>A06</span>
-            <h2>授予正式内容包</h2>
-          </div>
-          <RouterLink v-slot="{ navigate }" custom :to="{ name: 'entitlements' }">
-            <ElButton @click="navigate">返回权益中心</ElButton>
-          </RouterLink>
-        </div>
-      </template>
-
-      <ElForm label-position="top" @submit.prevent="handlePreview">
+    <ElForm class="grant-layout" label-position="top" @submit.prevent="handlePreview">
+      <ElCard class="editor-card" shadow="never"
+        ><template #header><h3>授予正式包</h3></template>
+        <p class="record-summary">核对用户、内容包和新到期日后提交。</p>
         <div class="form-grid">
           <ElFormItem label="操作类型" required>
             <ElSelect v-model="form.operation">
@@ -269,18 +259,47 @@ function formatServerTime(value: string | null): string {
             ><strong>{{ formatServerTime(controller.previewResult.value.expiresAt) }}</strong>
           </div>
         </div>
-
-        <ElButton
-          :disabled="!form.userId.trim() || !form.packageId.trim()"
-          :loading="controller.commandState.value === 'submitting'"
-          native-type="submit"
-          type="primary"
+      </ElCard>
+      <div class="check-column">
+        <ElCard class="check-card" shadow="never"
+          ><template #header
+            ><div class="card-heading">
+              <h3>提交核对</h3>
+              <RouterLink v-slot="{ navigate }" custom :to="{ name: 'entitlements' }"
+                ><ElButton @click="navigate">返回权益中心</ElButton></RouterLink
+              >
+            </div></template
+          >
+          <div class="check-items">
+            <div class="check-item">
+              <strong>身份</strong><span>提交前核对用户编号与内容包。</span>
+            </div>
+            <div class="check-item">
+              <strong>期限</strong
+              ><span>{{ FORMAL_TERM_LABELS[form.term] }}；新到期时间由服务端预览返回。</span>
+            </div>
+            <div class="check-item">
+              <strong>权益冲突</strong
+              ><span>检查当前权益状态和到期时间，确认弹窗会再次展示操作对象。</span>
+            </div>
+          </div></ElCard
         >
-          获取服务端预览并二次确认
-        </ElButton>
-      </ElForm>
-    </ElCard>
-
+        <aside class="management-note">
+          <strong>提交前确认</strong>
+          <p>授予、续期、延期均需二次确认，且保留操作人和时间。</p>
+        </aside>
+        <div class="submit-row">
+          <ElButton
+            :disabled="!form.userId.trim() || !form.packageId.trim()"
+            :loading="controller.commandState.value === 'submitting'"
+            native-type="submit"
+            type="primary"
+          >
+            获取服务端预览并二次确认
+          </ElButton>
+        </div>
+      </div>
+    </ElForm>
     <ConfirmDialog
       v-if="controller.previewResult.value"
       v-model="isConfirmVisible"
@@ -297,45 +316,113 @@ function formatServerTime(value: string | null): string {
 
 <style scoped lang="scss">
 .formal-grant-page {
-  .heading {
+  min-width: 0;
+  padding-top: 5px;
+
+  .card-heading {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
-  .heading span {
-    color: var(--juya-color-text-secondary);
-    font-size: 11px;
-    font-weight: 700;
+  .card-heading .el-button {
+    font-size: 12px;
   }
 
-  .heading h2 {
-    margin: 3px 0 0;
-    color: var(--juya-color-sidebar);
-    font-size: 16px;
+  .record-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin: 0 0 18px;
+    color: #657a68;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+  }
+
+  .toolbar p {
+    margin: 0;
+    color: #657a68;
+    font-size: 13px;
+  }
+
+  h3 {
+    margin: 0;
+    color: #244633;
+    font-size: 20px;
+  }
+
+  .grant-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
+    align-items: start;
+    gap: 18px;
+  }
+
+  .editor-card,
+  .check-card {
+    min-width: 0;
+    border: 1px solid #d8e5d1;
+    border-radius: 18px;
+    background: #fffdf7;
+  }
+
+  .editor-card {
+    min-height: 630px;
+    background: #eaf2e3;
+  }
+
+  .check-card {
+    min-height: 455px;
+  }
+
+  :deep([class~='el-card__header']) {
+    padding: 18px 20px 12px;
+    border-bottom: 0;
+  }
+
+  :deep([class~='el-card__body']) {
+    padding: 12px 20px 20px;
   }
 
   .form-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 14px;
+    gap: 0;
   }
 
-  .alert {
-    margin-bottom: 16px;
+  .editor-card :deep(.el-form-item) {
+    margin-bottom: 24px;
+  }
+
+  .editor-card :deep([class~='el-form-item__label']) {
+    margin-bottom: 6px;
+    color: #657a68;
+    font-size: 13px;
+  }
+
+  .editor-card :deep([class~='el-form-item__content'] > .el-select) {
+    width: 100%;
+  }
+
+  .notice,
+  .alert,
+  .summary {
+    margin: 16px 0;
   }
 
   .preview {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-
-  .preview div {
-    padding: 12px;
-    border-radius: var(--juya-control-radius);
-    background: #f4f5f1;
+    gap: 16px;
+    margin: 18px 0;
   }
 
   .preview span,
@@ -345,13 +432,116 @@ function formatServerTime(value: string | null): string {
 
   .preview span {
     margin-bottom: 6px;
-    color: var(--juya-color-text-secondary);
-    font-size: 11px;
+    color: #657a68;
+    font-size: 13px;
   }
 
   .preview strong {
-    color: var(--juya-color-sidebar);
+    padding: 10px 12px;
+    border: 1px solid #c9dac3;
+    border-radius: 10px;
+    background: #fffdf7;
+    color: #244633;
+    font-size: 14px;
+  }
+
+  .check-items {
+    display: grid;
+    gap: 32px;
+    margin: 28px 0;
+  }
+
+  .check-item {
+    padding-left: 16px;
+    border-left: 5px solid #4f833d;
+  }
+
+  .check-item strong,
+  .check-item span {
+    display: block;
+  }
+
+  .check-item strong {
+    color: #244633;
     font-size: 13px;
+  }
+
+  .check-item span {
+    margin-top: 7px;
+    color: #657a68;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .check-column {
+    min-width: 0;
+  }
+
+  .check-column .management-note {
+    min-height: 156px;
+    box-sizing: border-box;
+  }
+
+  .submit-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .submit-row .el-button {
+    min-height: 44px;
+    margin: 0;
+  }
+
+  .management-note {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 16px;
+    background: #e5f0dc;
+    color: #244633;
+  }
+
+  .management-note strong {
+    color: #4e7f3b;
+    font-size: 14px;
+  }
+
+  .management-note p {
+    margin: 20px 0 6px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+}
+
+@media (width <= 1000px) {
+  .formal-grant-page {
+    .grant-layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .toolbar {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 12px;
+    }
+  }
+}
+
+@media (height <= 820px) {
+  .formal-grant-page {
+    .editor-card {
+      min-height: 540px;
+    }
+
+    .check-card {
+      min-height: 365px;
+    }
+
+    .submit-row {
+      margin-top: 20px;
+    }
   }
 }
 </style>
