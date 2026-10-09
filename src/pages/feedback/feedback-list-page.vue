@@ -27,13 +27,15 @@ import type { FeedbackStatus } from '@/features/feedback/feedback-model'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const routeStatus = readQuery('status').toUpperCase().replaceAll('-', '_')
+const legacySla = routeStatus === 'DUE_SOON' || routeStatus === 'OVERDUE' ? routeStatus : ''
 const filters = reactive({
   category: readQuery('category'),
   keyword: readQuery('keyword'),
   page: readPage(),
   pageSize: ADMIN_UI_DEFAULTS.pagination.pageSize as number,
-  sla: readQuery('sla'),
-  status: readQuery('status')
+  sla: readQuery('sla') || legacySla,
+  status: legacySla ? '' : routeStatus
 })
 const controller = useFeedbackList(
   createFeedbackAdapter(

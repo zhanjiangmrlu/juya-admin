@@ -130,6 +130,43 @@ describe('feedback pages', () => {
       '/api/v1/admin/feedback/FB-1/screenshot-url'
     )
   })
+
+  it.each([
+    ['pending', 'status', 'PENDING'],
+    ['user-supplied', 'status', 'USER_SUPPLIED'],
+    ['due-soon', 'sla', 'DUE_SOON'],
+    ['overdue', 'sla', 'OVERDUE']
+  ])(
+    'normalizes the legacy %s feedback link before requesting data',
+    async (legacy, key, value) => {
+      const fetchSpy = vi.fn(
+        async (_input: RequestInfo | URL) =>
+          new Response(JSON.stringify({ items: [], page: 1, page_size: 10, total: 0 }), {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200
+          })
+      )
+      vi.stubGlobal('fetch', fetchSpy)
+      const testRouter = createRouter({
+        history: createMemoryHistory(),
+        routes: [{ component: FeedbackListPage, path: '/feedback' }]
+      })
+      await testRouter.push(`/feedback?status=${legacy}`)
+      const wrapper = mount(FeedbackListPage, {
+        global: { plugins: [createPinia(), testRouter, ElementPlus] }
+      })
+      try {
+        await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalled())
+        const query = new URL(String(fetchSpy.mock.calls[0]?.[0]), 'http://localhost').searchParams
+        expect(query.get(key)).toBe(value)
+        if (key === 'sla') expect(query.has('status')).toBe(false)
+        expect(testRouter.currentRoute.value.query[key]).toBe(value)
+        expect(wrapper.text()).not.toContain('请求参数不正确')
+      } finally {
+        wrapper.unmount()
+      }
+    }
+  )
 })
 
 const ticketResponse = {

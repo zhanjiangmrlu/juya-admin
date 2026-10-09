@@ -40,28 +40,28 @@ const itemPresentation: Readonly<Record<string, WorkItemViewModel>> = {
   FEEDBACK_DUE_SOON: {
     actionLabel: '处理',
     description: '反馈即将超过处理时限',
-    destination: '/feedback?status=due-soon',
+    destination: '/feedback?sla=DUE_SOON',
     title: '反馈即将超时',
     tone: 'warning'
   },
   FEEDBACK_OVERDUE: {
     actionLabel: '处理',
     description: '反馈已超过处理时限',
-    destination: '/feedback?status=overdue',
+    destination: '/feedback?sla=OVERDUE',
     title: '反馈处理已超时',
     tone: 'danger'
   },
   NEW_FEEDBACK: {
     actionLabel: '处理',
     description: '有新的用户反馈等待处理',
-    destination: '/feedback?status=pending',
+    destination: '/feedback?status=PENDING',
     title: '收到新反馈',
     tone: 'warning'
   },
   USER_SUPPLIED: {
     actionLabel: '查看',
     description: '用户已按要求补充资料',
-    destination: '/feedback?status=user-supplied',
+    destination: '/feedback?status=USER_SUPPLIED',
     title: '用户已补充反馈资料',
     tone: 'warning'
   }

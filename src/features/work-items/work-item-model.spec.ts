@@ -36,8 +36,17 @@ describe('work item model', () => {
   it('maps work-item kinds to stable labels and destinations', () => {
     expect(toWorkItemViewModel(items[0]!)).toMatchObject({
       actionLabel: '处理',
-      destination: '/feedback?status=overdue',
+      destination: '/feedback?sla=OVERDUE',
       tone: 'danger'
     })
+  })
+
+  it.each([
+    ['NEW_FEEDBACK', '/feedback?status=PENDING'],
+    ['USER_SUPPLIED', '/feedback?status=USER_SUPPLIED'],
+    ['FEEDBACK_DUE_SOON', '/feedback?sla=DUE_SOON'],
+    ['FEEDBACK_OVERDUE', '/feedback?sla=OVERDUE']
+  ])('uses API-compatible feedback filters for %s', (kind, destination) => {
+    expect(toWorkItemViewModel({ ...items[0]!, kind }).destination).toBe(destination)
   })
 })
