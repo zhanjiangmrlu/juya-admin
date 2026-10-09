@@ -22,6 +22,9 @@ import type { UploadFile, UploadFiles } from 'element-plus'
 const context = reactive({ seriesId: '', templateId: '' })
 const queue = useUploadQueue(createUploadAdapter(useAdminApiClient()))
 const contextLocked = computed(() => queue.items.value.length > 0)
+const duplicateCount = computed(
+  () => queue.items.value.filter((item) => item.status === 'confirmed' && item.reusedScene).length
+)
 const router = useRouter()
 const adapter = createContentAdapter(useAdminApiClient())
 const ocr = createOcrAdapter(useAdminApiClient())
@@ -85,6 +88,15 @@ const /** 保存 OCR 配置和管理员控制台核验记录并恢复服务端�
 async function editImage(item: Readonly<UploadQueueItem>): Promise<void> {
   if (item.sceneId) await router.push({ name: 'content-scene-edit', params: { id: item.sceneId } })
 }
+const /**
+   * 在内容列表中定位重复图片复用的场景
+   * @param item - 已确认并返回场景编号的上传任务
+   */
+  viewExistingContent = async (item: Readonly<UploadQueueItem>): Promise<void> => {
+    if (item.sceneId) {
+      await router.push({ name: 'content-scenes', query: { scene_id: item.sceneId } })
+    }
+  }
 onMounted(loadContext)
 
 /**
@@ -170,8 +182,23 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
       <AdminPanel :title="ADMIN_SECTION_TITLES.contentImport.taskQueue">
         <ElEmpty v-if="queue.items.value.length === 0" description="尚未选择图片" />
         <template v-else>
+          <ElAlert
+            v-if="duplicateCount > 0"
+            :title="`重复图片 ${duplicateCount} 张，已复用已有场景`"
+            description="这些图片不会新增内容列表记录。点击「查看已有内容」可定位到对应场景。"
+            type="warning"
+            show-icon
+            :closable="false"
+          />
           <div v-for="item in queue.items.value" :key="item.id" class="queue-item">
             <TaskProgress :item="item" @cancel="queue.cancel" @retry="queue.start" />
+            <ElButton
+              v-if="item.sceneId && item.reusedScene"
+              link
+              type="primary"
+              @click="viewExistingContent(item)"
+              >查看已有内容</ElButton
+            >
             <ElButton v-if="item.sceneId" link type="primary" @click="editImage(item)"
               >编辑场景草稿</ElButton
             >

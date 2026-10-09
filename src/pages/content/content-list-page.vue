@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { ADMIN_TABLE_COLUMNS, ADMIN_UI_DEFAULTS } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
@@ -21,9 +21,16 @@ import type { ProductionStage } from '@/features/content-production/content-prod
 const historySceneId = ref('')
 const historyOpened = ref(false)
 const router = useRouter()
+const route = useRoute()
 const adapter = createContentAdapter(useAdminApiClient())
 const filterStorageKey = 'juya.content-list.filters.v1'
 const filters = reactive<SceneFilters>(restoreFilters())
+// 上传页指定目标场景时清除旧筛选并回到首页，确保复用内容能被找到
+const targetSceneId = route.query.scene_id
+if (typeof targetSceneId === 'string' && targetSceneId.trim()) {
+  Object.assign(filters, { page: 1, query: targetSceneId.trim(), seriesId: '', status: '' })
+  persistFilters(filters)
+}
 const scenes = ref<SceneSummary[]>([])
 const total = ref(0)
 const loading = ref(false)
