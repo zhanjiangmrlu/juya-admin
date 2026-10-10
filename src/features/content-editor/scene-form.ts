@@ -1,3 +1,5 @@
+import { createUuid } from '@/shared/utils/create-uuid'
+
 export interface SceneAudio {
   target_id: string
   version_id: string
@@ -51,7 +53,7 @@ export interface SceneContent extends Record<string, unknown> {
  */
 export function createDialogueRow(): DialogueRow {
   return {
-    id: crypto.randomUUID(),
+    id: createUuid(),
     speaker: '',
     english: '',
     chinese: '',

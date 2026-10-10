@@ -1,4 +1,5 @@
 import { ApiError } from '@/shared/errors/api-error'
+import { createUuid } from '@/shared/utils/create-uuid'
 
 export type HttpMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
 
@@ -44,7 +45,7 @@ const genericMessages: Readonly<Record<number, string>> = {
  * @returns 以 web 为前缀的唯一请求标识
  */
 export function createRequestId(): string {
-  return `web-${crypto.randomUUID()}`
+  return `web-${createUuid()}`
 }
 
 /**
@@ -53,7 +54,7 @@ export function createRequestId(): string {
  * @returns 以 idem 为前缀的唯一幂等键
  */
 export function createIdempotencyKey(): string {
-  return `idem-${crypto.randomUUID()}`
+  return `idem-${createUuid()}`
 }
 
 /**

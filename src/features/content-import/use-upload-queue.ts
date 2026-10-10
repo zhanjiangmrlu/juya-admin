@@ -1,6 +1,7 @@
 import { readonly, ref } from 'vue'
 
 import { createIdempotencyKey } from '@/services/api/api-client'
+import { createUuid } from '@/shared/utils/create-uuid'
 
 import type { DeepReadonly, Ref } from 'vue'
 
@@ -88,7 +89,7 @@ export const /**
           context: { ...context },
           error: null,
           file,
-          id: crypto.randomUUID(),
+          id: createUuid(),
           idempotencyKey: createIdempotencyKey(),
           jobId: null,
           progress: 0,
