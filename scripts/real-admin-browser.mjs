@@ -35,6 +35,7 @@ const results = {
   baseUrl,
   cases: [],
   responses: [],
+  stageRecovery: [],
   errors: [],
   networkFailures: []
 }
@@ -79,6 +80,32 @@ page.on('requestfailed', (request) => {
     type: request.failure()?.errorText === 'net::ERR_ABORTED' ? 'ABORTED' : 'NETWORK_FAILURE'
   })
 })
+
+const /**
+   * 记录恢复阶段的安全身份与状态，不保存完整响应或正文
+   * @param source - 读取、排队回执或后续状态回读
+   * @param row - 实际阶段响应
+   * @returns 允许进入联调报告的受限事实
+   */ stageFact = (source, row) => ({
+    source,
+    stage_id: /^[0-9A-HJKMNP-TV-Z]{26}$/.test(row.stage_id || row.public_id || '')
+      ? row.stage_id || row.public_id
+      : null,
+    status: ['FAILED', 'QUEUED', 'RUNNING', 'RETRY', 'SUCCEEDED', 'CANCELLED', 'UNKNOWN'].includes(
+      row.status
+    )
+      ? row.status
+      : 'UNCLASSIFIED',
+    attempt: Number.isSafeInteger(row.attempt) && row.attempt >= 0 ? row.attempt : null,
+    fencing_version:
+      Number.isSafeInteger(row.fencing_version) && row.fencing_version >= 0
+        ? row.fencing_version
+        : null,
+    error_code:
+      typeof row.error_code === 'string' && /^[A-Z][A-Z0-9_]{0,99}$/.test(row.error_code)
+        ? row.error_code
+        : null
+  })
 
 const /**
    * 等待页面实际发出的业务请求，不拦截或模拟响应
@@ -252,6 +279,7 @@ try {
       const loaded = responseFor('GET', `/api/v1/admin/content-stages/${entities.retry_stage_id}`)
       await page.getByRole('button', { name: '读取阶段状态', exact: true }).click()
       const before = await (await loaded).json()
+      results.stageRecovery.push(stageFact('BEFORE_RETRY', before))
       expect(before.status).toBe('FAILED')
       expect(
         ['VALIDATE', 'CONFIRM', 'MATERIAL_VALIDATE'].includes(before.stage) ||
@@ -272,13 +300,16 @@ try {
       const retryResponse = await retried
       expect(retryResponse.status()).toBe(202)
       const receipt = await retryResponse.json()
+      results.stageRecovery.push(stageFact('RETRY_RECEIPT', receipt))
       await expect(page.getByRole('button', { name: '读取阶段状态', exact: true })).toBeEnabled()
       await expect
         .poll(
           async () => {
             const read = responseFor('GET', '/api/v1/admin/content-stages/' + receipt.stage_id)
             await page.getByRole('button', { name: '读取阶段状态', exact: true }).click()
-            return (await (await read).json()).status
+            const current = await (await read).json()
+            results.stageRecovery.push(stageFact('READBACK', current))
+            return current.status
           },
           { timeout: 45_000, intervals: [1000, 2000] }
         )

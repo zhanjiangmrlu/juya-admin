@@ -152,3 +152,11 @@ Pre-flight：ZIP/短文/切片/抽样/权益预览新增字段依赖 admin-api �
 - 诊断 `5db66a5e` 前七个场景通过，阶段恢复超时已在浏览器复现：Element Plus 原生 checkbox input 隐藏，`check()` 等待可见而无法操作。真实脚本改为点击可见标签并断言原生勾选；控制器无须放松条件，继续等待恢复回执和实际阶段成功
 - 最终本仓门禁：`pnpm check` 通过，`pnpm test` 105 文件 / 363 项通过（14:53:07 开始，115.96 秒），`pnpm build` 通过，`pnpm test:e2e` 138 项通过（3.1 分钟）；四尺寸导入 / 校对与窄屏短文截图已核对。双开关目标 10 项回归、音频签名竞态 RED / GREEN 和实际阶段确认恢复浏览器回归通过
 - 协调侧 Docker 存储 I/O / docker info 超时阻断最终环境，重启由协调侧统一处理。本仓不重启服务；真实 12 场景尚未在最终干净提交上通过，云存储、安全提供方、人工版权 / 听音、付费实账、微信设备与生产仍须独立验收
+
+### 真实运行 ac6a4281 的失败阶段诊断
+
+- 页面真实 POST `/content-stages/01M4MWB5NN5A9V8DKHTQXDTATP/retry` 返回 202，随后 25 次同阶段 GET 返回 200；没有页面运行错误或网络失败。VALIDATE 恢复按实际契约复用原 stage_id，围栏递增，并非必须创建新编号
+- Worker 在 15:03:41 报 MySQL 1062，约束 `content_import_item.uq_content_import_item_1`，重复 `(batch_id,row_no)`；实际栈位于 `ImportService.validate` 的条目插入。失败批次 `01M4MWB5NHDZ1V5R4ZH32JXZPQ` 已经存在校验成功产物
+- 根运行器只把独立批次的 SUCCEEDED 阶段改为 FAILED，保留 PREVIEW_READY 批次和已解析条目；恢复接口随后把批次重置 PENDING，Worker 再插入同一 row_no。真实解析失败会事务回滚预览条目并将批次置 FAILED，这种单字段注入不符合完整失败状态
+- 修正应在协调侧独立种子中完成：使用实际未成功校验的 FAILED 批次；若继续使用声明的 SQL 故障注入，须在同一事务将专用未确认批次恢复为完整的失败校验状态（无预览条目、FAILED 批次与失败 manifest、失效预览、FAILED 阶段清空成功 output），保持原文件字节 / input_hash / config_version，并保留另一个成功批次验证不重跑。不得删除已确认的业务草稿或修改本仓业务守卫
+- 自有脚本补充 `stageRecovery`：实际初始状态、202 回执与每次回读，只允许 ULID、受限状态 / error_code 和整数 attempt / fencing_version；不保存响应正文、输入哈希、用户字段或签名地址。该诊断不算本轮真实恢复成功
