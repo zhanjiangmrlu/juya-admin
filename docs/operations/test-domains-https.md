@@ -77,15 +77,16 @@ set -eu
 
 ## OSS 上传来源
 
-`juya-test` Bucket 的跨域规则需增加精确来源：
+`juya-test` Bucket 的跨域规则已增加以下精确来源：
 
 ```text
 https://test-admin.juyayingyu.com
+https://test-h5.juyayingyu.com
 ```
 
 保留原有来源，沿用 GET、POST、HEAD 方法、`content-type` 允许请求头、`ETag` 暴露响应头、300 秒缓存与 `Vary: Origin`。Bucket 保持私有，不使用通配来源。
 
-现有应用凭据可读取跨域配置，但 `PutBucketCors` 返回 `403 AccessDenied`，需要 Bucket 管理者在 OSS 控制台追加来源。步骤见 [阿里云 CORS 配置说明](https://help.aliyun.com/zh/oss/user-guide/configure-cross-origin-resource-sharing)。
+Bucket 管理者已在 OSS 控制台追加这两个测试来源；配置回读确认原有来源和其他规则字段均保留。现有应用凭据可读取跨域配置，但 `PutBucketCors` 返回 `403 AccessDenied`，后续规则维护仍由 Bucket 管理者执行。步骤见 [阿里云 CORS 配置说明](https://help.aliyun.com/zh/oss/user-guide/configure-cross-origin-resource-sharing)。
 
 ## 验收
 
@@ -110,7 +111,7 @@ sudo certbot renew --cert-name juya-test --dry-run --run-deploy-hooks --no-rando
 - 原 `/etc/nginx/conf.d/juya-private.conf` SHA256 未改变；原有五个容器保持运行。
 - Certbot 定时器已启用，续期钩子已安装；安全组放行后，四域名续期演练及 Nginx 重新加载钩子均通过。
 - 安全组已放行公网 TCP 443，四个测试域名的外网 HTTPS 已接通；管理 API 健康检查从外网返回 `ready`。
-- 新后台来源的 OSS POST 预检返回 403，待管理员追加 CORS 来源。
+- 测试后台与测试 H5 来源的 OSS GET、POST、HEAD 预检均返回 200，`Access-Control-Allow-Origin` 与请求来源一致；真实账号上传仍待业务验收。
 
 服务器本机的 `--resolve 域名:443:127.0.0.1` 验证只证明 Nginx 和证书正常，不能替代外网访问、真实账号会话、OSS 上传或微信真机验收。
 
