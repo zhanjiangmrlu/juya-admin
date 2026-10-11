@@ -1,372 +1,348 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { ADMIN_TABLE_COLUMNS, ADMIN_UI_DEFAULTS } from '@/app/admin-ui.config'
+import { ADMIN_UI_DEFAULTS } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
-import DataTable from '@/components/data-table/data-table.vue'
-import { createContentAdapter } from '@/features/content/content-adapter'
+import { type ContentSeries, createContentAdapter } from '@/features/content/content-adapter'
+import {
+  type CatalogueFilters,
+  type CatalogueItem,
+  createCatalogueAdapter
+} from '@/features/content-catalogue/content-catalogue-adapter'
 import SceneHistory from '@/features/content-editor/scene-history.vue'
-import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
-import ShortReadingListPanel from '@/features/short-reading/short-reading-list-panel.vue'
+import { createShortReadingAdapter } from '@/features/short-reading/short-reading-adapter'
+import { normalizeShortReading } from '@/features/short-reading/short-reading-model'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
-import { formatDateTime } from '@/shared/utils/date-time'
 
-import type { ContentSeries } from '@/features/content/content-adapter'
-import type { SceneFilters, SceneStatus, SceneSummary } from '@/features/content/content-model'
-import type { ProductionStage } from '@/features/content-production/content-production-model'
-
-const historySceneId = ref('')
-const historyOpened = ref(false)
 const router = useRouter()
 const route = useRoute()
-const adapter = createContentAdapter(useAdminApiClient())
-const filterStorageKey = 'juya.content-list.filters.v1'
-const filters = reactive<SceneFilters>(restoreFilters())
-// 上传页指定目标场景时清除旧筛选并回到首页，确保复用内容能被找到
-const targetSceneId = route.query.scene_id
-if (typeof targetSceneId === 'string' && targetSceneId.trim()) {
-  Object.assign(filters, { page: 1, query: targetSceneId.trim(), seriesId: '', status: '' })
-  persistFilters(filters)
-}
-const scenes = ref<SceneSummary[]>([])
+const client = useAdminApiClient()
+const content = createContentAdapter(client)
+const catalogue = createCatalogueAdapter(client)
+const readings = createShortReadingAdapter(client)
+const storageKey = 'juya.content-list.filters.v1'
+const types = { dialogue: '场景对话', word_card: '原词汇卡', short_reading: '短文阅读' }
+const statuses = { DRAFT: '草稿 · 需校对', PUBLISHED: '已发布', OFFLINE: '已下线' }
+const /** 恢复目录条件，校验类型与页码，避免旧条件变成隐藏的筛选
+   * @returns 已校验的目录筛选
+   */
+  restoreFilters = (): CatalogueFilters => {
+    const defaults: CatalogueFilters = {
+      page: 1,
+      pageSize: ADMIN_UI_DEFAULTS.pagination.pageSize,
+      query: '',
+      seriesId: '',
+      contentType: '',
+      status: ''
+    }
+    try {
+      const saved = JSON.parse(
+        globalThis.sessionStorage.getItem(storageKey) || '{}'
+      ) as Partial<CatalogueFilters>
+      return {
+        ...defaults,
+        page: Number.isInteger(saved.page) && Number(saved.page) > 0 ? Number(saved.page) : 1,
+        pageSize: ADMIN_UI_DEFAULTS.pagination.pageSizes.includes(Number(saved.pageSize))
+          ? Number(saved.pageSize)
+          : defaults.pageSize,
+        query: typeof saved.query === 'string' ? saved.query : '',
+        seriesId: typeof saved.seriesId === 'string' ? saved.seriesId : '',
+        contentType:
+          saved.contentType && Object.hasOwn(types, saved.contentType) ? saved.contentType : '',
+        status: saved.status && Object.hasOwn(statuses, saved.status) ? saved.status : ''
+      }
+    } catch {
+      return defaults
+    }
+  }
+const filters = reactive(restoreFilters())
+if (typeof route.query.scene_id === 'string')
+  Object.assign(filters, {
+    page: 1,
+    query: route.query.scene_id,
+    seriesId: '',
+    contentType: '',
+    status: ''
+  })
+const items = ref<CatalogueItem[]>([])
 const total = ref(0)
 const loading = ref(false)
-const error = ref<string | null>(null)
-const series = ref<ContentSeries[]>([])
+const error = ref('')
 const creating = ref(false)
 const creatingSeries = ref(false)
 const creatingScene = ref(false)
-const pickingScene = ref(false)
-const workspaceSceneId = ref('')
-const workspaceStage = ref<ProductionStage>('draft')
-const enteringWorkspace = ref(false)
-let pendingSeriesKey: string | null = null
-let pendingSceneKey: string | null = null
+const series = ref<ContentSeries[]>([])
+const historySceneId = ref('')
+const historyOpened = ref(false)
 const newScene = reactive({
   seriesId: '',
-  templateType: 'dialogue' as 'dialogue' | 'word_card',
-  seriesTitle: '',
-  seriesSlug: ''
+  templateType: 'dialogue',
+  seriesTitle: ''
 })
-
-/**
- * 列表没有当前草稿时，先由管理员明确选择目标场景。
- * @param stage - 目标工作区
- */
-function openWorkspace(stage: ProductionStage): void {
-  if (stage === 'list') return
-  workspaceStage.value = stage
-  workspaceSceneId.value = ''
-  pickingScene.value = true
-}
-
-/** 创建或使用所选场景的草稿，再进入所选步骤。 */
-async function enterWorkspace(): Promise<void> {
-  const selected = scenes.value.find((item) => item.id === workspaceSceneId.value)
-  if (!selected || enteringWorkspace.value) return
-  enteringWorkspace.value = true
-  try {
-    const revisionId =
-      selected.draftRevisionId ??
-      (await adapter.createRevision(selected.id, selected.publishedRevisionId)).id
-    if (workspaceStage.value === 'publish') {
-      await router.push({ name: 'content-scene-publish', params: { id: revisionId } })
-    } else {
+let sequence = 0
+let disposed = false
+let abort: InstanceType<typeof globalThis.AbortController> | null = null
+let pendingSeriesKey = createIdempotencyKey()
+let pendingSceneKey = createIdempotencyKey()
+watch(
+  filters,
+  () => {
+    try {
+      globalThis.sessionStorage.setItem(storageKey, JSON.stringify(filters))
+    } catch {
+      /* 存储不阻断查询 */
+    }
+  },
+  { deep: true }
+)
+watch(
+  () => [newScene.seriesId, newScene.templateType],
+  () => {
+    pendingSceneKey = createIdempotencyKey()
+  }
+)
+watch(
+  () => newScene.seriesTitle,
+  () => {
+    pendingSeriesKey = createIdempotencyKey()
+  }
+)
+const /** 读取服务端统一分页，取消旧查询并阻止迟到结果回写 */
+  loadScenes = async (): Promise<void> => {
+    const token = ++sequence
+    abort?.abort()
+    abort = new globalThis.AbortController()
+    loading.value = true
+    error.value = ''
+    try {
+      const result = await catalogue.list({ ...filters }, abort.signal)
+      if (disposed || token !== sequence) return
+      items.value = result.items
+      total.value = result.total
+    } catch (failure) {
+      if (!disposed && token === sequence)
+        error.value = failure instanceof Error ? failure.message : '内容列表加载失败'
+    } finally {
+      if (!disposed && token === sequence) loading.value = false
+    }
+  }
+const /** 新筛选回到第一页，所有类型共享目录 */
+  search = (): void => {
+    filters.page = 1
+    void loadScenes()
+  }
+const /** 清除旧分类筛选并重新查询全部分类 */
+  clearSeries = (): void => {
+    filters.seriesId = ''
+    search()
+  }
+const /** 读取实际分类并打开单篇新建 */
+  openCreate = async (): Promise<void> => {
+    try {
+      series.value = await content.listSeries()
+      if (disposed) return
+      creating.value = true
+    } catch (failure) {
+      if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '分类加载失败')
+    }
+  }
+const /** 创建分类，失败重试复用相同身份 */
+  createSeries = async (): Promise<void> => {
+    if (creatingSeries.value || !newScene.seriesTitle.trim()) return
+    creatingSeries.value = true
+    try {
+      const value = await content.createSeries(
+        newScene.seriesTitle.trim(),
+        `series-${pendingSeriesKey}`,
+        pendingSeriesKey
+      )
+      if (disposed) return
+      series.value.push(value)
+      newScene.seriesId = value.id
+      newScene.seriesTitle = ''
+    } catch (failure) {
+      if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '分类创建失败')
+    } finally {
+      creatingSeries.value = false
+    }
+  }
+const /** 按所选模板创建草稿，纯阅读使用独立版本链路 */
+  createScene = async (): Promise<void> => {
+    if (creatingScene.value || !newScene.seriesId) return
+    creatingScene.value = true
+    try {
+      if (newScene.templateType === 'short_reading') {
+        const value = await readings.create(
+          newScene.seriesId,
+          normalizeShortReading({}),
+          pendingSceneKey
+        )
+        if (disposed) return
+        await router.push({ name: 'content-short-reading-edit', params: { id: value.id } })
+      } else {
+        const value = await content.createScene(
+          newScene.seriesId,
+          newScene.templateType as 'dialogue' | 'word_card',
+          pendingSceneKey
+        )
+        if (disposed) return
+        await router.push({
+          name: 'content-scene-edit',
+          params: { id: value.id },
+          query: { stage: 'draft' }
+        })
+      }
+    } catch (failure) {
+      if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '内容创建失败')
+    } finally {
+      creatingScene.value = false
+    }
+  }
+const /**
+   * 查看或编辑候选版本，不修改已经发布的快照
+   * @param row - 管理员选择的真实内容
+   */
+  edit = async (row: CatalogueItem): Promise<void> => {
+    try {
+      if (row.content_type === 'short_reading') {
+        await router.push({ name: 'content-short-reading-edit', params: { id: row.id } })
+        return
+      }
+      if (!row.draft_revision_id) await content.createRevision(row.id, row.published_revision_id)
+      if (disposed) return
       await router.push({
         name: 'content-scene-edit',
-        params: { id: selected.id },
-        query: { stage: workspaceStage.value }
+        params: { id: row.id },
+        query: { stage: 'proofread' }
       })
+    } catch (failure) {
+      if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '内容打开失败')
     }
-    pickingScene.value = false
-  } catch (failure) {
-    ElMessage.error(failure instanceof Error ? failure.message : '工作区打开失败')
-  } finally {
-    enteringWorkspace.value = false
   }
-}
-
-/** 从场景选择对话框进入既有新建场景表单。 */
-async function createFromWorkspace(): Promise<void> {
-  await openCreate()
-  if (creating.value) pickingScene.value = false
-}
-
-/** 打开指定场景的完整历史列表。
- * @param id - 稳定场景编号
- */
-function openHistory(id: string): void {
-  historySceneId.value = id
-  historyOpened.value = true
-}
-/** 加载系列目录并打开新建场景表单。 */
-async function openCreate(): Promise<void> {
-  try {
-    series.value = await adapter.listSeries()
-    creating.value = true
-  } catch (failure) {
-    ElMessage.error(failure instanceof Error ? failure.message : '系列加载失败')
-  }
-}
-/** 保存新系列，供场景使用。 */
-async function createSeries(): Promise<void> {
-  if (creatingSeries.value || !newScene.seriesTitle.trim() || !newScene.seriesSlug.trim()) return
-  pendingSeriesKey ??= createIdempotencyKey()
-  creatingSeries.value = true
-  try {
-    const item = await adapter.createSeries(
-      newScene.seriesTitle.trim(),
-      newScene.seriesSlug.trim(),
-      pendingSeriesKey
-    )
-    pendingSeriesKey = null
-    series.value.push(item)
-    newScene.seriesId = item.id
-    newScene.seriesTitle = ''
-    newScene.seriesSlug = ''
-  } catch (failure) {
-    ElMessage.error(failure instanceof Error ? failure.message : '系列创建失败')
-  } finally {
-    creatingSeries.value = false
-  }
-}
-/** 创建空白草稿并进入结构化编辑。 */
-async function createScene(): Promise<void> {
-  if (creatingScene.value || !newScene.seriesId) return
-  pendingSceneKey ??= createIdempotencyKey()
-  creatingScene.value = true
-  try {
-    const created = await adapter.createScene(
-      newScene.seriesId,
-      newScene.templateType,
-      pendingSceneKey
-    )
-    pendingSceneKey = null
-    await router.push({ name: 'content-scene-edit', params: { id: created.id } })
-  } catch (failure) {
-    ElMessage.error(failure instanceof Error ? failure.message : '场景创建失败')
-  } finally {
-    creatingScene.value = false
-  }
-}
-
-watch(filters, persistFilters, { deep: true })
-watch(creating, (opened) => {
-  if (!opened) {
-    pendingSeriesKey = null
-    pendingSceneKey = null
-  }
-})
-
-/**
- * 从会话存储恢复内容目录筛选
- * @returns 已校验的筛选条件
- */
-function restoreFilters(): SceneFilters {
-  const defaults: SceneFilters = {
-    page: 1,
-    pageSize: ADMIN_UI_DEFAULTS.pagination.pageSize as number,
-    query: '',
-    seriesId: '',
-    status: ''
-  }
-  try {
-    const saved = JSON.parse(
-      globalThis.sessionStorage.getItem(filterStorageKey) ?? '{}'
-    ) as Partial<SceneFilters>
-    const statuses: SceneStatus[] = ['DRAFT', 'OFFLINE', 'PUBLISHED']
-    return {
-      page: Number.isInteger(saved.page) && Number(saved.page) > 0 ? Number(saved.page) : 1,
-      pageSize: ADMIN_UI_DEFAULTS.pagination.pageSizes.includes(Number(saved.pageSize))
-        ? Number(saved.pageSize)
-        : ADMIN_UI_DEFAULTS.pagination.pageSize,
-      query: typeof saved.query === 'string' ? saved.query : '',
-      seriesId: typeof saved.seriesId === 'string' ? saved.seriesId : '',
-      status: statuses.includes(saved.status as SceneStatus) ? (saved.status as SceneStatus) : ''
+const /**
+   * 打开已有历史，短文由独立编辑器展示版本
+   * @param row - 要查看版本的实际内容
+   */
+  openHistory = (row: CatalogueItem): void => {
+    if (row.content_type === 'short_reading') {
+      void edit(row)
+      return
     }
-  } catch {
-    return defaults
+    historySceneId.value = row.id
+    historyOpened.value = true
   }
-}
-
-/**
- * 保存筛选条件，供当前浏览器会话恢复
- * @param nextFilters - 当前筛选条件
- */
-function persistFilters(nextFilters: SceneFilters): void {
-  try {
-    globalThis.sessionStorage.setItem(filterStorageKey, JSON.stringify(nextFilters))
-  } catch {
-    // 存储不可用不应阻断内容查询
+const /**
+   * 经过明确确认下线内容，历史与收藏引用继续保留
+   * @param row - 已发布的目录记录
+   */
+  offline = async (row: CatalogueItem): Promise<void> => {
+    try {
+      await ElMessageBox.confirm(
+        `下线后用户将无法访问“${row.title_zh || row.title_en}”，是否继续？`,
+        '确认下线',
+        { cancelButtonText: '取消', confirmButtonText: '确认下线', type: 'warning' }
+      )
+      if (row.content_type === 'short_reading') await readings.offline(await readings.load(row.id))
+      else await content.offline(row.id, createIdempotencyKey())
+      await loadScenes()
+      ElMessage.success('内容已下线')
+    } catch (failure) {
+      if (failure !== 'cancel' && failure !== 'close')
+        ElMessage.error(failure instanceof Error ? failure.message : '下线失败')
+    }
   }
-}
-
-/** 加载当前筛选条件对应的场景分页。 */
-async function loadScenes(): Promise<void> {
-  loading.value = true
-  error.value = null
-  try {
-    const result = await adapter.listScenes(filters)
-    scenes.value = result.items
-    total.value = result.total
-  } catch (failure) {
-    error.value = failure instanceof Error ? failure.message : '内容列表加载失败'
-  } finally {
-    loading.value = false
-  }
-}
-
-/** 回到第一页并执行查询。 */
-function search(): void {
-  filters.page = 1
-  void loadScenes()
-}
-
-/**
- * 从已发布版本创建新草稿并进入编辑页
- * @param scene - 目标场景
- */
-async function createDraft(scene: SceneSummary): Promise<void> {
-  try {
-    const revision = await adapter.createRevision(scene.id, scene.publishedRevisionId)
-    await router.push({ name: 'content-scene-edit', params: { id: revision.sceneId } })
-  } catch (failure) {
-    ElMessage.error(failure instanceof Error ? failure.message : '草稿创建失败')
-  }
-}
-
-/**
- * 二次确认后下线已发布场景
- * @param scene - 目标场景
- */
-async function offline(scene: SceneSummary): Promise<void> {
-  try {
-    await ElMessageBox.confirm(`下线后用户将无法访问“${scene.title}”，是否继续？`, '确认下线', {
-      cancelButtonText: '取消',
-      confirmButtonText: '确认下线',
-      type: 'warning'
-    })
-    await adapter.offline(scene.id, createIdempotencyKey())
-    ElMessage.success('场景已下线')
-    await loadScenes()
-  } catch (failure) {
-    if (failure === 'cancel' || failure === 'close') return
-    ElMessage.error(failure instanceof Error ? failure.message : '场景下线失败')
-  }
-}
-
-/**
- * 返回场景状态对应的标签样式
- * @param status - 场景状态
- * @returns Element Plus 标签类型
- */
-function statusType(status: SceneStatus): 'info' | 'success' | 'warning' {
-  if (status === 'PUBLISHED') return 'success'
-  if (status === 'DRAFT') return 'warning'
-  return 'info'
-}
-
-/**
- * 返回场景状态对应的中文文案
- * @param status - 场景状态
- * @returns 中文状态文案
- */
-function statusLabel(status: SceneStatus): string {
-  return { DRAFT: '草稿', OFFLINE: '已下线', PUBLISHED: '已发布' }[status]
-}
-
 onMounted(loadScenes)
+onBeforeUnmount(() => {
+  disposed = true
+  sequence++
+  abort?.abort()
+})
 </script>
-
 <template>
   <section class="content-list-page">
-    <ContentProductionNav active="list" :busy="enteringWorkspace" @select="openWorkspace" />
-    <p class="page-description">场景对话、原词汇卡与独立短文使用各自模板维护完整正文和候选版本。</p>
-    <AdminPanel>
-      <template #header>
-        <div class="page-heading">
-          <p>管理场景草稿、候选版本与已发布内容</p>
-          <div class="heading-actions">
-            <ElButton @click="router.push({ name: 'content-proofreading' })"
-              >抽样校对候选集合</ElButton
-            ><ElButton type="primary" @click="openCreate">新建场景</ElButton
-            ><RouterLink v-slot="{ navigate }" custom :to="{ name: 'content-import' }"
-              ><ElButton type="primary" @click="navigate">统一内容导入</ElButton></RouterLink
-            >
-          </div>
-        </div>
-      </template>
-      <ElForm class="filter-bar" inline @submit.prevent="search">
-        <ElFormItem label="关键词"
-          ><ElInput v-model="filters.query" clearable placeholder="场景名称或编号"
-        /></ElFormItem>
-        <ElFormItem label="系列"
-          ><ElInput v-model="filters.seriesId" clearable placeholder="全部系列"
-        /></ElFormItem>
-        <ElFormItem label="状态"
-          ><ElSelect
-            v-model="filters.status"
-            aria-label="内容状态筛选"
-            clearable
-            placeholder="全部状态"
-            ><ElOption label="草稿" value="DRAFT" /><ElOption
-              label="已发布"
-              value="PUBLISHED" /><ElOption label="已下线" value="OFFLINE" /></ElSelect
-        ></ElFormItem>
-        <ElFormItem><ElButton native-type="submit" type="primary">查询</ElButton></ElFormItem>
-      </ElForm>
-      <ElSkeleton v-if="loading" :rows="7" animated />
-      <ElAlert v-else-if="error" :closable="false" :title="error" type="error" show-icon
-        ><template #default
-          ><ElButton link type="primary" @click="loadScenes">重新加载</ElButton></template
-        ></ElAlert
+    <ElForm class="filter-bar" @submit.prevent="search">
+      <ElInput
+        v-model="filters.query"
+        class="title-search"
+        clearable
+        aria-label="关键词"
+        placeholder="按中英文标题搜索"
+        @keyup.enter="search"
+      />
+      <ElSelect
+        v-model="filters.contentType"
+        aria-label="内容类型筛选"
+        placeholder="全部类型"
+        clearable
+        @change="search"
+        ><ElOption v-for="(label, value) in types" :key="value" :label="label" :value="value"
+      /></ElSelect>
+      <ElSelect
+        v-model="filters.status"
+        aria-label="内容状态筛选"
+        placeholder="全部状态"
+        clearable
+        @change="search"
+        ><ElOption v-for="(label, value) in statuses" :key="value" :label="label" :value="value"
+      /></ElSelect>
+      <ElButton native-type="submit">查询</ElButton
+      ><ElButton v-if="filters.seriesId" @click="clearSeries">清除分类筛选</ElButton>
+    </ElForm>
+    <AdminPanel title="内容列表">
+      <ElSkeleton v-if="loading" :rows="5" animated />
+      <ElAlert v-else-if="error" :title="error" type="error" :closable="false"
+        ><ElButton @click="loadScenes">重新加载</ElButton></ElAlert
       >
-      <ElEmpty v-else-if="scenes.length === 0" description="暂无符合条件的内容" />
-      <template v-else>
-        <DataTable :columns="ADMIN_TABLE_COLUMNS.scenes" :rows="scenes" row-key="id" stripe>
-          <template #scene="{ row }"
-            ><strong>{{ row.title }}</strong>
-            <p class="secondary">{{ row.id }} · {{ row.summary || '暂无简介' }}</p></template
-          >
-
-          <template #status="{ row }"
-            ><ElTag :type="statusType(row.status)" effect="plain">{{
-              statusLabel(row.status)
-            }}</ElTag></template
-          >
-          <template #updatedAt="{ row }">{{ formatDateTime(row.updatedAt) }}</template>
-          <template #actions="{ row }">
+      <ElTable v-else :data="items" empty-text="暂无符合条件的内容">
+        <ElTableColumn label="内容标题" min-width="290"
+          ><template #default="{ row }"
+            >{{ row.title_en || '未命名内容'
+            }}<span v-if="row.title_zh">｜{{ row.title_zh }}</span></template
+          ></ElTableColumn
+        >
+        <ElTableColumn label="类型" width="140"
+          ><template #default="{ row }">{{
+            types[row.content_type as keyof typeof types]
+          }}</template></ElTableColumn
+        >
+        <ElTableColumn prop="series_title" label="分类" min-width="180" />
+        <ElTableColumn label="状态" min-width="150"
+          ><template #default="{ row }"
+            >{{ statuses[row.status as keyof typeof statuses]
+            }}<small v-if="row.status === 'PUBLISHED' && row.draft_revision_id"
+              >有候选版本</small
+            ></template
+          ></ElTableColumn
+        >
+        <ElTableColumn label="操作" min-width="260"
+          ><template #default="{ row }">
+            <ElButton link type="primary" @click="edit(row)">{{
+              row.status === 'DRAFT' ? '继续校对' : '查看 · 编辑新版本'
+            }}</ElButton>
             <ElButton
-              v-if="row.draftRevisionId"
-              link
-              type="primary"
-              @click="router.push({ name: 'content-scene-edit', params: { id: row.id } })"
-              >编辑草稿</ElButton
-            >
-            <ElButton v-else link type="primary" @click="createDraft(row)">创建草稿</ElButton>
-            <ElButton
-              v-if="row.draftRevisionId"
+              v-if="row.draft_revision_id && row.content_type !== 'short_reading'"
               link
               type="primary"
               @click="
                 router.push({
                   name: 'content-scene-publish',
-                  params: { id: row.draftRevisionId }
+                  params: { id: row.draft_revision_id }
                 })
               "
-              >检查发布</ElButton
+              >预览 · 发布</ElButton
             >
-            <ElButton link @click="openHistory(row.id)">完整版本历史</ElButton
+            <ElButton link @click="openHistory(row)">查看历史</ElButton
             ><ElButton v-if="row.status === 'PUBLISHED'" link type="danger" @click="offline(row)"
               >下线</ElButton
             >
-          </template>
-        </DataTable>
-      </template>
+          </template></ElTableColumn
+        >
+      </ElTable>
       <AppPagination
         v-model:current-page="filters.page"
         v-model:page-size="filters.pageSize"
@@ -375,72 +351,57 @@ onMounted(loadScenes)
         @change="loadScenes"
       />
     </AdminPanel>
-    <ShortReadingListPanel />
-    <ElAlert class="operation-note" title="操作说明" type="success" :closable="false">
-      内容导入只建立草稿，仍需人工校对与明确发布；已发布内容不能永久删除。
-    </ElAlert>
-    <ElDialog
-      v-model="pickingScene"
-      title="选择场景"
-      width="min(560px, 94vw)"
-      :close-on-click-modal="!enteringWorkspace"
-      :close-on-press-escape="!enteringWorkspace"
-      :show-close="!enteringWorkspace"
+    <ElAlert class="operation-note" title="按模板展示内容" type="info" :closable="false"
+      >学习图片、重点词汇和语块按需展开；没有配图也可发布。已发布内容可下线并保留历史引用。</ElAlert
     >
-      <p>先选择当前列表中的场景；没有草稿时将创建候选草稿，已发布版本继续保留。</p>
-      <ElSelect
-        v-model="workspaceSceneId"
-        aria-label="工作区场景"
-        placeholder="请选择场景"
-        :disabled="enteringWorkspace"
-        class="workspace-select"
-      >
-        <ElOption
-          v-for="item in scenes"
-          :key="item.id"
-          :value="item.id"
-          :label="`${item.title} · ${item.id}`"
-        />
-      </ElSelect>
-      <ElEmpty v-if="!scenes.length" description="当前筛选没有场景，请调整筛选或新建场景" />
-      <template #footer>
-        <ElButton :disabled="enteringWorkspace" @click="createFromWorkspace">新建场景</ElButton>
-        <ElButton :disabled="enteringWorkspace" @click="pickingScene = false">取消</ElButton>
-        <ElButton
-          type="primary"
-          :disabled="!workspaceSceneId"
-          :loading="enteringWorkspace"
-          @click="enterWorkspace"
-          >进入工作区</ElButton
-        >
-      </template>
-    </ElDialog>
-    <ElDialog v-model="creating" title="新建场景" width="560px"
-      ><ElForm label-position="top"
-        ><ElFormItem label="所属系列"
+    <div class="related-links">
+      <RouterLink to="/content/proofreading">抽样校对与批量发布</RouterLink
+      ><RouterLink to="/content/jobs">批量任务</RouterLink
+      ><RouterLink to="/content/discovery-config">开放与预览配置</RouterLink>
+    </div>
+    <AppPageActions
+      ><ElButton @click="openCreate">单篇新建</ElButton
+      ><ElButton type="primary" @click="router.push({ name: 'content-import' })"
+        >批量导入</ElButton
+      ></AppPageActions
+    >
+    <ElDialog
+      v-model="creating"
+      title="单篇新建"
+      width="min(560px,94vw)"
+      :close-on-click-modal="!creatingScene && !creatingSeries"
+      :close-on-press-escape="!creatingScene && !creatingSeries"
+      :show-close="!creatingScene && !creatingSeries"
+    >
+      <ElForm label-position="top" :disabled="creatingScene || creatingSeries">
+        <ElFormItem label="所属系列"
           ><ElSelect v-model="newScene.seriesId" aria-label="新场景所属系列"
             ><ElOption
               v-for="item in series"
               :key="item.id"
               :label="item.title"
-              :value="item.id" /></ElSelect></ElFormItem
-        ><ElFormItem label="内容模板"
+              :value="item.id" /></ElSelect
+        ></ElFormItem>
+        <ElFormItem label="内容模板"
           ><ElRadioGroup v-model="newScene.templateType"
-            ><ElRadio value="dialogue">对话</ElRadio
-            ><ElRadio value="word_card">原词汇卡</ElRadio></ElRadioGroup
+            ><ElRadio v-for="(label, value) in types" :key="value" :value="value">{{
+              label
+            }}</ElRadio></ElRadioGroup
           ></ElFormItem
-        ><ElDivider>创建新系列</ElDivider
-        ><ElFormItem label="系列名称"><ElInput v-model="newScene.seriesTitle" /></ElFormItem
-        ><ElFormItem label="系列标识"
-          ><ElInput v-model="newScene.seriesSlug" placeholder="如 daily-english" /></ElFormItem
-        ><ElButton
-          :loading="creatingSeries"
-          :disabled="!newScene.seriesTitle || !newScene.seriesSlug"
-          @click="createSeries"
-          >创建系列</ElButton
-        ></ElForm
-      ><template #footer
-        ><ElButton @click="creating = false">取消</ElButton
+        >
+        <details>
+          <summary>创建新分类</summary>
+          <ElFormItem label="系列名称"><ElInput v-model="newScene.seriesTitle" /></ElFormItem
+          ><ElButton
+            :loading="creatingSeries"
+            :disabled="!newScene.seriesTitle"
+            @click="createSeries"
+            >创建系列</ElButton
+          >
+        </details>
+      </ElForm>
+      <template #footer
+        ><ElButton :disabled="creatingScene" @click="creating = false">取消</ElButton
         ><ElButton
           type="primary"
           :loading="creatingScene"
@@ -448,119 +409,86 @@ onMounted(loadScenes)
           @click="createScene"
           >创建并编辑</ElButton
         ></template
-      ></ElDialog
-    >
+      >
+    </ElDialog>
     <SceneHistory v-model="historyOpened" :scene-id="historySceneId" />
   </section>
 </template>
-
 <style scoped lang="scss">
 /* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
-.page-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-}
+.content-list-page {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
 
-.content-list-page > :deep(.el-card) {
-  overflow: hidden;
-}
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
 
-.content-list-page :deep(.el-card__header) {
-  padding: 18px 20px 0;
-  border-bottom: 0;
-  background: #eaf2e3;
-}
+    .title-search {
+      flex: 1 1 320px;
+      max-width: 520px;
+    }
 
-.content-list-page :deep(.el-card__body) {
-  padding: 0;
-}
+    :deep(.el-select) {
+      width: 160px;
+    }
+  }
 
-.page-description,
-.page-heading p {
-  margin: 0;
-  color: var(--juya-color-text-regular);
-  font-size: 13px;
-  line-height: 22px;
-}
+  :deep(.el-card__header) {
+    padding: 24px 24px 0;
+  }
 
-.page-description {
-  margin-bottom: 20px;
-}
+  :deep(.el-card__body) {
+    padding: 16px 24px 24px;
+  }
 
-.operation-note {
-  min-height: 100px;
-  margin-top: 24px;
-  padding: 16px;
-  border-radius: 16px;
-}
+  :deep(.admin-panel-title) {
+    font-size: 18px;
+    line-height: 29px;
+  }
 
-.heading-actions {
-  display: flex;
-  gap: 10px;
-}
+  :deep(.el-table__cell) {
+    padding-block: 12px;
+  }
 
-.page-heading span {
-  color: var(--juya-color-text-primary);
-  font-size: 11px;
-  font-weight: 700;
-}
+  :deep(.el-button.is-link) {
+    margin-left: 0;
+    margin-right: 8px;
+  }
 
-.page-heading h2 {
-  margin: 3px 0 0;
-  color: var(--juya-color-sidebar);
-  font-size: 16px;
-}
+  small {
+    display: block;
+    color: var(--juya-color-text-secondary);
+  }
 
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 0 18px;
-  margin-bottom: 22px;
-  padding: 14px 20px 4px;
-  background: #eaf2e3;
-}
+  .operation-note {
+    padding: 16px;
+    border-radius: 16px;
+  }
 
-.filter-bar :deep(.el-form-item) {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  margin-right: 0;
-}
+  .related-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    color: var(--juya-color-primary);
+    font-size: 13px;
+  }
 
-.filter-bar :deep(.el-form-item__label) {
-  height: 26px;
-  color: var(--juya-color-text-regular);
-  font-size: 13px;
-  line-height: 26px;
-}
+  @media (width <= 767px) {
+    :deep(.el-card__header) {
+      padding: 16px 16px 0;
+    }
 
-.content-list-page :deep(.el-table__cell) {
-  padding: 15px 0;
-}
+    :deep(.el-card__body) {
+      padding: 12px 16px;
+    }
 
-.content-list-page :deep(.el-table th.el-table__cell) {
-  padding: 10px 0;
-  background: #e8f0e1;
-}
-
-.content-list-page :deep(.el-pagination) {
-  padding: 16px 20px;
-}
-
-.filter-bar :deep(.el-input),
-.filter-bar :deep(.el-select) {
-  width: 190px;
-}
-
-.secondary {
-  margin: 4px 0 0;
-  color: var(--juya-color-text-secondary);
-  font-size: 12px;
-}
-
-.workspace-select {
-  width: 100%;
+    .filter-bar :deep(.el-select) {
+      flex: 1 1 110px;
+    }
+  }
 }
 </style>

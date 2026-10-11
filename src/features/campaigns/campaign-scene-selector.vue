@@ -145,11 +145,15 @@ onBeforeUnmount(() => {
       aria-label="内容标题搜索"
       clearable
     />
-    <p>已选 {{ modelValue.length }} / {{ requiredCount }} · 可拖动排序</p>
+
     <ElAlert v-if="error" :title="error" type="error" :closable="false"
       ><ElButton link @click="search">重试</ElButton></ElAlert
     >
-    <div v-if="!disabled" v-loading="loading" class="choices">
+    <div
+      v-if="!disabled && (query || modelValue.length < requiredCount)"
+      v-loading="loading"
+      class="choices"
+    >
       <ElCheckbox
         v-for="scene in choices"
         :key="scene.id"
@@ -163,6 +167,9 @@ onBeforeUnmount(() => {
         :image-size="48"
       />
     </div>
+    <div v-if="selectedRows.length" class="list-heading">
+      <span>排序</span><span>已选场景</span><span>操作</span>
+    </div>
     <ol>
       <li
         v-for="(scene, index) in selectedRows"
@@ -172,7 +179,8 @@ onBeforeUnmount(() => {
         @dragover.prevent
         @drop.prevent="drop(index)"
       >
-        <span>{{ index + 1 }}. {{ scene.title }}</span>
+        <span class="order">⋮⋮ {{ index + 1 }}</span
+        ><span class="scene-title">{{ scene.title }}</span>
         <div class="row-actions">
           <ElButton v-if="!disabled" link :disabled="index === 0" @click="move(index, index - 1)"
             >上移</ElButton
@@ -184,7 +192,7 @@ onBeforeUnmount(() => {
             @click="move(index, index + 1)"
             >下移</ElButton
           >
-          <ElButton link @click="preview(scene.id)">预览已发布内容</ElButton>
+          <ElButton link @click="preview(scene.id)">预览</ElButton>
           <ElButton v-if="!disabled" link type="danger" @click="toggle(scene.id)">移除</ElButton>
         </div>
       </li>
@@ -227,22 +235,52 @@ onBeforeUnmount(() => {
     gap: 8px 16px;
   }
 
+  .list-heading {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr) 240px;
+    padding: 14px 12px;
+    background: var(--juya-color-primary-soft);
+    color: var(--juya-color-primary);
+    font-size: 14px;
+  }
+
   ol {
     padding: 0;
+    margin: 0;
     list-style: none;
   }
 
   li {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 12px;
-    margin-bottom: 8px;
-    border: 1px solid var(--juya-color-border);
-    border-radius: 10px;
-    background: var(--juya-color-surface);
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr) 240px;
+    align-items: center;
+    gap: 0;
+    min-height: 48px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--juya-color-border);
     overflow-wrap: anywhere;
+  }
+
+  .order {
+    color: var(--juya-color-text-secondary);
+  }
+
+  .scene-title {
+    padding-right: 12px;
+  }
+
+  @media (width <= 700px) {
+    .list-heading {
+      display: none;
+    }
+
+    li {
+      grid-template-columns: 50px minmax(0, 1fr);
+    }
+
+    .row-actions {
+      grid-column: 2;
+    }
   }
 
   .row-actions {

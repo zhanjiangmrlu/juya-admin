@@ -1,33 +1,5 @@
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 
-test('图片上传开始后可以取消单个任务', async ({ adminApi, page }) => {
-  await page.route('**/__e2e-upload', async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 2_000))
-    await route.fulfill({ status: 204 })
-  })
-  await loginAsAdmin(page)
-  await navigateInApp(page, '/content/import')
-  await page.locator('.batch-form').getByLabel('内容分类').press('Enter')
-  await page.getByRole('option', { name: '日常英语' }).click()
-  await page.locator('.batch-form').getByLabel('内容类型').press('Enter')
-  await page.getByRole('option', { name: '对话', exact: true }).click()
-  await page
-    .locator('.content-import-page input[type="file"]')
-    .last()
-    .setInputFiles({
-      buffer: Buffer.from('e2e-image'),
-      mimeType: 'image/png',
-      name: 'scene.png'
-    })
-  await page.getByRole('button', { name: '开始上传' }).click()
-  await expect(page.getByText('正在上传')).toBeVisible()
-  await page.getByRole('button', { name: '取消' }).click()
-  await expect(page.getByText('已取消')).toBeVisible()
-
-  const policy = adminApi.findRequest('POST', '/api/v1/admin/media/upload-policies')
-  expect(policy?.headers['x-csrf-token']).toBe('csrf-e2e')
-})
-
 test('发布警告必须确认后才能提交发布命令', async ({ adminApi, page }) => {
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/scenes/REV-1/publish')

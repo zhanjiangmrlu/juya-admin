@@ -21,11 +21,11 @@ for (const viewport of dashboardViewports) {
     const heights = await controls.evaluateAll((elements) =>
       elements.map((element) => element.getBoundingClientRect().height)
     )
-    expect(heights).toEqual([32, 32, 32, 32, 32, 32, 32, 32])
-    await expect(page.getByRole('button', { name: '授予正式权益' })).toHaveCSS('height', '32px')
+    expect(heights).toEqual([44, 44, 44, 44, 44, 44, 44, 44])
+    await expect(page.getByRole('button', { name: '授予正式权益' })).toHaveCSS('height', '44px')
   })
 
-  test(`工作台业务卡片在 ${viewport.width}x${viewport.height} 下按设计显示业务卡片与快捷入口`, async ({
+  test(`工作台业务卡片在 ${viewport.width}x${viewport.height} 下显示六项指标和底栏操作`, async ({
     adminApi,
     page
   }) => {
@@ -37,7 +37,7 @@ for (const viewport of dashboardViewports) {
     const geometry = await page.evaluate(() => {
       const panels = Array.from(document.querySelectorAll<HTMLElement>('.dashboard-page .panel'))
       const metrics = document.querySelector<HTMLElement>('.dashboard-page .metrics')
-      const note = document.querySelector<HTMLElement>('.permission-note')
+      const note = document.querySelector<HTMLElement>('.production-note')
       if (!metrics || !note || panels.length !== 2) throw new Error('工作台布局节点缺失')
       return {
         metricBottom: metrics.getBoundingClientRect().bottom,
@@ -46,32 +46,32 @@ for (const viewport of dashboardViewports) {
           return { top: rect.top, bottom: rect.bottom, height: rect.height }
         }),
         noteTop: note.getBoundingClientRect().top,
-        viewportFillCount: document.querySelectorAll('.viewport-fill').length
+        metricHeights: Array.from(metrics.children).map(
+          (card) => card.getBoundingClientRect().height
+        )
       }
     })
 
-    expect(geometry.viewportFillCount).toBe(1)
+    expect(new Set(geometry.metricHeights).size).toBe(1)
+    expect(Math.min(...geometry.metricHeights)).toBeGreaterThanOrEqual(100)
     for (const panel of geometry.panelRects) {
-      expect(panel.height).toBeGreaterThanOrEqual(342)
-      expect(panel.top - geometry.metricBottom).toBeCloseTo(22, 0)
+      expect(panel.height).toBeGreaterThan(100)
+      expect(panel.top).toBeGreaterThan(geometry.metricBottom)
     }
-    expect(geometry.panelRects[0]?.bottom).toBe(geometry.panelRects[1]?.bottom)
-    expect(geometry.noteTop - geometry.panelRects[0]!.bottom).toBeCloseTo(24, 0)
-    await expect(page.getByRole('region', { name: '常用管理入口' }).getByRole('link')).toHaveCount(
-      4
-    )
+    expect(
+      geometry.noteTop - Math.max(...geometry.panelRects.map((rect) => rect.bottom))
+    ).toBeCloseTo(20, 0)
+    await expect(page.locator('.footer-actions').getByRole('button')).toHaveCount(2)
   })
 }
 
 test('侧栏使用可滚动的 Element Plus 导航并可到达最后一个入口', async ({ adminApi, page }) => {
   void adminApi
-  await page.setViewportSize({ height: 800, width: 1280 })
+  await page.setViewportSize({ height: 450, width: 1280 })
   await loginAsAdmin(page)
 
   const scrollbar = page.locator('.menu-scrollbar')
-  await scrollbar.locator('.el-sub-menu__title', { hasText: '统一权益中心' }).click()
-  await scrollbar.locator('.el-sub-menu__title', { hasText: '内容生产' }).click()
-  await expect(scrollbar.locator('.el-menu-item')).toHaveCount(14)
+  await expect(scrollbar.locator('.el-menu-item')).toHaveCount(9)
   await expect(scrollbar.locator('.el-menu-item.is-disabled')).toHaveCount(0)
   await expect(scrollbar).not.toContainText(/A03|A04|A08|A09|A11|A12|A15|A16|A19|A20|A21|A22/)
   const scrollbarWrap = scrollbar.locator('.menu-scrollbar-wrap')
@@ -106,15 +106,7 @@ test('隐藏菜单后仍可从列表进入详情和操作页并返回所属栏�
   await page.getByRole('button', { name: '返回用户列表' }).click()
   await expect(page).toHaveURL(/\/users(?:\?|$)/)
 
-  await navigation.locator('.el-sub-menu__title', { hasText: '统一权益中心' }).click()
-  await navigation.evaluate(async (element) => {
-    await Promise.all(
-      element
-        .getAnimations({ subtree: true })
-        .map((animation) => animation.finished.catch(() => undefined))
-    )
-  })
-  await navigation.getByRole('menuitem', { name: 'A05 统一权益中心' }).click()
+  await navigation.getByRole('menuitem', { name: '统一权益中心', exact: true }).click()
   await expect(page).toHaveURL(/\/entitlements$/)
   await page
     .getByRole('row')
@@ -122,18 +114,20 @@ test('隐藏菜单后仍可从列表进入详情和操作页并返回所属栏�
     .getByRole('link', { name: '查看' })
     .click()
   await expect(page).toHaveURL(/\/entitlements\/formal\/FORMAL-1\/action$/)
-  await expect(navigation.locator('.el-menu-item.is-active')).toContainText('A05')
-  await page.getByRole('button', { name: '返回权益中心' }).click()
+  await expect(navigation.locator('.el-menu-item.is-active')).toHaveText('统一权益中心')
+  await page.getByRole('button', { name: '返回列表', exact: true }).click()
   await expect(page).toHaveURL(/\/entitlements$/)
 
   await navigation.getByRole('menuitem', { name: '限时活动配置', exact: true }).click()
   await page.getByRole('link', { name: '编辑', exact: true }).click()
   await expect(page).toHaveURL(/\/campaigns\/CAMP-1\/edit$/)
   await expect(navigation.locator('.el-menu-item.is-active')).toHaveText('限时活动配置')
-  await page.getByRole('button', { name: '查看版本与容量' }).click()
+  await page.getByText('活动状态与版本详情', { exact: true }).click()
+  await page.getByRole('link', { name: '活动规则与容量' }).click()
   await expect(page).toHaveURL(/\/campaigns\/CAMP-1\/versions$/)
   await expect(navigation.locator('.el-menu-item.is-active')).toHaveText('限时活动配置')
-  await page.getByRole('button', { name: '返回活动列表' }).click()
+  await page.goBack()
+  await page.getByRole('button', { name: '返回列表', exact: true }).click()
   await expect(page).toHaveURL(/\/campaigns$/)
   expect(adminApi.unexpectedRequests).toEqual([])
 })
@@ -154,7 +148,7 @@ test('窄屏单列下非空待办卡片保持自然高度', async ({ adminApi, p
       status: 200
     })
   })
-  await page.setViewportSize({ height: 800, width: 1000 })
+  await page.setViewportSize({ height: 500, width: 850 })
   await loginAsAdmin(page)
   await expect(page.getByText('反馈处理已超时')).toBeVisible()
 

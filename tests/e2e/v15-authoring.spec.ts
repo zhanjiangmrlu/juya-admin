@@ -1,6 +1,17 @@
 import { createHash } from 'node:crypto'
 
+import type { Page } from '@playwright/test'
+
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
+
+/** 切换同一内容的编辑区
+ * @param page - 当前管理页面
+ * @param label - 工作区名称
+ */
+const switchArea = async (page: Page, label: string): Promise<void> => {
+  await page.getByRole('combobox', { name: '切换内容工作区', exact: true }).press('Enter')
+  await page.getByRole('option', { name: label, exact: true }).click()
+}
 
 const reading = {
   title_en: 'An independent reading',
@@ -53,6 +64,7 @@ test('短文双版本保存保留未修改段落编号且不自动核验版权',
   })
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/short-readings/READING-1/edit')
+  await page.getByText('编辑正文与译文', { exact: true }).click()
   await expect(page.getByLabel('完整英文', { exact: true })).toHaveValue(
     reading.paragraphs_en.join('\n\n')
   )
@@ -95,6 +107,7 @@ test('词库候选采纳要求人工核对，未保存正文变更使候选失�
     route.fulfill({
       json: {
         id: 'CANDIDATE-1',
+        revision_id: 'REV-DRAFT-1',
         status: 'READY',
         input_hash: 'a'.repeat(64),
         candidate: {
@@ -109,14 +122,18 @@ test('词库候选采纳要求人工核对，未保存正文变更使候选失�
     })
   )
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/scenes/SCENE-1/edit?stage=proofread')
+  await navigateInApp(page, '/content/scenes/SCENE-1/edit?stage=candidates')
   await page.getByRole('button', { name: '保存并请求词库候选', exact: true }).click()
   await expect(page.getByLabel('候选中文 1')).toHaveValue('想要')
   const adopt = page.getByRole('button', { name: '采纳这一项', exact: true })
   await expect(adopt).toBeDisabled()
   await page.locator('.content-candidates-panel .el-checkbox').click()
   await expect(adopt).toBeEnabled()
+  await switchArea(page, '正文对照与配对校对')
   await page.getByLabel('英文句子 1', { exact: true }).fill('The source changed.')
+  await switchArea(page, '中央词库候选')
+  await page.getByLabel('候选任务编号').filter({ visible: true }).fill('CANDIDATE-1')
+  await page.getByRole('button', { name: '恢复 / 刷新候选', exact: true }).click()
   await expect(adopt).toBeDisabled()
   expect(
     adminApi.requests.filter((request) => request.pathname.includes('/adoptions'))
@@ -124,22 +141,24 @@ test('词库候选采纳要求人工核对，未保存正文变更使候选失�
 })
 
 test('独立素材包明确选择草稿、文件角色与稳定词条后绑定', async ({ adminApi, page }) => {
-  await page.route('**/api/v1/admin/content/scenes?**', (route) =>
+  await page.route('**/api/v1/admin/content/catalogue?**', (route) =>
     route.fulfill({
       json: {
         items: [
           {
             id: 'SCENE-1',
-            title: 'Ordering coffee',
+            title_en: 'Ordering coffee',
+            title_zh: '',
             draft_revision_id: 'REV-DRAFT-1',
-            template_type: 'dialogue',
-            status: 'DRAFT'
+            content_type: 'dialogue',
+            status: 'PUBLISHED'
           },
           {
             id: 'SCENE-2',
-            title: 'Another target',
+            title_en: 'Another target',
+            title_zh: '',
             draft_revision_id: 'REV-SECOND',
-            template_type: 'dialogue',
+            content_type: 'dialogue',
             status: 'DRAFT'
           }
         ],
@@ -176,6 +195,7 @@ test('独立素材包明确选择草稿、文件角色与稳定词条后绑定',
   })
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/import')
+  await page.getByRole('button', { name: '添加音频或图片', exact: true }).click()
   const panel = page.locator('.content-materials-panel')
   await panel.getByRole('button', { name: '加载素材分类 / 草稿', exact: true }).click()
   await panel.getByRole('combobox', { name: '素材目标分类', exact: true }).press('Enter')
@@ -193,15 +213,21 @@ test('独立素材包明确选择草稿、文件角色与稳定词条后绑定',
   await page.getByRole('option', { name: '词汇小图', exact: true }).click()
   await panel.getByRole('combobox', { name: '素材词条 1', exact: true }).press('Enter')
   await page.getByRole('option', { name: /latte/ }).click()
-  const bind = panel.getByRole('button', { name: '确认绑定选中 1 个文件', exact: true })
+  await page.getByRole('button', { name: '查看合格预览', exact: true }).click()
+  const bind = page.getByRole('button', { name: '确认导入', exact: true })
   await expect(bind).toBeDisabled()
   await panel.locator('.el-checkbox').filter({ hasText: '已逐项核对文件' }).click()
+  await expect(bind).toBeEnabled()
+  await page.getByRole('button', { name: '上一步', exact: true }).click()
   await panel.getByRole('combobox', { name: '素材目标草稿', exact: true }).press('Enter')
   await page.getByRole('option', { name: /Another target · REV-SECOND/ }).click()
-  await expect(bind).toBeDisabled()
+  await expect(page.getByRole('button', { name: '查看合格预览', exact: true })).toBeDisabled()
+  expect(body).toBeNull()
   await panel.getByRole('combobox', { name: '素材目标草稿', exact: true }).press('Enter')
   await page.getByRole('option', { name: /Ordering coffee · REV-DRAFT-1/ }).click()
   await panel.getByRole('button', { name: '读取固定草稿', exact: true }).click()
+  await page.getByRole('button', { name: '查看合格预览', exact: true }).click()
+  await expect(bind).toBeDisabled()
   await panel.locator('.el-checkbox').filter({ hasText: '已逐项核对文件' }).click()
   await bind.click()
   await expect
@@ -256,6 +282,7 @@ test('首次创建短文跳转后可以继续编辑与保存', async ({ adminApi
     await page.getByLabel(label!, { exact: true }).fill(value!)
   await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await expect(page).toHaveURL(/CREATED-READING\/edit/)
+  await page.getByText('编辑元信息', { exact: true }).click()
   await expect(page.getByLabel('英文标题', { exact: true })).toBeEnabled()
   await page.getByLabel('英文标题', { exact: true }).fill('Second save after creating')
   await page.getByRole('button', { name: '保存草稿', exact: true }).click()
@@ -282,9 +309,10 @@ test('单句重切先保存完整草稿，保留同页未保存的正文修改',
     route.fulfill({ status: 409, json: { code: 'SLICE_NOT_READY', message: '切片仍在生成' } })
   )
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/scenes/SCENE-1/edit?stage=proofread')
+  await navigateInApp(page, '/content/scenes/SCENE-1/edit?stage=draft')
   await page.getByLabel('英文标题', { exact: true }).fill('Local metadata survives cutting')
-  await page.getByRole('tab', { name: '音频切片', exact: true }).click()
+  await switchArea(page, '场景音频对齐与切片')
+  await page.getByText('上传 / 替换与选择音频版本', { exact: true }).click()
   await page.getByRole('button', { name: '调整边界', exact: true }).click()
   await page.getByRole('button', { name: '仅重生成这一句', exact: true }).click()
   await expect
@@ -301,7 +329,7 @@ test('单句重切先保存完整草稿，保留同页未保存的正文修改',
     adminApi.findRequest('PUT', '/api/v1/admin/content/revisions/REV-DRAFT-1')?.body
   ).toMatchObject({ content: { title_en: 'Local metadata survives cutting' } })
   await expect(page.getByRole('button', { name: '刷新切片状态', exact: true })).toBeEnabled()
-  await page.getByRole('tab', { name: '内容校对', exact: true }).click()
+  await switchArea(page, '场景结构化编辑')
   await expect(page.getByLabel('英文标题', { exact: true })).toHaveValue(
     'Local metadata survives cutting'
   )
@@ -353,12 +381,14 @@ test('固定短文抽样完成后只批准明确选择且不伪造听音事实',
   })
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/short-readings/READING-1/edit')
+  await page.getByText('人工校对与正常抽样', { exact: true }).click()
   await page.getByRole('button', { name: '建立当前明确候选集合', exact: true }).click()
   const panel = page.locator('.proofreading-set-panel')
   await expect(panel.getByText('The unchanged first paragraph.', { exact: true })).toBeVisible()
-  await panel.locator('.el-checkbox').filter({ hasText: '已核对完整中英文' }).click()
+  await panel.locator('.el-checkbox').filter({ hasText: '已核对完整正文、全文译文' }).click()
   await page.getByRole('button', { name: '确认这一篇', exact: true }).click()
-  await expect(panel.getByText('已批准 1', { exact: true })).toBeVisible()
+  await expect(panel.getByRole('combobox', { name: '当前校对候选' })).toHaveValue('')
+  await expect(panel.getByText(/独立阅读.*已确认/).first()).toBeVisible()
   await panel.locator('.el-checkbox-group .el-checkbox').click()
   const approve = page.getByRole('button', { name: '批准明确选中 1 篇正常候选', exact: true })
   await expect(approve).toBeDisabled()

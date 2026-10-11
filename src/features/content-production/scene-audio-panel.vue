@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+import playIcon from '@/features/audio/assets/audio-play.svg'
 import SentenceSlicesPanel from '@/features/audio/sentence-slices-panel.vue'
 
 import type { AudioVersion } from '@/features/audio/audio-version-model'
@@ -48,41 +49,60 @@ onBeforeUnmount(() => emit('element', null))
       :title="ADMIN_SECTION_TITLES.sceneAudioPanel.audioSourcePanel"
       class="audio-source-panel"
     >
-      <p>绑定固定音频版本。更换版本后需重新标记并核对每句时间。</p>
-      <div class="audio-actions">
-        <ElButton :loading="busy" @click="emit('load')">加载音频版本</ElButton>
-        <ElUpload
-          :auto-upload="false"
-          :show-file-list="false"
-          accept=".mp3,.m4a,.wav,.aac"
+      <p>整段音频与句子边界绑定同一候选版本。更换原音频后重新生成受影响切片。</p>
+      <details class="source-management">
+        <summary>上传 / 替换与选择音频版本</summary>
+        <div class="audio-actions">
+          <ElButton :loading="busy" @click="emit('load')">加载音频版本</ElButton>
+          <ElUpload
+            :auto-upload="false"
+            :show-file-list="false"
+            accept=".mp3,.m4a,.wav,.aac"
+            :disabled="busy"
+            @change="emit('upload', $event)"
+          >
+            <ElButton :loading="busy">上传整段音频</ElButton>
+          </ElUpload>
+          <ElButton v-if="pendingFile" :loading="busy" @click="emit('upload', pendingFile)">
+            重新确认已上传音频
+          </ElButton>
+        </div>
+        <ElSelect
+          :model-value="selectedVersion"
+          aria-label="整段音频版本"
+          placeholder="选择固定版本"
           :disabled="busy"
-          @change="emit('upload', $event)"
+          @update:model-value="emit('bind', String($event))"
         >
-          <ElButton :loading="busy">上传整段音频</ElButton>
-        </ElUpload>
-        <ElButton v-if="pendingFile" :loading="busy" @click="emit('upload', pendingFile)">
-          重新确认已上传音频
-        </ElButton>
-      </div>
-      <ElSelect
-        :model-value="selectedVersion"
-        aria-label="整段音频版本"
-        placeholder="选择固定版本"
-        :disabled="busy"
-        @update:model-value="emit('bind', String($event))"
-      >
-        <ElOption
-          v-for="version in versions"
-          :key="version.id"
-          :label="`v${version.versionNo} · ${version.status} · ${version.assetId}`"
-          :value="version.id"
-        />
-      </ElSelect>
+          <ElOption
+            v-for="version in versions"
+            :key="version.id"
+            :label="`v${version.versionNo} · ${version.status} · ${version.assetId}`"
+            :value="version.id"
+          />
+        </ElSelect>
+      </details>
       <template v-if="form.audio">
         <p class="audio-version-meta">
           当前 {{ form.audio.version_id }} · {{ form.audio.duration_ms }} 毫秒
         </p>
-        <ElButton @click="emit('play')">{{ player?.label('scene') ?? '播放' }}整段音频</ElButton>
+        <ElButton class="whole-audio-button" @click="emit('play')"
+          ><img :src="playIcon" alt="" />{{ player?.label('scene') ?? '播放' }}整段音频</ElButton
+        >
+        <div class="audio-timeline">
+          <ElProgress
+            :percentage="
+              Math.min(100, ((player?.currentMs.value ?? 0) / form.audio.duration_ms) * 100)
+            "
+            :show-text="false"
+            :stroke-width="32"
+          />
+          <div class="timeline-labels">
+            <span>{{ ((player?.currentMs.value ?? 0) / 1000).toFixed(3) }} 秒</span
+            ><span>{{ form.dialogue.length }}句</span
+            ><span>{{ (form.audio.duration_ms / 1000).toFixed(3) }} 秒</span>
+          </div>
+        </div>
         <p class="player-status" aria-live="polite">
           当前 {{ player?.currentMs.value ?? 0 }} 毫秒 · {{ player?.statusText.value }}
           {{ player?.error.value }}
@@ -116,7 +136,7 @@ onBeforeUnmount(() => emit('element', null))
 }
 
 .scene-audio-panel > :deep(.el-card:first-child) {
-  background: #eaf2e3;
+  background: var(--juya-color-surface);
 }
 
 .scene-audio-panel :deep(.el-card__header) {
@@ -134,9 +154,42 @@ onBeforeUnmount(() => emit('element', null))
 
 .audio-source-panel :deep(.el-card__body) {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 10px 18px;
+}
+
+.source-management {
+  summary {
+    color: var(--el-color-primary);
+    cursor: pointer;
+  }
+
+  &[open] summary {
+    margin-bottom: 16px;
+  }
+}
+
+.whole-audio-button {
+  width: fit-content;
+
+  img {
+    margin-right: 8px;
+  }
+}
+
+.audio-timeline {
+  padding: 16px;
+  background: #e2eed9;
+
+  .timeline-labels {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    color: var(--el-color-primary);
+    font-size: 11px;
+  }
 }
 
 .audio-source-panel p {

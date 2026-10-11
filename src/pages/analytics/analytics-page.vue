@@ -13,6 +13,7 @@ import {
   groupAnalyticsRows,
   METRIC_LABELS
 } from '@/features/analytics/analytics-model'
+import CloudUsagePanel from '@/features/analytics/cloud-usage-panel.vue'
 import { useAnalytics } from '@/features/analytics/use-analytics'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
@@ -250,6 +251,7 @@ function downloadRows(): void {
         / 累计分母。状态库存按区间最后一天展示，历史状态变更按动作计数。
       </p>
     </AdminPanel>
+    <CloudUsagePanel :period="dateRange?.[1] || today" />
   </section>
 </template>
 

@@ -63,7 +63,7 @@ describe('scene draft panel', () => {
     const { form, wrapper } = mountPanel()
     const original = wrapper
       .findAllComponents(ElFormItem)
-      .find((item) => item.props('label') === '学习原图素材编号')!
+      .find((item) => item.props('label') === '学习图片素材编号（选填）')!
     await original.get('input').setValue('IMAGE-2')
     expect(form.original_image_asset_id).toBe('IMAGE-2')
     expect(wrapper.emitted('refreshImage')).toHaveLength(1)

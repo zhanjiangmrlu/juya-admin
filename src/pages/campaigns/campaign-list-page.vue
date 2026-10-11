@@ -42,36 +42,36 @@ const state = ref<'loading' | 'empty' | 'error' | 'success'>('loading')
 const error = ref('')
 const apiError = shallowRef<ApiError | null>(null)
 let requestSequence = 0
-/**
- * 加载服务端活动分页。
- * @returns 活动列表加载完成后的 Promise
- */
-async function load(): Promise<void> {
-  const sequence = ++requestSequence
-  state.value = 'loading'
-  error.value = ''
-  apiError.value = null
-  try {
-    const result = await adapter.list(filters.page, filters.status || undefined, filters.pageSize)
-    if (sequence !== requestSequence) return
-    page.value = result
-    state.value = page.value.items.length ? 'success' : 'empty'
-  } catch (failure) {
-    if (sequence !== requestSequence) return
-    state.value = 'error'
-    apiError.value = failure instanceof ApiError ? failure : null
-    error.value = failure instanceof ApiError ? failure.message : '活动列表加载失败，请重试'
+const /**
+   * 加载服务端活动分页。
+   * @returns 活动列表加载完成后的 Promise
+   */
+  load = async (): Promise<void> => {
+    const sequence = ++requestSequence
+    state.value = 'loading'
+    error.value = ''
+    apiError.value = null
+    try {
+      const result = await adapter.list(filters.page, filters.status || undefined, filters.pageSize)
+      if (sequence !== requestSequence) return
+      page.value = result
+      state.value = page.value.items.length ? 'success' : 'empty'
+    } catch (failure) {
+      if (sequence !== requestSequence) return
+      state.value = 'error'
+      apiError.value = failure instanceof ApiError ? failure : null
+      error.value = failure instanceof ApiError ? failure.message : '活动列表加载失败，请重试'
+    }
   }
-}
-/**
- * 切换服务端分页。
- * @param next - 新页码
- * @returns 无返回值
- */
-function changePage(next: number): void {
-  filters.page = next
-  void load()
-}
+const /**
+   * 切换服务端分页。
+   * @param next - 新页码
+   * @returns 无返回值
+   */
+  changePage = (next: number): void => {
+    filters.page = next
+    void load()
+  }
 void load()
 </script>
 
@@ -94,7 +94,7 @@ void load()
             :label="
               {
                 DRAFT: '草稿',
-                OPEN: '已启用',
+                OPEN: '可开通',
                 PAUSED: '已暂停',
                 ENDED: '已结束',
                 ARCHIVED: '已归档',
@@ -137,12 +137,12 @@ void load()
       >
         <template #version="{ row }">v{{ row.version }}</template>
         <template #capacity="{ row }"
-          >{{ row.grantedUserCount ?? '—' }} / {{ row.capacity ?? '—' }}</template
+          >{{ row.grantedUserCount ?? '—' }} / {{ row.capacity ?? '不限人数' }}</template
         >
         <template #status="{ row }">{{
           {
             DRAFT: '草稿',
-            OPEN: '已启用',
+            OPEN: '可开通',
             PAUSED: '已暂停',
             ENDED: '已结束',
             ARCHIVED: '已归档',

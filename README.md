@@ -1,5 +1,7 @@
 # 句芽英语管理后台
 
+2026-10-11 已对照 Figma V1.5 管理后台母版 `2660:2` 核查与还原，最新页面、功能修正、旧入口清理和验证边界见 [本次还原记录](docs/implementation/v15-design-restoration-20261011.md)。此前 V1.3 截图与内容生产入口不作为本次基线。
+
 `juya-admin` 是句芽英语 V1.5 的单管理员内容与运营后台，覆盖登录页与 A01–A26。项目使用 Vue 3、TypeScript、Vite、Element Plus、Pinia、Vue Router、SCSS 和 ECharts，并按 `juya-admin-api` 契约处理用户、权益、反馈、内容生产、匿名统计与系统配置。
 
 V1.5 公开契约页面已具备联调条件；完整需求缺口与真实验收边界见 [实施记录](docs/implementation/v15-progress.md)，隔离环境页面操作与判定标准见 [联调清单](docs/implementation/v15-integration-ready.md)。当前联调由协调侧统一安排隔离服务，下面的常规本地启动步骤不作为本轮共享环境操作指令。

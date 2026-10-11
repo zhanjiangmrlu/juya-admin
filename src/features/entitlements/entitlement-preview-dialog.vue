@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
+import { FORMAL_TERM_LABELS } from '@/features/entitlements/formal-entitlement-model'
 import { createUserAdapter } from '@/features/users/user-adapter'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 import { formatDateTime } from '@/shared/utils/date-time'
@@ -63,7 +64,7 @@ onBeforeUnmount(() => {
 const emit = defineEmits<{ confirm: [reason: string] }>()
 const reasonType = ref('运营调整')
 const statusLabels: Record<string, string> = {
-  ACTIVE: '有效',
+  ACTIVE: '正常使用',
   PAUSED: '已暂停',
   REVOKED: '已撤销',
   EXPIRED: '已到期',
@@ -72,9 +73,9 @@ const statusLabels: Record<string, string> = {
   START_EXPIRED: '启动窗口已过期'
 }
 const operationLabels: Record<string, string> = {
-  GRANT: '开通',
+  GRANT: '开通内容',
   RENEW: '续期',
-  REGRANT: '重新开通',
+  REGRANT: '重新开通内容',
   CONVERT_PERMANENT: '转为永久',
   PAUSE: '暂停',
   RESUME: '恢复',
@@ -101,17 +102,32 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
   <ElDialog
     v-model="opened"
     :title="`确认${actualLabel}`"
-    width="min(620px, 94vw)"
+    width="min(680px, 94vw)"
     align-center
     :close-on-click-modal="!submitting"
     :close-on-press-escape="!submitting"
     :show-close="!submitting"
   >
     <div class="preview-dialog">
-      <p class="identity">
-        <strong>{{ identity || userLabel }}</strong
-        ><span>{{ contentLabel }}</span>
-      </p>
+      <div class="change-row">
+        <span>用户</span>
+        <div>{{ identity || userLabel }}</div>
+      </div>
+      <div class="change-row">
+        <span>内容包</span>
+        <div>
+          <strong>{{ contentLabel }}</strong>
+        </div>
+      </div>
+      <div class="change-row">
+        <span>实际操作</span>
+        <div>
+          {{ actualLabel
+          }}<span v-if="after.term && Object.hasOwn(FORMAL_TERM_LABELS, after.term)">
+            · {{ FORMAL_TERM_LABELS[after.term as keyof typeof FORMAL_TERM_LABELS] }}</span
+          >
+        </div>
+      </div>
       <ElAlert
         v-if="actualOperation === 'RENEW'"
         title="当前权益有效，本次实际执行续期"
@@ -140,7 +156,7 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
               ? formatDateTime(
                   before.expiresAt,
                   before.term === 'permanent'
-                    ? '永久'
+                    ? '无到期日期'
                     : before.status === 'PENDING'
                       ? '尚未开始'
                       : '无到期日期'
@@ -152,7 +168,7 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
             formatDateTime(
               after.expiresAt,
               after.term === 'permanent'
-                ? '永久'
+                ? '无到期日期'
                 : after.status === 'PENDING'
                   ? '尚未开始'
                   : '无到期日期'
@@ -167,6 +183,15 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
           <strong>{{ formatDateTime(after.startDeadline) }}</strong>
         </div>
       </div>
+      <p class="impact">
+        {{
+          ['PAUSE', 'REVOKE'].includes(actualOperation)
+            ? '暂不能访问内容包完整内容；收藏、学习进度和历史成果继续保留。操作原因与前后状态记录在操作审计中。'
+            : actualOperation === 'RENEW'
+              ? '续期从原到期时间按自然月顺延；确认时状态发生变化，将重新获取预览。'
+              : '确认后可访问该内容包，学习数据按原规则保留。'
+        }}
+      </p>
       <ElCollapse
         ><ElCollapseItem title="对象与版本详情"
           ><small>{{ objectId }} · 预览基于版本 {{ expectedVersion }}</small></ElCollapseItem
@@ -202,7 +227,7 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
     <template #footer
       ><ElButton :disabled="submitting" @click="opened = false">返回修改</ElButton
       ><ElButton
-        type="primary"
+        :type="['PAUSE', 'REVOKE'].includes(actualOperation) ? 'danger' : 'primary'"
         :loading="submitting"
         :disabled="invalid || submitting"
         @click="confirm"
@@ -214,7 +239,7 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
 <style scoped lang="scss">
 .preview-dialog {
   display: grid;
-  gap: 16px;
+  gap: 10px;
 
   .identity {
     display: flex;
@@ -228,8 +253,8 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
     display: grid;
     grid-template-columns: 90px minmax(0, 1fr);
     gap: 12px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--el-border-color-light);
+    padding: 2px 0;
+    border-bottom: 0;
 
     > span {
       color: var(--juya-color-text-secondary);

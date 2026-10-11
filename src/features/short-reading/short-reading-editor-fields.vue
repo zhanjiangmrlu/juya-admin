@@ -42,6 +42,8 @@ const paragraphs = computed({
   get: () => form.value.paragraphs_en.join('\n\n'),
   set: updateParagraphs
 })
+const metadataOpen = ref(!form.value.title_en.trim())
+const bodyOpen = ref(!form.value.paragraphs_en.some((paragraph) => paragraph.trim()))
 const audioPlayed = ref(false)
 watch(
   () => form.value.audio?.version_id,
@@ -76,22 +78,34 @@ const metadata: readonly [
 </script>
 <template>
   <div class="short-reading-fields">
-    <AdminPanel title="短文元信息与选填封面">
-      <ElForm label-position="top" class="metadata" :disabled="disabled || busy"
-        ><ElFormItem v-for="[key, label] in metadata" :key="key" :label="label" required
-          ><ElInput
-            v-model="form[key]"
-            :type="['safe_intro', 'copyright_source'].includes(key) ? 'textarea' : 'text'"
-            :aria-label="label" /></ElFormItem
-        ><ElFormItem label="版权核验"
-          ><ElCheckbox
-            :model-value="form.copyright_status === 'CONFIRMED'"
-            @update:model-value="form.copyright_status = $event ? 'CONFIRMED' : 'PENDING'"
-            >已人工核验来源与使用授权</ElCheckbox
-          ></ElFormItem
-        ></ElForm
-      >
+    <AdminPanel title="元信息">
+      <div class="metadata-summary">
+        <ElTag effect="plain">{{ form.category || '类别待填写' }}</ElTag>
+        <ElTag effect="plain">{{ form.topic || '题材待填写' }}</ElTag>
+        <ElTag effect="plain">{{ form.level || '提示性难度待填写' }}</ElTag>
+        <h3>{{ form.title_en || '英文标题' }}｜{{ form.title_zh || '中文标题' }}</h3>
+        <p>简介：{{ form.safe_intro || '待填写安全简介' }}</p>
+        <p>来源 / 版权：{{ form.copyright_source || '待填写并核验' }}</p>
+      </div>
+      <details class="editor-details" :open="metadataOpen">
+        <summary>编辑元信息</summary>
+        <ElForm label-position="top" class="metadata" :disabled="disabled || busy"
+          ><ElFormItem v-for="[key, label] in metadata" :key="key" :label="label" required
+            ><ElInput
+              v-model="form[key]"
+              :type="['safe_intro', 'copyright_source'].includes(key) ? 'textarea' : 'text'"
+              :aria-label="label" /></ElFormItem
+          ><ElFormItem label="版权核验"
+            ><ElCheckbox
+              :model-value="form.copyright_status === 'CONFIRMED'"
+              @update:model-value="form.copyright_status = $event ? 'CONFIRMED' : 'PENDING'"
+              >已人工核验来源与使用授权</ElCheckbox
+            ></ElFormItem
+          ></ElForm
+        >
+      </details>
       <div class="cover">
+        <p v-if="!form.cover_asset_id">安全封面：未上传，使用默认安全素材</p>
         <img v-if="coverUrl" :src="coverUrl" alt="当前安全封面" /><ElUpload
           :auto-upload="false"
           :show-file-list="false"
@@ -108,22 +122,30 @@ const metadata: readonly [
       </div>
     </AdminPanel>
     <div class="reading-grid">
-      <AdminPanel title="完整双语正文"
-        ><ElForm label-position="top" :disabled="disabled || busy"
-          ><ElFormItem label="完整英文（空行分段）" required
-            ><ElInput
-              v-model="paragraphs"
-              aria-label="完整英文"
-              type="textarea"
-              :rows="12" /></ElFormItem
-          ><ElFormItem label="全文中文翻译" required
-            ><ElInput
-              v-model="form.translation_zh"
-              aria-label="全文中文翻译"
-              type="textarea"
-              :rows="10" /></ElFormItem></ElForm
-      ></AdminPanel>
-      <AdminPanel title="全文音频（选填）"
+      <AdminPanel title="英文正文与全文译文">
+        <div class="body-preview">
+          <p v-for="(paragraph, index) in form.paragraphs_en" :key="index">{{ paragraph }}</p>
+          <p class="translation">{{ form.translation_zh }}</p>
+        </div>
+        <details class="editor-details" :open="bodyOpen">
+          <summary>编辑正文与译文</summary>
+          <ElForm label-position="top" :disabled="disabled || busy"
+            ><ElFormItem label="完整英文（空行分段）" required
+              ><ElInput
+                v-model="paragraphs"
+                aria-label="完整英文"
+                type="textarea"
+                :rows="12" /></ElFormItem
+            ><ElFormItem label="全文中文翻译" required
+              ><ElInput
+                v-model="form.translation_zh"
+                aria-label="全文中文翻译"
+                type="textarea"
+                :rows="10" /></ElFormItem
+          ></ElForm>
+        </details>
+      </AdminPanel>
+      <AdminPanel title="全文朗读音频 · 选填"
         ><p>短文可以不配音频。上传后核对实际时长、正文与声音；替换形成新候选版本。</p>
         <ElUpload
           :auto-upload="false"
@@ -160,6 +182,53 @@ const metadata: readonly [
   gap: 18px;
   min-width: 0;
 
+  .metadata-summary {
+    h3 {
+      margin: 14px 0 8px;
+      font-size: 16px;
+      line-height: 26px;
+    }
+
+    :deep(.el-tag) {
+      margin-right: 10px;
+    }
+
+    p {
+      margin: 8px 0;
+      font-size: 13px;
+    }
+  }
+
+  .body-preview {
+    p {
+      margin: 0 0 14px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: var(--juya-color-text-primary);
+    }
+
+    .translation {
+      color: var(--juya-color-text-secondary);
+    }
+  }
+
+  .editor-details {
+    margin: 14px 0;
+
+    summary {
+      width: fit-content;
+      border-radius: 12px;
+      padding: 10px 24px;
+      background: #e2eed9;
+      color: var(--juya-color-text-primary);
+      cursor: pointer;
+    }
+
+    &:where([open]) summary {
+      margin-bottom: 18px;
+    }
+  }
+
   .metadata {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -168,7 +237,7 @@ const metadata: readonly [
 
   .reading-grid {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
     gap: 18px;
   }

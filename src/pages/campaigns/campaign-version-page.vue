@@ -3,15 +3,17 @@ import { ElMessage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import AdminNotice from '@/components/admin-notice/admin-notice.vue'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
 import { validateCapacityLimit } from '@/features/campaigns/campaign-model'
 import { useCampaignEditor } from '@/features/campaigns/use-campaign-editor'
+import { createContentAdapter } from '@/features/content/content-adapter'
 import { createApiClient } from '@/services/api/api-client'
+import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 const route = useRoute()
 const router = useRouter()
@@ -29,6 +31,8 @@ const editor = useCampaignEditor(
     })
   )
 )
+const content = createContentAdapter(useAdminApiClient())
+const titles = ref<Record<string, string>>({})
 const capacity = ref<number | null | undefined>()
 const capacityLimited = computed({
   get: () => capacity.value !== null,
@@ -52,272 +56,203 @@ watch(
     void editor
       .load(id)
       .then((loaded) => {
-        if (loaded && id === campaignId.value)
+        if (loaded && id === campaignId.value) {
           capacity.value = editor.server.value?.currentVersion?.capacity
+          for (const sceneId of editor.server.value?.currentVersion?.sceneIds ?? []) {
+            void content
+              .getScene(sceneId)
+              .then((scene) => {
+                if (id === campaignId.value) titles.value[sceneId] = scene.title
+              })
+              .catch(() => undefined)
+          }
+        }
       })
       .catch(() => undefined)
   },
   { immediate: true }
 )
-/**
- * 提交已确认的容量命令。
- * @returns 容量命令完成后的 Promise
- */
-async function confirm(): Promise<void> {
-  if (capacity.value === undefined || !capacityValidation.value?.valid) return
-  try {
-    await editor.command('capacity', capacity.value)
-    confirmVisible.value = false
-    ElMessage.success('容量已更新')
-  } catch {
-    confirmVisible.value = false
+const /**
+   * 提交已确认的容量命令。
+   * @returns 容量命令完成后的 Promise
+   */
+  confirm = async (): Promise<void> => {
+    if (capacity.value === undefined || !capacityValidation.value?.valid) return
+    try {
+      await editor.command('capacity', capacity.value)
+      confirmVisible.value = false
+      ElMessage.success('容量已更新')
+    } catch {
+      confirmVisible.value = false
+    }
   }
-}
+const /** 复制真实活动版本后进入可编辑草稿 */
+  copy = async (): Promise<void> => {
+    try {
+      await editor.copy()
+      await router.push({ name: 'campaign-edit', params: { id: campaignId.value } })
+    } catch {
+      /* 保留真实错误 */
+    }
+  }
 </script>
 
 <template>
-  <section class="campaign-version-page admin-operations-surface">
+  <section class="campaign-version-page">
     <ElSkeleton
       v-if="editor.state.value === 'loading'"
       :rows="6"
       animated
       aria-label="正在加载活动版本"
     />
-    <ElAlert
-      v-if="editor.error.value"
-      :title="editor.error.value"
-      type="error"
-      :closable="false"
-      show-icon
-    >
-      <ApiErrorDetails :error="editor.apiError.value" />
-      <p v-if="editor.conflict.value">
-        原容量输入已保留。服务端最新版本：{{
-          editor.conflictVersion.value === null
-            ? '暂未获取，请刷新'
-            : `v${editor.conflictVersion.value}`
-        }}，请核对后重试。
-      </p>
+    <ElAlert v-if="editor.error.value" :title="editor.error.value" type="error" :closable="false"
+      ><ApiErrorDetails :error="editor.apiError.value" />
+      <p v-if="editor.conflict.value">原容量输入已保留，请刷新信息并核对后重试。</p>
       <ElButton @click="editor.load(campaignId, true).catch(() => undefined)"
         >刷新服务端信息</ElButton
-      >
-    </ElAlert>
-    <div class="grid">
-      <AdminPanel class="version-card">
-        <template #header
-          ><h3>活动版本</h3>
-          <p class="panel-subtitle">{{ editor.server.value?.name || campaignId }}</p></template
-        >
-        <ElEmpty v-if="!current" description="活动尚无当前版本" />
-        <ElDescriptions v-else :column="1" border direction="vertical">
-          <ElDescriptionsItem label="启用版本"
-            ><span>{{ current.id }}</span> · 第 {{ current.versionNo }} 版 ·
-            {{ current.status }}</ElDescriptionsItem
-          >
-          <ElDescriptionsItem label="期限模式"
-            >{{ current.durationDays }} 天 · 启动窗口
-            {{ current.activationWindowDays }} 天</ElDescriptionsItem
-          >
-          <ElDescriptionsItem label="场景顺序"
-            ><span class="wrap">{{
-              current.sceneIds.join(' → ') || '未配置'
-            }}</span></ElDescriptionsItem
-          >
-          <ElDescriptionsItem label="容量上限">{{
-            current.capacity ?? '不限人数'
-          }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="已开通人数">{{ current.grantedUserCount }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="开通时间"
-            >{{ current.grantStartsAt ?? '—' }} 至
-            {{ current.grantEndsAt ?? '—' }}</ElDescriptionsItem
-          >
-        </ElDescriptions>
-      </AdminPanel>
-      <AdminPanel class="capacity-card">
-        <template #header
-          ><h3>容量调整</h3>
-          <p class="panel-subtitle">容量不能低于服务端已开通人数</p></template
-        >
-        <ElDescriptions v-if="current" :column="1" class="summary">
-          <ElDescriptionsItem label="当前容量">{{
-            current.capacity ?? '不限人数'
-          }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="已开通人数">{{ current.grantedUserCount }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="服务端版本"
-            >v{{ editor.server.value?.version }}</ElDescriptionsItem
-          >
-        </ElDescriptions>
-        <ElForm label-position="top"
-          ><ElFormItem label="限制人数"
-            ><ElSwitch
-              v-model="capacityLimited"
-              :disabled="!current || !canChangeCapacity"
-              active-text="限制人数"
-              inactive-text="不限人数" /></ElFormItem
-          ><ElFormItem v-if="capacityLimited" label="新容量" class="capacity"
-            ><ElInputNumber
-              :key="String(canChangeCapacity)"
-              v-model="capacity"
-              :disabled="!current || !canChangeCapacity"
-              :min="1" /></ElFormItem
-        ></ElForm>
-        <ElAlert
-          v-if="capacityValidation && !capacityValidation.valid"
-          :title="capacityValidation.message"
-          type="error"
-          :closable="false"
+      ></ElAlert
+    >
+    <AdminPanel class="rules-card"
+      ><template #header
+        ><div class="card-heading">
+          <h3>{{ editor.server.value?.name || '活动规则' }}</h3>
+          <ElTag>{{
+            { OPEN: '可开通', DRAFT: '草稿', PAUSED: '暂停', ENDED: '结束', ARCHIVED: '归档' }[
+              editor.server.value?.status || ''
+            ] || editor.server.value?.status
+          }}</ElTag>
+        </div></template
+      ><ElEmpty v-if="!current" description="活动尚无当前版本" /><template v-else
+        ><p>
+          学习时长：{{ current.durationDays }}天 · 启动期限：开通后{{
+            current.activationWindowDays
+          }}天内首次开始
+        </p>
+        <strong class="scene-order">{{
+          current.sceneIds.map((id) => titles[id] || '内容标题暂未读取').join(' → ')
+        }}</strong>
+        <p class="help">
+          已首次开通后，学习时长、场景、顺序和启动期限已锁定。复制后可编辑新草稿，已有用户继续按原规则学习。
+        </p>
+        <ElCollapse
+          ><ElCollapseItem title="查看对象与版本详情"
+            ><p>
+              {{ current.id }} · 第{{ current.versionNo }}版 · v{{ editor.server.value?.version }}
+            </p>
+            <p>{{ current.sceneIds.join(' → ') }}</p></ElCollapseItem
+          ></ElCollapse
+        ></template
+      ></AdminPanel
+    >
+    <AdminPanel title="人数限制"
+      ><div class="capacity-summary">
+        <strong>累计开通人数：{{ current?.grantedUserCount ?? '—' }}人（只读）</strong
+        ><ElSwitch
+          v-model="capacityLimited"
+          :disabled="!current || !canChangeCapacity"
+          active-text="已限制人数"
+          inactive-text="不限人数"
         />
-        <ElButton
-          type="primary"
-          :disabled="
-            !current ||
-            !canChangeCapacity ||
-            !capacityValidation?.valid ||
-            capacity === current?.capacity
-          "
-          :loading="editor.state.value === 'submitting'"
-          @click="confirmVisible = true"
-          >确认调整容量</ElButton
-        >
-      </AdminPanel>
-    </div>
-    <AdminNotice class="notice" title="管理提醒">
-      <p>首次开通后锁定期限和场景；容量变更不改写已开通用户的活动版本。</p>
-    </AdminNotice>
-    <div class="page-toolbar footer-toolbar">
-      <RouterLink v-slot="{ navigate }" custom :to="{ name: 'campaigns' }"
-        ><ElButton @click="navigate">返回活动列表</ElButton></RouterLink
-      >
-    </div>
+      </div>
+      <ElForm label-position="top"
+        ><ElFormItem v-if="capacityLimited" label="人数上限"
+          ><ElInputNumber
+            :key="String(canChangeCapacity)"
+            v-model="capacity"
+            :disabled="!current || !canChangeCapacity"
+            :min="1"
+            :precision="0" /></ElFormItem></ElForm
+      ><ElAlert
+        v-if="capacityValidation && !capacityValidation.valid"
+        :title="capacityValidation.message"
+        type="error"
+        :closable="false"
+      />
+      <p class="help">
+        上限不能低于累计{{
+          current?.grantedUserCount ?? '—'
+        }}人。关闭限制后恢复不限人数，既有权益不受影响；到期、暂停、撤销均不释放累计名额。
+      </p></AdminPanel
+    >
+    <AppPageActions
+      ><ElButton
+        :disabled="
+          !current ||
+          !canChangeCapacity ||
+          !capacityValidation?.valid ||
+          editor.state.value === 'submitting'
+        "
+        @click="confirmVisible = true"
+        >保存容量</ElButton
+      ><ElButton
+        type="primary"
+        :disabled="!editor.server.value?.availableOperations.includes('copy')"
+        :loading="editor.state.value === 'submitting'"
+        @click="copy"
+        >复制并编辑</ElButton
+      ></AppPageActions
+    >
     <ConfirmDialog
-      v-if="current && editor.server.value"
+      v-if="editor.server.value && current"
       v-model="confirmVisible"
-      :before-status="`容量 ${current.capacity ?? '不限人数'}`"
-      :after-status="`容量 ${capacity === null ? '不限人数' : capacity}`"
-      :impact-scope="`已开通 ${current.grantedUserCount} 人；新容量将作用于当前版本`"
+      title="确认容量调整"
       :object-id="current.id"
+      :before-status="String(current.capacity ?? '不限人数')"
+      :after-status="String(capacity ?? '不限人数')"
+      impact-scope="调整新开通人数上限，已有用户权益不受影响"
       :reason-required="false"
       :submitting="editor.state.value === 'submitting'"
-      title="确认容量调整"
       @confirm="confirm"
     />
   </section>
 </template>
-
 <style scoped lang="scss">
-/* stylelint-disable selector-class-pattern -- 页面级 Element Plus BEM 覆盖，业务类名遵循仓库命名 */
 .campaign-version-page {
+  display: grid;
+  gap: 20px;
   min-width: 0;
-  color: var(--juya-color-text-primary);
 
-  .page-toolbar {
+  .card-heading,
+  .capacity-summary {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 16px;
-    margin-bottom: 20px;
-  }
-
-  .page-context {
-    margin: 0;
-    color: var(--juya-color-text-secondary);
-    font-size: 13px;
-    overflow-wrap: anywhere;
+    flex-wrap: wrap;
   }
 
   h3 {
     margin: 0;
-    color: var(--juya-color-text-primary);
-    font-size: 20px;
-    line-height: 28px;
+    font-size: 18px;
+    line-height: 29px;
   }
 
-  .panel-subtitle {
-    margin: 8px 0 0;
-    color: var(--juya-color-text-secondary);
-    font-size: 13px;
+  p {
+    font-size: 14px;
+    line-height: 22px;
   }
 
-  .grid {
-    display: grid;
-    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
-    gap: 18px;
-    margin-bottom: 18px;
-  }
-
-  .grid > * {
-    min-width: 0;
-    min-height: 570px;
-  }
-
-  .version-card {
-    background: #eaf2e3;
-  }
-
-  .version-card :deep(.el-descriptions__body) {
-    background: transparent;
-  }
-
-  .version-card :deep(.el-descriptions__table) {
-    border-collapse: separate;
-    border-spacing: 0 8px;
-    background: transparent;
-  }
-
-  .version-card :deep(.el-descriptions__label) {
-    height: 22px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--juya-color-text-secondary);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  .version-card :deep(.el-descriptions__content) {
-    padding: 8px 12px;
-    border: 1px solid #c9dac3;
-    border-radius: 10px;
-    background: #fffdf7;
+  .scene-order {
+    display: block;
+    margin: 20px 0;
     overflow-wrap: anywhere;
+    font-size: 17px;
   }
 
-  .capacity-card :deep(.el-descriptions__cell) {
-    padding: 16px 0 16px 14px;
-    border-left: 5px solid #4f833d;
+  .help {
+    color: var(--juya-color-text-secondary);
   }
 
-  .summary {
-    margin-top: 14px;
-  }
-
-  .capacity {
-    margin-top: 30px;
+  .capacity-summary {
+    justify-content: space-between;
+    margin-bottom: 20px;
   }
 
   :deep(.el-input-number) {
     width: 100%;
-  }
 
-  .capacity-card :deep(.el-button) {
-    min-width: 195px;
-    margin-top: 20px;
-  }
-
-  .footer-toolbar {
-    justify-content: flex-end;
-    margin-top: 16px;
-  }
-
-  .wrap {
-    overflow-wrap: anywhere;
-  }
-
-  @media (width <= 900px) {
-    .grid {
-      grid-template-columns: 1fr;
+    [class~='el-input__inner'] {
+      text-align: left;
     }
   }
 }
-/* stylelint-enable selector-class-pattern */
 </style>

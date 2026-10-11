@@ -19,22 +19,22 @@ const itemPresentation: Readonly<Record<string, WorkItemViewModel>> = {
   ACTIVE_ENTITLEMENT_EXPIRING: {
     actionLabel: '查看',
     description: '学习中权益将在近期结束',
-    destination: '/entitlements?status=expiring',
+    destination: '/entitlements?type=LIMITED&status=ACTIVE',
     title: '学习中权益即将结束',
     tone: 'info'
   },
   CAMPAIGN_START_EXPIRED: {
     actionLabel: '处理',
-    description: '活动启动窗口已过期',
-    destination: '/campaigns?status=start-expired',
-    title: '活动待重新安排',
+    description: '限时权益未在启动截止时间前开始',
+    destination: '/entitlements?type=LIMITED&status=START_EXPIRED',
+    title: '未开始权益已失效',
     tone: 'warning'
   },
   CAMPAIGN_STARTING: {
     actionLabel: '查看',
-    description: '活动将在 24 小时内开始',
-    destination: '/campaigns?status=starting',
-    title: '限时活动即将开始',
+    description: '待开始权益不足24小时失效',
+    destination: '/entitlements?type=LIMITED&status=PENDING',
+    title: '待开始权益即将失效',
     tone: 'warning'
   },
   FEEDBACK_DUE_SOON: {
@@ -80,20 +80,21 @@ export function groupWorkItems(items: WorkItemDto[]): WorkItemGroups {
   }
 }
 
-/**
- * 将服务端待办转换为页面展示文案和目标地址
- *
- * @param item - 单条服务端待办
- * @returns 稳定的页面展示模型
- */
-export function toWorkItemViewModel(item: WorkItemDto): WorkItemViewModel {
-  return (
-    itemPresentation[item.kind] ?? {
-      actionLabel: '查看',
-      description: '请打开消息中心查看详情',
-      destination: '/work-items',
-      title: '待处理事项',
-      tone: 'info'
-    }
-  )
-}
+export const /**
+   * 将服务端待办转换为页面展示文案和目标地址
+   *
+   * @param item - 单条服务端待办
+   * @returns 稳定的页面展示模型
+   */ toWorkItemViewModel = (item: WorkItemDto): WorkItemViewModel => {
+    return (
+      (Object.prototype.hasOwnProperty.call(itemPresentation, item.kind)
+        ? itemPresentation[item.kind]
+        : undefined) ?? {
+        actionLabel: '查看',
+        description: '请打开消息中心查看详情',
+        destination: '/work-items',
+        title: '待处理事项',
+        tone: 'info'
+      }
+    )
+  }

@@ -29,7 +29,7 @@ export const pageManifest: readonly AdminPageManifestItem[] = [
   {
     id: 'A06',
     path: '/entitlements/formal/grant',
-    title: '授予正式内容包',
+    title: '开通正式内容',
     viewports: ACCEPTANCE_VIEWPORTS
   },
   {
@@ -54,13 +54,13 @@ export const pageManifest: readonly AdminPageManifestItem[] = [
   {
     id: 'A11',
     path: '/campaigns/CAMP-1/edit',
-    title: '限时活动编辑',
+    title: '编辑限时活动',
     viewports: ACCEPTANCE_VIEWPORTS
   },
   {
     id: 'A12',
     path: '/campaigns/CAMP-1/versions',
-    title: '活动版本与容量',
+    title: '活动规则与容量',
     viewports: ACCEPTANCE_VIEWPORTS
   },
   { id: 'A13', path: '/work-items', title: '消息中心', viewports: ACCEPTANCE_VIEWPORTS },
@@ -77,11 +77,11 @@ export const pageManifest: readonly AdminPageManifestItem[] = [
     title: '问题反馈详情',
     viewports: ACCEPTANCE_VIEWPORTS
   },
-  { id: 'A17', path: '/content/scenes', title: '内容列表', viewports: ACCEPTANCE_VIEWPORTS },
+  { id: 'A17', path: '/content/scenes', title: '内容生产', viewports: ACCEPTANCE_VIEWPORTS },
   {
     id: 'A18',
     path: '/content/import',
-    title: '统一内容导入',
+    title: '批量导入内容',
     viewports: ACCEPTANCE_VIEWPORTS
   },
   {
@@ -93,7 +93,7 @@ export const pageManifest: readonly AdminPageManifestItem[] = [
   {
     id: 'A20',
     path: '/content/scenes/SCENE-1/edit',
-    title: '结构化内容校对',
+    title: '正文对照与配对校对',
     viewports: ACCEPTANCE_VIEWPORTS
   },
   {
@@ -111,10 +111,21 @@ export const pageManifest: readonly AdminPageManifestItem[] = [
   {
     id: 'A23',
     path: '/content/discovery-config',
-    title: '开放场景与预览配置',
+    title: '开放与预览配置',
     viewports: ACCEPTANCE_VIEWPORTS
   },
-  { id: 'A24', path: '/content/jobs', title: '批量任务与回收站', viewports: ACCEPTANCE_VIEWPORTS },
+  { id: 'A24', path: '/content/jobs', title: '批量任务', viewports: ACCEPTANCE_VIEWPORTS },
   { id: 'A25', path: '/analytics', title: '汇总统计', viewports: ACCEPTANCE_VIEWPORTS },
-  { id: 'A26', path: '/settings', title: '系统配置与审核开关', viewports: ACCEPTANCE_VIEWPORTS }
+  {
+    id: 'A26',
+    path: '/settings/learning-modules',
+    title: '学习模块配置',
+    viewports: ACCEPTANCE_VIEWPORTS
+  },
+  {
+    id: 'A30',
+    path: '/content/short-readings/READING-1/edit',
+    title: '短文结构化编辑',
+    viewports: ACCEPTANCE_VIEWPORTS
+  }
 ]

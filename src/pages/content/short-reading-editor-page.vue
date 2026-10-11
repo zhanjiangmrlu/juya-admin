@@ -3,6 +3,7 @@ import { ElMessage } from 'element-plus'
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
 import ProofreadingSetPanel from '@/features/proofreading/proofreading-set-panel.vue'
 import { createShortReadingAdapter } from '@/features/short-reading/short-reading-adapter'
@@ -412,28 +413,6 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <section class="short-reading-editor-page">
-    <div class="page-heading">
-      <div>
-        <h2>独立短文阅读</h2>
-        <p>完整英文与全文中文；封面和全文音频选填</p>
-      </div>
-      <div class="actions">
-        <RouterLink :to="{ name: 'content-scenes' }">返回内容列表</RouterLink
-        ><ElButton :disabled="busy" @click="previewOpened = true">预览当前输入</ElButton
-        ><ElButton
-          :disabled="!adapter.available || conflict || !editable"
-          :loading="busy"
-          type="primary"
-          @click="save"
-          >保存草稿</ElButton
-        ><ElButton
-          :disabled="!adapter.available || conflict || !editable"
-          :loading="busy"
-          @click="checkPublish"
-          >检查本篇发布</ElButton
-        >
-      </div>
-    </div>
     <ElAlert
       v-if="!adapter.available"
       title="独立短文服务等待后端装配，当前无法保存或发布"
@@ -473,19 +452,22 @@ onBeforeUnmount(() => {
       @refresh="refreshResources"
       @remove-audio="removeAudio"
     />
-    <ProofreadingSetPanel
-      v-if="snapshot && editable"
-      :candidates="[
-        {
-          contentType: 'short_reading',
-          contentId: snapshot.id,
-          revisionId: snapshot.revisionId,
-          content: { ...snapshot.content },
-          contentHash: snapshot.contentHash,
-          title: snapshot.content.title_zh || snapshot.content.title_en
-        }
-      ]"
-    />
+    <details v-if="snapshot && editable" class="proofreading-details">
+      <summary>人工校对与正常抽样</summary>
+      <ProofreadingSetPanel
+        v-if="snapshot && editable"
+        :candidates="[
+          {
+            contentType: 'short_reading',
+            contentId: snapshot.id,
+            revisionId: snapshot.revisionId,
+            content: { ...snapshot.content },
+            contentHash: snapshot.contentHash,
+            title: snapshot.content.title_zh || snapshot.content.title_en
+          }
+        ]"
+      />
+    </details>
     <div v-if="snapshot" class="trial">
       <ElRadioGroup v-model="trialEnabled" :disabled="busy"
         ><ElRadio :value="true">允许本篇试读</ElRadio
@@ -509,6 +491,22 @@ onBeforeUnmount(() => {
       >
       <small>只调整运营顺序，不修改已发布正文；其他正文输入继续保留</small>
     </div>
+    <AppPageActions>
+      <RouterLink :to="{ name: 'content-scenes' }">返回内容列表</RouterLink
+      ><ElButton :disabled="busy" @click="previewOpened = true">预览当前输入</ElButton
+      ><ElButton
+        :disabled="!adapter.available || conflict || !editable"
+        :loading="busy"
+        type="primary"
+        @click="save"
+        >保存草稿</ElButton
+      ><ElButton
+        :disabled="!adapter.available || conflict || !editable"
+        :loading="busy"
+        @click="checkPublish"
+        >检查本篇发布</ElButton
+      >
+    </AppPageActions>
     <ElDialog v-model="previewOpened" title="当前输入预览（尚未发布）" width="min(860px, 94vw)"
       ><ShortReadingPreview
         v-if="previewOpened"

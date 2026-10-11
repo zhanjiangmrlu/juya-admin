@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import AppAudioPlayer from '@/components/app-audio-player/app-audio-player.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 
 import type { ImportPreview } from './content-package-model'
 
@@ -62,90 +63,137 @@ const fieldLabels: Record<string, string> = {
 </script>
 <template>
   <div class="binding-preview">
-    <ElAlert title="确认后只保存草稿，仍需校对与发布" type="info" :closable="false" />
-    <AdminPanel v-for="item in preview.items" :key="item.id" :title="item.title">
-      <div class="item-heading">
-        <ElCheckboxGroup v-model="selected"
-          ><ElCheckbox :value="item.id" :disabled="busy || item.action === 'SKIP'"
-            >选中这篇</ElCheckbox
-          ></ElCheckboxGroup
-        ><ElTag>{{ actionLabels[item.action] }}</ElTag>
-      </div>
-      <dl class="content-fields">
-        <template v-for="(label, key) in fieldLabels" :key="key"
-          ><template v-if="item.content[key] !== undefined"
-            ><dt>{{ label }}</dt>
-            <dd>{{ text(item.content[key]) }}</dd></template
-          ></template
+    <AdminPanel
+      :title="`本次范围：${preview.items.filter((row) => row.action === 'CREATE').length} 篇新增，${preview.items.filter((row) => row.action === 'UPDATE').length} 篇更新`"
+    >
+      <ElTable :data="preview.items">
+        <ElTableColumn prop="title" label="内容 / 导入 ID" min-width="220" />
+        <ElTableColumn label="正文与译文" min-width="200"
+          ><template #default="{ row }"
+            >{{ row.content.title_en || '正文待核对'
+            }}<small>完整双语正文在下方展开核对</small></template
+          ></ElTableColumn
         >
-      </dl>
-      <h4>明确素材绑定</h4>
-      <ElEmpty v-if="!item.bindings.length" description="本篇无素材绑定" :image-size="45" />
-      <div
-        v-for="binding in item.bindings"
-        :key="`${binding.role}:${binding.target}:${binding.path}`"
-        class="binding"
-      >
-        <span>{{ binding.role }} · {{ binding.target }}</span
-        ><small>{{ binding.path }}</small>
-        <img
-          v-if="binding.url && ['cover', 'word_image', 'learning_image'].includes(binding.role)"
-          :src="binding.url"
-          :alt="binding.role === 'word_image' ? '本篇单词图片' : '封面或学习材料'"
-        />
-        <AppAudioPlayer v-if="binding.url && binding.role.includes('audio')" :src="binding.url" />
-        <ImportResourcePreview
-          v-if="!binding.url && binding.path"
-          :batch-id="batchId"
-          :path="binding.path"
-          :disabled="busy"
-        />
-      </div>
-      <template v-if="item.action === 'UPDATE' && item.previous">
-        <h4>当前与候选差异</h4>
-        <div class="diff-grid">
-          <div>
-            <strong>当前草稿 · v{{ item.expectedVersion }}</strong>
-            <p v-for="(label, key) in fieldLabels" :key="key">
-              <template v-if="item.previous[key] !== undefined"
-                >{{ label }}：{{ text(item.previous[key]) }}</template
-              >
-            </p>
-          </div>
-          <div>
-            <strong>候选草稿</strong>
-            <p v-for="(label, key) in fieldLabels" :key="key">
-              <template v-if="item.content[key] !== undefined"
-                >{{ label }}：{{ text(item.content[key]) }}</template
-              >
-            </p>
-          </div>
-        </div>
-        <ElCheckboxGroup v-model="diffs"
-          ><ElCheckbox :value="item.id" :disabled="busy"
-            >已核对这篇更新差异</ElCheckbox
-          ></ElCheckboxGroup
+        <ElTableColumn label="封面 / 图片" min-width="140"
+          ><template #default="{ row }"
+            >{{
+              row.bindings.filter(
+                (binding: { role: string }) =>
+                  binding.role.includes('image') || binding.role === 'cover'
+              ).length
+            }}
+            份<small v-if="row.requiredDefaults.length">缺省项需明确确认</small></template
+          ></ElTableColumn
         >
-      </template>
-      <ElCheckboxGroup v-model="defaults"
-        ><ElCheckbox
-          v-for="value in item.requiredDefaults"
-          :key="value"
-          :value="`${item.id}:${value}`"
-          :disabled="busy"
-          >{{
-            defaultLabels[value] ||
-            (value.startsWith('no_image:') ? `确认本篇单词 ${value.slice(9)} 无图片` : value)
-          }}</ElCheckbox
-        ></ElCheckboxGroup
-      >
+        <ElTableColumn label="音频" min-width="140"
+          ><template #default="{ row }"
+            >{{
+              row.bindings.filter((binding: { role: string }) => binding.role.includes('audio'))
+                .length
+            }}
+            份 · 待试听核对</template
+          ></ElTableColumn
+        >
+        <ElTableColumn label="本次操作" min-width="150"
+          ><template #default="{ row }">{{
+            actionLabels[row.action as keyof typeof actionLabels]
+          }}</template></ElTableColumn
+        >
+      </ElTable>
     </AdminPanel>
-    <div class="actions">
+    <details v-for="item in preview.items" :key="item.id" :open="selected.includes(item.id)">
+      <summary>{{ item.title }} · 展开正文、素材与更新差异</summary>
+      <AdminPanel :title="item.title">
+        <div class="item-heading">
+          <ElCheckboxGroup v-model="selected"
+            ><ElCheckbox :value="item.id" :disabled="busy || item.action === 'SKIP'"
+              >选中这篇</ElCheckbox
+            ></ElCheckboxGroup
+          ><ElTag>{{ actionLabels[item.action] }}</ElTag>
+        </div>
+        <dl class="content-fields">
+          <template v-for="(label, key) in fieldLabels" :key="key"
+            ><template v-if="item.content[key] !== undefined"
+              ><dt>{{ label }}</dt>
+              <dd>{{ text(item.content[key]) }}</dd></template
+            ></template
+          >
+        </dl>
+        <h4>明确素材绑定</h4>
+        <ElEmpty v-if="!item.bindings.length" description="本篇无素材绑定" :image-size="45" />
+        <div
+          v-for="binding in item.bindings"
+          :key="`${binding.role}:${binding.target}:${binding.path}`"
+          class="binding"
+        >
+          <span>{{ binding.role }} · {{ binding.target }}</span
+          ><small>{{ binding.path }}</small>
+          <img
+            v-if="binding.url && ['cover', 'word_image', 'learning_image'].includes(binding.role)"
+            :src="binding.url"
+            :alt="binding.role === 'word_image' ? '本篇单词图片' : '封面或学习材料'"
+          />
+          <AppAudioPlayer v-if="binding.url && binding.role.includes('audio')" :src="binding.url" />
+          <ImportResourcePreview
+            v-if="!binding.url && binding.path"
+            :batch-id="batchId"
+            :path="binding.path"
+            :disabled="busy"
+          />
+        </div>
+        <template v-if="item.action === 'UPDATE' && item.previous">
+          <h4>当前与候选差异</h4>
+          <div class="diff-grid">
+            <div>
+              <strong
+                >{{ item.previousPublished ? '当前已发布版本' : '当前草稿' }} · v{{
+                  item.expectedVersion
+                }}</strong
+              >
+              <p v-for="(label, key) in fieldLabels" :key="key">
+                <template v-if="item.previous[key] !== undefined"
+                  >{{ label }}：{{ text(item.previous[key]) }}</template
+                >
+              </p>
+            </div>
+            <div>
+              <strong>候选草稿</strong>
+              <p v-for="(label, key) in fieldLabels" :key="key">
+                <template v-if="item.content[key] !== undefined"
+                  >{{ label }}：{{ text(item.content[key]) }}</template
+                >
+              </p>
+            </div>
+          </div>
+          <ElCheckboxGroup v-model="diffs"
+            ><ElCheckbox :value="item.id" :disabled="busy"
+              >已核对这篇更新差异</ElCheckbox
+            ></ElCheckboxGroup
+          >
+        </template>
+        <ElCheckboxGroup v-model="defaults"
+          ><ElCheckbox
+            v-for="value in item.requiredDefaults"
+            :key="value"
+            :value="`${item.id}:${value}`"
+            :disabled="busy"
+            >{{
+              defaultLabels[value] ||
+              (value.startsWith('no_image:') ? `确认本篇单词 ${value.slice(9)} 无图片` : value)
+            }}</ElCheckbox
+          ></ElCheckboxGroup
+        >
+      </AdminPanel>
+    </details>
+    <ElAlert title="更新先核对差异" type="info" :closable="false"
+      >相同资料跳过；有变化创建候选版本。确认导入只保存草稿，后续仍需校对、试听和发布确认；不改写已有收藏快照。</ElAlert
+    >
+    <AppPageActions>
       <ElButton :disabled="busy" @click="emit('back')">返回校验</ElButton
       ><ElButton type="primary" :disabled="!canConfirm" :loading="busy" @click="emit('confirm')"
         >确认保存选中 {{ selected.length }} 篇草稿</ElButton
       >
-    </div>
+    </AppPageActions>
   </div>
 </template>
 <style scoped lang="scss">

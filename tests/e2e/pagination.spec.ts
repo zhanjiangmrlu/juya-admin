@@ -3,7 +3,7 @@ import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 test('内容分页使用中文，跳页与条数选择驱动服务端查询', async ({ adminApi, page }) => {
   expect(adminApi).toBeDefined()
   const queries: { page: number; size: number }[] = []
-  await page.route('**/api/v1/admin/content/scenes?*', async (route) => {
+  await page.route('**/api/v1/admin/content/catalogue?*', async (route) => {
     const url = new URL(route.request().url())
     const currentPage = Number(url.searchParams.get('page'))
     const size = Number(url.searchParams.get('page_size'))
@@ -13,7 +13,9 @@ test('内容分页使用中文，跳页与条数选择驱动服务端查询', as
       json: {
         items: Array.from({ length: Math.max(0, Math.min(size, 37 - start)) }, (_, index) => ({
           id: `SCENE-${start + index + 1}`,
-          title: `分页场景 ${start + index + 1}`,
+          title_en: `Pagination ${start + index + 1}`,
+          title_zh: `分页场景 ${start + index + 1}`,
+          content_type: 'dialogue',
           summary: '分页验证',
           series_id: 'SERIES-1',
           series_title: '日常英语',
@@ -35,17 +37,16 @@ test('内容分页使用中文，跳页与条数选择驱动服务端查询', as
   await expect(pagination.getByText('共 37 条')).toBeVisible()
   await expect(pagination.getByText('10 条/页', { exact: true })).toBeVisible()
   await expect(page.locator('.el-table__body tbody tr')).toHaveCount(10)
-  await expect(page.getByText('2026-10-02 00:01:33', { exact: true }).first()).toBeVisible()
   const jump = pagination.locator('.el-pagination__jump input')
   await jump.fill('4')
   await jump.press('Enter')
-  await expect(page.getByText('分页场景 31', { exact: true })).toBeVisible()
+  await expect(page.getByText('Pagination 31｜分页场景 31', { exact: true })).toBeVisible()
   await expect(page.locator('.el-table__body tbody tr')).toHaveCount(7)
   await pagination.scrollIntoViewIfNeeded()
   await page.screenshot({ path: 'test-results/content-pagination.png', fullPage: true })
   await pagination.getByRole('combobox', { name: '每页条数' }).press('Enter')
   await page.getByRole('option', { name: '20 条/页', exact: true }).click()
-  await expect(page.getByText('分页场景 1', { exact: true })).toBeVisible()
+  await expect(page.getByText('Pagination 1｜分页场景 1', { exact: true })).toBeVisible()
   await expect(page.locator('.el-table__body tbody tr')).toHaveCount(20)
   expect(queries).toEqual([
     { page: 1, size: 10 },

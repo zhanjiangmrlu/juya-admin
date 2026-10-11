@@ -118,6 +118,15 @@ export const /**
           return adapter.load(frozen.token)
         })
       }
+    const /** 仅选择服务端已失败的范围内候选，并重新要求人工确认 */ selectFailed = (): void => {
+        if (!range.value || busy.value || ['QUEUED', 'RUNNING'].includes(range.value.status)) return
+        selected.value = range.value.candidates
+          .filter(
+            (candidate) => range.value!.results.items[candidate.revision_id]?.status === 'FAILED'
+          )
+          .map((candidate) => candidate.revision_id)
+        acknowledged.value = false
+      }
     const /** 候选变化后撤销旧预览，后台已提交任务由恢复入口查看 */ invalidate = (): void => {
         generation++
         range.value = null
@@ -143,6 +152,7 @@ export const /**
       restore,
       refresh,
       confirm,
+      selectFailed,
       invalidate,
       dispose
     }

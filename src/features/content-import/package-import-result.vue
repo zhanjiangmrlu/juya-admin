@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 
 import type { ImportBatch } from './content-package-model'
 
@@ -58,7 +59,7 @@ const statusLabels: Record<string, string> = {
         ></ElTableColumn
       ></ElTable
     >
-    <div class="actions">
+    <AppPageActions>
       <ElButton :loading="busy" @click="emit('refresh')">刷新任务结果</ElButton
       ><ElButton
         :disabled="
@@ -70,7 +71,10 @@ const statusLabels: Record<string, string> = {
       ><ElButton :disabled="busy || batch.status === 'COMPLETED'" @click="emit('cancel')"
         >取消未开始项</ElButton
       ><RouterLink :to="{ name: 'content-scenes' }">前往内容列表</RouterLink>
-    </div>
+      <ElButton type="primary" @click="$router.push({ name: 'content-proofreading' })"
+        >进入校对发布</ElButton
+      >
+    </AppPageActions>
   </AdminPanel>
 </template>
 <style scoped lang="scss">

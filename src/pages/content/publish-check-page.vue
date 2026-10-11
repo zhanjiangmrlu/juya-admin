@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import ScenePreview from '@/features/content-editor/scene-preview.vue'
 import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
 import ProofreadingSetPanel from '@/features/proofreading/proofreading-set-panel.vue'
@@ -73,7 +74,6 @@ async function handlePublish(): Promise<void> {
 
 <template>
   <section class="publish-check-page admin-brand-headings">
-    <ContentProductionNav active="publish" @select="selectStage" />
     <div class="page-heading">
       <div>
         <p>同一版本的文字、原图、音频与时间点整体切换 · {{ revisionId }}</p>
@@ -105,11 +105,11 @@ async function handlePublish(): Promise<void> {
         <dl class="validation-list">
           <div
             v-for="label in [
-              '中英文标题 · 完整原图 · 对话',
-              '重点词汇 · Useful Chunks',
+              '分类与中英文标题 · 必需主体内容',
+              '适用本篇词条确认 · 选填图片与语块',
               '版权与素材来源',
-              '整段音频及同版本引用',
-              '全部句子的有效时间点'
+              '场景整段音频及同版本引用',
+              '场景有效边界与实际单句文件'
             ]"
             :key="label"
           >
@@ -199,7 +199,8 @@ async function handlePublish(): Promise<void> {
         </ElAlert>
       </AdminPanel>
     </div>
-    <div class="publish-actions">
+    <AppPageActions>
+      <ContentProductionNav active="publish" @select="selectStage" />
       <ElButton @click="selectStage('audio')">返回音频标时</ElButton>
       <ElButton
         class="publish-button"
@@ -208,7 +209,7 @@ async function handlePublish(): Promise<void> {
         @click="handlePublish"
         >确认发布这一候选</ElButton
       >
-    </div>
+    </AppPageActions>
   </section>
 </template>
 
@@ -306,8 +307,8 @@ async function handlePublish(): Promise<void> {
 .preview-panel {
   grid-column: 1;
   grid-row: 1;
-  min-height: 600px;
-  background: #eaf2e3;
+  min-height: 440px;
+  background: var(--juya-color-surface);
 }
 
 .preview-panel :deep(.device-scroll) {
@@ -316,7 +317,7 @@ async function handlePublish(): Promise<void> {
 
 .validation-panel {
   grid-column: 2;
-  min-height: 600px;
+  min-height: 440px;
 }
 
 .validation-list {

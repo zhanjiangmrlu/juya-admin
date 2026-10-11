@@ -3,8 +3,8 @@ import { ElMessage } from 'element-plus'
 import { computed, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import { createAudioAdapter } from '@/features/audio/audio-adapter'
 import { createSegmentPlayer } from '@/features/audio/segment-player'
 import { createContentAdapter } from '@/features/content/content-adapter'
@@ -21,10 +21,7 @@ import {
 import SceneHistory from '@/features/content-editor/scene-history.vue'
 import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
 import ScenePreview from '@/features/content-editor/scene-preview.vue'
-import {
-  parseEditorStage,
-  PRODUCTION_STAGES
-} from '@/features/content-production/content-production-model'
+import { parseEditorStage } from '@/features/content-production/content-production-model'
 import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
 import SceneAudioPanel from '@/features/content-production/scene-audio-panel.vue'
 import SceneDraftPanel from '@/features/content-production/scene-draft-panel.vue'
@@ -44,9 +41,6 @@ const route = useRoute()
 const router = useRouter()
 const sceneId = computed(() => String(route.params.id))
 const stage = computed(() => parseEditorStage(route.query.stage))
-const stageLabel = computed(
-  () => PRODUCTION_STAGES.find((item) => item.stage === stage.value)?.label
-)
 const client = useAdminApiClient()
 const adapter = createContentAdapter(client)
 const media = createSceneMediaAdapter(client)
@@ -438,36 +432,6 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <section class="scene-editor-page admin-brand-headings">
-    <ContentProductionNav
-      :active="stage"
-      :busy="workspaceBusy"
-      :hide-audio="wordCard"
-      @select="switchWorkspace"
-    />
-    <div class="page-heading">
-      <div>
-        <p class="scene-context">{{ stageLabel }} · {{ scene?.title || sceneId }}</p>
-        <p>同一场景草稿按步骤编辑；切换工作区保留输入，预览发布前保存当前版本。</p>
-      </div>
-      <div class="heading-actions">
-        <ElTag v-if="revision" effect="plain" type="warning">草稿 v{{ currentVersion }}</ElTag>
-        <ElButton :disabled="workspaceBusy || hasConflict" @click="preview">设备预览</ElButton>
-        <ElButton :disabled="workspaceBusy" @click="historyOpened = true">完整版本历史</ElButton>
-        <ElButton
-          :disabled="workspaceBusy || hasConflict"
-          :loading="state === 'saving'"
-          type="primary"
-          @click="save"
-          >保存草稿</ElButton
-        >
-        <ElButton
-          v-if="revision"
-          :disabled="workspaceBusy || hasConflict"
-          @click="switchWorkspace('publish')"
-          >检查发布</ElButton
-        >
-      </div>
-    </div>
     <ElSkeleton v-if="state === 'loading'" :rows="10" animated />
     <fieldset
       v-else
@@ -493,54 +457,66 @@ onBeforeUnmount(() => {
         >
       </ElAlert>
       <template v-if="revision">
-        <div v-if="stage === 'draft' || stage === 'proofread'" class="editor-grid">
-          <SceneDraftPanel
-            :form="form"
-            :series-title="scene?.seriesTitle ?? ''"
-            :image-url="imageUrl"
-            :media-busy="mediaBusy"
-            @upload="uploadImage"
-            @refresh-image="refreshImage"
-          />
+        <SceneDraftPanel
+          v-if="stage === 'draft'"
+          :form="form"
+          :series-title="scene?.seriesTitle ?? ''"
+          :image-url="imageUrl"
+          :media-busy="mediaBusy"
+          @upload="uploadImage"
+          @refresh-image="refreshImage"
+        />
+        <div v-if="stage === 'proofread' && !wordCard" class="comparison-grid">
+          <AdminPanel title="已保存输入 · 只读">
+            <ElTag effect="plain">当前草稿快照</ElTag>
+            <h3>{{ revision.content.title_en }}｜{{ revision.content.title_zh }}</h3>
+            <article
+              v-for="(line, index) in normalizeSceneContent(revision.content).dialogue"
+              :key="line.id"
+              class="source-line"
+            >
+              <small>第{{ index + 1 }}句 · {{ line.speaker }}</small>
+              <p>{{ line.english }}</p>
+              <p>{{ line.chinese }}</p>
+            </article>
+            <p class="source-note">这里对照当前已保存的输入；原始导入文档请从对应批次查看</p>
+          </AdminPanel>
           <SceneProofreadPanel
-            v-if="stage === 'proofread'"
             :form="form"
+            mode="dialogue"
             @busy="setLexiconBusy"
             @confirm="confirmEntry"
           />
-          <aside v-else class="draft-aside">
-            <AdminPanel :title="ADMIN_SECTION_TITLES.sceneEditor.entryPanel" class="entry-panel">
-              <dl class="material-list">
-                <div>
-                  <dt>原图</dt>
-                  <dd>仅授权场景可查看完整原图</dd>
-                </div>
-                <div>
-                  <dt>逐句对话</dt>
-                  <dd>可新增、排序、删除</dd>
-                </div>
-                <div>
-                  <dt>词汇与语块</dt>
-                  <dd>使用自建词汇库引用</dd>
-                </div>
-                <div>
-                  <dt>整段音频</dt>
-                  <dd>上传后逐句标时并核对</dd>
-                </div>
-              </dl>
-              <div class="entry-actions">
-                <ElButton type="primary" @click="switchWorkspace('proofread')"
-                  >进入内容校对</ElButton
-                >
-              </div>
-            </AdminPanel>
-            <ElAlert title="提交前确认" type="success" :closable="false">
-              草稿允许不完整，可分次保存；已发布内容修改形成候选版本。
-            </ElAlert>
-          </aside>
         </div>
-        <ContentCandidatesPanel
+        <template v-if="stage === 'entries' || (stage === 'proofread' && wordCard)">
+          <AdminPanel title="来源与候选版本">
+            <strong>{{ scene?.title }} · {{ sceneId }} · 候选版本 v{{ currentVersion }}</strong>
+            <p>
+              保存本篇确认资料，稳定条目和来源位置由系统维护；同词不同意思分别保存，旧收藏快照不随修改更新。
+            </p>
+          </AdminPanel>
+          <SceneProofreadPanel
+            :form="form"
+            mode="entries"
+            @busy="setLexiconBusy"
+            @confirm="confirmEntry"
+          />
+          <AdminPanel title="发音资源 · 词汇与语块共用规则">
+            <p>
+              优先使用已上传的可用音频；无文件时使用后台确认的合成目标。语块保持完整单位并使用无图列表，适用音标与解释完整保存。
+            </p>
+          </AdminPanel>
+        </template>
+        <ElAlert
           v-if="stage === 'proofread' && !wordCard"
+          title="校对提示"
+          :closable="false"
+          type="success"
+        >
+          系统整理和配对已提交的正文。需要改动文字时由管理员手动编辑并确认，不静默改写或整篇重译。保存配对结果后，重新校对当前候选版本。
+        </ElAlert>
+        <ContentCandidatesPanel
+          v-show="stage === 'candidates'"
           :revision-id="revision.id"
           :expected-version="currentVersion"
           :form="form"
@@ -552,7 +528,7 @@ onBeforeUnmount(() => {
           @busy="candidateBusy = $event"
         />
         <ContentCandidatesPanel
-          v-if="stage === 'audio' && !wordCard"
+          v-show="stage === 'audio' && !wordCard"
           :revision-id="revision.id"
           :expected-version="currentVersion"
           :form="form"
@@ -595,114 +571,77 @@ onBeforeUnmount(() => {
         :revision-id="revision.id"
       />
     </ElDialog>
+    <AppPageActions>
+      <ContentProductionNav
+        :active="stage"
+        :busy="workspaceBusy"
+        :hide-audio="wordCard"
+        @select="switchWorkspace"
+      />
+      <ElButton :disabled="workspaceBusy || hasConflict" @click="preview">手机 / 平板预览</ElButton>
+      <ElButton
+        :disabled="workspaceBusy || hasConflict"
+        :loading="state === 'saving'"
+        type="primary"
+        @click="save"
+        >{{
+          stage === 'entries' ? '保存候选资料' : stage === 'proofread' ? '保存配对结果' : '保存草稿'
+        }}</ElButton
+      >
+      <ElButton
+        v-if="revision"
+        :disabled="workspaceBusy || hasConflict"
+        @click="switchWorkspace('publish')"
+        >检查发布</ElButton
+      >
+    </AppPageActions>
+    <details class="history-management">
+      <summary>完整版本历史与追溯</summary>
+      <ElButton :disabled="workspaceBusy" @click="historyOpened = true">查看完整版本历史</ElButton>
+    </details>
     <SceneHistory v-model="historyOpened" :scene-id="sceneId" />
   </section>
 </template>
 <style scoped lang="scss">
 /* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
-.page-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-h2 {
-  margin: 0;
-  font-size: 18px;
-}
-
-p {
-  color: var(--juya-color-text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.heading-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-.editor-grid {
+.comparison-grid {
   display: grid;
-  grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
-  gap: 18px;
-  margin-top: 14px;
+  gap: 16px;
+}
+
+.source-line {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--juya-color-border);
+
+  p {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--juya-color-text-primary);
+  }
 }
 
 .editor-fields {
+  display: grid;
+  gap: 20px;
   min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
 }
 
-.entry-panel {
-  min-width: 0;
-  min-height: 455px;
-}
+.history-management {
+  margin-top: 20px;
 
-.scene-context {
-  margin: 0;
-  font-weight: 600;
-}
-
-.draft-aside {
-  display: grid;
-  gap: 18px;
-  min-width: 0;
-}
-
-.draft-aside > :deep(.el-alert) {
-  min-height: 156px;
-  padding: 16px;
-  border-radius: 16px;
-}
-
-.entry-panel :deep(.el-card__header) {
-  border-bottom: 0;
-}
-
-.material-list {
-  display: grid;
-  gap: 32px;
-  margin: 12px 0 32px;
-}
-
-.material-list > div {
-  padding-left: 14px;
-  border-left: 5px solid var(--juya-color-success);
-}
-
-.material-list dt {
-  margin-bottom: 5px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.material-list dd {
-  margin: 0;
-  color: var(--juya-color-text-regular);
-  font-size: 12px;
-}
-
-.entry-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.entry-actions :deep(.el-button) {
-  margin: 0;
+  summary {
+    color: var(--el-color-primary);
+    cursor: pointer;
+  }
 }
 
 @media (width <= 1050px) {
-  .editor-grid {
+  .comparison-grid {
     grid-template-columns: 1fr;
   }
 }

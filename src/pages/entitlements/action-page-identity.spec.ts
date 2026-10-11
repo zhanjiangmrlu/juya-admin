@@ -7,6 +7,8 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { useAuthStore } from '@/features/auth/auth-store'
 import EntitlementPreviewDialog from '@/features/entitlements/entitlement-preview-dialog.vue'
 
+import type { VueWrapper } from '@vue/test-utils'
+
 import FormalActionPage from './formal-action-page.vue'
 import LimitedActionPage from './limited-action-page.vue'
 
@@ -71,6 +73,17 @@ async function setup(kind: 'formal' | 'limited') {
   return { wrapper, router }
 }
 
+const /** 通过当前页面真实预览入口验证提交对象，正式页操作放在底栏
+   * @param wrapper - 已挂载的路由页面
+   * @param kind - 当前正式或限时权益页面
+   */ requestPreview = async (wrapper: VueWrapper, kind: 'formal' | 'limited'): Promise<void> => {
+    if (kind === 'formal') {
+      const button = wrapper.findAll('button').find((item) => /^获取.+预览$/.test(item.text()))
+      expect(button).toBeDefined()
+      await button!.trigger('click')
+    } else await wrapper.find('.submit').trigger('click')
+  }
+
 describe.each(['formal', 'limited'] as const)('%s action object identity', (kind) => {
   afterEach(() => vi.unstubAllGlobals())
 
@@ -89,7 +102,11 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
     await flushPromises()
     await router.push('/entitlements')
     await flushPromises()
-    expect(urls).toEqual([`/api/v1/admin/${kind}-entitlements/A`])
+    expect(urls).toEqual(
+      kind === 'formal'
+        ? [`/api/v1/admin/${kind}-entitlements/A`, '/api/v1/admin/users/USER-A']
+        : [`/api/v1/admin/${kind}-entitlements/A`]
+    )
     wrapper.unmount()
   })
 
@@ -118,7 +135,16 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
       pending.get(first)!(json(detail(first)))
       await flushPromises()
       expect(wrapper.text()).not.toContain('USER-A')
-      if (first === 'A') expect(wrapper.find('.submit').exists()).toBe(false)
+      if (first === 'A') {
+        if (kind === 'formal')
+          expect(
+            wrapper
+              .findAll('button')
+              .find((item) => /^获取.+预览$/.test(item.text()))!
+              .attributes('disabled')
+          ).toBeDefined()
+        else expect(wrapper.find('.submit').exists()).toBe(false)
+      }
       const last = first === 'A' ? 'B' : 'A'
       pending.get(last)!(json(detail(last)))
       await flushPromises()
@@ -127,7 +153,7 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
       if (kind === 'formal') await wrapper.find('form').trigger('submit')
       else await wrapper.find('.submit').trigger('click')
       await flushPromises()
-      await wrapper.find('.submit').trigger('click')
+      await requestPreview(wrapper, kind)
       await flushPromises()
       wrapper.findComponent(EntitlementPreviewDialog).vm.$emit('confirm', '核对操作')
       await flushPromises()

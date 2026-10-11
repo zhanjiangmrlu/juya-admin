@@ -39,7 +39,7 @@ const form = computed(() => props.form)
           <ElOption v-for="tag in form.tags" :key="tag" :label="tag" :value="tag" />
         </ElSelect>
       </ElFormItem>
-      <ElFormItem label="学习原图素材编号">
+      <ElFormItem label="学习图片素材编号（选填）">
         <ElInput v-model="form.original_image_asset_id" clearable @change="emit('refreshImage')" />
       </ElFormItem>
       <ElUpload
@@ -49,7 +49,7 @@ const form = computed(() => props.form)
         :disabled="mediaBusy"
         @change="emit('upload', $event)"
       >
-        <ElButton :loading="mediaBusy">上传学习原图</ElButton>
+        <ElButton :loading="mediaBusy">上传 / 替换学习图片</ElButton>
       </ElUpload>
       <img v-if="imageUrl" class="original-image" :src="imageUrl" alt="学习原图" />
       <ElFormItem label="封面素材编号">
@@ -72,8 +72,7 @@ h3 {
 
 .scene-draft-panel {
   min-width: 0;
-  min-height: 630px;
-  background: #eaf2e3;
+  background: var(--juya-color-surface);
 }
 
 .scene-draft-panel :deep(.el-card__header) {

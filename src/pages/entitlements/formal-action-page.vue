@@ -3,9 +3,9 @@ import { ElMessage } from 'element-plus'
 import { computed, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import EntitlementPreviewDialog from '@/features/entitlements/entitlement-preview-dialog.vue'
 import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
@@ -16,6 +16,7 @@ import {
   FORMAL_TERMS
 } from '@/features/entitlements/formal-entitlement-model'
 import { useFormalEntitlementCommand } from '@/features/entitlements/use-formal-entitlement-command'
+import { createUserAdapter } from '@/features/users/user-adapter'
 import { createApiClient } from '@/services/api/api-client'
 import { ApiError } from '@/shared/errors/api-error'
 import { formatDateTime } from '@/shared/utils/date-time'
@@ -39,6 +40,8 @@ const client = createApiClient({
   }
 })
 const query = createEntitlementQueryAdapter(client)
+const users = createUserAdapter(client)
+const userIdentity = ref('')
 const controller = shallowRef(useFormalEntitlementCommand(createFormalEntitlementAdapter(client)))
 let requestSequence = 0
 onBeforeUnmount(() => {
@@ -58,14 +61,14 @@ const form = reactive({
 const confirmVisible = ref(false)
 const confirmationReason = ref('')
 const statusLabels: Record<string, string> = {
-  ACTIVE: '有效',
+  ACTIVE: '正常使用',
   PAUSED: '已暂停',
   REVOKED: '已撤销',
   EXPIRED: '已到期'
 }
 const allowedOperations = computed(() =>
-  (detail.value?.availableOperations ?? []).filter(
-    (value): value is FormalEntitlementOperation => value in FORMAL_OPERATION_LABELS
+  (detail.value?.availableOperations ?? []).filter((value): value is FormalEntitlementOperation =>
+    Object.hasOwn(FORMAL_OPERATION_LABELS, value)
   )
 )
 const /**
@@ -77,6 +80,7 @@ const /**
     const sequence = ++requestSequence
     const id = entitlementId.value
     detail.value = null
+    userIdentity.value = ''
     confirmVisible.value = false
     controller.value = useFormalEntitlementCommand(createFormalEntitlementAdapter(client))
     if (!keepDraft) {
@@ -93,10 +97,20 @@ const /**
       if (result.id !== id) throw new Error('权益详情与当前对象不一致')
       detail.value = result
       if (!keepDraft) {
-        form.operation = allowedOperations.value[0] ?? 'RENEW'
+        form.operation =
+          allowedOperations.value.find((operation) => operation === route.query.action) ??
+          allowedOperations.value[0] ??
+          'RENEW'
         form.term = FORMAL_TERMS.find((value) => value === detail.value?.term) ?? 'month_3'
       }
       state.value = 'ready'
+      void users
+        .getUserDetail(result.userId)
+        .then((user) => {
+          if (sequence === requestSequence)
+            userIdentity.value = `${user.nickname || '未设置昵称'} · 句芽号：${user.juya_number || user.user_id}`
+        })
+        .catch(() => undefined)
     } catch (failure) {
       if (sequence !== requestSequence || id !== entitlementId.value) return
       apiError.value = failure instanceof ApiError ? failure : null
@@ -118,7 +132,7 @@ watch(
   { deep: true }
 )
 watch(
-  entitlementId,
+  [entitlementId, () => route.query.action],
   () => {
     void load()
   },
@@ -186,109 +200,84 @@ const /**
       ><ApiErrorDetails :error="apiError" /><ElButton @click="load(true)">重试</ElButton></ElAlert
     >
 
-    <div v-if="detail" class="action-layout">
-      <AdminPanel :title="ADMIN_SECTION_TITLES.formalAction.detailCard" class="detail-card">
-        <p class="record-summary">
-          <span>权益 {{ entitlementId }}</span
-          ><span>{{ detail.userId }} · {{ detail.packageName }} · {{ detail.packageId }}</span
-          ><span>v{{ detail.version }}</span>
-        </p>
-        <ElDescriptions :column="1" direction="vertical" class="detail-fields"
-          ><ElDescriptionsItem label="当前状态">{{
-            statusLabels[detail.status] || detail.status
-          }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="当前期限">{{
-            FORMAL_TERM_LABELS[detail.term as FormalEntitlementTerm] || detail.term
-          }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="生效时间">{{
-            formatDateTime(detail.grantedAt)
-          }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="到期时间">{{
-            formatDateTime(detail.expiresAt, '无到期日期')
-          }}</ElDescriptionsItem></ElDescriptions
-        ></AdminPanel
+    <AdminPanel
+      v-if="detail"
+      :title="
+        form.operation === 'RENEW' ? '续期信息' : `${FORMAL_OPERATION_LABELS[form.operation]}信息`
+      "
+      class="operation-card"
+    >
+      <ElForm label-position="top" @submit.prevent="preview"
+        ><ElFormItem label="用户 / 内容包"
+          ><div class="readonly-field">
+            {{ userIdentity || detail.userId }} · {{ detail.packageName }}
+          </div></ElFormItem
+        ><ElFormItem label="可执行操作"
+          ><ElSelect v-model="form.operation" :disabled="!allowedOperations.length"
+            ><ElOption
+              v-for="operation in allowedOperations"
+              :key="operation"
+              :label="FORMAL_OPERATION_LABELS[operation]"
+              :value="operation" /></ElSelect></ElFormItem
+        ><ElFormItem
+          v-if="form.operation === 'RENEW' || form.operation === 'GRANT'"
+          label="续期期限"
+          ><ElSelect v-model="form.term"
+            ><ElOption
+              v-for="term in FORMAL_TERMS"
+              :key="term"
+              :label="FORMAL_TERM_LABELS[term]"
+              :value="term" /></ElSelect></ElFormItem
+        ><ElFormItem
+          :label="
+            ['PAUSE', 'RESUME', 'REVOKE'].includes(form.operation)
+              ? '原因 · 必填，确认时核对'
+              : '备注 · 选填'
+          "
+          ><ElInput
+            v-model="confirmationReason"
+            placeholder="可补充说明"
+            maxlength="200" /></ElFormItem
+      ></ElForm>
+      <ElAlert
+        v-if="commandError || controller.errorMessage.value"
+        :title="commandError ?? controller.errorMessage.value ?? ''"
+        type="error"
+        :closable="false"
+        ><ApiErrorDetails :error="commandApiError ?? controller.apiError.value" />
+        <p v-if="hadConflict">原操作输入已保留，当前权益发生变化，请刷新状态并重新预览。</p>
+        <ElButton v-if="hadConflict" @click="load(true)">刷新服务端信息</ElButton></ElAlert
       >
-      <AdminPanel class="operation-card"
-        ><template #header
-          ><div class="card-heading">
-            <h3>操作确认</h3>
-            <RouterLink v-slot="{ navigate }" custom :to="{ name: 'entitlements' }"
-              ><ElButton @click="navigate">返回权益中心</ElButton></RouterLink
-            >
-          </div></template
-        ><ElForm class="form" label-position="top" @submit.prevent="preview"
-          ><div class="grid">
-            <ElFormItem label="可执行操作" required
-              ><ElSelect v-model="form.operation" :disabled="allowedOperations.length === 0"
-                ><ElOption
-                  v-for="operation in allowedOperations"
-                  :key="operation"
-                  :label="FORMAL_OPERATION_LABELS[operation]"
-                  :value="operation" /></ElSelect></ElFormItem
-            ><ElFormItem
-              v-if="form.operation === 'RENEW' || form.operation === 'GRANT'"
-              label="目标期限"
-              required
-              ><ElSelect v-model="form.term"
-                ><ElOption
-                  v-for="term in FORMAL_TERMS"
-                  :key="term"
-                  :label="FORMAL_TERM_LABELS[term]"
-                  :value="term" /></ElSelect
-            ></ElFormItem>
-          </div>
-          <ElAlert
-            v-if="commandError || controller.errorMessage.value"
-            class="notice"
-            :title="commandError ?? controller.errorMessage.value ?? ''"
-            type="error"
-            :closable="false"
-            show-icon
-            ><ApiErrorDetails :error="commandApiError ?? controller.apiError.value" /><template
-              v-if="hadConflict"
-              ><p>
-                原操作输入已保留。服务端最新版本：{{
-                  state === 'ready' ? `v${detail.version}` : '暂未获取，请刷新'
-                }}，请核对当前状态并重新预览。
-              </p>
-              <ElButton @click="load(true)">刷新服务端信息</ElButton></template
-            ></ElAlert
-          >
-          <ElDescriptions v-if="controller.previewResult.value" :column="2" border
-            ><ElDescriptionsItem label="目标状态">{{
-              statusLabels[controller.previewResult.value.status] ||
-              controller.previewResult.value.status
-            }}</ElDescriptionsItem
-            ><ElDescriptionsItem label="操作后到期时间">{{
-              formatDateTime(controller.previewResult.value.expiresAt, '无到期日期')
-            }}</ElDescriptionsItem></ElDescriptions
-          >
-          <div class="check-items">
-            <div class="check-item">
-              <strong>核对权益</strong><span>核对当前用户、内容包和旧到期时间。</span>
-            </div>
-            <div class="check-item">
-              <strong>二次确认</strong><span>操作后的状态与到期时间以服务端预览为准。</span>
-            </div>
-            <div class="check-item">
-              <strong>审计记录</strong><span>操作原因和操作人进入审计；保留学习记录。</span>
-            </div>
-          </div>
-          <ElButton
-            class="submit"
-            native-type="submit"
-            type="primary"
-            :disabled="!allowedOperations.includes(form.operation)"
-            :loading="controller.commandState.value === 'submitting'"
-            >获取服务端预览并二次确认</ElButton
-          >
-        </ElForm></AdminPanel
+      <ElCollapse
+        ><ElCollapseItem title="查看当前权益详情"
+          ><p>
+            {{ statusLabels[detail.status] || detail.status }} ·
+            {{ FORMAL_TERM_LABELS[detail.term as FormalEntitlementTerm] || detail.term }}
+          </p>
+          <p>
+            生效：{{ formatDateTime(detail.grantedAt) }} · 到期：{{
+              formatDateTime(detail.expiresAt, '无到期日期')
+            }}
+          </p>
+          <p>{{ entitlementId }} · v{{ detail.version }}</p></ElCollapseItem
+        ></ElCollapse
       >
-    </div>
-    <aside class="management-note">
-      <strong>管理提醒</strong>
-      <p>时间档位仅支持 1、2、3、6、12 个月或永久。</p>
-    </aside>
+    </AdminPanel>
+    <AppPageActions
+      ><RouterLink v-slot="{ navigate }" custom :to="{ name: 'entitlements' }"
+        ><ElButton @click="navigate">返回列表</ElButton></RouterLink
+      ><ElButton
+        type="primary"
+        :disabled="state !== 'ready' || !allowedOperations.includes(form.operation)"
+        :loading="controller.commandState.value === 'submitting'"
+        @click="preview"
+        >{{
+          form.operation === 'RENEW'
+            ? '获取续期预览'
+            : `获取${FORMAL_OPERATION_LABELS[form.operation]}预览`
+        }}</ElButton
+      ></AppPageActions
+    >
     <EntitlementPreviewDialog
       v-if="detail && controller.previewResult.value"
       v-model="confirmVisible"
@@ -315,207 +304,25 @@ const /**
 <style scoped lang="scss">
 .formal-action-page {
   min-width: 0;
-  padding-top: 5px;
 
-  .card-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .record-summary {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 14px;
-    margin: 0 0 18px;
-    color: #657a68;
-    font-size: 12px;
-    overflow-wrap: anywhere;
-  }
-
-  .toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    margin-bottom: 18px;
-  }
-
-  .toolbar p {
-    margin: 0;
-    color: #657a68;
-    font-size: 13px;
-    overflow-wrap: anywhere;
-  }
-
-  h3 {
-    margin: 0;
-    color: #244633;
-    font-size: 20px;
-  }
-
-  .action-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
-    gap: 18px;
-  }
-
-  .detail-card,
   .operation-card {
-    min-width: 0;
-    min-height: 570px;
-    border: 1px solid #d8e5d1;
-    border-radius: 18px;
-    background: #fffdf7;
+    background: var(--juya-color-surface);
   }
 
-  .detail-card {
-    background: #eaf2e3;
-  }
-
-  :deep([class~='el-card__header']) {
-    padding: 18px 20px 12px;
-    border-bottom: 0;
-  }
-
-  :deep([class~='el-card__body']) {
-    padding: 12px 20px 20px;
-  }
-
-  .detail-fields :deep([class~='el-descriptions__body']) {
-    background: transparent;
-  }
-
-  .detail-fields :deep([class~='el-descriptions__label']) {
-    display: block;
-    padding: 0 0 6px;
-    font-weight: 500;
-    line-height: 22px;
-    color: #657a68;
-    font-size: 13px;
-  }
-
-  .detail-fields :deep([class~='el-descriptions__content']) {
-    display: block;
-    min-height: 38px;
-    margin-bottom: 12px;
-    line-height: 20px;
-    box-sizing: border-box;
-    padding: 8px 12px;
-    border: 1px solid #c9dac3;
-    border-radius: 10px;
-    background: #fffdf7;
-    color: #244633;
-    overflow-wrap: anywhere;
-  }
-
-  .form {
-    display: flex;
-    flex-direction: column;
-    min-height: 480px;
-  }
-
-  .grid {
-    display: grid;
-    gap: 0;
-  }
-
-  .operation-card :deep(.el-select) {
+  :deep(.el-select) {
     width: 100%;
   }
 
-  .operation-card :deep([class~='el-form-item__label']) {
-    color: #657a68;
-    font-size: 13px;
-  }
-
-  .operation {
-    display: block;
-    margin: 8px 0 24px;
-  }
-
-  .operation :deep([class~='el-form-item__label']) {
-    margin-bottom: 8px;
-  }
-
-  .operation :deep([class~='el-form-item__content']) {
-    margin-left: 0;
+  .readonly-field {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--juya-color-border);
+    border-radius: 12px;
+    overflow-wrap: anywhere;
   }
 
   .notice {
-    margin: 16px 0;
-  }
-
-  .check-items {
-    display: grid;
-    gap: 28px;
-    margin: 24px 0 36px;
-  }
-
-  .check-item {
-    padding-left: 16px;
-    border-left: 5px solid #4f833d;
-  }
-
-  .check-item:nth-child(2) {
-    border-left-color: #b37b32;
-  }
-
-  .check-item strong,
-  .check-item span {
-    display: block;
-  }
-
-  .check-item strong {
-    color: #244633;
-    font-size: 13px;
-  }
-
-  .check-item span {
-    margin-top: 7px;
-    color: #657a68;
-    font-size: 12px;
-    line-height: 1.6;
-  }
-
-  .submit {
-    align-self: flex-start;
-    margin-top: auto;
-  }
-
-  .management-note {
-    margin-top: 18px;
-    padding: 16px;
-    border-radius: 16px;
-    background: #e5f0dc;
-    color: #244633;
-  }
-
-  .management-note strong {
-    color: #4e7f3b;
-    font-size: 14px;
-  }
-
-  .management-note p {
-    margin: 20px 0 6px;
-    font-size: 13px;
-    line-height: 1.7;
-  }
-}
-
-@media (width <= 1000px) {
-  .formal-action-page {
-    .action-layout {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .toolbar {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 12px;
-    }
+    margin-bottom: 20px;
   }
 }
 </style>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import { createContentAdapter } from '@/features/content/content-adapter'
@@ -27,6 +27,7 @@ const client = useAdminApiClient()
 const content = createContentAdapter(client)
 const readings = createShortReadingAdapter(client)
 const router = useRouter()
+const route = useRoute()
 const rows = ref<CandidateRow[]>([])
 const selected = ref<string[]>([])
 const prepared = computed(() => rows.value.filter((row) => selected.value.includes(row.revisionId)))
@@ -115,6 +116,7 @@ const /**
 watch(selected, () => {
   approved.value = null
 })
+onMounted(load)
 onBeforeUnmount(() => {
   disposed = true
   generation++
@@ -126,70 +128,86 @@ onBeforeUnmount(() => {
   <section class="content-proofreading-page">
     <div class="heading">
       <div>
-        <h2>内容抽样校对</h2>
+        <h2>{{ approved ? '确认发布范围' : '正常内容抽样' }}</h2>
         <p>先明确选择候选集合，再按服务端样本核对；异常组可逐项处理或明确保留草稿。</p>
       </div>
       <ElButton @click="router.push({ name: 'content-scenes' })">返回内容列表</ElButton>
     </div>
-    <AdminPanel title="明确选择待校对候选"
-      ><ElAlert v-if="error" :title="error" type="error" :closable="false" />
-      <div class="actions">
-        <ElInput
-          v-model="query"
-          placeholder="场景标题关键词"
-          aria-label="候选关键词"
-        /><ElInputNumber v-model="page" :min="1" :precision="0" aria-label="候选页码" /><ElButton
-          :loading="busy"
-          @click="load"
-          >加载本页真实草稿</ElButton
+    <details v-if="!approved" class="candidate-selection" :open="!prepared.length">
+      <summary>选择本次候选集合 · 已选 {{ prepared.length }} 篇</summary>
+      <AdminPanel title="明确选择待校对候选"
+        ><ElAlert v-if="error" :title="error" type="error" :closable="false" />
+        <div class="actions">
+          <ElInput
+            v-model="query"
+            placeholder="场景标题关键词"
+            aria-label="候选关键词"
+          /><ElInputNumber v-model="page" :min="1" :precision="0" aria-label="候选页码" /><ElButton
+            :loading="busy"
+            @click="load"
+            >加载本页真实草稿</ElButton
+          >
+        </div>
+        <ElCheckboxGroup v-model="selected"
+          ><div v-for="row in rows" :key="row.revisionId" class="candidate">
+            <ElCheckbox :value="row.revisionId" :disabled="busy">{{ row.title }}</ElCheckbox
+            ><span>{{
+              row.contentType === 'short_reading'
+                ? '短文阅读'
+                : row.contentType === 'word_card'
+                  ? '原词汇卡'
+                  : '场景对话'
+            }}</span
+            ><small>{{ row.contentId }} · {{ row.revisionId }}</small>
+          </div></ElCheckboxGroup
         >
-      </div>
-      <ElCheckboxGroup v-model="selected"
-        ><div v-for="row in rows" :key="row.revisionId" class="candidate">
-          <ElCheckbox :value="row.revisionId" :disabled="busy">{{ row.title }}</ElCheckbox
-          ><span>{{
-            row.contentType === 'short_reading'
-              ? '短文阅读'
-              : row.contentType === 'word_card'
-                ? '原词汇卡'
-                : '场景对话'
-          }}</span
-          ><small>{{ row.contentId }} · {{ row.revisionId }}</small>
-        </div></ElCheckboxGroup
+        <p>
+          当前明确选中 {{ prepared.length }} 篇。跨页已选候选保留；重新加载仍以服务端当前草稿为准。
+        </p></AdminPanel
       >
-      <p>
-        当前明确选中 {{ prepared.length }} 篇。跨页已选候选保留；重新加载仍以服务端当前草稿为准。
-      </p></AdminPanel
-    >
-    <ContentEntryConfirmationPanel v-if="prepared.length" :candidates="prepared" @saved="load" />
-    <ProofreadingSetPanel v-if="prepared.length" :candidates="prepared" @confirmed="accept" />
-    <AdminPanel v-if="approved" title="已批准集合与发布范围"
-      ><p>仅以下服务端已确认候选可以继续发布。未批准异常仍为草稿；发布前重新核对该候选版本。</p>
-      <div
-        v-for="row in approved.candidates.filter((item) =>
-          approved!.confirmed_ids.includes(item.revision_id)
-        )"
-        :key="row.revision_id"
-        class="candidate"
-      >
-        <strong>{{
-          prepared.find((item) => item.revisionId === row.revision_id)?.title || row.content_id
-        }}</strong
-        ><small>{{ row.candidate_hash }}</small
-        ><ElButton
-          type="primary"
-          @click="
-            router.push(
-              row.content_type === 'short_reading'
-                ? { name: 'content-short-reading-edit', params: { id: row.content_id } }
-                : { name: 'content-scene-publish', params: { id: row.revision_id } }
-            )
-          "
-          >检查并明确发布这一候选</ElButton
+    </details>
+    <ContentEntryConfirmationPanel
+      v-if="!approved && prepared.length"
+      :candidates="prepared"
+      @saved="load"
+    />
+    <ProofreadingSetPanel
+      v-if="prepared.length && !approved"
+      :footer="true"
+      :candidates="prepared"
+      @confirmed="accept"
+    />
+    <details v-if="approved" class="approved-list">
+      <summary>查看已批准集合 · 返回单篇检查</summary>
+      <AdminPanel title="已批准集合与发布范围"
+        ><p>仅以下服务端已确认候选可以继续发布。未批准异常仍为草稿；发布前重新核对该候选版本。</p>
+        <div
+          v-for="row in approved.candidates.filter((item) =>
+            approved!.confirmed_ids.includes(item.revision_id)
+          )"
+          :key="row.revision_id"
+          class="candidate"
         >
-      </div>
-    </AdminPanel>
+          <strong>{{
+            prepared.find((item) => item.revisionId === row.revision_id)?.title || row.content_id
+          }}</strong
+          ><small>{{ row.candidate_hash }}</small
+          ><ElButton
+            type="primary"
+            @click="
+              router.push(
+                row.content_type === 'short_reading'
+                  ? { name: 'content-short-reading-edit', params: { id: row.content_id } }
+                  : { name: 'content-scene-publish', params: { id: row.revision_id } }
+              )
+            "
+            >检查并明确发布这一候选</ElButton
+          >
+        </div>
+      </AdminPanel>
+    </details>
     <PublicationRangePanel
+      v-if="approved || route.query.range_token"
       :candidates="
         approved?.candidates.filter((candidate) =>
           approved!.confirmed_ids.includes(candidate.revision_id)
@@ -203,6 +221,15 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 18px;
   min-width: 0;
+
+  .candidate-selection,
+  .approved-list {
+    summary {
+      margin-bottom: 16px;
+      color: var(--el-color-primary);
+      cursor: pointer;
+    }
+  }
 
   .heading,
   .actions,

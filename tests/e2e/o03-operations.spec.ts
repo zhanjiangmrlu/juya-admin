@@ -51,14 +51,16 @@ for (const width of [1280, 1440]) {
     await navigateInApp(page, '/dashboard')
     for (const name of [
       '今日新增用户',
-      '完成开放场景但未填写微信号',
+      '开放场景完成 · 未填微信',
       '待联系用户',
       '限时权益待开始',
-      '限时学习中',
+      '限时权益学习中',
       '反馈紧急待办'
     ])
       await expect(page.getByText(name, { exact: true })).toBeVisible()
-    await page.getByRole('link', { name: '待联系用户 5' }).click()
+    await expect(page.locator('.dashboard-page .metric')).toHaveCount(6)
+    await expect(page.getByRole('link', { name: '5 待联系用户' })).toBeVisible()
+    await page.getByRole('link', { name: '5 待联系用户' }).click()
     await expect(page.getByText('学习者1-0', { exact: true })).toBeVisible()
     expect(queries.at(-1)?.searchParams.get('contact_status')).toBe('PENDING')
     await page.getByRole('button', { name: '下一页', exact: true }).click()

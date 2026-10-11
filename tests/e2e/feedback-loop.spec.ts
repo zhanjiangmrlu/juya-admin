@@ -36,7 +36,7 @@ test('反馈列表支持筛选分页并进入完整详情', async ({ adminApi, p
   await page.getByRole('link', { name: 'FB-1' }).click()
   await expect(page).toHaveURL(/\/feedback\/FB-1\?/)
   await expect(page.getByText('开始处理')).toBeVisible()
-  await page.getByRole('button', { name: '返回反馈列表' }).click()
+  await page.getByRole('button', { name: '返回列表' }).click()
   await expect(page).toHaveURL(/\/feedback\?/)
   await expect(page).toHaveURL(/keyword=USER-1/)
   await expect(page).toHaveURL(/status=PROCESSING/)
@@ -80,7 +80,8 @@ test('内部备注失败保留草稿，成功后进入管理员可见记录', as
   expect(request?.headers['x-idempotency-key']).toBeTruthy()
   await expect(page.getByText('内部备注已保存')).toBeVisible()
   await expect(input).toHaveValue('')
-  await expect(page.getByText('需要继续排查音频时间轴')).toBeVisible()
+  await page.getByRole('button', { name: '查看补充、回复与管理员记录' }).click()
+  await expect(page.getByText('需要继续排查音频时间轴').last()).toBeVisible()
 })
 
 test('A14 至 A16 在双视口下保持关键内容和无横向溢出', async ({ adminApi, page }, testInfo) => {

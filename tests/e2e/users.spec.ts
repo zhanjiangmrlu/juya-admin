@@ -21,7 +21,8 @@ test('完整微信号通过 POST 正文查询且不会进入地址栏', async ({
       () => `${localStorage.getItem('wechat_id')}${sessionStorage.getItem('wechat_id')}`
     )
   ).not.toContain('juya_private_wechat')
-  await expect(page.getByText('USER-1')).toBeVisible()
+  await expect(page.getByText('JY000000000001', { exact: true })).toBeVisible()
+  await expect(page.getByText('学习者', { exact: true })).toBeVisible()
 })
 
 test('联系状态筛选、学习概况和审计后复制形成真实用户流程', async ({ adminApi, context, page }) => {
@@ -53,6 +54,16 @@ test('联系状态筛选、学习概况和审计后复制形成真实用户流�
 })
 
 test('联系更正列表进入详情并以幂等命令批准', async ({ adminApi, page }) => {
+  const attemptKeys: string[] = []
+  await page.route('**/api/v1/admin/contact-corrections/COR-1/commands/approve', (route) => {
+    attemptKeys.push(route.request().headers()['x-idempotency-key'])
+    if (attemptKeys.length === 1)
+      return route.fulfill({
+        status: 503,
+        json: { code: 'SERVICE_UNAVAILABLE', message: '服务暂时不可用，请稍后重试' }
+      })
+    return route.fallback()
+  })
   await loginAsAdmin(page)
   await navigateInApp(page, '/users')
   await page.getByRole('button', { name: '查看联系更正申请' }).click()
@@ -64,7 +75,12 @@ test('联系更正列表进入详情并以幂等命令批准', async ({ adminApi
   await page.getByRole('button', { name: '批准并重置修改机会' }).click()
   await page.getByRole('button', { name: '确认批准' }).click()
 
-  await expect(page.getByText('APPROVED')).toBeVisible()
+  await expect(page.getByText('服务暂时不可用，请稍后重试')).toBeVisible()
+  await page.getByRole('button', { name: '批准并重置修改机会' }).click()
+  await page.getByRole('button', { name: '确认批准' }).click()
+  await expect(page.getByText('已批准', { exact: true })).toBeVisible()
+  expect(attemptKeys).toHaveLength(2)
+  expect(attemptKeys[0]).toBe(attemptKeys[1])
   const request = adminApi.findRequest(
     'POST',
     '/api/v1/admin/contact-corrections/COR-1/commands/approve'

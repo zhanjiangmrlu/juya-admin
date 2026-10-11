@@ -33,6 +33,25 @@ const canDecide = computed(
   () =>
     controller.detail.value?.status === 'PENDING' && controller.commandState.value !== 'submitting'
 )
+const correctionStatusLabels: Record<string, string> = {
+  PENDING: '待处理',
+  PROCESSING: '处理中',
+  APPROVED: '已批准',
+  REJECTED: '已拒绝',
+  CANCELLED: '已取消'
+}
+const contactEventLabels: Record<string, string> = {
+  CONTACT_CORRECTION_CREATED: '用户提交更正申请',
+  CONTACT_CORRECTION_APPROVED: '管理员批准修改机会',
+  CONTACT_CORRECTION_REJECTED: '管理员拒绝更正申请',
+  CONTACT_CORRECTION_CANCELLED: '用户取消更正申请'
+}
+const /** 将联系更正审计事实转换为中文业务文案
+   * @param value - 服务端申请状态或审计事件
+   * @param labels - 对应业务字段的中文映射
+   * @returns 可读文案或未知记录提示
+   */ businessLabel = (value: string, labels: Record<string, string>): string =>
+    Object.hasOwn(labels, value) ? labels[value]! : '其他操作记录'
 
 onMounted(() => void controller.loadDetail(correctionId.value))
 onBeforeUnmount(controller.dispose)
@@ -100,7 +119,7 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
             <span class="reason">{{ controller.detail.value.reason }}</span>
           </ElDescriptionsItem>
           <ElDescriptionsItem label="申请状态">{{
-            controller.detail.value.status
+            businessLabel(controller.detail.value.status, correctionStatusLabels)
           }}</ElDescriptionsItem>
           <ElDescriptionsItem label="申请时间">{{
             formatDateTime(controller.detail.value.created_at)
@@ -134,8 +153,11 @@ async function confirmDecision(action: ContactCorrectionAction): Promise<void> {
             :timestamp="formatDateTime(item.occurred_at)"
             placement="top"
           >
-            <strong>{{ item.event_type }}</strong>
-            <span>{{ item.actor_type }} · {{ item.status }}</span>
+            <strong>{{ businessLabel(item.event_type, contactEventLabels) }}</strong>
+            <span
+              >{{ item.actor_type === 'USER' ? '用户' : '管理员' }} ·
+              {{ businessLabel(item.status, correctionStatusLabels) }}</span
+            >
           </ElTimelineItem>
         </ElTimeline>
         <ElEmpty v-else description="暂无处理时间线" />

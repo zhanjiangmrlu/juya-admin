@@ -50,6 +50,16 @@ function setup(withPronunciation = true) {
 }
 
 describe('scene preview pronunciation', () => {
+  it('shows complete source entry details directly without a clickable-text glossary', async () => {
+    const wrapper = setup()
+    await flushPromises()
+    expect(wrapper.find('.word-link').exists()).toBe(false)
+    const card = wrapper.get('article.entry-card')
+    expect(card.text()).toContain('此处指解决排班问题。')
+    expect(card.text()).toContain('How can we solve this problem?')
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
   beforeEach(() => {
     request
       .mockReset()
@@ -62,45 +72,32 @@ describe('scene preview pronunciation', () => {
   })
   afterEach(() => vi.restoreAllMocks())
 
-  it('offers the word pronunciation beside its heading and returns to the original sentence', async () => {
+  it('plays a fixed entry file beside the displayed source details and keeps whole-audio available', async () => {
     const wrapper = setup()
     await flushPromises()
-    await wrapper.get('.word-link').trigger('click')
-    const card = wrapper.get('.entry-sheet')
-    expect(card.get('.entry-heading').text()).toContain('solve')
-    expect(card.get('.entry-phonetic').text()).toBe('/sɑːlv/')
-    expect(card.text()).toContain('此处指解决排班问题。')
-    expect(card.text()).toContain('How can we solve this problem?')
+    const card = wrapper.get('article.entry-card')
     const button = card.get('button[aria-label="播放 solve 发音"]')
     await button.trigger('click')
     await flushPromises()
     expect(wrapper.get('audio').element.src).toContain('/word.wav')
     expect(button.attributes('aria-label')).toBe('暂停 solve 发音')
-    await card
+    await wrapper
       .findAll('button')
-      .find((item) => item.text() === '返回原文')!
+      .find((item) => item.text() === '播放整段音频')!
       .trigger('click')
     await flushPromises()
-    expect(wrapper.find('.entry-sheet').exists()).toBe(false)
-    expect(wrapper.get('.word-link').element).toBe(document.activeElement)
     expect(wrapper.get('audio').element.src).toContain('/scene.wav')
-    vi.spyOn(wrapper.get('audio').element, 'paused', 'get').mockReturnValue(false)
-    await wrapper.get('audio').trigger('playing')
-    expect(wrapper.text()).toContain('当前：整段音频')
-    wrapper.findComponent({ name: 'ElDialog' }).vm.$emit('close')
-    await flushPromises()
-    expect(wrapper.text()).toContain('当前：整段音频')
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
     wrapper.unmount()
   })
 
-  it('keeps missing pronunciation and phonetics explicit without enabling an empty audio source', async () => {
+  it('omits inapplicable phonetics and empty playback controls when an entry has no pronunciation', async () => {
     const wrapper = setup(false)
     await flushPromises()
-    await wrapper.get('.word-link').trigger('click')
-    const card = wrapper.get('.entry-sheet')
-    expect(card.text()).toContain('音标待补充')
+    const card = wrapper.get('article.entry-card')
+    expect(card.find('.entry-phonetic').exists()).toBe(false)
     expect(card.text()).toContain('暂无独立发音')
-    expect(card.get('button[aria-label="播放 solve 发音"]').attributes('disabled')).toBeDefined()
+    expect(card.find('.entry-play').exists()).toBe(false)
     wrapper.unmount()
   })
 
@@ -141,4 +138,32 @@ describe('scene preview pronunciation', () => {
     expect(wrapper.text()).toContain('尚未绑定整段音频')
     wrapper.unmount()
   })
+})
+
+it('previews an existing fixed pronunciation target without creating a synthesis task', async () => {
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined)
+  vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined)
+  request.mockImplementation(({ path }: { path: string }) => {
+    if (path.endsWith('/targets/fixed'))
+      return Promise.resolve({ target_id: 'fixed', resource_version: 'cached-v1' })
+    if (path.endsWith('/targets/fixed/preview'))
+      return Promise.resolve({ resource_version: 'cached-v1', url: '/cached.wav' })
+    return Promise.resolve({ url: '/scene.wav' })
+  })
+  const wrapper = setup(false)
+  const content = normalizeSceneContent(wrapper.props('content'))
+  content.vocabulary[0]!.pronunciation_target_id = 'fixed'
+  await wrapper.setProps({ content })
+  await flushPromises()
+  await wrapper.get('article.entry-card button.entry-play').trigger('click')
+  await flushPromises()
+  expect(request).toHaveBeenCalledWith({
+    method: 'POST',
+    path: '/api/v1/admin/pronunciations/targets/fixed/preview',
+    body: { resource_version: 'cached-v1' }
+  })
+  expect(wrapper.get('audio').element.src).toContain('/cached.wav')
+  expect(request.mock.calls.some(([call]) => String(call.path).includes('/resolve'))).toBe(false)
+  wrapper.unmount()
 })

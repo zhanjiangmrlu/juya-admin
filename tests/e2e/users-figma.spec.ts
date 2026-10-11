@@ -27,10 +27,17 @@ for (const viewport of [
       if (id === 'A05') await expect(page.getByRole('cell', { name: 'FORMAL-1' })).toBeVisible()
       if (id === 'A06') {
         await page.getByPlaceholder('输入用户编号').fill('USER-1')
+        await page
+          .getByRole('button', { name: '学习者 · 句芽号：JY000000000001', exact: true })
+          .click()
+        await expect(page.getByRole('textbox', { name: '用户编号', exact: true })).toHaveValue(
+          '学习者 · 句芽号：JY000000000001'
+        )
         await page.getByRole('combobox', { name: /正式内容包/ }).click()
         await page.getByRole('option', { name: /基础内容包/ }).click()
         await page.keyboard.press('Escape')
         await expect(page.getByRole('option', { name: /基础内容包/ })).toBeHidden()
+        await expect(page.getByRole('button', { name: '获取操作预览', exact: true })).toBeEnabled()
       }
       if (id === 'A07') {
         await page.getByPlaceholder('输入用户编号').fill('USER-1')
@@ -41,7 +48,7 @@ for (const viewport of [
         await expect(page.getByRole('button', { name: '二次确认并开通' })).toBeEnabled()
       }
       if (id === 'A08')
-        await expect(page.getByRole('button', { name: '获取服务端预览并二次确认' })).toBeEnabled()
+        await expect(page.getByRole('button', { name: '获取续期预览', exact: true })).toBeEnabled()
       if (id === 'A09')
         await expect(page.getByRole('button', { name: '二次确认并执行' })).toBeEnabled()
       await expect(page.locator('main')).not.toContainText('接口待接入')

@@ -81,6 +81,8 @@ describe('user pages', () => {
     })
 
     await vi.waitFor(() => expect(wrapper.text()).toContain('wx-complete-user'))
+    expect(wrapper.text()).toContain('微信号已变更')
+    expect(wrapper.text()).toContain('最近变更')
     expect(wrapper.text()).not.toContain('联系资料列表接口待接入')
     expect(wrapper.find('[aria-label="联系状态筛选"]').exists()).toBe(true)
 

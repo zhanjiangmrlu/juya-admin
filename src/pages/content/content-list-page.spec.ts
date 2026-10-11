@@ -18,15 +18,15 @@ describe('content list page', () => {
         JSON.stringify({
           items: [
             {
-              cover_object_key: null,
+              content_type: 'dialogue',
               draft_revision_id: 'draft-1',
               id: 'scene-1',
               published_revision_id: 'published-1',
               series_id: 'series-1',
               series_title: '日常英语',
               status: 'PUBLISHED',
-              summary: '咖啡店点单',
-              title: 'Ordering coffee',
+              title_zh: '咖啡店点单',
+              title_en: 'Ordering coffee',
               updated_at: '2026-09-30T10:00:00Z'
             }
           ],
@@ -51,18 +51,13 @@ describe('content list page', () => {
 
     await vi.waitFor(() => expect(wrapper.text()).toContain('Ordering coffee'))
     expect(wrapper.text()).toContain('日常英语')
-    expect(wrapper.text()).toContain('2026-09-30 18:00:00')
-    expect(wrapper.text()).not.toContain('2026-09-30T10:00:00Z')
+    expect(wrapper.text()).toContain('咖啡店点单')
+    expect(wrapper.text()).toContain('场景对话')
     expect(wrapper.text()).toContain('共 1 条')
     expect(wrapper.text()).toContain('前往')
     expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('page_size=10')
-    expect(wrapper.findAll('[role="tab"]').map((tab) => tab.text())).toEqual([
-      '内容列表',
-      '场景草稿',
-      '内容校对',
-      '音频切片',
-      '预览发布'
-    ])
+    expect(wrapper.findAll('[role="tab"]')).toHaveLength(0)
+    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/content/catalogue')
     expect(wrapper.text()).not.toContain('内容列表接口待接入')
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })

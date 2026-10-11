@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
 import { computed, onBeforeUnmount, reactive, shallowRef, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 import type { FeedbackTicket } from './feedback-adapter'
@@ -11,14 +13,13 @@ import type { FeedbackTicket } from './feedback-adapter'
 import { createFeedbackAdapter } from './feedback-adapter'
 import { getFeedbackOperations } from './feedback-model'
 import { useFeedbackCommand } from './use-feedback-command'
-import { useFeedbackNote } from './use-feedback-note'
 
 const props = defineProps<{ ticket: FeedbackTicket }>()
 const emit = defineEmits<{ updated: [] }>()
+const route = useRoute()
 const adapter = createFeedbackAdapter(useAdminApiClient())
 const current = shallowRef<FeedbackTicket | null>(props.ticket)
 const command = useFeedbackCommand(adapter, current)
-const note = useFeedbackNote(adapter, props.ticket.id)
 const form = reactive({ template: '', text: '' })
 const operations = computed(() => (current.value ? getFeedbackOperations(current.value) : []))
 watch(
@@ -45,16 +46,6 @@ const /**
       emit('updated')
     } catch {
       /* 命令控制器显示真实错误且保留草稿 */
-    }
-  }
-const /** 保存管理员内部备注 */
-  saveNote = async (): Promise<void> => {
-    try {
-      await note.submit()
-      ElMessage.success('内部备注已保存')
-      emit('updated')
-    } catch {
-      /* 保留原输入 */
     }
   }
 </script>
@@ -105,13 +96,6 @@ const /** 保存管理员内部备注 */
           @click="submit('close')"
           >回复并关闭</ElButton
         >
-        <ElButton
-          v-if="operations.includes('REQUEST_SUPPLEMENT')"
-          :disabled="form.template !== 'NEED_MORE' || !form.text.trim()"
-          :loading="command.isSubmitting.value"
-          @click="submit('supplement')"
-          >要求补充</ElButton
-        >
       </div>
       <p>要求补充将进入“需要补充”，等待期间暂停时限。请求失败保留输入。</p>
       <ElEmpty
@@ -119,22 +103,19 @@ const /** 保存管理员内部备注 */
         description="当前反馈已结束，无可执行操作"
         :image-size="48"
       />
-      <ElFormItem label="内部备注 · 仅管理员可见"
-        ><ElInput
-          :model-value="note.draft.value"
-          placeholder="最多 200 字，仅管理员可见"
-          type="textarea"
-          maxlength="200"
-          @update:model-value="note.setDraft"
-      /></ElFormItem>
-      <ElAlert v-if="note.error.value" :title="note.error.value" type="error" :closable="false" />
-      <ElButton
-        :disabled="!note.draft.value.trim()"
-        :loading="note.isSubmitting.value"
-        @click="saveNote"
-        >保存内部备注</ElButton
-      >
     </ElForm>
+    <AppPageActions
+      ><RouterLink v-slot="{ navigate }" custom :to="{ name: 'feedback', query: route.query }"
+        ><ElButton @click="navigate">返回列表</ElButton></RouterLink
+      ><ElButton
+        v-if="operations.includes('REQUEST_SUPPLEMENT')"
+        type="primary"
+        :disabled="form.template !== 'NEED_MORE' || !form.text.trim()"
+        :loading="command.isSubmitting.value"
+        @click="submit('supplement')"
+        >需要补充</ElButton
+      ></AppPageActions
+    >
   </AdminPanel>
 </template>
 
@@ -146,6 +127,12 @@ const /** 保存管理员内部备注 */
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
+
+    :deep(.el-button) {
+      flex: 1;
+      min-width: 150px;
+      margin-left: 0;
+    }
   }
 
   p {

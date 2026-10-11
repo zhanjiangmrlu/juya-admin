@@ -1,253 +1,198 @@
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
-import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
-import TaskProgress from '@/components/task-progress/task-progress.vue'
-import { createContentAdapter } from '@/features/content/content-adapter'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
+import { type ContentSeries, createContentAdapter } from '@/features/content/content-adapter'
 import ContentMaterialsPanel from '@/features/content-import/content-materials-panel.vue'
 import ContentPackageWorkflow from '@/features/content-import/content-package-workflow.vue'
-import { validateImageBatch } from '@/features/content-import/import-validation'
-import { createUploadAdapter } from '@/features/content-import/upload-adapter'
-import { useUploadQueue } from '@/features/content-import/use-upload-queue'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
-import type { ContentSeries } from '@/features/content/content-adapter'
-import type { UploadQueueItem } from '@/features/content-import/use-upload-queue'
-import type { UploadFile, UploadFiles } from 'element-plus'
+import type { ImportContentType } from '@/features/content-import/content-package-model'
 
-const context = reactive({ seriesId: '', templateId: '' })
-const queue = useUploadQueue(createUploadAdapter(useAdminApiClient()))
-const contextLocked = computed(() => queue.items.value.length > 0)
-const duplicateCount = computed(
-  () => queue.items.value.filter((item) => item.status === 'confirmed' && item.reusedScene).length
-)
+const route = useRoute()
 const router = useRouter()
-const adapter = createContentAdapter(useAdminApiClient())
+const content = createContentAdapter(useAdminApiClient())
 const series = ref<ContentSeries[]>([])
-const /** 加载内容分类 */
-  loadContext = async (): Promise<void> => {
+const error = ref('')
+const context = reactive({
+  seriesId: String(route.query.series_id || ''),
+  contentType: (route.query.content_type || 'dialogue') as ImportContentType
+})
+const source = computed(() =>
+  String(route.query.source || (route.query.batch_id ? 'zip' : 'entry'))
+)
+const /** 加载真实分类，导入来源之间保持管理员选择 */
+  load = async (): Promise<void> => {
     try {
-      series.value = await adapter.listSeries()
-    } catch {
-      ElMessage.error('分类加载失败，请重试')
+      series.value = await content.listSeries()
+    } catch (failure) {
+      error.value = failure instanceof Error ? failure.message : '分类加载失败'
     }
   }
-/** 编辑上传确认后自动建立的场景草稿。
- * @param item - 上传素材
- */
-async function editImage(item: Readonly<UploadQueueItem>): Promise<void> {
-  if (item.sceneId) await router.push({ name: 'content-scene-edit', params: { id: item.sceneId } })
-}
 const /**
-   * 在内容列表中定位重复图片复用的场景
-   * @param item - 已确认并返回场景编号的上传任务
+   * 进入所选导入来源，内容包、DOCX 和独立素材分别走正式契约
+   * @param next - 管理员选择的来源
    */
-  viewExistingContent = async (item: Readonly<UploadQueueItem>): Promise<void> => {
-    if (item.sceneId) {
-      await router.push({ name: 'content-scenes', query: { scene_id: item.sceneId } })
-    }
+  selectSource = async (next: string): Promise<void> => {
+    await router.push({
+      name: 'content-import',
+      query: {
+        source: next,
+        series_id: context.seriesId || undefined,
+        content_type: context.contentType
+      }
+    })
   }
-onMounted(loadContext)
-
-/**
- * 接收 Element Plus 选择的本地图片
- *
- * @param _file - 本次变化的上传文件
- * @param files - 当前选择的全部上传文件
- * @returns 无返回值
- */
-function handleFiles(_file: UploadFile, files: UploadFiles): void {
-  const batch = files.flatMap((candidate) =>
-    candidate.raw
-      ? [{ file: candidate.raw, seriesId: context.seriesId, templateId: context.templateId }]
-      : []
-  )
-  const validation = validateImageBatch(batch)
-  if (!validation.valid) {
-    ElMessage.warning(validation.message)
-    return
-  }
-  for (const item of batch) {
-    if (!queue.items.value.some((queued) => queued.file.name === item.file.name))
-      queue.add(item.file, { seriesId: item.seriesId, templateId: item.templateId })
-  }
-}
+onMounted(load)
 </script>
-
 <template>
-  <section class="content-import-page admin-brand-headings">
-    <ContentPackageWorkflow />
-    <ContentMaterialsPanel />
-    <div class="page-heading">
-      <div>
-        <p class="page-description">
-          批量图片上传建立场景草稿；同一系列和模板下的相同图片复用已有场景，图片仅作为可选材料，不提取文字。
-        </p>
-      </div>
-    </div>
-    <div class="content-grid">
-      <AdminPanel :title="ADMIN_SECTION_TITLES.contentImport.uploadBatch">
-        <ElAlert
-          :closable="false"
-          title="单批最多 30 张，且必须属于同一系列和模板"
-          type="info"
-          show-icon
-        />
-        <ElForm class="batch-form" label-position="top">
-          <ElFormItem label="内容分类" required
-            ><ElSelect v-model="context.seriesId" :disabled="contextLocked"
+  <section class="content-import-page">
+    <template v-if="source === 'entry'">
+      <ElAlert v-if="error" :title="error" type="error" :closable="false"
+        ><ElButton @click="load">重新加载</ElButton></ElAlert
+      >
+      <AdminPanel title="分类与内容类型">
+        <ElForm label-position="top" class="classification">
+          <ElFormItem label="内容分类"
+            ><ElSelect v-model="context.seriesId" placeholder="选择分类"
               ><ElOption
-                v-for="item in series"
-                :key="item.id"
-                :label="item.title"
-                :value="item.id" /></ElSelect
+                v-for="row in series"
+                :key="row.id"
+                :label="row.title"
+                :value="row.id" /></ElSelect
           ></ElFormItem>
-          <ElFormItem label="内容类型" required
-            ><ElSelect v-model="context.templateId" :disabled="contextLocked"
-              ><ElOption label="对话" value="dialogue" /><ElOption
-                label="词汇"
-                value="vocabulary" /></ElSelect
+          <ElFormItem label="内容类型"
+            ><ElSelect v-model="context.contentType"
+              ><ElOption label="场景对话" value="dialogue" /><ElOption
+                label="原词汇卡"
+                value="word_card" /><ElOption
+                label="独立短文阅读"
+                value="short_reading" /></ElSelect
           ></ElFormItem>
         </ElForm>
-        <ElUpload
-          :auto-upload="false"
-          :disabled="!context.seriesId || !context.templateId"
-          :limit="30"
-          accept="image/jpeg,image/png,image/webp"
-          drag
-          multiple
-          @change="handleFiles"
-        >
-          <div class="upload-copy">
-            <strong>拖拽图片到这里</strong><span>或点击选择 JPG、PNG、WebP 文件</span>
-          </div>
-        </ElUpload>
-        <ElButton
-          class="start-button"
-          :disabled="queue.items.value.length === 0"
-          type="primary"
-          @click="queue.startAll"
-          >开始上传</ElButton
-        >
       </AdminPanel>
-
-      <AdminPanel :title="ADMIN_SECTION_TITLES.contentImport.taskQueue">
-        <ElEmpty v-if="queue.items.value.length === 0" description="尚未选择图片" />
-        <template v-else>
-          <ElAlert
-            v-if="duplicateCount > 0"
-            :title="`重复图片 ${duplicateCount} 张，已复用已有场景`"
-            description="这些图片不会新增内容列表记录。点击「查看已有内容」可定位到对应场景。"
-            type="warning"
-            show-icon
-            :closable="false"
-          />
-          <div v-for="item in queue.items.value" :key="item.id" class="queue-item">
-            <TaskProgress :item="item" @cancel="queue.cancel" @retry="queue.start" />
-            <ElButton
-              v-if="item.sceneId && item.reusedScene"
-              link
-              type="primary"
-              @click="viewExistingContent(item)"
-              >查看已有内容</ElButton
-            >
-            <ElButton v-if="item.sceneId" link type="primary" @click="editImage(item)"
-              >编辑场景草稿</ElButton
-            >
-          </div>
-        </template>
-        <ElAlert
-          class="ocr-note"
-          :closable="false"
-          title="上传只确认素材。完整正文由管理员提供，保存草稿后另行校对发布。"
-          type="success"
-          show-icon
-        />
-      </AdminPanel>
-    </div>
+      <div class="entry-row">
+        <div>
+          <strong>统一内容 ZIP · 推荐</strong>
+          <p>正文、译文、封面、词汇图片和音频一起上传，按 ID 校验并预览对应。</p>
+        </div>
+        <ElButton @click="selectSource('zip')">上传内容 ZIP</ElButton>
+      </div>
+      <div class="source-grid">
+        <AdminPanel title="中英文文档 · 必填"
+          ><p>用独立标题段落分篇，中英文可逐段交替或整篇对应。</p>
+          <ElButton @click="selectSource('docx')">选择 DOCX</ElButton></AdminPanel
+        >
+        <AdminPanel title="整段音频与选填图片"
+          ><p>为已经保存的草稿补充素材；标题匹配是建议，绑定前需核对固定草稿、角色和稳定条目。</p>
+          <ElButton @click="selectSource('materials')">添加音频或图片</ElButton></AdminPanel
+        >
+      </div>
+      <ElAlert title="本次整理范围" type="info" :closable="false"
+        >ZIP 按内容 ID 和条目 ID 绑定资料；DOCX
+        按标题提出匹配。短文纯阅读；场景另做词义确认和音频切句。1000 篇逻辑批次由系统处理。</ElAlert
+      >
+      <div class="entry-row">
+        <div>
+          <strong>词汇图包 · 可选</strong>
+          <p>一个 ZIP 上传词汇表和图片，按条目 ID 校验并预览图文。</p>
+        </div>
+        <ElButton @click="selectSource('materials')">导入词汇图包</ElButton>
+      </div>
+      <AppPageActions
+        ><ElButton @click="router.push({ name: 'content-scenes' })">返回内容生产</ElButton
+        ><ElButton type="primary" @click="selectSource('zip')">开始导入</ElButton></AppPageActions
+      >
+    </template>
+    <template v-else>
+      <ElButton
+        v-if="source !== 'materials'"
+        class="back-entry"
+        link
+        type="primary"
+        @click="selectSource('entry')"
+        >返回批量导入入口</ElButton
+      >
+      <ContentMaterialsPanel
+        v-if="source === 'materials'"
+        :initial-series-id="context.seriesId"
+        :initial-content-type="context.contentType"
+      />
+      <ContentPackageWorkflow
+        v-else
+        :key="source"
+        :initial-kind="source === 'docx' ? 'docx' : 'zip'"
+        :initial-series-id="context.seriesId"
+        :initial-content-type="context.contentType"
+      />
+    </template>
   </section>
 </template>
-
 <style scoped lang="scss">
 /* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
 .content-import-page {
-  .page-heading {
-    margin-bottom: 14px;
+  display: grid;
+  gap: 20px;
+  min-width: 0;
 
-    span {
-      color: var(--juya-color-text-primary);
-      font-size: 11px;
-      font-weight: 700;
+  .classification,
+  .source-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .entry-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    background: var(--juya-color-surface);
+    border: 1px solid var(--juya-color-border);
+    border-radius: 14px;
+  }
+
+  p {
+    margin-block: 6px 16px;
+    color: var(--juya-color-text-regular);
+    line-height: 22px;
+  }
+
+  .entry-row p {
+    margin-bottom: 0;
+    font-size: 13px;
+  }
+
+  .back-entry {
+    justify-self: start;
+  }
+
+  :deep(.admin-panel-title) {
+    font-size: 18px;
+    line-height: 29px;
+  }
+
+  :deep(.el-card__header) {
+    padding: 24px 24px 0;
+  }
+
+  :deep(.el-card__body) {
+    padding: 16px 24px 24px;
+  }
+
+  @media (width <= 800px) {
+    .classification,
+    .source-grid {
+      grid-template-columns: minmax(0, 1fr);
     }
 
-    h2 {
-      margin: 3px 0 0;
-      color: var(--juya-color-sidebar);
-      font-size: 18px;
+    .entry-row {
+      align-items: flex-start;
+      flex-direction: column;
     }
   }
-
-  .content-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
-    gap: 18px;
-  }
-
-  .batch-form {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 16px;
-  }
-
-  .upload-copy {
-    display: grid;
-    gap: 6px;
-    color: var(--juya-color-text-secondary);
-  }
-
-  .start-button {
-    width: 100%;
-    margin-top: 16px;
-  }
-
-  .ocr-note {
-    margin-top: 16px;
-  }
-
-  .queue-item {
-    display: grid;
-    gap: 6px;
-
-    a {
-      color: var(--el-color-primary);
-      font-size: 12px;
-      text-align: right;
-    }
-  }
-
-  @media (width <= 1100px) {
-    .content-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-}
-
-.content-import-page :deep(.el-card__header) {
-  padding: 18px 20px 0;
-  border-bottom: 0;
-}
-
-.content-grid > :deep(.el-card:first-child) {
-  background: #eaf2e3;
-}
-
-.page-description {
-  margin: 0;
-  color: var(--juya-color-text-regular);
-  font-size: 13px;
 }
 </style>

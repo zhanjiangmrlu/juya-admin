@@ -2,8 +2,6 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
-import AdminNotice from '@/components/admin-notice/admin-notice.vue'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import AuditTimeline from '@/components/audit-timeline/audit-timeline.vue'
@@ -12,6 +10,7 @@ import StatusTag from '@/components/status-tag/status-tag.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createFeedbackAdapter } from '@/features/feedback/feedback-adapter'
 import { FEEDBACK_STATUS_LABELS } from '@/features/feedback/feedback-copy'
+import FeedbackInternalNote from '@/features/feedback/feedback-internal-note.vue'
 import { formatFeedbackSla } from '@/features/feedback/feedback-model'
 import FeedbackResponsePanel from '@/features/feedback/feedback-response-panel.vue'
 import { useFeedbackDetail } from '@/features/feedback/use-feedback-detail'
@@ -34,11 +33,11 @@ const categoryLabels: Record<FeedbackCategory, string> = {
   PRONUNCIATION: '发音问题'
 }
 
-/** 清理失效会话并跳转登录页。 */
-function handleUnauthorized(): void {
-  authStore.clearSensitiveState()
-  void router.replace({ name: 'login' })
-}
+const /** 清理失效会话并跳转登录页。 */
+  handleUnauthorized = (): void => {
+    authStore.clearSensitiveState()
+    void router.replace({ name: 'login' })
+  }
 
 const controller = useFeedbackDetail(
   createFeedbackAdapter(
@@ -74,406 +73,249 @@ const timeline = computed(() =>
 onMounted(() => void controller.load())
 onBeforeUnmount(controller.dispose)
 
-/**
- * 格式化管理端日期时间。
- * @param value - ISO 8601 日期时间
- * @returns 日期时间文案
- */
-function formatDateTime(value: string): string {
-  return formatTimestamp(value)
-}
-
-/**
- * 返回反馈事件的管理员可读文案。
- * @param event - 反馈时间线事件
- * @returns 事件文案
- */
-function timelineLabel(event: FeedbackTimelineEvent): string {
-  const labels: Record<string, string> = {
-    CLOSED_INSUFFICIENT: '因信息不足关闭',
-    CREATED: '提交反馈',
-    INTERNAL_NOTE_ADDED: '添加内部备注',
-    PROCESSING_STARTED: '开始处理',
-    RESOLVED: '反馈已解决',
-    NEED_MORE: '要求补充信息',
-    REOPENED: '用户重开反馈',
-    USER_SUPPLIED: '用户已补充信息'
+const /**
+   * 格式化管理端日期时间。
+   * @param value - ISO 8601 日期时间
+   * @returns 日期时间文案
+   */
+  formatDateTime = (value: string): string => {
+    return formatTimestamp(value)
   }
-  return labels[event.eventType] ?? event.eventType
-}
 
-/**
- * 拼接事件标签与服务端记录的业务说明。
- * @param event - 反馈时间线事件
- * @returns 完整事件文案
- */
-function timelineContent(event: FeedbackTimelineEvent): string {
-  const payloadKeys = ['request_text', 'supplement_text', 'reason', 'template']
-  const detail = payloadKeys
-    .map((key) => event.payload[key])
-    .find((value): value is string => typeof value === 'string' && value.length > 0)
-  return detail ? `${timelineLabel(event)}：${detail}` : timelineLabel(event)
-}
-
-/** 按需重新签发并展示截图临时地址。 */
-async function loadScreenshot(): Promise<void> {
-  isLoadingScreenshot.value = true
-  try {
-    await controller.loadScreenshot()
-  } catch {
-    // 控制器提供页面错误状态。
-  } finally {
-    isLoadingScreenshot.value = false
+const /**
+   * 返回反馈事件的管理员可读文案。
+   * @param event - 反馈时间线事件
+   * @returns 事件文案
+   */
+  timelineLabel = (event: FeedbackTimelineEvent): string => {
+    const labels: Record<string, string> = {
+      CLOSED_INSUFFICIENT: '因信息不足关闭',
+      CREATED: '提交反馈',
+      INTERNAL_NOTE_ADDED: '添加内部备注',
+      PROCESSING_STARTED: '开始处理',
+      RESOLVED: '反馈已解决',
+      NEED_MORE: '要求补充信息',
+      REOPENED: '用户重开反馈',
+      USER_SUPPLIED: '用户已补充信息'
+    }
+    return labels[event.eventType] ?? event.eventType
   }
-}
 
-/**
- * 返回反馈状态标签色调。
- * @param status - 当前反馈状态
- * @returns 状态标签色调
- */
-function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 'warning' {
-  if (status === 'RESOLVED') return 'success'
-  if (status === 'CLOSED_INSUFFICIENT') return 'info'
-  if (status === 'NEED_MORE' || status === 'USER_SUPPLIED') return 'warning'
-  return status === 'PENDING' ? 'danger' : 'info'
-}
+const /**
+   * 拼接事件标签与服务端记录的业务说明。
+   * @param event - 反馈时间线事件
+   * @returns 完整事件文案
+   */
+  timelineContent = (event: FeedbackTimelineEvent): string => {
+    const payloadKeys = ['request_text', 'supplement_text', 'reason', 'template']
+    const detail = payloadKeys
+      .map((key) => event.payload[key])
+      .find((value): value is string => typeof value === 'string' && value.length > 0)
+    return detail ? `${timelineLabel(event)}：${detail}` : timelineLabel(event)
+  }
+
+const /** 按需重新签发并展示截图临时地址。 */
+  loadScreenshot = async (): Promise<void> => {
+    isLoadingScreenshot.value = true
+    try {
+      await controller.loadScreenshot()
+    } catch {
+      // 控制器提供页面错误状态。
+    } finally {
+      isLoadingScreenshot.value = false
+    }
+  }
+
+const /**
+   * 返回反馈状态标签色调。
+   * @param status - 当前反馈状态
+   * @returns 状态标签色调
+   */
+  getStatusTone = (status: FeedbackStatus): 'danger' | 'info' | 'success' | 'warning' => {
+    if (status === 'RESOLVED') return 'success'
+    if (status === 'CLOSED_INSUFFICIENT') return 'info'
+    if (status === 'NEED_MORE' || status === 'USER_SUPPLIED') return 'warning'
+    return status === 'PENDING' ? 'danger' : 'info'
+  }
 </script>
 
 <template>
-  <section class="feedback-detail-page admin-operations-surface">
+  <section class="feedback-detail-page">
     <ElAlert
       v-if="controller.error.value"
-      :closable="false"
       :title="controller.error.value"
       type="error"
-      show-icon
+      :closable="false"
       ><ApiErrorDetails :error="controller.apiError.value"
     /></ElAlert>
     <ElSkeleton v-if="controller.isLoading.value" :rows="9" animated />
-    <template v-else-if="controller.ticket.value">
-      <div class="detail-grid">
-        <div class="primary-column">
-          <AdminPanel class="source-card">
-            <template #header
-              ><div class="card-heading">
-                <h3>用户说明与来源</h3>
-                <RouterLink
-                  v-slot="{ navigate }"
-                  custom
-                  :to="{ name: 'feedback', query: route.query }"
-                  ><ElButton @click="navigate">返回反馈列表</ElButton></RouterLink
-                >
-                <StatusTag
-                  :label="FEEDBACK_STATUS_LABELS[controller.ticket.value.status]"
-                  :tone="getStatusTone(controller.ticket.value.status)"
-                />
+    <template v-else-if="controller.ticket.value"
+      ><div class="detail-grid">
+        <AdminPanel class="source-card"
+          ><template #header
+            ><h3>{{ categoryLabels[controller.ticket.value.category] }}</h3>
+            <div class="status-line">
+              <StatusTag
+                :label="FEEDBACK_STATUS_LABELS[controller.ticket.value.status]"
+                :tone="getStatusTone(controller.ticket.value.status)"
+              /><ElTag
+                :type="
+                  sla?.state === 'overdue'
+                    ? 'danger'
+                    : sla?.state === 'due-soon'
+                      ? 'warning'
+                      : 'info'
+                "
+                effect="plain"
+                >{{ sla?.text }}</ElTag
+              >
+            </div></template
+          >
+          <p class="identity">用户：{{ controller.ticket.value.userId }}</p>
+          <p class="source-note">
+            自动来源：{{ controller.ticket.value.source.page || '未记录页面'
+            }}<span
+              v-if="
+                controller.ticket.value.source.scene_id || controller.ticket.value.source.sceneId
+              "
+            >
+              /
+              {{
+                controller.ticket.value.source.scene_id || controller.ticket.value.source.sceneId
+              }}</span
+            >
+          </p>
+          <PlainTextContent :content="controller.ticket.value.description" />
+          <AuditTimeline v-if="timeline.length" :items="timeline" class="timeline" />
+          <div class="screenshot-actions">
+            <span>截图：{{ controller.ticket.value.screenshots.length ? '已提供' : '未提供' }}</span
+            ><ElButton
+              v-if="controller.ticket.value.screenshots.length"
+              :aria-label="controller.screenshotUrl.value ? '刷新临时地址' : '查看反馈截图'"
+              link
+              type="primary"
+              :loading="isLoadingScreenshot"
+              @click="loadScreenshot"
+              >{{ controller.screenshotUrl.value ? '刷新临时地址' : '查看反馈截图' }}</ElButton
+            >
+          </div>
+          <div v-if="controller.screenshotUrl.value" class="screenshot-preview">
+            <img :src="controller.screenshotUrl.value" alt="反馈截图" /><small
+              >临时地址有效至
+              {{ formatDateTime(controller.screenshotExpiresAt.value || '') }}</small
+            >
+          </div>
+          <p class="source-note">
+            补充轮次{{ controller.ticket.value.supplementRounds }} / 2 · 状态与时限只读
+          </p>
+          <FeedbackInternalNote :key="ticketId" :ticket-id="ticketId" @updated="controller.load" />
+        </AdminPanel>
+        <FeedbackResponsePanel
+          :key="ticketId"
+          :ticket="controller.ticket.value"
+          @updated="controller.load"
+        />
+      </div>
+      <ElCollapse class="history"
+        ><ElCollapseItem title="查看补充、回复与管理员记录"
+          ><div class="history-grid">
+            <div>
+              <h3>补充记录</h3>
+              <div
+                v-for="round in controller.ticket.value.rounds"
+                :key="round.roundNumber"
+                class="record-block"
+              >
+                <strong>第{{ round.roundNumber }}轮</strong
+                ><small
+                  >要求补充：{{ round.pausedAt ? formatDateTime(round.pausedAt) : '—' }} ·
+                  用户补充：{{
+                    round.suppliedAt ? formatDateTime(round.suppliedAt) : '未补充'
+                  }}</small
+                ><PlainTextContent
+                  :content="round.requestText || '未记录补充要求'"
+                /><PlainTextContent :content="round.supplementText || '等待用户补充'" />
               </div>
-              <p class="panel-subtitle">
-                {{ controller.ticket.value.id }} · {{ controller.ticket.value.userId }}
-              </p></template
-            >
-            <ElDescriptions :column="1" direction="vertical" border>
-              <ElDescriptionsItem label="反馈分类">{{
-                categoryLabels[controller.ticket.value.category]
-              }}</ElDescriptionsItem>
-              <ElDescriptionsItem label="用户说明"
-                ><PlainTextContent :content="controller.ticket.value.description"
-              /></ElDescriptionsItem>
-              <ElDescriptionsItem label="自动来源页面">{{
-                controller.ticket.value.source.page || '未记录'
-              }}</ElDescriptionsItem>
-              <ElDescriptionsItem label="自动来源场景">{{
-                controller.ticket.value.source.scene_id ||
-                controller.ticket.value.source.sceneId ||
-                '未关联'
-              }}</ElDescriptionsItem>
-              <ElDescriptionsItem label="截图状态">{{
-                controller.ticket.value.screenshots.length
-                  ? controller.ticket.value.screenshots
-                      .map((item) => item.securityStatus)
-                      .join('、')
-                  : '未附截图'
-              }}</ElDescriptionsItem>
-              <ElDescriptionsItem label="处理时限"
-                ><ElTag
-                  :type="
-                    sla?.state === 'overdue'
-                      ? 'danger'
-                      : sla?.state === 'due-soon'
-                        ? 'warning'
-                        : undefined
-                  "
-                  effect="plain"
-                  >{{ sla?.text }}</ElTag
-                ></ElDescriptionsItem
-              >
-            </ElDescriptions>
-          </AdminPanel>
-        </div>
-        <div class="secondary-column">
-          <FeedbackResponsePanel
-            :key="ticketId"
-            :ticket="controller.ticket.value"
-            @updated="controller.load"
-          />
-          <AdminPanel
-            :title="ADMIN_SECTION_TITLES.feedbackDetail.timelineCard"
-            title-class="panel-title"
-            class="timeline-card"
-          >
-            <AuditTimeline :items="timeline" />
-          </AdminPanel>
-        </div>
-      </div>
-      <AdminNotice class="notice" title="管理提醒">
-        <p>内部备注与对用户回复分开记录；每次动作前再次核对当前状态。</p>
-      </AdminNotice>
-      <div class="records-grid">
-        <AdminPanel
-          v-if="controller.ticket.value.rounds.length"
-          :title="ADMIN_SECTION_TITLES.feedbackDetail.supplements"
-          title-class="panel-title"
-        >
-          <div
-            v-for="round in controller.ticket.value.rounds"
-            :key="round.roundNumber"
-            class="record-block"
-          >
-            <strong>第 {{ round.roundNumber }} 轮</strong>
-            <small
-              >要求补充：{{ round.pausedAt ? formatDateTime(round.pausedAt) : '—' }} · 用户补充：{{
-                round.suppliedAt ? formatDateTime(round.suppliedAt) : '未补充'
-              }}</small
-            >
-            <PlainTextContent :content="round.requestText ?? '未记录补充要求'" />
-            <PlainTextContent :content="round.supplementText ?? '等待用户补充'" />
-          </div>
-        </AdminPanel>
-        <AdminPanel
-          v-if="controller.ticket.value.replies.length"
-          :title="ADMIN_SECTION_TITLES.feedbackDetail.replies"
-          title-class="panel-title"
-        >
-          <div
-            v-for="reply in controller.ticket.value.replies"
-            :key="`${reply.sentAt}-${reply.adminId}`"
-            class="record-block"
-          >
-            <strong>{{ reply.template }}</strong>
-            <PlainTextContent :content="reply.note ?? '未填写补充说明'" />
-            <small>{{ reply.adminId }} · {{ formatDateTime(reply.sentAt) }}</small>
-          </div>
-        </AdminPanel>
-        <AdminPanel>
-          <template #header>
-            <div class="card-heading">
-              <h3>反馈截图</h3>
-              <ElButton
-                v-if="controller.ticket.value.screenshots.length"
-                :aria-label="controller.screenshotUrl.value ? '刷新临时地址' : '查看反馈截图'"
-                :loading="isLoadingScreenshot"
-                @click="loadScreenshot"
-              >
-                {{ controller.screenshotUrl.value ? '刷新临时地址' : '查看反馈截图' }}
-              </ElButton>
             </div>
-          </template>
-          <ElEmpty
-            v-if="controller.ticket.value.screenshots.length === 0"
-            description="该反馈没有截图"
-            :image-size="72"
-          />
-          <div v-else-if="controller.screenshotUrl.value" class="screenshot-preview">
-            <img :src="controller.screenshotUrl.value" alt="反馈截图" />
-            <p>临时地址有效至 {{ formatDateTime(controller.screenshotExpiresAt.value ?? '') }}</p>
+            <div>
+              <h3>回复记录</h3>
+              <div
+                v-for="reply in controller.ticket.value.replies"
+                :key="`${reply.sentAt}-${reply.adminId}`"
+                class="record-block"
+              >
+                <strong>{{ reply.template }}</strong
+                ><PlainTextContent :content="reply.note || '未填写补充说明'" /><small
+                  >{{ reply.adminId }} · {{ formatDateTime(reply.sentAt) }}</small
+                >
+              </div>
+              <h3>内部备注</h3>
+              <div
+                v-for="note in controller.ticket.value.internalNotes"
+                :key="note.id"
+                class="record-block"
+              >
+                <PlainTextContent :content="note.content" /><small
+                  >{{ note.adminId }} · {{ formatDateTime(note.createdAt) }}</small
+                >
+              </div>
+            </div>
           </div>
-          <p v-else class="capability-note">截图仅在点击后签发短期地址，离开页面即清除。</p>
-        </AdminPanel>
-        <AdminPanel
-          :title="ADMIN_SECTION_TITLES.feedbackDetail.feedbackInfo"
-          title-class="panel-title"
-        >
-          <ElDescriptions :column="1">
-            <ElDescriptionsItem label="用户编号">{{
-              controller.ticket.value.userId
-            }}</ElDescriptionsItem>
-            <ElDescriptionsItem label="提交时间">{{
-              formatDateTime(controller.ticket.value.createdAt)
-            }}</ElDescriptionsItem>
-            <ElDescriptionsItem label="最近补充时间">{{
-              lastSuppliedAt ? formatDateTime(lastSuppliedAt) : '未补充'
-            }}</ElDescriptionsItem>
-            <ElDescriptionsItem label="最近更新">{{
-              formatDateTime(controller.ticket.value.updatedAt)
-            }}</ElDescriptionsItem>
-            <ElDescriptionsItem label="补充轮次"
-              >{{ controller.ticket.value.supplementRounds }} / 2</ElDescriptionsItem
-            >
-          </ElDescriptions>
-        </AdminPanel>
-        <AdminPanel
-          v-if="controller.ticket.value.internalNotes.length"
-          :title="ADMIN_SECTION_TITLES.feedbackDetail.internalNotes"
-          title-class="panel-title"
-        >
-          <div
-            v-for="note in controller.ticket.value.internalNotes"
-            :key="note.id"
-            class="record-block"
-          >
-            <PlainTextContent :content="note.content" />
-            <small>{{ note.adminId }} · {{ formatDateTime(note.createdAt) }}</small>
-          </div>
-        </AdminPanel>
-      </div>
+          <p>
+            {{ ticketId }} · 提交于{{ formatDateTime(controller.ticket.value.createdAt) }} ·
+            最近补充{{ lastSuppliedAt ? formatDateTime(lastSuppliedAt) : '未补充' }}
+          </p></ElCollapseItem
+        ></ElCollapse
+      >
     </template>
   </section>
 </template>
-
 <style scoped lang="scss">
-/* stylelint-disable selector-class-pattern -- 页面级 Element Plus BEM 覆盖，业务类名遵循仓库命名 */
 .feedback-detail-page {
   min-width: 0;
-  color: var(--juya-color-text-primary);
-
-  .page-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 20px;
-  }
-
-  .page-context {
-    margin: 0;
-    color: var(--juya-color-text-secondary);
-    font-size: 13px;
-    overflow-wrap: anywhere;
-  }
-
-  h3 {
-    margin: 0;
-    color: var(--juya-color-text-primary);
-    font-size: 20px;
-    line-height: 28px;
-  }
-
-  .panel-subtitle {
-    margin: 8px 0 0;
-    color: var(--juya-color-text-secondary);
-    font-size: 13px;
-  }
-
-  .records-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
-    margin-top: 18px;
-  }
 
   .detail-grid {
     display: grid;
-    grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
-    gap: 18px;
-    margin-bottom: 18px;
-  }
-
-  .primary-column,
-  .secondary-column {
-    display: grid;
-    min-width: 0;
-    gap: 18px;
+    gap: 16px;
   }
 
   .source-card {
-    min-height: 570px;
-    background: #eaf2e3;
+    margin-top: 20px;
   }
 
-  .timeline-card {
-    min-height: 570px;
+  h3 {
+    margin: 0 0 12px;
+    font-size: 18px;
+    line-height: 29px;
   }
 
-  .card-heading {
+  .status-line,
+  .screenshot-actions {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
-  .source-card :deep(.el-descriptions__body) {
-    background: transparent;
+  .identity {
+    font-size: 14px;
   }
 
-  .source-card :deep(.el-descriptions__table) {
-    border-collapse: separate;
-    border-spacing: 0 8px;
-    background: transparent;
-  }
-
-  .source-card :deep(.el-descriptions__label) {
-    height: 22px;
-    padding: 0;
-    border: 0;
-    background: transparent;
+  .source-note {
     color: var(--juya-color-text-secondary);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 11px;
+    line-height: 18px;
   }
 
-  .source-card :deep(.el-descriptions__content) {
-    padding: 8px 12px;
-    border: 1px solid #c9dac3;
-    border-radius: 10px;
-    background: #fffdf7;
-    overflow-wrap: anywhere;
-  }
-
-  .timeline-card :deep(.el-card__body) {
-    display: flex;
-    min-height: 490px;
-    flex-direction: column;
-  }
-
-  .timeline-card :deep(.el-timeline-item) {
-    padding: 0 0 28px 14px;
-    border-left: 5px solid #4f833d;
-    margin-bottom: 18px;
-  }
-
-  .timeline-card :deep(.el-timeline-item__node),
-  .timeline-card :deep(.el-timeline-item__tail) {
-    display: none;
-  }
-
-  .timeline-card :deep(.el-timeline-item__wrapper) {
-    top: 0;
-    padding-left: 0;
-    font-size: 13px;
-  }
-
-  .timeline-action {
-    padding-top: 20px;
-    margin-top: auto;
-  }
-
-  .timeline-action :deep(.el-button) {
-    min-width: 195px;
-  }
-
-  .record-block + .record-block {
-    padding-top: 16px;
+  .timeline {
     margin-top: 16px;
-    border-top: 1px solid var(--juya-color-border);
   }
 
-  .record-block strong,
-  .record-block small {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--juya-color-text-secondary);
+  .screenshot-actions {
+    color: var(--juya-color-primary);
+    font-size: 12px;
   }
 
   .screenshot-preview img {
@@ -481,27 +323,36 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
     width: 100%;
     max-height: 380px;
     object-fit: contain;
-    border-radius: 10px;
   }
 
-  .screenshot-preview p,
-  .capability-note {
-    margin: 10px 0 0;
-    color: var(--juya-color-text-secondary);
-    font-size: 12px;
-    line-height: 1.8;
+  .history {
+    margin-top: 20px;
   }
 
-  @media (width <= 900px) {
+  .history-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .record-block {
+    padding: 12px 0;
+
+    small {
+      display: block;
+      color: var(--juya-color-text-secondary);
+    }
+  }
+
+  @media (width <= 850px) {
     .detail-grid,
-    .records-grid {
+    .history-grid {
       grid-template-columns: 1fr;
     }
 
-    .card-heading {
-      flex-wrap: wrap;
+    .source-card {
+      margin-top: 0;
     }
   }
 }
-/* stylelint-enable selector-class-pattern */
 </style>

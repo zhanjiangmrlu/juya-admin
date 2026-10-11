@@ -280,11 +280,13 @@ function contactStatusLabel(status: string | undefined): string {
           <template #contactStatus="{ row }">{{
             contactStatusLabel(row.contact?.contact_status)
           }}</template>
-          <template #changePending="{ row }"
-            ><ElTag v-if="row.change_pending || row.contact?.change_pending" type="warning"
-              >待核对</ElTag
-            ><span v-else>—</span></template
-          >
+          <template #changePending="{ row }">
+            <div v-if="row.change_pending || row.contact?.change_pending" class="contact-change">
+              <ElTag type="warning">微信号已变更</ElTag>
+              <small>最近变更：{{ formatDateTime(row.contact_changed_at ?? null) }}</small>
+            </div>
+            <span v-else>—</span>
+          </template>
 
           <template #feedback="{ row }">待处理 {{ row.open_feedback_count }}</template>
           <template #entitlements="{ row }">
@@ -477,6 +479,18 @@ function contactStatusLabel(status: string | undefined): string {
     border-radius: 16px;
     background: #e5f0dc;
     color: #244633;
+  }
+
+  .contact-change {
+    display: grid;
+    justify-items: start;
+    gap: 6px;
+
+    small {
+      color: var(--juya-color-text-secondary);
+      font-size: 11px;
+      overflow-wrap: anywhere;
+    }
   }
 
   .management-note strong {

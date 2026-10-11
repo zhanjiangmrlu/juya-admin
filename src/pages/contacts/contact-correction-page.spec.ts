@@ -63,7 +63,9 @@ describe('contact correction page', () => {
 
     await vi.waitFor(() => expect(wrapper.text()).toContain('wx-current-user'))
     expect(wrapper.text()).toContain('申请重新获得一次修改机会')
-    expect(wrapper.text()).toContain('CONTACT_CORRECTION_CREATED')
+    expect(wrapper.text()).toContain('用户提交更正申请')
+    expect(wrapper.text()).toContain('待处理')
+    expect(wrapper.text()).not.toContain('CONTACT_CORRECTION_CREATED')
     expect(wrapper.text()).not.toContain('新微信号')
     expect(wrapper.text()).not.toContain('接口待接入')
     const buttons = wrapper.findAll('button')

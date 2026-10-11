@@ -6,7 +6,7 @@ test('反馈补充要求提交可审计命令并刷新状态', async ({ adminApi
   await page.getByRole('combobox', { name: /结果模板/ }).press('Enter')
   await page.getByRole('option', { name: '需要补充', exact: true }).click()
   await page.getByLabel('回复补充说明').fill('请补充问题页面截图')
-  await page.getByRole('button', { name: '要求补充' }).click()
+  await page.getByRole('button', { name: '需要补充' }).click()
   await expect(page.getByText('反馈处理结果已保存')).toBeVisible()
 
   const request = adminApi.findRequest(

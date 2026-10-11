@@ -102,13 +102,13 @@ for (const viewport of viewports) {
     await loginAsAdmin(page)
     const routes = [
       ['/entitlements', '统一权益中心', 'A05'],
-      ['/entitlements/formal/grant', '授予正式内容包', 'A06'],
+      ['/entitlements/formal/grant', '开通正式内容', 'A06'],
       ['/entitlements/limited/grant', '开通限时学习权益', 'A07'],
       ['/entitlements/formal/FORMAL-1/action', '正式权益操作', 'A08'],
       ['/entitlements/limited/LIMITED-1/action', '限时权益操作', 'A09'],
       ['/campaigns', '限时活动列表', 'A10'],
-      ['/campaigns/CAMP-1/edit', '限时活动编辑', 'A11'],
-      ['/campaigns/CAMP-1/versions', '活动版本与容量', 'A12']
+      ['/campaigns/CAMP-1/edit', '编辑限时活动', 'A11'],
+      ['/campaigns/CAMP-1/versions', '活动规则与容量', 'A12']
     ] as const
     for (const [path, heading, number] of routes) {
       await navigateInApp(page, path)
@@ -128,12 +128,17 @@ for (const viewport of viewports) {
         await expect(page.getByRole('option', { name: /秋季限时学习/ })).toBeHidden()
         await expect(page.getByText('VERSION-1')).toBeVisible()
       }
-      if (number === 'A08' || number === 'A09')
-        await expect(page.getByText('v1', { exact: true })).toBeVisible()
-      if (number === 'A11')
-        await expect(page.getByText('当前服务端版本 v3', { exact: true })).toBeVisible()
+      if (number === 'A08') await page.getByRole('button', { name: '查看当前权益详情' }).click()
+      if (number === 'A09') await expect(page.getByText('v1', { exact: true })).toBeVisible()
+      if (number === 'A11') {
+        await page.getByRole('button', { name: '活动状态与版本详情' }).click()
+        await expect(page.getByText(/当前服务端版本 v3/)).toBeVisible()
+      }
       if (number === 'A10') await expect(page.getByRole('cell', { name: 'CAMP-1' })).toBeVisible()
-      if (number === 'A12') await expect(page.getByText('VERSION-1')).toBeVisible()
+      if (number === 'A12') {
+        await page.getByRole('button', { name: '查看对象与版本详情' }).click()
+        await expect(page.getByText(/VERSION-1/)).toBeVisible()
+      }
       await expect(page.locator('main')).not.toContainText('接口待接入')
       await expect
         .poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
@@ -161,8 +166,8 @@ test('campaign 409 preserves draft and displays latest server version', async ({
   await expect(name).toHaveValue('秋季限时学习')
   await name.fill('管理员尚未提交的修改')
   adminApi.conflictOnNextCampaignSave()
-  await page.getByRole('button', { name: '保存活动' }).click()
-  await expect(page.getByText(/草稿已保留。服务端最新版本：v4/)).toBeVisible()
+  await page.getByRole('button', { name: '保存草稿' }).click()
+  await expect(page.getByText(/草稿已保留，活动已被其他操作更新/)).toBeVisible()
   await expect(name).toHaveValue('管理员尚未提交的修改')
   expect(
     adminApi.findRequest('PUT', '/api/v1/admin/campaigns/CAMP-1')?.headers['x-idempotency-key']
@@ -175,9 +180,9 @@ test('capacity command uses server version, confirmation and idempotency key', a
 }) => {
   await loginAsAdmin(page)
   await navigateInApp(page, '/campaigns/CAMP-1/versions')
-  await expect(page.getByText('v3')).toBeVisible()
+  await expect(page.getByText(/累计开通人数/)).toBeVisible()
   await page.getByRole('spinbutton').fill('35')
-  await page.getByRole('button', { name: '确认调整容量' }).click()
+  await page.getByRole('button', { name: '保存容量' }).click()
   await expect(page.getByRole('dialog', { name: '确认容量调整' })).toBeVisible()
   await page.getByRole('button', { name: '确认执行' }).click()
   await expect(page.getByText('容量已更新')).toBeVisible()
@@ -195,7 +200,7 @@ test('campaign creation and version copy use real write routes', async ({ adminA
     .locator('.el-checkbox')
     .filter({ hasText: 'Ordering coffee' })
     .click()
-  await page.getByRole('button', { name: '保存活动' }).click()
+  await page.getByRole('button', { name: '保存草稿' }).click()
   await expect(page).toHaveURL(/\/campaigns\/CAMP-1\/edit$/)
   const create = adminApi.findRequest('POST', '/api/v1/admin/campaigns')
   expect(create?.body).toMatchObject({
@@ -206,7 +211,7 @@ test('campaign creation and version copy use real write routes', async ({ adminA
     scene_ids: ['SCENE-1']
   })
   expect(create?.headers['x-idempotency-key']).toMatch(/^idem-/)
-  await page.getByRole('button', { name: '复制新版本' }).click()
+  await page.getByRole('button', { name: '复制并编辑' }).click()
   await expect(page.getByRole('dialog', { name: '确认活动操作' })).toBeVisible()
   await page.getByRole('button', { name: '确认执行' }).click()
   expect(

@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
 
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import { createContentAdapter } from '@/features/content/content-adapter'
 import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
 import ScenePreview from '@/features/content-editor/scene-preview.vue'
@@ -15,6 +16,7 @@ import type { ProofreadingCandidate, ProofreadingSet } from './proofreading-adap
 
 import { candidateHash, createProofreadingAdapter } from './proofreading-adapter'
 const props = defineProps<{
+  footer?: boolean
   candidates: {
     contentType: ProofreadingCandidate['content_type']
     contentId: string
@@ -65,6 +67,15 @@ const canComplete = computed(
 )
 const current = computed(() =>
   set.value?.candidates.find((item) => item.revision_id === selected.value)
+)
+const needsAudio = computed(() => !!previewContent.value?.audio)
+const needsImages = computed(
+  () =>
+    !!previewContent.value &&
+    (!!previewContent.value.cover_asset_id ||
+      !!previewContent.value.original_image_asset_id ||
+      (Array.isArray(previewContent.value.vocabulary) &&
+        previewContent.value.vocabulary.some((entry) => entry.icon_asset_id)))
 )
 const normalCount = computed(() => set.value?.normal_count ?? props.candidates.length)
 let generation = 0
@@ -205,9 +216,12 @@ watch(selected, async (value) => {
   coverUrl.value = ''
   audioUrl.value = ''
   emit('selected', value)
-  const candidate = set.value?.candidates.find((item) => item.revision_id === value)
-  if (!candidate) return
   const sequence = ++previewGeneration
+  const candidate = set.value?.candidates.find((item) => item.revision_id === value)
+  if (!candidate) {
+    previewBusy.value = false
+    return
+  }
   previewBusy.value = true
   try {
     const snapshot =
@@ -263,130 +277,172 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
-  <AdminPanel title="固定候选校对与异常处理" class="proofreading-set-panel">
+  <section class="proofreading-set-panel">
     <p>
       抽样为正常候选的 5%，向上取整，至少 1 篇、最多 20 篇；空集合为
       0。实际成员以服务端返回为准，异常需追加或逐篇核对。
     </p>
     <ElAlert v-if="error" :title="error" type="error" :closable="false" />
     <div class="metrics">
-      <div>{{ set ? '正常候选' : '待分类候选' }} {{ normalCount }}</div>
-      <div>服务端样本 {{ set?.sample_ids.length ?? 0 }}</div>
-      <div>已批准 {{ set?.confirmed_ids.length ?? 0 }}</div>
-      <div>待确认 {{ set ? set.candidates.length - set.confirmed_ids.length : normalCount }}</div>
-    </div>
-    <div class="actions">
-      <ElButton :disabled="busy || !candidates.length" type="primary" @click="create"
-        >建立当前明确候选集合</ElButton
-      ><ElInput
-        v-model="recoveryId"
-        placeholder="恢复校对集合编号"
-        aria-label="校对集合编号"
-      /><ElButton :disabled="busy || !recoveryId.trim()" @click="restore">恢复集合</ElButton>
-    </div>
-    <template v-if="set"
-      ><p>集合 {{ set.public_id }} · {{ set.status }} · 候选哈希 {{ set.collection_hash }}</p>
-      <ElSelect v-model="selected" aria-label="当前校对候选"
-        ><ElOption
-          v-for="item in set.candidates"
-          :key="item.revision_id"
-          :value="item.revision_id"
-          :label="`${candidates.find((candidate) => candidate.revisionId === item.revision_id)?.title || item.content_id}${set.sample_ids.includes(item.revision_id) ? ' · 抽样' : ''}${set.confirmed_ids.includes(item.revision_id) ? ' · 已确认' : ''}`"
-      /></ElSelect>
-      <p v-if="current">
-        当前候选 {{ current.content_id }} · {{ current.revision_id }} · {{ current.candidate_hash }}
-      </p>
-      <ElSkeleton v-if="previewBusy" :rows="6" animated />
-      <template v-else-if="previewContent && current"
-        ><ShortReadingPreview
-          v-if="current.content_type === 'short_reading'"
-          :content="normalizeShortReading(previewContent)"
-          :cover-url="coverUrl"
-          :audio-url="audioUrl" /><ScenePreview
-          v-else
-          :content="previewContent"
-          :revision-id="current.revision_id"
-          :title="String(previewContent.title_zh || previewContent.title_en || '')"
-      /></template>
-      <div class="checks">
-        <ElCheckbox v-model="checks.text_checked" :disabled="busy"
-          >已核对完整中英文、义项与来源</ElCheckbox
-        ><ElCheckbox v-model="checks.images_checked" :disabled="busy"
-          >已查看实际图片与绑定</ElCheckbox
-        ><ElCheckbox v-model="checks.audio_listened" :disabled="busy"
-          >已实际试听固定音频与切片</ElCheckbox
-        >
+      <div>
+        <strong>{{ normalCount }}</strong
+        ><span>{{ set ? '本次正常篇数' : '待分类候选' }}</span>
       </div>
-      <div class="actions">
-        <ElButton
-          :disabled="busy || !current || !previewReady || !checks.text_checked"
-          @click="confirm"
-          >确认这一篇</ElButton
-        ><ElSelect v-model="exception" aria-label="校对异常"
-          ><ElOption label="正文或翻译不符" value="TEXT_MISMATCH" /><ElOption
-            label="图片或绑定错误"
-            value="IMAGE_MISMATCH" /><ElOption
-            label="声音或边界错误"
-            value="AUDIO_MISMATCH" /><ElOption
-            label="来源版权待核验"
-            value="COPYRIGHT_UNVERIFIED" /></ElSelect
-        ><ElButton type="danger" :disabled="busy || !current" @click="fail"
-          >登记异常并撤销集合批准</ElButton
-        >
+      <div>
+        <strong>{{ set?.sample_ids.length ?? 0 }}</strong
+        ><span>所需样本</span>
       </div>
+      <div>
+        <strong>{{
+          set?.sample_ids.filter((id) => set!.confirmed_ids.includes(id)).length ?? 0
+        }}</strong
+        ><span>已检查样本</span>
+      </div>
+      <div>
+        <strong>{{ set?.candidates.filter((item) => item.failure).length ?? 0 }}</strong
+        ><span>样本发现问题</span>
+      </div>
+    </div>
+    <details class="collection-management" :open="!set">
+      <summary>建立 / 恢复固定校对集合</summary>
       <div class="actions">
-        <ElSelect v-model="extra" multiple aria-label="追加抽样"
-          ><ElOption
-            v-for="item in set.candidates"
+        <ElButton :disabled="busy || !candidates.length" type="primary" @click="create"
+          >建立当前明确候选集合</ElButton
+        ><ElInput
+          v-model="recoveryId"
+          placeholder="恢复校对集合编号"
+          aria-label="校对集合编号"
+        /><ElButton :disabled="busy || !recoveryId.trim()" @click="restore">恢复集合</ElButton>
+      </div>
+    </details>
+    <template v-if="set">
+      <div class="sample-grid">
+        <AdminPanel title="当前样本">
+          <small>集合 {{ set.public_id }} · {{ set.status }}</small>
+          <ElSelect v-model="selected" aria-label="当前校对候选"
+            ><ElOption
+              v-for="item in set.candidates"
+              :key="item.revision_id"
+              :value="item.revision_id"
+              :label="`${candidates.find((candidate) => candidate.revisionId === item.revision_id)?.title || item.content_id}${set.sample_ids.includes(item.revision_id) ? ' · 抽样' : ''}${set.confirmed_ids.includes(item.revision_id) ? ' · 已确认' : ''}`"
+          /></ElSelect>
+          <p v-if="current">
+            当前候选 {{ current.content_id }} · {{ current.revision_id }} ·
+            {{ current.candidate_hash }}
+          </p>
+          <ElSkeleton v-if="previewBusy" :rows="6" animated />
+          <template v-else-if="previewContent && current"
+            ><ShortReadingPreview
+              v-if="current.content_type === 'short_reading'"
+              :content="normalizeShortReading(previewContent)"
+              :cover-url="coverUrl"
+              :audio-url="audioUrl" /><ScenePreview
+              v-else
+              :content="previewContent"
+              :revision-id="current.revision_id"
+              :title="String(previewContent.title_zh || previewContent.title_en || '')"
+          /></template>
+          <div class="checks">
+            <ElCheckbox v-model="checks.text_checked" :disabled="busy">{{
+              current?.content_type === 'short_reading'
+                ? '已核对完整正文、全文译文、元信息与来源'
+                : '已核对中英文、人物顺序、本篇义项与来源'
+            }}</ElCheckbox
+            ><ElCheckbox v-if="needsImages" v-model="checks.images_checked" :disabled="busy"
+              >已查看实际图片与绑定</ElCheckbox
+            ><ElCheckbox v-if="needsAudio" v-model="checks.audio_listened" :disabled="busy"
+              >已实际试听固定音频与切片</ElCheckbox
+            >
+          </div>
+          <div class="actions">
+            <ElButton
+              :disabled="busy || !current || !previewReady || !checks.text_checked"
+              @click="confirm"
+              >确认这一篇</ElButton
+            ><ElSelect v-model="exception" aria-label="校对异常"
+              ><ElOption label="正文或翻译不符" value="TEXT_MISMATCH" /><ElOption
+                label="图片或绑定错误"
+                value="IMAGE_MISMATCH" /><ElOption
+                label="声音或边界错误"
+                value="AUDIO_MISMATCH" /><ElOption
+                label="来源版权待核验"
+                value="COPYRIGHT_UNVERIFIED" /></ElSelect
+            ><ElButton type="danger" :disabled="busy || !current" @click="fail"
+              >登记异常并撤销集合批准</ElButton
+            >
+          </div>
+        </AdminPanel>
+        <AdminPanel title="抽样确认" class="sample-guidance">
+          <p>按正常集合的 5% 抽样，至少 1 篇、最多 20 篇</p>
+          <p>1篇抽1篇 / 20篇抽1篇<br />100篇抽5篇 / 1000篇抽20篇</p>
+          <p>可增加样本或打开任意篇目。发现同类错误时，受影响篇目转为需校对，修复后重新检查。</p>
+          <div class="actions">
+            <ElSelect v-model="extra" multiple aria-label="追加抽样"
+              ><ElOption
+                v-for="item in set.candidates"
+                :key="item.revision_id"
+                :value="item.revision_id"
+                :label="
+                  candidates.find((candidate) => candidate.revisionId === item.revision_id)
+                    ?.title || item.content_id
+                " /></ElSelect
+            ><ElButton :disabled="busy || !extra.length" @click="append">追加抽样</ElButton
+            ><ElButton :disabled="busy || !canComplete" type="primary" @click="complete"
+              >请求完成固定集合校对</ElButton
+            >
+          </div>
+        </AdminPanel>
+      </div>
+      <AdminPanel title="正常集合：抽样通过后明确接受">
+        <ElCheckboxGroup v-model="normalSelection"
+          ><ElCheckbox
+            v-for="item in normalEligible"
             :key="item.revision_id"
             :value="item.revision_id"
-            :label="
+            :disabled="busy"
+            >{{
               candidates.find((candidate) => candidate.revisionId === item.revision_id)?.title ||
               item.content_id
-            " /></ElSelect
-        ><ElButton :disabled="busy || !extra.length" @click="append">追加抽样</ElButton
-        ><ElButton :disabled="busy || !canComplete" type="primary" @click="complete"
-          >请求完成固定集合校对</ElButton
+            }}</ElCheckbox
+          ></ElCheckboxGroup
         >
-      </div>
-      <h4>正常集合：抽样通过后明确接受</h4>
-      <ElCheckboxGroup v-model="normalSelection"
-        ><ElCheckbox
-          v-for="item in normalEligible"
+        <ElCheckbox v-model="acceptNormal" :disabled="busy"
+          >已核对所有服务端样本，接受所选正常结构化结果</ElCheckbox
+        ><ElButton
+          :disabled="busy || !samplesChecked || !acceptNormal || !normalSelection.length"
+          @click="bulk"
+          >批准明确选中 {{ normalSelection.length }} 篇正常候选</ElButton
+        >
+        <h4>异常处理</h4>
+        <p
+          v-for="item in set.candidates.filter(
+            (candidate) => candidate.failure || candidate.normal === false
+          )"
           :key="item.revision_id"
-          :value="item.revision_id"
-          :disabled="busy"
-          >{{
-            candidates.find((candidate) => candidate.revisionId === item.revision_id)?.title ||
-            item.content_id
-          }}</ElCheckbox
-        ></ElCheckboxGroup
+        >
+          {{ item.content_id }} · {{ item.failure?.error_code || '需逐篇核对' }} ·
+          {{ set.confirmed_ids.includes(item.revision_id) ? '已人工确认' : '保留草稿' }}
+        </p>
+        <ElCheckbox v-model="holdAbnormal" :disabled="busy"
+          >明确保留未批准异常为草稿，仅完成其余已确认候选</ElCheckbox
+        >
+      </AdminPanel>
+      <ElAlert title="确认范围" :closable="false" type="success"
+        >抽样后只批准明确选择的正常候选。适用场景 /
+        原词汇卡的新词库候选另行集中确认；短文不生成讲解或词库候选。未批准异常仍保留草稿。</ElAlert
       >
-      <ElCheckbox v-model="acceptNormal" :disabled="busy"
-        >已核对所有服务端样本，接受所选正常结构化结果</ElCheckbox
-      ><ElButton
-        :disabled="busy || !samplesChecked || !acceptNormal || !normalSelection.length"
-        @click="bulk"
-        >批准明确选中 {{ normalSelection.length }} 篇正常候选</ElButton
-      >
-      <h4>异常处理</h4>
-      <p
-        v-for="item in set.candidates.filter(
-          (candidate) => candidate.failure || candidate.normal === false
-        )"
-        :key="item.revision_id"
-      >
-        {{ item.content_id }} · {{ item.failure?.error_code || '需逐篇核对' }} ·
-        {{ set.confirmed_ids.includes(item.revision_id) ? '已人工确认' : '保留草稿' }}
-      </p>
-      <ElCheckbox v-model="holdAbnormal" :disabled="busy"
-        >明确保留未批准异常为草稿，仅完成其余已确认候选</ElCheckbox
+      <AppPageActions v-if="footer"
+        ><ElButton :disabled="busy || !canComplete" type="primary" @click="complete"
+          >完成校对并确认发布范围</ElButton
+        ></AppPageActions
       >
     </template>
-  </AdminPanel>
+  </section>
 </template>
 <style scoped lang="scss">
 .proofreading-set-panel {
+  display: grid;
+  gap: 20px;
   min-width: 0;
 
   p {
@@ -402,9 +458,40 @@ onBeforeUnmount(() => {
     margin: 16px 0;
 
     > div {
-      padding: 14px;
-      border-radius: 12px;
-      background: var(--el-color-primary-light-9);
+      padding: 18px 20px;
+      border-radius: 20px;
+      background: var(--juya-color-surface);
+
+      strong {
+        display: block;
+        font-size: 26px;
+        line-height: 39px;
+      }
+
+      span {
+        display: block;
+        margin-top: 8px;
+        font-size: 11px;
+        color: var(--juya-color-text-secondary);
+      }
+    }
+  }
+
+  .sample-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+    align-items: center;
+    gap: 16px;
+
+    @media (width <= 1000px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .collection-management {
+    summary {
+      color: var(--el-color-primary);
+      cursor: pointer;
     }
   }
 

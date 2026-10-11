@@ -46,6 +46,7 @@ export interface ShortReadingAdapter {
     key: string
   ): Promise<ShortReadingSnapshot>
   createRevision(snapshot: ShortReadingSnapshot, key: string): Promise<ShortReadingSnapshot>
+  offline(snapshot: ShortReadingSnapshot): Promise<void>
   trial(
     id: string,
     enabled: boolean,

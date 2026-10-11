@@ -174,20 +174,25 @@ export async function loginAsAdmin(page: Page): Promise<void> {
 }
 
 /**
- * 在不重载页面的情况下切换 Vue Router 地址
+ * 等待应用实际 Vue Router 切换完成，不伪造浏览器历史状态
  *
  * @param page - Playwright 页面
  * @param path - 目标站内路径
  * @returns 路由切换完成后的 Promise
  */
 export async function navigateInApp(page: Page, path: string): Promise<void> {
-  await page.evaluate((nextPath) => {
-    window.history.pushState({}, '', nextPath)
-    window.dispatchEvent(new PopStateEvent('popstate'))
+  await page.evaluate(async (nextPath) => {
+    const app = document.querySelector('#app') as HTMLElement & {
+      __vue_app__?: {
+        config: { globalProperties: { $router?: { push(path: string): Promise<void> } } }
+      }
+    }
+    const router = app?.__vue_app__?.config.globalProperties.$router
+    if (!router) throw new Error('应用路由尚未初始化')
+    await router.push(nextPath)
   }, path)
-  await expect(page).toHaveURL(
-    new RegExp(`${escapeRegExp(path.replace(/(\/feedback\/[^/]+)\/respond(?=\?|$)/, '$1'))}$`)
-  )
+  const target = new URL(path.replace(/(\/feedback\/[^/]+)\/respond(?=\?|$)/, '$1'), page.url())
+  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(target.pathname)}(?:\\?.*)?$`))
 }
 
 /**
@@ -340,12 +345,50 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     })
     return
   }
-  if (url.pathname === '/api/v1/admin/formal-entitlements/preview-operation') {
+  if (url.pathname === '/api/v1/admin/content/short-readings/READING-1') {
     await replyJson(route, {
-      before: null,
-      after: formalEntitlement,
-      actual_operation: 'GRANT',
-      expected_version: 0,
+      public_id: 'READING-1',
+      version: 1,
+      series_id: 'SERIES-1',
+      status: 'DRAFT',
+      draft_revision_id: 'READING-REV',
+      published_revision_id: null,
+      trial_enabled: false
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content/short-readings/READING-1/revisions/READING-REV') {
+    await replyJson(route, {
+      public_id: 'READING-REV',
+      edit_version: 1,
+      status: 'DRAFT',
+      content_hash: 'a'.repeat(64),
+      content_snapshot: {
+        title_en: 'An independent reading',
+        title_zh: '独立阅读',
+        category: '生活',
+        topic: '日常',
+        level: 'A2',
+        safe_intro: '城市中的花园',
+        copyright_source: '未核验测试来源',
+        copyright_status: 'PENDING',
+        paragraphs_en: ['A garden in the city.', 'People walk here.'],
+        paragraph_ids: ['PARA-1', 'PARA-2'],
+        translation_zh: '城市中的花园。人们在这里散步。',
+        cover_asset_id: null,
+        audio: null
+      }
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/formal-entitlements/preview-operation') {
+    const operation = url.searchParams.get('operation') || 'GRANT'
+    const status = operation === 'PAUSE' ? 'PAUSED' : operation === 'REVOKE' ? 'REVOKED' : 'ACTIVE'
+    await replyJson(route, {
+      before: operation === 'GRANT' ? null : formalEntitlement,
+      after: { ...formalEntitlement, status, version: operation === 'GRANT' ? 1 : 2 },
+      actual_operation: operation,
+      expected_version: operation === 'GRANT' ? 0 : formalEntitlement.version,
       previewed_at: '2026-10-11T03:00:00Z'
     })
     return
@@ -800,6 +843,56 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     })
     return
   }
+  if (url.pathname === '/api/v1/admin/content/catalogue' && request.method() === 'GET') {
+    const scene = createContentScene()
+    const rows = [
+      {
+        id: scene.id,
+        content_type: scene.template_type === 'vocabulary' ? 'word_card' : 'dialogue',
+        title_en: scene.title,
+        title_zh: '咖啡店点单',
+        series_id: scene.series_id,
+        series_title: scene.series_title,
+        status: scene.status,
+        draft_revision_id: scene.draft_revision_id,
+        published_revision_id: scene.published_revision_id,
+        updated_at: scene.updated_at
+      }
+    ].filter(
+      (row) =>
+        (!url.searchParams.get('content_type') ||
+          row.content_type === url.searchParams.get('content_type')) &&
+        (!url.searchParams.get('status') || row.status === url.searchParams.get('status')) &&
+        (!url.searchParams.get('query') ||
+          `${row.id} ${row.title_en} ${row.title_zh}`.includes(url.searchParams.get('query')!))
+    )
+    await replyJson(route, {
+      items: rows,
+      total: rows.length,
+      page: Number(url.searchParams.get('page') || 1),
+      page_size: Number(url.searchParams.get('page_size') || 10)
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content/short-readings' && request.method() === 'GET') {
+    await replyJson(route, {
+      items: [],
+      total: 0,
+      page: Number(url.searchParams.get('page') || 1),
+      page_size: Number(url.searchParams.get('page_size') || 20)
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content/usage') {
+    await replyJson(route, {
+      period: url.searchParams.get('period'),
+      import_batches: [],
+      measured_cloud: [],
+      budgets: [],
+      tts: { status: 'not_configured' }
+    })
+    return
+  }
   if (url.pathname === '/api/v1/admin/content/scenes' && request.method() === 'GET') {
     await replyJson(route, {
       items: [createContentScene()],
@@ -1107,8 +1200,8 @@ const campaignTargetStatus: Record<string, AdminApiState['campaignStatus']> = {
 function campaignOperations(status: string): string[] {
   const operations: Record<string, string[]> = {
     DRAFT: ['open', 'copy', 'capacity'],
-    OPEN: ['pause', 'end', 'capacity'],
-    PAUSED: ['resume', 'end', 'capacity'],
+    OPEN: ['pause', 'end', 'copy', 'capacity'],
+    PAUSED: ['resume', 'end', 'copy', 'capacity'],
     ENDED: ['archive', 'copy', 'capacity'],
     CLOSED: ['archive', 'copy', 'capacity'],
     ARCHIVED: ['capacity']
@@ -1413,6 +1506,8 @@ const dashboardSnapshot = {
 }
 
 const userProjection = {
+  nickname: '学习者',
+  juya_number: 'JY000000000001',
   account_status: 'ACTIVE',
   contact: {
     change_pending: true,

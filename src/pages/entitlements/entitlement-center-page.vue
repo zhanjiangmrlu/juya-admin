@@ -9,6 +9,7 @@ import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import DataTable from '@/components/data-table/data-table.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
+import { FORMAL_TERM_LABELS } from '@/features/entitlements/formal-entitlement-model'
 import { useEntitlementList } from '@/features/entitlements/use-entitlement-list'
 import { createApiClient } from '@/services/api/api-client'
 import { formatDateTime } from '@/shared/utils/date-time'
@@ -39,8 +40,15 @@ const controller = useEntitlementList(
     })
   )
 )
+const contactLabels: Record<string, string> = {
+  NOT_PROVIDED: '未填写',
+  PENDING: '待联系',
+  CONTACTED: '已联系',
+  UNREACHABLE: '暂无法联系',
+  DO_NOT_CONTACT: '用户不希望联系'
+}
 const statusLabels: Record<string, string> = {
-  ACTIVE: '生效中',
+  ACTIVE: '正常使用',
   PAUSED: '已暂停',
   PENDING: '待启动',
   START_EXPIRED: '启动过期',
@@ -48,31 +56,31 @@ const statusLabels: Record<string, string> = {
   REVOKED: '已撤销',
   EXPIRED: '已到期'
 }
-/**
- * 仅格式化服务端到期时间，不在前端推算权益状态。
- * @param value - 服务端时间或空值
- * @returns 可读的本地时间
- */
-function displayTime(value: string | null): string {
-  return formatDateTime(value, '永久 / 未设置')
-}
-/**
- * 按筛选条件重新加载第一页权益。
- * @returns 无返回值
- */
-function search(): void {
-  filters.page = 1
-  void controller.load({ ...filters, userId: filters.userId?.trim() })
-}
-/**
- * 切换服务端分页。
- * @param page - 新页码
- * @returns 无返回值
- */
-function changePage(page: number): void {
-  filters.page = page
-  void controller.load({ ...filters })
-}
+const /**
+   * 仅格式化服务端到期时间，不在前端推算权益状态。
+   * @param value - 服务端时间或空值
+   * @returns 可读的本地时间
+   */
+  displayTime = (value: string | null): string => {
+    return formatDateTime(value, '无到期日期')
+  }
+const /**
+   * 按筛选条件重新加载第一页权益。
+   * @returns 无返回值
+   */
+  search = (): void => {
+    filters.page = 1
+    void controller.load({ ...filters, userId: filters.userId?.trim() })
+  }
+const /**
+   * 切换服务端分页。
+   * @param page - 新页码
+   * @returns 无返回值
+   */
+  changePage = (page: number): void => {
+    filters.page = page
+    void controller.load({ ...filters })
+  }
 void controller.load({ ...filters })
 </script>
 
@@ -178,7 +186,11 @@ void controller.load({ ...filters })
           <template #contact="{ row }"
             ><div class="cell-stack">
               <span>{{ row.contactDegraded ? '联系资料暂不可用' : row.wechatId || '未填写' }}</span
-              ><small>{{ row.contactStatus }}</small>
+              ><small>{{
+                Object.hasOwn(contactLabels, row.contactStatus || '')
+                  ? contactLabels[row.contactStatus || '']
+                  : '未填写'
+              }}</small>
             </div></template
           >
           <template #type="{ row }">{{ row.type === 'FORMAL' ? '正式包' : '限时包' }}</template>
@@ -194,7 +206,14 @@ void controller.load({ ...filters })
           <template #status="{ row }">{{ statusLabels[row.status] ?? row.status }}</template>
           <template #expires="{ row }"
             ><div class="cell-stack">
-              <span>档位：{{ row.term === 'permanent' ? '永久' : row.term || '—' }}</span
+              <span
+                >档位：{{
+                  Object.hasOwn(FORMAL_TERM_LABELS, row.term || '')
+                    ? FORMAL_TERM_LABELS[row.term as keyof typeof FORMAL_TERM_LABELS]
+                    : row.type === 'LIMITED'
+                      ? '活动版本规则'
+                      : '—'
+                }}</span
               ><small>生效：{{ row.effectiveAt ? displayTime(row.effectiveAt) : '尚未开始' }}</small
               ><small>启动：{{ row.startDeadline ? displayTime(row.startDeadline) : '—' }}</small
               ><small>到期：{{ displayTime(row.expiresAt) }}</small>

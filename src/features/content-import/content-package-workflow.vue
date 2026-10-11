@@ -1,12 +1,22 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef } from 'vue'
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  shallowRef,
+  watch
+} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import { createContentAdapter } from '@/features/content/content-adapter'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
-import type { PackageUploadContext } from './content-package-model'
+import type { ImportContentType, PackageUploadContext } from './content-package-model'
 import type { ContentSeries } from '@/features/content/content-adapter'
 import type { UploadFile } from 'element-plus'
 
@@ -18,15 +28,20 @@ import PackageValidationTable from './package-validation-table.vue'
 import { useContentPackageImport } from './use-content-package-import'
 
 const route = useRoute()
+const props = defineProps<{
+  initialKind?: 'zip' | 'docx'
+  initialSeriesId?: string
+  initialContentType?: ImportContentType
+}>()
 const router = useRouter()
 const client = useAdminApiClient()
 const adapter = createContentPackageAdapter(client)
 const controller = useContentPackageImport(adapter)
 const content = createContentAdapter(client)
 const context = reactive<PackageUploadContext>({
-  seriesId: '',
-  contentType: 'dialogue',
-  kind: 'zip'
+  seriesId: props.initialSeriesId || '',
+  contentType: props.initialContentType || 'dialogue',
+  kind: props.initialKind || 'zip'
 })
 const series = ref<ContentSeries[]>([])
 const file = shallowRef<globalThis.File | null>(null)
@@ -34,14 +49,27 @@ const limits = ref<{ maxBytes: number; maxItems: number } | null>(null)
 const loadingError = ref('')
 const recoverId = ref(String(route.query.batch_id ?? ''))
 const stageRecovery = ref<InstanceType<typeof ContentStageRecoveryPanel> | null>(null)
+const recoveryTools = ref<InstanceType<typeof globalThis.HTMLDetailsElement> | null>(null)
 const locked = computed(() => controller.busy.value || !!controller.batch.value)
-const steps = [
-  { id: 'upload', label: '1 上传导入包' },
-  { id: 'validation', label: '2 逐行校验' },
-  { id: 'preview', label: '3 对应关系与差异' },
-  { id: 'result', label: '4 草稿结果' }
-]
+const steps = computed(() => [
+  { id: 'upload', label: context.kind === 'docx' ? '上传 DOCX' : '上传 ZIP' },
+  { id: 'validation', label: '校验' },
+  { id: 'preview', label: '对应预览' },
+  { id: 'result', label: '确认导入' }
+])
 let disposed = false
+watch(
+  () => controller.phase.value,
+  (phase) => {
+    if (!disposed) void router.replace({ query: { ...route.query, import_phase: phase } })
+  }
+)
+const /** 展开恢复工具后定位实际失败阶段 */
+  openRecovery = async (): Promise<void> => {
+    if (recoveryTools.value) recoveryTools.value.open = true
+    await nextTick()
+    stageRecovery.value?.focus()
+  }
 const /** 加载分类与服务端规模策略 */ load = async (): Promise<void> => {
     loadingError.value = ''
     try {
@@ -99,7 +127,7 @@ onBeforeUnmount(() => {
     <ElAlert
       v-if="!adapter.available"
       title="统一 ZIP / DOCX / 词汇图包导入能力等待后端装配"
-      description="页面流程已准备；当前服务没有可核对的新增接口，暂不能上传或保存。独立图片材料可使用下方原入口。"
+      description="当前服务未提供已装配的导入接口，请更新服务后重试。"
       type="warning"
       :closable="false"
     />
@@ -112,7 +140,10 @@ onBeforeUnmount(() => {
         >保留选择并刷新对应预览</ElButton
       ><ElButton v-else @click="load">重新加载</ElButton></ElAlert
     >
-    <AdminPanel v-if="controller.phase.value === 'upload'" title="上传统一内容包">
+    <AdminPanel
+      v-if="controller.phase.value === 'upload'"
+      :title="context.kind === 'docx' ? '中英文正文，按标题分篇' : '相关资料，放进同一个 ZIP'"
+    >
       <p>
         一次选择分类与模板。包内正文、封面、图片和音频按明确清单绑定；单词图可缺省，语块不接受图片，短文只保留纯阅读字段。
       </p>
@@ -135,10 +166,7 @@ onBeforeUnmount(() => {
           ><ElSelect v-model="context.kind"
             ><ElOption label="统一 ZIP 包（推荐）" value="zip" /><ElOption
               label="DOCX 正文"
-              value="docx" /><ElOption
-              label="词汇图片 / 音频 ZIP（使用下方独立素材区）"
-              :disabled="true"
-              value="word_images" /></ElSelect
+              value="docx" /></ElSelect
         ></ElFormItem>
       </ElForm>
       <ElUpload
@@ -156,7 +184,8 @@ onBeforeUnmount(() => {
         </p></ElUpload
       >
       <ElProgress v-if="controller.busy.value" :percentage="controller.uploadProgress.value" />
-      <div class="actions">
+      <AppPageActions>
+        <ElButton @click="router.push({ name: 'content-import' })">返回批量导入</ElButton>
         <ElButton
           type="primary"
           :loading="controller.busy.value"
@@ -166,8 +195,9 @@ onBeforeUnmount(() => {
           @click="upload"
           >上传并校验</ElButton
         ><span>上传进度与后台逐篇处理进度分别显示</span>
-      </div>
-      <div class="recovery">
+      </AppPageActions>
+      <details class="recovery">
+        <summary>恢复已有导入批次</summary>
         <ElInput
           v-model="recoverId"
           placeholder="导入批次编号"
@@ -175,8 +205,44 @@ onBeforeUnmount(() => {
         /><ElButton :disabled="!adapter.available || !recoverId.trim()" @click="restore"
           >恢复已有批次</ElButton
         >
-      </div>
+      </details>
     </AdminPanel>
+    <AdminPanel v-if="controller.phase.value === 'upload'" title="按稳定导入标识对应资料">
+      <table class="mapping-guide">
+        <thead>
+          <tr>
+            <th>文件 / 标识</th>
+            <th>保存资料</th>
+            <th>绑定方式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>内容表 · 内容导入 ID</td>
+            <td>双语文档、封面、整段 / 全文音频</td>
+            <td>每篇一个 DOCX，使用包内相对路径</td>
+          </tr>
+          <tr>
+            <td>词汇表 · 条目 ID</td>
+            <td>英文、本篇释义、音标、解释与来源</td>
+            <td>关联内容 ID；词汇可配图，语块无图片</td>
+          </tr>
+          <tr>
+            <td>documents/ · images/ · audio/</td>
+            <td>正文文件、素材与音频</td>
+            <td>不按行号、标题或文件顺序猜配</td>
+          </tr>
+        </tbody>
+      </table>
+    </AdminPanel>
+    <ElAlert
+      v-if="controller.phase.value === 'upload'"
+      title="短文仍为纯阅读"
+      type="info"
+      :closable="false"
+      >短文只整理完整中英文、元信息、可选封面和全文音频，不生成词汇、语块或讲解。原 DOCX
+      与词汇图包入口保留。</ElAlert
+    >
     <PackageValidationTable
       v-if="controller.phase.value === 'validation' && controller.batch.value"
       v-model:excluded="controller.excluded.value"
@@ -201,11 +267,14 @@ onBeforeUnmount(() => {
       v-if="controller.phase.value === 'result' && controller.batch.value"
       :batch="controller.batch.value"
       :busy="controller.busy.value"
-      @retry="stageRecovery?.focus()"
+      @retry="openRecovery"
       @refresh="controller.restore(controller.batch.value!.id)"
       @cancel="controller.cancel"
     />
-    <ContentStageRecoveryPanel ref="stageRecovery" :batch-id="controller.batch.value?.id" />
+    <details ref="recoveryTools" class="recovery-tools">
+      <summary>恢复已有批次与失败阶段</summary>
+      <ContentStageRecoveryPanel ref="stageRecovery" :batch-id="controller.batch.value?.id" />
+    </details>
   </div>
 </template>
 <style scoped lang="scss">
@@ -221,14 +290,12 @@ onBeforeUnmount(() => {
 
     > div {
       padding: 14px;
-      border: 1px solid var(--el-border-color-light);
-      border-radius: 14px;
+      border-radius: 12px;
       background: var(--juya-color-surface);
       color: var(--juya-color-text-secondary);
     }
 
     .active {
-      border-color: var(--el-color-primary);
       color: var(--el-color-primary);
       font-weight: 600;
       background: var(--el-color-primary-light-9);
@@ -244,6 +311,25 @@ onBeforeUnmount(() => {
   p {
     color: var(--juya-color-text-secondary);
     line-height: 1.7;
+  }
+
+  .mapping-guide {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--juya-color-text-primary);
+    font-size: 14px;
+
+    th,
+    td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--juya-color-border-light);
+    }
+
+    th {
+      background: var(--juya-color-primary-soft);
+      font-weight: 500;
+    }
   }
 
   .actions,

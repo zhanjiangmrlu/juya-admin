@@ -80,6 +80,16 @@ export const router = createRouter({
       children: [
         ...adminPageRoutes,
         {
+          name: 'learning-modules',
+          path: 'settings/learning-modules',
+          component: () => import('@/pages/settings/learning-modules-page.vue'),
+          meta: {
+            title: '学习模块配置',
+            capability: 'settings.read',
+            navigationPath: '/settings'
+          }
+        },
+        {
           name: 'content-proofreading',
           path: 'content/proofreading',
           component: () => import('@/pages/content/content-proofreading-page.vue'),

@@ -15,6 +15,7 @@ const rows = defineModel<LexiconRow[]>({ required: true })
 const props = defineProps<{
   entryType: 'vocabulary' | 'chunk'
   sentences: DialogueRow[]
+  compact?: boolean
   candidate?: boolean
   modern?: boolean
   originalImageAssetId?: string | null
@@ -112,84 +113,105 @@ async function saveEntry(index: number): Promise<void> {
           >删除条目</ElButton
         >
       </div>
-      <ElForm label-position="top" class="entry-form" :disabled="mediaRows.has(row)">
-        <ElFormItem label="英文"
-          ><ElInput v-model="row.english" :aria-label="`${entryType} 英文 ${index + 1}`"
-        /></ElFormItem>
-        <ElFormItem label="音标"
-          ><ElInput v-model="row.phonetic" :aria-label="`${entryType} 音标 ${index + 1}`"
-        /></ElFormItem>
-        <ElFormItem label="中文"
-          ><ElInput v-model="row.chinese" :aria-label="`${entryType} 中文 ${index + 1}`"
-        /></ElFormItem>
-        <ElFormItem label="英文变体"
-          ><ElSelect
-            v-model="row.variants"
-            multiple
-            filterable
-            allow-create
-            default-first-option
-            :reserve-keyword="false"
-            placeholder="输入后回车添加"
-            ><ElOption
-              v-for="variant in row.variants"
-              :key="variant"
-              :label="variant"
-              :value="variant" /></ElSelect
-        ></ElFormItem>
-        <ElFormItem label="用法解释" class="full-width"
-          ><ElInput v-model="row.explanation" type="textarea" :rows="2"
-        /></ElFormItem>
-        <ElFormItem label="来源句子" class="full-width"
-          ><ElSelect v-model="row.source_sentence_ids" multiple placeholder="选择所在句子"
-            ><ElOption
-              v-for="(sentence, sentenceIndex) in sentences"
-              :key="sentence.id"
-              :label="`${sentenceIndex + 1}. ${sentence.english || '空白句子'}`"
-              :value="sentence.id" /></ElSelect
-        ></ElFormItem>
-        <ElFormItem v-if="entryType === 'vocabulary'" label="单词图片素材编号（可空）"
-          ><ElInput v-model="row.icon_asset_id" clearable
-        /></ElFormItem>
-        <ElFormItem label="本篇来源原句" class="full-width">
-          <ElInput
-            v-model="row.source_sentence"
-            type="textarea"
-            :rows="2"
-            placeholder="保留这篇内容中使用本义项的原句"
-          />
-        </ElFormItem>
-        <ElFormItem label="发音文字">
-          <ElInput v-model="row.pronunciation_text" :placeholder="row.english" />
-        </ElFormItem>
-        <ElFormItem label="允许准备独立发音">
-          <ElSwitch v-model="row.allow_synthesis" />
-        </ElFormItem>
-        <ElFormItem label="读音变体（可空）"
-          ><ElInput v-model="row.reading_variant" placeholder="例如不同读法的区分说明"
-        /></ElFormItem>
-        <ElFormItem label="释义变化类型"
-          ><ElSelect v-model="row.meaning_change" clearable
-            ><ElOption label="原义项文字修正" value="wording" /><ElOption
-              label="新义项（保留原义项）"
-              value="new_sense" /></ElSelect
-        ></ElFormItem>
-        <ElFormItem label="本篇词义人工确认"
-          ><ElTag v-if="row.confirmed" type="success">服务端已确认本篇义项</ElTag
-          ><ElButton
-            v-else
-            :disabled="mediaRows.has(row) || candidate"
-            @click="emit('confirm', index)"
-            >保存并确认这篇义项与来源</ElButton
-          ></ElFormItem
-        >
-        <ElFormItem v-if="!modern" label="独立发音目标编号（可空）"
-          ><ElInput v-model="row.audio_target_id" clearable
-        /></ElFormItem>
-        <ElFormItem v-if="!modern" label="独立发音版本编号（可空）"
-          ><ElInput v-model="row.audio_version_id" clearable
-        /></ElFormItem>
-      </ElForm>
+      <div v-if="compact" class="entry-summary">
+        <h3>
+          {{ row.english }} <span>{{ row.phonetic }}</span>
+        </h3>
+        <p>当前释义：{{ row.chinese || '待填写' }}</p>
+        <p class="muted">解释：{{ row.explanation || '未填写' }}</p>
+        <p class="muted">
+          来源句：{{
+            row.source_sentence ||
+            sentences.find((sentence) => row.source_sentence_ids.includes(sentence.id))?.english ||
+            '待定位'
+          }}
+        </p>
+        <ElTag v-if="row.confirmed" type="success" effect="plain">本篇义项已确认</ElTag>
+        <p v-if="entryType === 'chunk'" class="muted">
+          语块不配置图片，用户端使用纯文字列表；音标仅在适用且已确认时保存。
+        </p>
+      </div>
+      <details :open="!compact" class="entry-details">
+        <summary v-if="compact">编辑文字资料</summary>
+        <ElForm label-position="top" class="entry-form" :disabled="mediaRows.has(row)">
+          <ElFormItem label="英文"
+            ><ElInput v-model="row.english" :aria-label="`${entryType} 英文 ${index + 1}`"
+          /></ElFormItem>
+          <ElFormItem label="音标"
+            ><ElInput v-model="row.phonetic" :aria-label="`${entryType} 音标 ${index + 1}`"
+          /></ElFormItem>
+          <ElFormItem label="中文"
+            ><ElInput v-model="row.chinese" :aria-label="`${entryType} 中文 ${index + 1}`"
+          /></ElFormItem>
+          <ElFormItem label="英文变体"
+            ><ElSelect
+              v-model="row.variants"
+              multiple
+              filterable
+              allow-create
+              default-first-option
+              :reserve-keyword="false"
+              placeholder="输入后回车添加"
+              ><ElOption
+                v-for="variant in row.variants"
+                :key="variant"
+                :label="variant"
+                :value="variant" /></ElSelect
+          ></ElFormItem>
+          <ElFormItem label="用法解释" class="full-width"
+            ><ElInput v-model="row.explanation" type="textarea" :rows="2"
+          /></ElFormItem>
+          <ElFormItem label="来源句子" class="full-width"
+            ><ElSelect v-model="row.source_sentence_ids" multiple placeholder="选择所在句子"
+              ><ElOption
+                v-for="(sentence, sentenceIndex) in sentences"
+                :key="sentence.id"
+                :label="`${sentenceIndex + 1}. ${sentence.english || '空白句子'}`"
+                :value="sentence.id" /></ElSelect
+          ></ElFormItem>
+          <ElFormItem v-if="entryType === 'vocabulary'" label="单词图片素材编号（可空）"
+            ><ElInput v-model="row.icon_asset_id" clearable
+          /></ElFormItem>
+          <ElFormItem label="本篇来源原句" class="full-width">
+            <ElInput
+              v-model="row.source_sentence"
+              type="textarea"
+              :rows="2"
+              placeholder="保留这篇内容中使用本义项的原句"
+            />
+          </ElFormItem>
+          <ElFormItem label="发音文字">
+            <ElInput v-model="row.pronunciation_text" :placeholder="row.english" />
+          </ElFormItem>
+          <ElFormItem label="允许准备独立发音">
+            <ElSwitch v-model="row.allow_synthesis" />
+          </ElFormItem>
+          <ElFormItem label="读音变体（可空）"
+            ><ElInput v-model="row.reading_variant" placeholder="例如不同读法的区分说明"
+          /></ElFormItem>
+          <ElFormItem label="释义变化类型"
+            ><ElSelect v-model="row.meaning_change" clearable
+              ><ElOption label="原义项文字修正" value="wording" /><ElOption
+                label="新义项（保留原义项）"
+                value="new_sense" /></ElSelect
+          ></ElFormItem>
+          <ElFormItem label="本篇词义人工确认"
+            ><ElTag v-if="row.confirmed" type="success">服务端已确认本篇义项</ElTag
+            ><ElButton
+              v-else
+              :disabled="mediaRows.has(row) || candidate"
+              @click="emit('confirm', index)"
+              >保存并确认这篇义项与来源</ElButton
+            ></ElFormItem
+          >
+          <ElFormItem v-if="!modern" label="独立发音目标编号（可空）"
+            ><ElInput v-model="row.audio_target_id" clearable
+          /></ElFormItem>
+          <ElFormItem v-if="!modern" label="独立发音版本编号（可空）"
+            ><ElInput v-model="row.audio_version_id" clearable
+          /></ElFormItem>
+        </ElForm>
+      </details>
       <p v-if="modern">
         固定发音目标：{{
           row.pronunciation_target_id || '服务端准备后返回'
@@ -221,6 +243,44 @@ async function saveEntry(index: number): Promise<void> {
   </div>
 </template>
 <style scoped lang="scss">
+.entry-summary {
+  h3 {
+    margin: 12px 0;
+    font-size: 18px;
+    line-height: 27px;
+  }
+
+  span {
+    font-weight: 500;
+  }
+
+  p {
+    margin: 10px 0;
+    line-height: 22px;
+    overflow-wrap: anywhere;
+  }
+
+  .muted {
+    color: var(--juya-color-text-secondary);
+    font-size: 13px;
+  }
+}
+
+.entry-details {
+  summary {
+    width: fit-content;
+    padding: 10px 24px;
+    border: 1px solid var(--juya-color-border);
+    border-radius: 12px;
+    color: var(--el-color-primary);
+    cursor: pointer;
+  }
+
+  &[open] summary {
+    margin-bottom: 16px;
+  }
+}
+
 .search-bar {
   display: flex;
   gap: 10px;

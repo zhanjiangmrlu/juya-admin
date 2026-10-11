@@ -380,6 +380,40 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/content-materials/{batch_id}/resources/preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Resource Preview */
+    post: operations['resource_preview_api_v1_admin_content_materials__batch_id__resources_preview_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-materials/{batch_id}/vocabulary-preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Vocabulary Preview */
+    get: operations['vocabulary_preview_api_v1_admin_content_materials__batch_id__vocabulary_preview_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/content-packages': {
     parameters: {
       query?: never
@@ -459,6 +493,26 @@ export interface paths {
     put?: never
     /** Adopt */
     post: operations['adopt_api_v1_admin_content_candidates__candidate_id__adoptions_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/catalogue': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Catalogue
+     * @description Read a global content page after validating admin access and filter parameters.
+     */
+    get: operations['catalogue_api_v1_admin_content_catalogue_get']
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -3176,6 +3230,46 @@ export interface components {
       /** Revision Id */
       revision_id: string
     }
+    /** CatalogueItem */
+    CatalogueItem: {
+      /**
+       * Content Type
+       * @enum {string}
+       */
+      content_type: 'dialogue' | 'word_card' | 'short_reading'
+      /** Draft Revision Id */
+      draft_revision_id: string | null
+      /** Id */
+      id: string
+      /** Published Revision Id */
+      published_revision_id: string | null
+      /** Series Id */
+      series_id: string
+      /** Series Title */
+      series_title: string
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'DRAFT' | 'PUBLISHED' | 'OFFLINE'
+      /** Title En */
+      title_en: string
+      /** Title Zh */
+      title_zh: string
+      /** Updated At */
+      updated_at: string | null
+    }
+    /** CataloguePage */
+    CataloguePage: {
+      /** Items */
+      items: components['schemas']['CatalogueItem'][]
+      /** Page */
+      page: number
+      /** Page Size */
+      page_size: number
+      /** Total */
+      total: number
+    }
     /** ClickableSpan */
     ClickableSpan: {
       /** End */
@@ -4251,13 +4345,37 @@ export interface components {
     /** MaterialBindingsRequest */
     MaterialBindingsRequest: {
       /** Bindings */
-      bindings: components['schemas']['MaterialBinding'][]
+      bindings?: components['schemas']['MaterialBinding'][]
       /** Expected Version */
       expected_version: number
       /** Manual Checked */
       manual_checked: boolean
       /** Revision Id */
       revision_id: string
+      /** Vocabulary Preview Hash */
+      vocabulary_preview_hash?: string | null
+      /** Vocabulary Selections */
+      vocabulary_selections?: components['schemas']['MaterialVocabularySelection'][]
+    }
+    /** MaterialResourcePreviewRequest */
+    MaterialResourcePreviewRequest: {
+      /** Path */
+      path: string
+    }
+    /** MaterialVocabularySelection */
+    MaterialVocabularySelection: {
+      /**
+       * Difference Confirmed
+       * @default false
+       */
+      difference_confirmed: boolean
+      /** Import Entry Id */
+      import_entry_id: string
+      /**
+       * No Image Confirmed
+       * @default false
+       */
+      no_image_confirmed: boolean
     }
     /** ModuleCommand */
     ModuleCommand: {
@@ -6248,6 +6366,83 @@ export interface operations {
       }
     }
   }
+  resource_preview_api_v1_admin_content_materials__batch_id__resources_preview_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        batch_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MaterialResourcePreviewRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  vocabulary_preview_api_v1_admin_content_materials__batch_id__vocabulary_preview_get: {
+    parameters: {
+      query: {
+        revision_id: string
+        expected_version: number
+      }
+      header?: never
+      path: {
+        batch_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   list_packages_api_v1_admin_content_packages_get: {
     parameters: {
       query?: {
@@ -6422,6 +6617,44 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  catalogue_api_v1_admin_content_catalogue_get: {
+    parameters: {
+      query?: {
+        page?: number
+        page_size?: number
+        query?: string | null
+        content_type?: ('dialogue' | 'word_card' | 'short_reading') | null
+        series_id?: string | null
+        status?: ('DRAFT' | 'PUBLISHED' | 'OFFLINE') | null
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CataloguePage']
         }
       }
       /** @description Validation Error */
@@ -8001,6 +8234,9 @@ export interface operations {
       query?: {
         page?: number
         page_size?: number
+        status?: ('DRAFT' | 'PUBLISHED' | 'OFFLINE') | null
+        series_id?: string | null
+        query?: string
       }
       header?: never
       path?: never

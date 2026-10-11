@@ -17,6 +17,8 @@ export const /**
    * @returns 纯阅读内容适配器
    */ createShortReadingAdapter = (client: ApiClient): ShortReadingAdapter => {
     const snapshots = new Map<string, ShortReadingSnapshot>()
+    const offlineKeys = new Map<string, string>()
+    const trialKeys = new Map<string, string>()
     const audioUploads = createShortReadingAudioAdapter(client)
     const /**
        * 读取独立内容及当前草稿或发布快照
@@ -75,6 +77,19 @@ export const /**
       sortAvailable: hasAdminOperation(`${base}/{identity}/sort-order`, 'post'),
       load,
       /**
+       * 下线固定内容版本，失败重试复用同一身份并保留历史引用
+       * @param snapshot - 管理员已读取的当前短文内容版本
+       */ offline: async (snapshot): Promise<void> => {
+        const signature = `${snapshot.id}:${snapshot.version}`
+        if (!offlineKeys.has(signature)) offlineKeys.set(signature, createIdempotencyKey())
+        await client.request({
+          method: 'POST',
+          path: `${base}/${encodeURIComponent(snapshot.id)}/offline`,
+          headers: { 'Idempotency-Key': offlineKeys.get(signature)! },
+          body: { expected_version: snapshot.version }
+        })
+      },
+      /**
        * 创建独立纯阅读草稿
        * @param seriesId - 管理员选择的分类编号
        * @param content - 完整纯阅读字段
@@ -129,12 +144,23 @@ export const /**
        * @param expectedVersion - 当前内容版本
        * @returns 服务端确认的状态与新版本
        */ trial: async (id, enabled, expectedVersion) => {
+        const signature = `${id}:${expectedVersion}:${enabled}`
+        if (!trialKeys.has(signature)) trialKeys.set(signature, createIdempotencyKey())
         const result = await client.request<{ version: number }>({
           method: 'PUT',
           path: `${base}/${encodeURIComponent(id)}/trial`,
-          headers: { 'Idempotency-Key': createIdempotencyKey() },
+          headers: { 'Idempotency-Key': trialKeys.get(signature)! },
           body: { expected_version: expectedVersion, enabled }
         })
+        for (const [revisionId, snapshot] of snapshots) {
+          if (snapshot.id === id)
+            snapshots.set(revisionId, {
+              ...snapshot,
+              version: result.version,
+              trialVersion: result.version,
+              trialEnabled: enabled
+            })
+        }
         return { enabled, version: result.version }
       },
       /**

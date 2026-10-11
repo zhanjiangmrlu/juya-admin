@@ -153,20 +153,19 @@ export const /**
                 ],
                 requiredDefaults: Array.isArray(row.defaults) ? row.defaults.map(String) : []
               }
-              if (item.action === 'UPDATE' && mapping.draft_revision_id) {
+              const previousRevision = mapping.draft_revision_id || mapping.published_revision_id
+              if (item.action === 'UPDATE' && previousRevision) {
                 if (
                   candidate.content_type === 'short_reading' ||
                   record(raw.manifest).content_type === 'short_reading'
                 ) {
                   const previous = await client.request<Row>({
                     method: 'GET',
-                    path: `/api/v1/admin/content/short-readings/${encodeURIComponent(String(mapping.content_id))}/revisions/${encodeURIComponent(String(mapping.draft_revision_id))}`
+                    path: `/api/v1/admin/content/short-readings/${encodeURIComponent(String(mapping.content_id))}/revisions/${encodeURIComponent(String(previousRevision))}`
                   })
                   item.previous = record(previous.content_snapshot)
-                } else
-                  item.previous = (
-                    await content.getRevision(String(mapping.draft_revision_id))
-                  ).content
+                  item.previousPublished = !mapping.draft_revision_id
+                } else item.previous = (await content.getRevision(String(previousRevision))).content
               }
               return item
             })

@@ -1,390 +1,301 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { onMounted, reactive } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
-import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
-import {
-  createDiscoveryAdapter,
-  type DiscoveryConfigDraft
-} from '@/features/discovery/discovery-adapter'
-import {
-  LEARNING_MODULE_LABELS,
-  validateLearningModules,
-  validateOpenScenes,
-  validatePreviewScenes
-} from '@/features/discovery/discovery-model'
-import {
-  createLearningModulesAdapter,
-  type LearningModuleRow
-} from '@/features/discovery/learning-modules-adapter'
-import LearningModulesPanel from '@/features/discovery/learning-modules-panel.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
+import { type ContentSeries, createContentAdapter } from '@/features/content/content-adapter'
+import { createDiscoveryAdapter } from '@/features/discovery/discovery-adapter'
+import { validateOpenScenes, validatePreviewScenes } from '@/features/discovery/discovery-model'
+import ShortReadingTrialsPanel from '@/features/discovery/short-reading-trials-panel.vue'
 import { useDiscoveryConfig } from '@/features/discovery/use-discovery-config'
+import { createLearningFeaturesAdapter } from '@/features/learning-features/learning-features-adapter'
+import { useLearningFeatures } from '@/features/learning-features/use-learning-features'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
-interface PreviewRow {
-  sceneIds: string
-  seriesId: string
-}
+import type { SceneSummary } from '@/features/content/content-model'
 
-interface ReadonlyDiscoveryDraft {
-  readonly learningModules: Readonly<Record<string, boolean>>
-  readonly openSceneIds: readonly string[]
-  readonly previewBySeries: Readonly<Record<string, readonly string[]>>
-}
-
-const controller = useDiscoveryConfig(createDiscoveryAdapter(useAdminApiClient()))
-const moduleMetadataAvailable = createLearningModulesAdapter(useAdminApiClient()).available
-const /**
-   * 同步已实际保存模块的启用值，其他配置仍以原全局版本检查冲突
-   * @param row - 服务端确认的模块配置
-   */ moduleSaved = (row: LearningModuleRow): void => {
-    form.learningModules[row.type] = row.enabled
-  }
+const client = useAdminApiClient()
+const controller = useDiscoveryConfig(createDiscoveryAdapter(client))
+const content = createContentAdapter(client)
+const learning = useLearningFeatures(createLearningFeaturesAdapter(client))
+const scenes = ref<SceneSummary[]>([])
+const series = ref<ContentSeries[]>([])
+const optionError = ref('')
 const form = reactive<{
-  learningModules: Record<string, boolean>
   openScenes: string[]
-  previews: PreviewRow[]
-}>({
-  learningModules: {},
-  openScenes: ['', '', ''],
-  previews: []
-})
-
-/** 加载统一配置，并明确覆盖本地表单。 */
-async function load(): Promise<void> {
-  try {
-    await controller.load()
-    if (controller.draft.value) applyDraft(controller.draft.value)
-  } catch {
-    // 控制器提供错误状态和可重试入口
-  }
-}
-
-/**
- * 校验并以乐观锁保存完整发现页配置
- * @returns 保存流程完成后的 Promise
- */
-async function save(): Promise<void> {
-  const draft = createDraft()
-  const openValidation = validateOpenScenes(draft.openSceneIds)
-  if (!openValidation.valid) {
-    ElMessage.warning(openValidation.message)
-    return
-  }
-  for (const sceneIds of Object.values(draft.previewBySeries)) {
-    const validation = validatePreviewScenes(sceneIds, draft.openSceneIds)
-    if (!validation.valid) {
-      ElMessage.warning(validation.message)
+  previews: { seriesId: string; sceneIds: string[] }[]
+}>({ openScenes: ['', '', ''], previews: [] })
+let generation = 0
+let disposed = false
+const /** 加载权威配置与已发布内容选项，明确放弃本地未保存输入 */ load =
+    async (): Promise<void> => {
+      const token = ++generation
+      optionError.value = ''
+      try {
+        await controller.load()
+        if (disposed || token !== generation || !controller.draft.value) return
+        form.openScenes = [...controller.draft.value.openSceneIds]
+        form.previews = Object.entries(controller.draft.value.previewBySeries).map(
+          ([seriesId, sceneIds]) => ({ seriesId, sceneIds: [...sceneIds] })
+        )
+        const [categories, first] = await Promise.all([
+          content.listSeries(),
+          content.listScenes({
+            page: 1,
+            pageSize: 100,
+            query: '',
+            seriesId: '',
+            status: 'PUBLISHED'
+          })
+        ])
+        const all = [...first.items]
+        for (let page = 2; all.length < first.total; page++) {
+          const next = await content.listScenes({
+            page,
+            pageSize: 100,
+            query: '',
+            seriesId: '',
+            status: 'PUBLISHED'
+          })
+          if (!next.items.length) break
+          all.push(...next.items)
+        }
+        if (disposed || token !== generation) return
+        scenes.value = all
+        series.value = categories
+        await learning.load()
+      } catch (failure) {
+        if (!disposed && token === generation)
+          optionError.value = failure instanceof Error ? failure.message : '配置读取失败，请重试'
+      }
+    }
+const /** 校验实际场景选择并保存配置，错误或冲突保留输入 */ save = async (): Promise<void> => {
+    if (!controller.draft.value || controller.state.value === 'saving' || learning.busy.value)
+      return
+    const open = validateOpenScenes(form.openScenes)
+    if (!open.valid) {
+      ElMessage.warning(open.message)
       return
     }
-  }
-  const moduleValidation = validateLearningModules(
-    Object.entries(draft.learningModules).map(([type, enabled]) => ({ enabled, type }))
-  )
-  if (!moduleValidation.valid) {
-    ElMessage.warning(moduleValidation.message)
-    return
-  }
-  try {
-    await controller.save(draft)
-    if (controller.draft.value) applyDraft(controller.draft.value)
-    ElMessage.success('发现页配置已保存')
-  } catch {
-    if (controller.conflict.value) ElMessage.warning('远端配置已变化，本地输入已保留')
-  }
-}
-
-const /**
-   * 将配置草稿映射到页面表单
-   * @param draft - 待展示的配置草稿
-   */
-  applyDraft = (draft: ReadonlyDiscoveryDraft): void => {
-    form.openScenes.splice(0, form.openScenes.length, ...draft.openSceneIds)
-    while (form.openScenes.length < 3) form.openScenes.push('')
-    form.learningModules = {
-      ...Object.fromEntries(
-        Object.keys(LEARNING_MODULE_LABELS).map((type) => [
-          type,
-          draft.learningModules[type] === true
-        ])
-      )
+    if (
+      new Set(form.previews.map((row) => row.seriesId)).size !== form.previews.length ||
+      form.previews.some((row) => !row.seriesId)
+    ) {
+      ElMessage.warning('请选择不重复的内容系列')
+      return
     }
-    form.previews.splice(
-      0,
-      form.previews.length,
-      ...Object.entries(draft.previewBySeries).map(([seriesId, sceneIds]) => ({
-        sceneIds: sceneIds.join(', '),
-        seriesId
-      }))
-    )
+    for (const row of form.previews) {
+      const checked = validatePreviewScenes(row.sceneIds, form.openScenes)
+      if (!checked.valid) {
+        ElMessage.warning(checked.message)
+        return
+      }
+      if (
+        row.sceneIds.some(
+          (id) => scenes.value.find((scene) => scene.id === id)?.seriesId !== row.seriesId
+        )
+      ) {
+        ElMessage.warning('预览场景必须属于所选系列')
+        return
+      }
+    }
+    try {
+      await controller.save({
+        learningModules: { ...controller.draft.value.learningModules },
+        openSceneIds: [...form.openScenes],
+        previewBySeries: Object.fromEntries(
+          form.previews.map((row) => [row.seriesId, [...row.sceneIds]])
+        )
+      })
+      if (
+        learning.snapshot.value &&
+        learning.profileEnabled.value !== learning.snapshot.value.profileCompletionEnabled
+      ) {
+        await learning.save()
+        if (learning.error.value) return
+      }
+      ElMessage.success('开放与预览配置已保存')
+    } catch {
+      /* 控制器显示真实错误并保留表单 */
+    }
   }
-
-/**
- * 从页面表单构造完整配置草稿
- * @returns 完整配置草稿
- */
-function createDraft(): DiscoveryConfigDraft {
-  return {
-    learningModules: { ...form.learningModules },
-    openSceneIds: form.openScenes.map((id) => id.trim()),
-    previewBySeries: Object.fromEntries(
-      form.previews
-        .filter((row) => row.seriesId.trim())
-        .map((row) => [row.seriesId.trim(), splitIds(row.sceneIds)])
-    )
+const /** 添加待选择的系列预览，不生成内部编号 */ addPreview = (): void => {
+    form.previews.push({ seriesId: '', sceneIds: [] })
   }
-}
-
-/**
- * 将逗号或换行分隔的编号转换为数组
- * @param value - 用户输入的编号文本
- * @returns 清理后的编号数组
- */
-function splitIds(value: string): string[] {
-  return value
-    .split(/[,，\n]/)
-    .map((id) => id.trim())
-    .filter(Boolean)
-}
-
-/** 在表单中新增一个空系列预览项。 */
-function addPreview(): void {
-  form.previews.push({ sceneIds: '', seriesId: '' })
-}
-
-onMounted(load)
+onMounted(() => void load())
+onBeforeUnmount(() => {
+  disposed = true
+  generation++
+  learning.dispose()
+})
 </script>
-
 <template>
-  <section class="discovery-config-page admin-brand-headings">
-    <div class="page-heading">
-      <div>
-        <p class="page-description">开放场景自由学习；系列预览使用安全封面和专用片段。</p>
-      </div>
-      <div class="heading-actions">
-        <ElTag effect="plain">配置 v{{ controller.version.value }}</ElTag
-        ><ElButton :loading="controller.state.value === 'saving'" type="primary" @click="save"
-          >保存全部配置</ElButton
-        >
-      </div>
-    </div>
-    <ElSkeleton v-if="controller.state.value === 'loading'" :rows="10" animated />
+  <section class="discovery-config-page">
     <ElAlert
-      v-else-if="controller.state.value === 'error' && !controller.draft.value"
-      :closable="false"
-      :title="controller.error.value || '配置加载失败'"
+      v-if="optionError || controller.error.value || learning.error.value"
+      :title="optionError || controller.error.value || learning.error.value || ''"
       type="error"
-      show-icon
-      ><template #default
-        ><ElButton link type="primary" @click="load">重新加载</ElButton></template
-      ></ElAlert
+      :closable="false"
+      ><ElButton @click="load">重新读取配置</ElButton></ElAlert
     >
-    <template v-else>
-      <ElAlert
-        v-if="controller.conflict.value"
-        class="conflict-alert"
-        :closable="false"
-        :title="`远端已更新到 v${controller.conflict.value.remoteVersion}，本地表单未被覆盖`"
-        type="warning"
-        show-icon
-        ><template #default
-          ><ElButton link type="primary" @click="load">放弃本地修改并载入远端</ElButton></template
-        ></ElAlert
+    <ElAlert
+      v-if="controller.conflict.value || learning.conflict.value"
+      title="配置已变化，本地输入已保留。请重新读取后核对。"
+      type="warning"
+      :closable="false"
+    />
+    <ElSkeleton v-if="controller.state.value === 'loading'" :rows="8" animated />
+    <template v-else-if="controller.draft.value">
+      <AdminPanel :title="`开放学习场景 · 已选${form.openScenes.filter(Boolean).length} / 3`"
+        ><ElForm label-position="top" class="open-scenes-grid">
+          <ElFormItem v-for="index in 3" :key="index" :label="`开放场景 ${index}`"
+            ><ElSelect
+              v-model="form.openScenes[index - 1]"
+              filterable
+              :aria-label="`开放场景 ${index}`"
+              placeholder="按标题选择已发布场景"
+              ><ElOption
+                v-if="
+                  form.openScenes[index - 1] &&
+                  !scenes.some((scene) => scene.id === form.openScenes[index - 1])
+                "
+                :value="form.openScenes[index - 1]"
+                label="所选场景暂不可读取"
+                disabled /><ElOption
+                v-for="scene in scenes"
+                :key="scene.id"
+                :label="scene.title"
+                :value="scene.id"
+                :disabled="
+                  form.openScenes.includes(scene.id) && form.openScenes[index - 1] !== scene.id
+                " /></ElSelect
+            ><small>{{
+              scenes.find((scene) => scene.id === form.openScenes[index - 1])?.seriesTitle ||
+              '选择已发布场景，替换后保留历史进度与收藏'
+            }}</small></ElFormItem
+          >
+        </ElForm></AdminPanel
       >
-      <ElAlert
-        v-else-if="controller.error.value"
-        class="conflict-alert"
-        :closable="false"
-        :title="controller.error.value"
-        type="error"
-        show-icon
-      />
-      <div class="config-grid">
-        <AdminPanel class="open-scenes-panel"
-          ><template #header
-            ><h3>开放学习场景</h3>
-            <p class="field-help">固定选择 3 个已发布场景，自由学习顺序</p></template
-          ><ElForm label-position="top">
-            <ElFormItem
-              v-for="(_id, index) in form.openScenes.slice(0, 3)"
-              :key="index"
-              :label="`开放场景 ${index + 1}`"
-              required
-              ><ElInput v-model="form.openScenes[index]"
-            /></ElFormItem>
-          </ElForm>
-          <dl class="open-scene-notes">
-            <dt>场景替换</dt>
-            <dd>先替换，再下线当前开放场景</dd>
-            <dt>历史记录</dt>
-            <dd>替换后保留进度、收藏与来源句</dd>
-          </dl></AdminPanel
+      <AdminPanel title="场景系列只读预览"
+        ><template #header-actions
+          ><ElButton link type="primary" @click="addPreview">新增系列</ElButton></template
         >
-        <AdminPanel
-          ><template #header
-            ><div class="card-heading">
-              <h3>系列预览</h3>
-              <ElButton link type="primary" @click="addPreview">新增系列</ElButton>
-            </div></template
-          >
-          <ElEmpty v-if="form.previews.length === 0" description="尚未配置系列预览" />
-          <div v-for="(row, index) in form.previews" :key="index" class="preview-row">
-            <ElInput v-model="row.seriesId" aria-label="系列编号" placeholder="系列编号" />
-            <ElInput
-              v-model="row.sceneIds"
-              aria-label="预览场景编号"
-              placeholder="3–6 个场景编号，以逗号分隔"
-              type="textarea"
-              :rows="3"
-            />
-            <ElButton link type="danger" @click="form.previews.splice(index, 1)">移除</ElButton>
-          </div>
-        </AdminPanel>
-        <LearningModulesPanel v-if="moduleMetadataAvailable" @saved="moduleSaved" />
-        <AdminPanel v-else :title="ADMIN_SECTION_TITLES.discoveryConfig.learningModules">
-          <ElEmpty
-            v-if="Object.keys(form.learningModules).length === 0"
-            description="暂无学习模块配置"
-          />
-          <div
-            v-for="(_enabled, moduleName) in form.learningModules"
-            :key="moduleName"
-            class="module-row"
-          >
-            <span>{{ LEARNING_MODULE_LABELS[moduleName] ?? moduleName }}</span
-            ><ElSwitch v-model="form.learningModules[moduleName]" />
-          </div>
-          <ElAlert
-            title="模块名称、排序与准备情况尚未由服务端契约公开，当前仅保存四类启用开关"
-            type="info"
-            :closable="false"
-          />
-          <p class="field-help">
-            可同时启用或全部关闭；启用结果以服务端模板、路由、权限和内容准备校验为准。停用保留内容、收藏和历史，不延长权益计时。
-          </p>
-        </AdminPanel>
-      </div>
+        <div v-for="(row, index) in form.previews" :key="index" class="preview-row">
+          <ElSelect
+            v-model="row.seriesId"
+            aria-label="预览内容系列"
+            placeholder="选择内容系列"
+            filterable
+            @change="row.sceneIds = []"
+            ><ElOption
+              v-for="category in series"
+              :key="category.id"
+              :label="category.title"
+              :value="category.id" /></ElSelect
+          ><ElSelect
+            v-model="row.sceneIds"
+            aria-label="系列预览场景"
+            placeholder="选择3–6个非开放场景"
+            multiple
+            filterable
+            ><ElOption
+              v-for="id in row.sceneIds.filter((id) => !scenes.some((scene) => scene.id === id))"
+              :key="`missing-${id}`"
+              :value="id"
+              label="所选场景暂不可读取"
+              disabled /><ElOption
+              v-for="scene in scenes.filter((item) => item.seriesId === row.seriesId)"
+              :key="scene.id"
+              :label="scene.title"
+              :value="scene.id"
+              :disabled="form.openScenes.includes(scene.id)" /></ElSelect
+          ><ElButton link type="danger" @click="form.previews.splice(index, 1)">移除</ElButton
+          ><small>已选{{ row.sceneIds.length }}篇 / 最多6篇 · 非开放场景</small>
+        </div>
+        <ElEmpty v-if="!form.previews.length" description="尚未配置系列预览" :image-size="48" />
+        <p class="help">使用安全封面、标题与一句简介；无权限点击留在当前列表页提示。</p>
+        <div class="profile-row">
+          <span>显示“前往我的，完善账号资料”次级入口</span
+          ><ElSwitch
+            v-model="learning.profileEnabled.value"
+            aria-label="完善资料次级入口"
+            active-text="已启用"
+            inactive-text="已停用"
+            :disabled="!learning.snapshot.value || learning.busy.value || learning.conflict.value"
+          /></div
+      ></AdminPanel>
+      <ShortReadingTrialsPanel />
     </template>
+    <AppPageActions
+      ><ElButton
+        :disabled="controller.state.value === 'saving' || learning.busy.value"
+        @click="load"
+        >取消修改</ElButton
+      ><ElButton
+        type="primary"
+        :loading="controller.state.value === 'saving' || learning.busy.value"
+        :disabled="!controller.draft.value || Boolean(learning.conflict.value)"
+        @click="save"
+        >保存配置</ElButton
+      ></AppPageActions
+    >
   </section>
 </template>
-
 <style scoped lang="scss">
-/* stylelint-disable selector-class-pattern -- Element Plus 组件类名 */
-.page-heading,
-.card-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-}
-
-.page-heading {
-  margin-bottom: 14px;
-}
-
-.page-heading span {
-  color: var(--juya-color-text-primary);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.page-heading h2 {
-  margin: 3px 0 0;
-  color: var(--juya-color-sidebar);
-  font-size: 18px;
-}
-
-.heading-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.conflict-alert {
-  margin-bottom: 14px;
-}
-
-.config-grid {
+.discovery-config-page {
   display: grid;
-  grid-template-columns: minmax(0, 690fr) minmax(0, 452fr);
-  align-items: start;
-  gap: 18px;
-}
+  gap: 20px;
+  min-width: 0;
 
-.open-scenes-panel {
-  grid-row: 1 / 3;
-  min-height: 630px;
-  background: #eaf2e3;
-}
+  .open-scenes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
 
-.config-grid {
-  grid-template-rows: auto 1fr;
-}
-
-.discovery-config-page :deep(.el-card__header) {
-  padding: 18px 20px 0;
-  border-bottom: 0;
-}
-
-.discovery-config-page :deep(.el-form-item) {
-  margin-bottom: 24px;
-}
-
-.open-scene-notes dt {
-  margin: 24px 0 8px;
-  color: var(--juya-color-text-regular);
-  font-size: 13px;
-}
-
-.open-scene-notes dd {
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--juya-color-border);
-  border-radius: 10px;
-  background: var(--juya-color-surface);
-  font-size: 14px;
-}
-
-.page-description {
-  margin: 0;
-  color: var(--juya-color-text-regular);
-  font-size: 13px;
-}
-
-h3 {
-  margin: 0;
-  color: var(--juya-color-sidebar);
-  font-size: 20px;
-}
-
-.preview-row {
-  display: grid;
-  gap: 8px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.module-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.field-help {
-  color: var(--juya-color-text-secondary);
-  font-size: 12px;
-}
-
-@media (width <= 1100px) {
-  .config-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
+    :deep([class~='el-form-item__content']) {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
   }
 
-  .open-scenes-panel {
-    grid-row: auto;
+  .preview-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+    gap: 12px;
+    padding: 12px 0;
+
+    small {
+      grid-column: 1 / -1;
+    }
+  }
+
+  small,
+  .help {
+    color: var(--juya-color-text-secondary);
+    font-size: 11px;
+    line-height: 18px;
+  }
+
+  .profile-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  :deep(.el-select) {
+    width: 100%;
+  }
+
+  @media (width <= 800px) {
+    .open-scenes-grid,
+    .preview-row {
+      grid-template-columns: 1fr;
+    }
   }
 }
 </style>

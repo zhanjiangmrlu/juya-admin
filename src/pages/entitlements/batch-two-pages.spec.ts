@@ -256,7 +256,11 @@ describe('batch two page regressions', () => {
     const wrapper = await setup(FormalGrantPage)
     await flushPromises()
     await wrapper.find('input[placeholder="输入用户编号"]').setValue('USER-1')
-    wrapper.findAllComponents(ElSelect)[1]?.vm.$emit('update:modelValue', 'PACKAGE-1')
+    const packageSelect = wrapper
+      .findAllComponents(ElSelect)
+      .find((select) => select.props('ariaLabel') === '正式内容包')
+    expect(packageSelect).toBeDefined()
+    packageSelect!.vm.$emit('update:modelValue', 'PACKAGE-1')
     await flushPromises()
     await wrapper.find('form').trigger('submit')
     await flushPromises()

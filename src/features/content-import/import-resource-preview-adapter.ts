@@ -11,10 +11,14 @@ export interface ImportResourcePreview {
 export const /**
    * 读取管理员短期素材预览；路径只作为服务端明确查找键
    * @param client - 当前认证管理客户端
+   * @param source - 服务端已识别的内容包或独立素材批次类型
    * @returns 受控素材预览命令
-   */ createImportResourcePreviewAdapter = (client: ApiClient) => ({
+   */ createImportResourcePreviewAdapter = (
+    client: ApiClient,
+    source: 'imports' | 'materials' = 'imports'
+  ) => ({
     available: hasAdminOperation(
-      '/api/v1/admin/content-imports/{batch_id}/resources/preview',
+      `/api/v1/admin/content-${source}/{batch_id}/resources/preview`,
       'post'
     ),
     /**
@@ -35,7 +39,7 @@ export const /**
         sha256: string
       }>({
         method: 'POST',
-        path: `/api/v1/admin/content-imports/${encodeURIComponent(batchId)}/resources/preview`,
+        path: `/api/v1/admin/content-${source}/${encodeURIComponent(batchId)}/resources/preview`,
         body: { path: resourcePath },
         signal
       })

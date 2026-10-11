@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 
 import type { ImportBatch } from './content-package-model'
 
@@ -88,7 +89,7 @@ const hasBlocking = computed(() =>
         <li v-for="file in batch.unreferencedFiles" :key="file">{{ file }}</li>
       </ul></ElAlert
     >
-    <div class="actions">
+    <AppPageActions>
       <ElButton :loading="busy" @click="emit('validate')">重新校验当前范围</ElButton
       ><ElButton
         type="primary"
@@ -96,7 +97,7 @@ const hasBlocking = computed(() =>
         @click="emit('preview')"
         >查看对应关系与差异</ElButton
       >
-    </div>
+    </AppPageActions>
   </AdminPanel>
 </template>
 <style scoped lang="scss">

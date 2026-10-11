@@ -42,11 +42,18 @@ describe('work item model', () => {
   })
 
   it.each([
+    ['CAMPAIGN_STARTING', '/entitlements?type=LIMITED&status=PENDING'],
+    ['CAMPAIGN_START_EXPIRED', '/entitlements?type=LIMITED&status=START_EXPIRED'],
+    ['ACTIVE_ENTITLEMENT_EXPIRING', '/entitlements?type=LIMITED&status=ACTIVE'],
     ['NEW_FEEDBACK', '/feedback?status=PENDING'],
     ['USER_SUPPLIED', '/feedback?status=USER_SUPPLIED'],
     ['FEEDBACK_DUE_SOON', '/feedback?sla=DUE_SOON'],
     ['FEEDBACK_OVERDUE', '/feedback?sla=OVERDUE']
   ])('uses API-compatible feedback filters for %s', (kind, destination) => {
     expect(toWorkItemViewModel({ ...items[0]!, kind }).destination).toBe(destination)
+  })
+
+  it.each(['constructor', 'toString', '__proto__'])('uses a safe fallback for %s', (kind) => {
+    expect(toWorkItemViewModel({ ...items[0]!, kind }).destination).toBe('/work-items')
   })
 })

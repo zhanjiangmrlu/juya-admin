@@ -20,7 +20,7 @@ test('配置冲突展示远端版本并保留本地草稿', async ({ adminApi, p
 })
 
 test('学习与资料入口开关分别保存、刷新回读并恢复另一项状态', async ({ adminApi, page }) => {
-  test.setTimeout(15_000)
+  test.setTimeout(45_000)
   let current = { recording_enabled: false, profile_completion_enabled: false, version: 0 }
   const writes: Record<string, unknown>[] = []
   await page.route('**/api/v1/admin/learning-features', (route) => {

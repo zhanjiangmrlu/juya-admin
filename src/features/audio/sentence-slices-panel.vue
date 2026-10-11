@@ -217,7 +217,7 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
-  <AdminPanel title="实际单句文件与边界调整" class="sentence-slices-panel">
+  <AdminPanel title="句子与实际单句文件" class="sentence-slices-panel">
     <p>边界以实际源音频时长为准。修改后仅重生成这一句，试听独立文件后再确认。</p>
     <ElAlert
       v-if="!adapter.available"
@@ -237,7 +237,7 @@ onBeforeUnmount(() => {
           ><template #default="{ row }"
             >{{ row.start_ms ?? '待标记' }} → {{ row.end_ms ?? '待标记' }}</template
           ></ElTableColumn
-        ><ElTableColumn label="切片状态" min-width="155"
+        ><ElTableColumn label="单句文件" min-width="155"
           ><template #default="{ row }"
             >{{
               findSlice(row)
@@ -340,9 +340,7 @@ onBeforeUnmount(() => {
 
   .boundary-form {
     margin-top: 18px;
-    padding: 16px;
-    border: 1px solid var(--el-border-color-light);
-    border-radius: 12px;
+    padding: 16px 0;
   }
 
   .boundary-form :deep(.el-form) {

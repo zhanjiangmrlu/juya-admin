@@ -8,7 +8,10 @@ import LexiconFields from '@/features/content-editor/lexicon-fields.vue'
 
 import type { SceneContent } from '@/features/content-editor/scene-form'
 
-const props = defineProps<{ form: SceneContent }>()
+const props = withDefaults(
+  defineProps<{ form: SceneContent; mode?: 'all' | 'dialogue' | 'entries' }>(),
+  { mode: 'all' }
+)
 const emit = defineEmits<{
   busy: [section: 'vocabulary' | 'chunks', value: boolean]
   confirm: [section: 'vocabulary' | 'chunks', index: number]
@@ -26,31 +29,42 @@ const wordCard = computed(
       type="info"
       :closable="false"
     />
-    <AdminPanel v-if="!wordCard" :title="ADMIN_SECTION_TITLES.sceneProofreadPanel.dialogue">
+    <AdminPanel
+      v-if="!wordCard && mode !== 'entries'"
+      :title="
+        mode === 'dialogue'
+          ? '结构化候选 · 可校正'
+          : ADMIN_SECTION_TITLES.sceneProofreadPanel.dialogue
+      "
+    >
       <DialogueFields v-model="form.dialogue" />
     </AdminPanel>
-    <AdminPanel :title="ADMIN_SECTION_TITLES.sceneProofreadPanel.vocabulary">
-      <LexiconFields
-        v-model="form.vocabulary"
-        entry-type="vocabulary"
-        :modern="form.schema_version === 2"
-        :sentences="form.dialogue"
-        :original-image-asset-id="form.original_image_asset_id"
-        @busy="emit('busy', 'vocabulary', $event)"
-        @confirm="emit('confirm', 'vocabulary', $event)"
-      />
-    </AdminPanel>
-    <AdminPanel :title="ADMIN_SECTION_TITLES.sceneProofreadPanel.chunks">
-      <LexiconFields
-        v-model="form.chunks"
-        entry-type="chunk"
-        :modern="form.schema_version === 2"
-        :sentences="form.dialogue"
-        :original-image-asset-id="form.original_image_asset_id"
-        @busy="emit('busy', 'chunks', $event)"
-        @confirm="emit('confirm', 'chunks', $event)"
-      />
-    </AdminPanel>
+    <div v-if="mode !== 'dialogue'" class="entries-grid">
+      <AdminPanel :title="ADMIN_SECTION_TITLES.sceneProofreadPanel.vocabulary">
+        <LexiconFields
+          v-model="form.vocabulary"
+          entry-type="vocabulary"
+          :modern="form.schema_version === 2"
+          :compact="mode === 'entries'"
+          :sentences="form.dialogue"
+          :original-image-asset-id="form.original_image_asset_id"
+          @busy="emit('busy', 'vocabulary', $event)"
+          @confirm="emit('confirm', 'vocabulary', $event)"
+        />
+      </AdminPanel>
+      <AdminPanel :title="ADMIN_SECTION_TITLES.sceneProofreadPanel.chunks">
+        <LexiconFields
+          v-model="form.chunks"
+          entry-type="chunk"
+          :modern="form.schema_version === 2"
+          :compact="mode === 'entries'"
+          :sentences="form.dialogue"
+          :original-image-asset-id="form.original_image_asset_id"
+          @busy="emit('busy', 'chunks', $event)"
+          @confirm="emit('confirm', 'chunks', $event)"
+        />
+      </AdminPanel>
+    </div>
   </div>
 </template>
 <style scoped lang="scss">
@@ -59,6 +73,17 @@ const wordCard = computed(
   display: grid;
   gap: 14px;
   min-width: 0;
+
+  .entries-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px;
+
+    @media (width <= 1000px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
 }
 
 .scene-proofread-panel :deep(.el-card__header) {

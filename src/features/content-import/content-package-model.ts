@@ -37,6 +37,7 @@ export interface ImportPreviewItem {
   expectedVersion: number
   content: Record<string, unknown>
   previous?: Record<string, unknown>
+  previousPublished?: boolean
   bindings: { path: string; role: string; target: string; url?: string }[]
   requiredDefaults: string[]
 }

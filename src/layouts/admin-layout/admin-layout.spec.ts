@@ -91,7 +91,10 @@ describe('admin layout', () => {
       ['/content/jobs', 'A24']
     ] as const
     try {
-      for (const [path, activePageNumber] of cases) {
+      for (const [path] of cases) {
+        const activePageNumber = ADMIN_PAGE_DEFINITIONS.find((page) => {
+          return new RegExp(`^${page.path.replace(/:[^/]+/g, '[^/]+')}$`).test(path)
+        })?.navigationPath
         await router.push(path)
         await flushPromises()
         const menu = wrapper.findComponent({ name: 'ElMenu' })
@@ -103,12 +106,12 @@ describe('admin layout', () => {
           activeItems.map((item) => item.props('index')),
           path
         ).toEqual([activePageNumber])
-        expect(wrapper.findAll('.el-menu-item')).toHaveLength(14)
+        expect(wrapper.findAll('.el-menu-item')).toHaveLength(9)
         expect(wrapper.find('.el-menu-item.is-disabled').exists()).toBe(false)
       }
       await wrapper.find('.el-menu-item.is-active').trigger('click')
       await flushPromises()
-      expect(router.currentRoute.value.path).toBe('/content/jobs')
+      expect(router.currentRoute.value.path).toBe('/content/scenes')
     } finally {
       wrapper.unmount()
     }
@@ -150,23 +153,25 @@ describe('admin layout', () => {
     expect(wrapper.find('.admin-layout').exists()).toBe(true)
     expect(wrapper.find('.menu-scrollbar').exists()).toBe(true)
     expect(wrapper.findComponent({ name: 'ElMenu' }).exists()).toBe(true)
-    expect(wrapper.findAll('.el-sub-menu__title')).toHaveLength(2)
+    expect(wrapper.findAll('.el-sub-menu__title')).toHaveLength(0)
     const directItems = wrapper.findAll('.top-level-item')
     expect(directItems.map((item) => item.text())).toEqual([
       '工作台',
       '用户管理',
+      '统一权益中心',
       '限时活动配置',
       '消息中心',
       '问题反馈',
+      '内容生产',
       '系统配置',
       '汇总统计'
     ])
-    expect(wrapper.findAll('.el-menu-item')).toHaveLength(14)
+    expect(wrapper.findAll('.el-menu-item')).toHaveLength(9)
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
       document.documentElement.clientWidth
     )
 
-    await directItems[3]?.trigger('click')
+    await directItems[4]?.trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.path).toBe('/work-items')
     wrapper.unmount()

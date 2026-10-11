@@ -83,6 +83,7 @@ test('ZIP逐行排除、缺省确认与明确哈希范围提交', async ({ admin
     .locator('.el-checkbox')
     .click()
   await next.click()
+  await page.getByText('完整导入测试 · 展开正文、素材与更新差异').click()
   await expect(page.getByText('Hello, this is the complete English line.')).toBeVisible()
   await expect(page.getByText('你好，这是完整的中文句子。')).toBeVisible()
   await page.locator('.binding-preview .el-checkbox').filter({ hasText: '选中这篇' }).click()
@@ -107,6 +108,67 @@ test('ZIP逐行排除、缺省确认与明确哈希范围提交', async ({ admin
   )
 })
 
+test('已发布短文无草稿时导入更新仍显示线上差异，并只提交候选保存', async ({ adminApi, page }) => {
+  const published = structuredClone(batch)
+  published.manifest.content_type = 'short_reading'
+  published.items = [published.items[0]!]
+  Object.assign(published.items[0]!, {
+    operation: 'UPDATE_DRAFT',
+    defaults: [],
+    mapping: {
+      content_id: 'READING-1',
+      current_version: 2,
+      draft_revision_id: null,
+      published_revision_id: 'PUBLISHED-REV'
+    },
+    candidate: {
+      content_type: 'short_reading',
+      title_en: 'Updated garden',
+      title_zh: '更新花园',
+      paragraphs_en: ['A new paragraph.'],
+      translation_zh: '新的段落。'
+    }
+  })
+  let confirmed: unknown = null
+  await page.route('**/api/v1/admin/content-imports**', (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path.endsWith('/limits'))
+      return route.fulfill({ json: { max_package_bytes: 104857600, max_items: 1000 } })
+    if (path.endsWith('/stages')) return route.fulfill({ json: { stages: [] } })
+    if (path.endsWith('/confirm')) {
+      confirmed = route.request().postDataJSON()
+      return route.fulfill({ json: { batch_id: 'IMPORT-1', status: 'PENDING' } })
+    }
+    return route.fulfill({ json: published })
+  })
+  await page.route(
+    '**/api/v1/admin/content/short-readings/READING-1/revisions/PUBLISHED-REV',
+    (route) =>
+      route.fulfill({
+        json: {
+          content_snapshot: {
+            title_en: 'Published garden',
+            paragraphs_en: ['The published paragraph.'],
+            translation_zh: '线上的段落。'
+          }
+        }
+      })
+  )
+  await loginAsAdmin(page)
+  await navigateInApp(page, '/content/import?batch_id=IMPORT-1')
+  await page.getByRole('button', { name: '查看对应关系与差异', exact: true }).click()
+  await page.getByText('更新花园 · 展开正文、素材与更新差异').click()
+  await expect(page.getByText('当前已发布版本 · v2')).toBeVisible()
+  await expect(page.getByText(/The published paragraph/)).toBeVisible()
+  await page.locator('.binding-preview .el-checkbox').filter({ hasText: '选中这篇' }).click()
+  const submit = page.getByRole('button', { name: '确认保存选中 1 篇草稿', exact: true })
+  await expect(submit).toBeDisabled()
+  await page.getByText('已核对这篇更新差异', { exact: true }).click()
+  await submit.click()
+  expect(confirmed).toMatchObject({ selected: ['ITEM-OK'], preview_hash: 'a'.repeat(64) })
+  expect(adminApi.requests.some((request) => request.pathname.includes('/publish'))).toBe(false)
+})
+
 for (const width of [1280, 1440, 1920, 390]) {
   test(`V1.5 导入和抽样界面 ${width}px 无横向溢出`, async ({ adminApi, page }, testInfo) => {
     await loginAsAdmin(page)
@@ -119,7 +181,7 @@ for (const width of [1280, 1440, 1920, 390]) {
       await expect(
         page.getByRole('heading', {
           level: path === '/content/import' ? 3 : 2,
-          name: path === '/content/import' ? '上传统一内容包' : '内容抽样校对',
+          name: path === '/content/import' ? '分类与内容类型' : '正常内容抽样',
           exact: true
         })
       ).toBeVisible()
@@ -166,7 +228,8 @@ test('实际失败阶段必须明确确认后发出恢复命令，并读取新�
     })
   })
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/import')
+  await navigateInApp(page, '/content/import?source=zip')
+  await page.getByText('恢复已有批次与失败阶段', { exact: true }).click()
   await page.getByRole('textbox', { name: '失败阶段编号', exact: true }).fill('FAILED-STAGE')
   await page.getByRole('button', { name: '读取阶段状态', exact: true }).click()
   const retry = page.getByRole('button', { name: '恢复明确失败阶段', exact: true })

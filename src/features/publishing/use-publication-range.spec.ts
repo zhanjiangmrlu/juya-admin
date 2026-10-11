@@ -32,6 +32,33 @@ const factory = () => ({
 })
 
 describe('explicit publication range', () => {
+  it('selects only actual failed items for retry and requires renewed manual confirmation', async () => {
+    const adapter = factory()
+    adapter.load.mockResolvedValue({
+      ...range,
+      status: 'PARTIAL',
+      candidates: [
+        candidate,
+        { ...candidate, revision_id: 'FAILED' },
+        { ...candidate, revision_id: 'WAITING' }
+      ],
+      results: {
+        items: {
+          REV: { status: 'SUCCEEDED' },
+          FAILED: { status: 'FAILED' },
+          OUTSIDE: { status: 'FAILED' }
+        }
+      }
+    })
+    const controller = usePublicationRange(adapter)
+    await controller.restore('RANGE')
+    controller.acknowledged.value = true
+    controller.selectFailed()
+    expect(controller.selected.value).toEqual(['FAILED'])
+    expect(controller.acknowledged.value).toBe(false)
+    expect(controller.canConfirm.value).toBe(false)
+    expect(adapter.confirm).not.toHaveBeenCalled()
+  })
   it('requires an explicit selection and manual confirmation, preserves key after lost response', async () => {
     const adapter = factory()
     adapter.confirm.mockRejectedValue(new Error('response lost'))

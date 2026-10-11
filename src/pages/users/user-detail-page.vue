@@ -212,10 +212,13 @@ async function copyWechat(): Promise<void> {
           >
           <template v-if="controller.sectionStates.value.contact !== 'error'">
             <div class="contact-meta">
-              <span
-                >待核对变更：{{
-                  controller.detail.value.contact?.change_pending ? '是' : '否'
-                }}</span
+              <ElTag
+                v-if="
+                  controller.detail.value.change_pending ||
+                  controller.detail.value.contact?.change_pending
+                "
+                type="warning"
+                >微信号已变更</ElTag
               >
               <span
                 >最近核对：{{
@@ -270,7 +273,7 @@ async function copyWechat(): Promise<void> {
               type="primary"
               @click="verifyContactChange"
             >
-              已核对微信号变更
+              已核对新微信号
             </ElButton>
           </div>
         </AdminPanel>

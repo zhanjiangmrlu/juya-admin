@@ -9,8 +9,13 @@ import {
   type ImportResourcePreview
 } from './import-resource-preview-adapter'
 
-const props = defineProps<{ batchId: string; path: string; disabled?: boolean }>()
-const adapter = createImportResourcePreviewAdapter(useAdminApiClient())
+const props = defineProps<{
+  batchId: string
+  path: string
+  disabled?: boolean
+  source?: 'imports' | 'materials'
+}>()
+const adapter = createImportResourcePreviewAdapter(useAdminApiClient(), props.source)
 const preview = shallowRef<ImportResourcePreview | null>(null)
 const busy = ref(false)
 const error = ref('')

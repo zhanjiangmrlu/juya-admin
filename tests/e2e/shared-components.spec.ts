@@ -23,9 +23,10 @@ test('公共表格与禁用表单保留页面原有表面颜色', async ({ admin
   ).toBe('#e8f0e1')
   await page.goto('/campaigns/CAMP-1/edit')
   const disabledInput = page
-    .locator('.configuration-card .el-input.is-disabled .el-input__wrapper')
+    .locator('.campaign-edit-page .basic-form .el-input.is-disabled .el-input__wrapper')
     .first()
   await expect(disabledInput).toBeVisible()
+  await expect(disabledInput.locator('input')).toBeDisabled()
   await expect(disabledInput).toHaveCSS('background-color', 'rgb(255, 253, 247)')
   expect(adminApi.unexpectedRequests).toEqual([])
 })

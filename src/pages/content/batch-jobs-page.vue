@@ -8,6 +8,7 @@ import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import DataTable from '@/components/data-table/data-table.vue'
 import { createBatchJobAdapter } from '@/features/batch-jobs/batch-job-adapter'
 import { validateBatchJobSize } from '@/features/batch-jobs/batch-job-model'
+import ImportBatchOverviewPanel from '@/features/batch-jobs/import-batch-overview-panel.vue'
 import { useBatchJobs } from '@/features/batch-jobs/use-batch-jobs'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
@@ -29,8 +30,7 @@ const jobTypes = {
   EXPORT: '导出内容',
   TAGS: '设置标签',
   COPYRIGHT: '设置版权',
-  PACKAGE: '加入内容包',
-  OCR: '显式 OCR'
+  PACKAGE: '加入内容包'
 }
 const trashForm = reactive({ revisionId: '', sceneId: '' })
 const busy = computed(() => state.value === 'loading' || state.value === 'saving')
@@ -154,10 +154,10 @@ function exportResult(id: string): void {
 </script>
 
 <template>
-  <section v-loading="state === 'loading'" class="batch-jobs-page admin-brand-headings">
-    <div class="page-heading">
+  <section class="batch-jobs-page admin-brand-headings">
+    <div v-if="!$route.query.batch_id" class="page-heading">
       <div>
-        <p class="page-description">单批图片最多 30 张；通用批量操作最多 500 个场景</p>
+        <p class="page-description">导入批次可恢复查看；成功步骤复用，失败阶段单独重试</p>
       </div>
       <div>
         <ElButton @click="controller.load()">刷新执行结果</ElButton
@@ -165,57 +165,58 @@ function exportResult(id: string): void {
       </div>
     </div>
     <ElAlert v-if="error" :closable="false" :title="error" type="error" show-icon />
-    <div class="create-grid">
-      <AdminPanel :title="ADMIN_SECTION_TITLES.batchJobs.createJob">
-        <ElForm label-position="top">
-          <ElFormItem label="任务类型">
-            <ElSelect v-model="batchForm.jobType"
-              ><ElOption
-                v-for="(label, value) in jobTypes"
-                :key="value"
-                :label="label"
-                :value="value"
-            /></ElSelect>
-          </ElFormItem>
-          <ElFormItem label="目标编号（逗号或换行分隔，最多 500 项）">
-            <ElInput v-model="batchForm.targetIds" type="textarea" :rows="3" />
-          </ElFormItem>
-          <ElFormItem v-if="batchForm.jobType === 'TAGS'" label="标签（逗号分隔）"
-            ><ElInput v-model="batchForm.tags"
-          /></ElFormItem>
-          <ElFormItem v-if="batchForm.jobType === 'COPYRIGHT'" label="版权声明"
-            ><ElInput v-model="batchForm.copyright" type="textarea"
-          /></ElFormItem>
-          <ElFormItem v-if="batchForm.jobType === 'PACKAGE'" label="内容包编号"
-            ><ElInput v-model="batchForm.packageId"
-          /></ElFormItem>
-          <ElFormItem
-            v-if="batchForm.jobType === 'PUBLISH'"
-            label="草稿版本（每行 场景编号:版本号）"
-            ><ElInput v-model="batchForm.expectedVersions" type="textarea" placeholder="SCENE-1:3"
-          /></ElFormItem>
-          <ElAlert
-            v-if="batchForm.jobType === 'OCR'"
-            :closable="false"
-            title="将显式调用 OCR，使用服务器安全额度；结果需回到同一场景逐项采纳。"
-            type="warning"
-          />
-          <ElButton :disabled="busy" type="primary" @click="createBatch">创建任务</ElButton>
-        </ElForm>
-      </AdminPanel>
-      <AdminPanel :title="ADMIN_SECTION_TITLES.batchJobs.recycleDraft">
-        <ElForm label-position="top">
-          <div class="trash-fields">
-            <ElFormItem label="场景编号"><ElInput v-model="trashForm.sceneId" /></ElFormItem>
-            <ElFormItem label="草稿版本编号">
-              <ElInput v-model="trashForm.revisionId" />
+    <ImportBatchOverviewPanel />
+    <details class="maintenance-tools">
+      <summary>内容批量操作与草稿回收</summary>
+      <div class="create-grid">
+        <AdminPanel :title="ADMIN_SECTION_TITLES.batchJobs.createJob">
+          <ElForm label-position="top">
+            <ElFormItem label="任务类型">
+              <ElSelect v-model="batchForm.jobType"
+                ><ElOption
+                  v-for="(label, value) in jobTypes"
+                  :key="value"
+                  :label="label"
+                  :value="value"
+              /></ElSelect>
             </ElFormItem>
-          </div>
-          <ElButton :disabled="busy" @click="trashDraft">移入回收站</ElButton>
-        </ElForm>
-      </AdminPanel>
-    </div>
-    <div class="job-grid">
+            <ElFormItem label="目标编号（逗号或换行分隔，最多 500 项）">
+              <ElInput v-model="batchForm.targetIds" type="textarea" :rows="3" />
+            </ElFormItem>
+            <ElFormItem v-if="batchForm.jobType === 'TAGS'" label="标签（逗号分隔）"
+              ><ElInput v-model="batchForm.tags"
+            /></ElFormItem>
+            <ElFormItem v-if="batchForm.jobType === 'COPYRIGHT'" label="版权声明"
+              ><ElInput v-model="batchForm.copyright" type="textarea"
+            /></ElFormItem>
+            <ElFormItem v-if="batchForm.jobType === 'PACKAGE'" label="内容包编号"
+              ><ElInput v-model="batchForm.packageId"
+            /></ElFormItem>
+            <ElFormItem
+              v-if="batchForm.jobType === 'PUBLISH'"
+              label="草稿版本（每行 场景编号:版本号）"
+              ><ElInput
+                v-model="batchForm.expectedVersions"
+                type="textarea"
+                placeholder="SCENE-1:3"
+            /></ElFormItem>
+            <ElButton :disabled="busy" type="primary" @click="createBatch">创建任务</ElButton>
+          </ElForm>
+        </AdminPanel>
+        <AdminPanel :title="ADMIN_SECTION_TITLES.batchJobs.recycleDraft">
+          <ElForm label-position="top">
+            <div class="trash-fields">
+              <ElFormItem label="场景编号"><ElInput v-model="trashForm.sceneId" /></ElFormItem>
+              <ElFormItem label="草稿版本编号">
+                <ElInput v-model="trashForm.revisionId" />
+              </ElFormItem>
+            </div>
+            <ElButton :disabled="busy" @click="trashDraft">移入回收站</ElButton>
+          </ElForm>
+        </AdminPanel>
+      </div>
+    </details>
+    <div v-if="!$route.query.batch_id" v-loading="state === 'loading'" class="job-grid">
       <AdminPanel :title="ADMIN_SECTION_TITLES.batchJobs.jobs">
         <ElEmpty v-if="jobs.length === 0 && state !== 'loading'" description="暂无批量任务" />
         <ElCollapse v-else>
@@ -323,22 +324,30 @@ function exportResult(id: string): void {
   }
 
   .create-grid {
-    order: 2;
+    margin-bottom: 20px;
   }
 
   .job-grid {
     grid-template-columns: minmax(0, 1fr);
-    order: 1;
-    margin-top: 0;
+    margin-top: 20px;
   }
 
   .job-grid > :deep(.el-card:first-child) {
-    min-height: 385px;
-    background: #eaf2e3;
+    background: var(--juya-color-surface);
   }
 
   .job-grid > :deep(.el-card:last-child) {
     min-height: 268px;
+  }
+
+  .maintenance-tools {
+    margin-top: 20px;
+
+    summary {
+      cursor: pointer;
+      color: var(--juya-color-primary);
+      font-size: 14px;
+    }
   }
 
   :deep(.el-card__header) {

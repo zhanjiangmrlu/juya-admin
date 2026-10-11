@@ -1,37 +1,5 @@
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 
-test('图片确认只上传素材并提供场景录入入口', async ({ adminApi, page }) => {
-  await page.route('**/__e2e-upload', async (route) => route.fulfill({ status: 204 }))
-  await loginAsAdmin(page)
-  await navigateInApp(page, '/content/import')
-  await page.locator('.batch-form').getByLabel('内容分类').press('Enter')
-  await page.getByRole('option', { name: '日常英语' }).click()
-  await page.locator('.batch-form').getByLabel('内容类型').press('Enter')
-  await page.getByRole('option', { name: '对话', exact: true }).click()
-  await page
-    .locator('.content-import-page input[type="file"]')
-    .last()
-    .setInputFiles({
-      buffer: Buffer.from('e2e-image'),
-      mimeType: 'image/png',
-      name: 'scene.png'
-    })
-  await page.getByRole('button', { name: '开始上传' }).click()
-
-  await expect(page.getByRole('button', { name: '编辑场景草稿' })).toBeVisible()
-  expect(adminApi.findRequest('POST', '/api/v1/admin/content/imports')?.body).toEqual({
-    asset_ids: ['ASSET-UPLOADED-1'],
-    series_id: 'SERIES-1',
-    template_type: 'dialogue'
-  })
-  await page.getByRole('button', { name: '编辑场景草稿' }).click()
-  await expect(page).toHaveURL(/\/content\/scenes\/SCENE-1\/edit$/)
-  const request = adminApi.findRequest('POST', '/api/v1/admin/media/ocr/jobs')
-  expect(request).toBeUndefined()
-  expect(adminApi.findRequest('POST', '/api/v1/admin/media/uploads/confirm')).toBeTruthy()
-  expect(adminApi.findRequest('POST', '/api/v1/admin/content/scenes')).toBeUndefined()
-})
-
 test('音频人工版本与批量失败重试均携带幂等命令头', async ({ adminApi, page }) => {
   await page.route('**/__e2e-upload', async (route) => route.fulfill({ status: 204 }))
   await loginAsAdmin(page)

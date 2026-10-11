@@ -1,5 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import ElementPlus from 'element-plus'
+import ElementPlus, { ElSelect } from 'element-plus'
 import { createPinia } from 'pinia'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
@@ -53,48 +53,36 @@ describe('publish production navigation', () => {
     document.querySelectorAll('.el-message').forEach((element) => element.remove())
   })
 
-  it('shows the five supported stages and marks publish active', async () => {
+  it('uses the current work area selector without the obsolete production tab strip', async () => {
     const { wrapper } = await setup()
-    for (const label of ['内容列表', '场景草稿', '内容校对', '音频切片', '预览发布'])
-      expect(wrapper.text()).toContain(label)
-    expect(wrapper.get('[role="tab"][aria-selected="true"]').text()).toBe('预览发布')
+    expect(wrapper.find('[aria-label="切换内容工作区"]').exists()).toBe(true)
+    expect(wrapper.getComponent(ElSelect).props('modelValue')).toBe('publish')
+    expect(wrapper.find('[role="tab"]').exists()).toBe(false)
   })
 
   it.each([
-    ['draft', '场景草稿'],
-    ['proofread', '内容校对'],
-    ['audio', '音频切片']
-  ])(
-    'returns to %s using the preview scene id instead of the revision id',
-    async (stage, label) => {
-      const { wrapper, router } = await setup()
-      await wrapper
-        .findAll('[role="tab"]')
-        .find((tab) => tab.text() === label)!
-        .trigger('click')
-      await flushPromises()
-      expect(router.currentRoute.value.name).toBe('content-scene-edit')
-      expect(router.currentRoute.value.params.id).toBe('scene-from-preview')
-      expect(router.currentRoute.value.query).toEqual({ stage })
-    }
-  )
+    ['draft', '场景结构化编辑'],
+    ['proofread', '正文对照与配对校对'],
+    ['audio', '场景音频对齐与切片']
+  ])('returns to %s using the preview scene id instead of the revision id', async (stage) => {
+    const { wrapper, router } = await setup()
+    wrapper.getComponent(ElSelect).vm.$emit('update:modelValue', stage)
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('content-scene-edit')
+    expect(router.currentRoute.value.params.id).toBe('scene-from-preview')
+    expect(router.currentRoute.value.query).toEqual({ stage })
+  })
 
   it('can return to the list even when preview loading fails', async () => {
     const { wrapper, router } = await setup(true)
-    await wrapper
-      .findAll('[role="tab"]')
-      .find((tab) => tab.text() === '内容列表')!
-      .trigger('click')
+    wrapper.getComponent(ElSelect).vm.$emit('update:modelValue', 'list')
     await flushPromises()
     expect(router.currentRoute.value.name).toBe('content-scenes')
   })
 
   it('stays on publish and explains missing scene context when preview loading fails', async () => {
     const { wrapper, router } = await setup(true)
-    await wrapper
-      .findAll('[role="tab"]')
-      .find((tab) => tab.text() === '音频切片')!
-      .trigger('click')
+    wrapper.getComponent(ElSelect).vm.$emit('update:modelValue', 'audio')
     await flushPromises()
     expect(router.currentRoute.value.name).toBe('content-publish')
     expect(document.body.textContent).toContain('缺少场景信息')
@@ -102,7 +90,7 @@ describe('publish production navigation', () => {
 
   it('does not navigate when selecting the already active publish stage', async () => {
     const { wrapper, router } = await setup()
-    await wrapper.get('[role="tab"][aria-selected="true"]').trigger('click')
+    wrapper.getComponent(ElSelect).vm.$emit('update:modelValue', 'publish')
     await flushPromises()
     expect(router.currentRoute.value.fullPath).toBe('/publish/revision-123')
   })

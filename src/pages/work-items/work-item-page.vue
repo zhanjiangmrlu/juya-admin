@@ -57,7 +57,11 @@ onBeforeUnmount(controller.dispose)
           :tone="controller.actionable.value.length ? 'warning' : 'success'"
         />
       </div>
-      <ElEmpty v-if="controller.actionable.value.length === 0" description="暂无优先待办" />
+      <ElEmpty
+        v-if="controller.actionable.value.length === 0"
+        description="暂无优先待办"
+        :image-size="64"
+      />
       <ul v-else class="list">
         <li
           v-for="item in controller.actionable.value"
@@ -86,13 +90,20 @@ onBeforeUnmount(controller.dispose)
         <strong>信息提醒</strong
         ><StatusTag :label="`${controller.informational.value.length} 项`" />
       </div>
-      <ElEmpty v-if="controller.informational.value.length === 0" description="暂无信息提醒" />
+      <ElEmpty
+        v-if="controller.informational.value.length === 0"
+        description="暂无信息提醒"
+        :image-size="64"
+      />
       <ul v-else class="list">
         <li v-for="item in controller.informational.value" :key="item.key" class="item info">
           <div>
             <strong>{{ toWorkItemViewModel(item).title }}</strong
             ><span>{{ dayjs(item.due_at).format('YYYY-MM-DD HH:mm') }}</span>
           </div>
+          <RouterLink v-slot="{ navigate }" custom :to="toWorkItemViewModel(item).destination"
+            ><ElButton plain type="primary" @click="navigate">查看</ElButton></RouterLink
+          >
         </li>
       </ul>
     </AdminPanel>

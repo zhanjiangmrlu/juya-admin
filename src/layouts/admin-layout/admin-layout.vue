@@ -48,34 +48,69 @@ const /**
   }
 onMounted(() => narrowViewport?.addEventListener('change', adaptNavigation))
 onBeforeUnmount(() => narrowViewport?.removeEventListener('change', adaptNavigation))
-const navigationPages = ADMIN_NAVIGATION_GROUPS.flatMap((item) => item.pages)
 const activePageNumber = computed(() => {
-  const currentPageNumber = String(route.meta.pageNumber ?? '')
-  const currentPage = navigationPages.find((page) => page.pageNumber === currentPageNumber)
-  if (currentPage) return currentPage.pageNumber
-  return navigationPages.find((page) => page.path === route.meta.navigationPath)?.pageNumber ?? ''
+  return String(route.meta.navigationPath ?? route.path)
 })
-const defaultOpenGroups: string[] = []
 const pageTitle = computed(() => {
+  if (route.name === 'learning-modules') return '学习模块配置'
+  if (route.name === 'content-proofreading') return '正常内容抽样'
+  if (route.name === 'content-short-reading-edit') return '短文结构化编辑'
+  if (route.name === 'formal-entitlement-action') {
+    const titles: Record<string, string> = {
+      RENEW: '正式权益续期',
+      PAUSE: '暂停正式权益',
+      RESUME: '恢复正式权益',
+      REVOKE: '撤销正式权益',
+      GRANT: '开通正式内容'
+    }
+    const action = String(route.query.action || '')
+    return Object.hasOwn(titles, action) ? titles[action] : '正式权益操作'
+  }
+  if (route.name === 'content-import' && (route.query.source === 'zip' || route.query.batch_id)) {
+    const titles: Record<string, string> = {
+      upload: '上传统一内容包',
+      validation: '校验内容包',
+      preview: '核对图文与音频',
+      result: '内容包导入结果'
+    }
+    return titles[String(route.query.import_phase || 'upload')] || '上传统一内容包'
+  }
+  if (route.name === 'content-import' && route.query.source === 'docx') return '导入中英文文档'
+  if (route.name === 'content-import' && route.query.source === 'materials') {
+    const titles: Record<string, string> = {
+      upload: '上传词汇图包',
+      validation: '图包校验',
+      preview: '图文对应预览',
+      processing: '词汇图包导入处理中',
+      result: '词汇图包已导入'
+    }
+    const phase = String(route.query.material_phase || 'upload')
+    return Object.hasOwn(titles, phase) ? titles[phase] : titles.upload
+  }
   if (route.name === 'content-scene-edit')
     return CONTENT_STAGE_TITLES[String(route.query.stage ?? 'proofread')] ?? route.meta.title
   return ADMIN_DESIGN_TITLES[String(route.meta.pageNumber)] ?? route.meta.title
 })
-const pageDescription = computed(
-  () => ADMIN_DESIGN_DESCRIPTIONS[String(route.meta.pageNumber)] ?? '句芽英语 V1.5 · 单管理员后台'
-)
+const pageDescription = computed(() => {
+  if (route.name === 'learning-modules') return '按中文名称配置入口，保存后小程序读取最新配置'
+  if (route.name === 'content-short-reading-edit')
+    return '纯阅读模式 · 完整英文与全文中文 · 封面和全文音频选填'
+  if (route.name === 'content-import' && route.query.source === 'zip')
+    return '正文、译文、封面、词汇图片与音频，按 ID 一次绑定'
+  return ADMIN_DESIGN_DESCRIPTIONS[String(route.meta.pageNumber)] ?? '句芽英语 V1.5 · 单管理员后台'
+})
 
-/**
- * 从 Element Plus 菜单切换到无需业务上下文的页面
- *
- * @param pageNumber - 被选中的 A01-A26 页面编号
- * @returns 路由切换完成后的 Promise
- */
-async function navigateToPage(pageNumber: string): Promise<void> {
-  const page = navigationPages.find((item) => item.pageNumber === pageNumber)
-  if (!page) return
-  await router.push(page.path)
-}
+const /**
+   * 从 Element Plus 菜单切换到无需业务上下文的页面
+   *
+   * @param path - 管理员选择的一级业务入口
+   * @returns 路由切换完成后的 Promise
+   */
+  navigateToPage = async (path: string): Promise<void> => {
+    const group = ADMIN_NAVIGATION_GROUPS.find((item) => item.path === path)
+    if (!group) return
+    await router.push(group.path === '/settings' ? '/settings/learning-modules' : group.path)
+  }
 
 /**
  * 切换管理端侧栏折叠状态
@@ -130,7 +165,6 @@ async function logout(): Promise<void> {
           :collapse="isCollapsed"
           :collapse-transition="false"
           :default-active="activePageNumber"
-          :default-openeds="defaultOpenGroups"
           @select="navigateToPage"
         >
           <template v-for="(group, groupIndex) in ADMIN_NAVIGATION_GROUPS" :key="group.path">
@@ -140,34 +174,10 @@ async function logout(): Promise<void> {
             <li v-if="groupIndex === 6 && !isCollapsed" class="section-label" role="presentation">
               基础能力
             </li>
-            <ElMenuItem
-              v-if="group.pages.length === 1"
-              :aria-label="group.label"
-              class="top-level-item"
-              :index="group.pages[0]?.pageNumber"
-            >
+            <ElMenuItem :aria-label="group.label" class="top-level-item" :index="group.path">
               <ElIcon v-if="isCollapsed"><component :is="navigationIconMap[group.icon]" /></ElIcon>
               <template #title>{{ group.label }}</template>
             </ElMenuItem>
-            <ElSubMenu v-else :index="group.path">
-              <template #title>
-                <ElIcon v-if="isCollapsed"
-                  ><component :is="navigationIconMap[group.icon]"
-                /></ElIcon>
-                <span>{{ group.label }}</span>
-              </template>
-              <ElMenuItemGroup>
-                <ElMenuItem
-                  v-for="page in group.pages"
-                  :key="page.pageNumber"
-                  :index="page.pageNumber"
-                  :title="page.label"
-                >
-                  <span class="page-number">{{ page.pageNumber }}</span>
-                  <span class="page-label">{{ page.label }}</span>
-                </ElMenuItem>
-              </ElMenuItemGroup>
-            </ElSubMenu>
           </template>
         </ElMenu>
       </ElScrollbar>
@@ -204,6 +214,10 @@ async function logout(): Promise<void> {
           <RouterView />
         </ElScrollbar>
       </ElMain>
+      <footer class="page-footer">
+        <span class="footer-brand">句芽英语 · V1.5</span>
+        <div id="admin-page-actions" class="footer-actions" aria-label="页面操作" />
+      </footer>
     </ElContainer>
   </ElContainer>
 </template>
@@ -299,6 +313,8 @@ async function logout(): Promise<void> {
 
   .workspace {
     min-width: 0;
+    flex-direction: column;
+    min-height: 0;
   }
 
   .header {
@@ -377,8 +393,29 @@ async function logout(): Promise<void> {
   }
 
   :deep(.page-scrollbar-view) {
-    padding: var(--juya-main-padding-top) 26px var(--juya-main-padding-bottom)
-      var(--juya-main-padding-inline);
+    padding: var(--juya-main-padding-top) var(--juya-main-padding-inline)
+      var(--juya-main-padding-bottom);
+  }
+
+  .page-footer {
+    display: flex;
+    flex: 0 0 auto;
+    min-height: 62px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 32px;
+    background: var(--juya-color-surface);
+
+    .footer-brand {
+      flex-shrink: 0;
+      color: var(--juya-color-text-secondary);
+      font-size: 11px;
+    }
+
+    .footer-actions {
+      min-width: 0;
+    }
   }
 
   .menu.el-menu {
@@ -493,6 +530,18 @@ async function logout(): Promise<void> {
 
     .admin-badge {
       width: 80px;
+    }
+
+    .page-footer {
+      padding-inline: 16px;
+
+      .footer-brand {
+        display: none;
+      }
+
+      .footer-actions {
+        width: 100%;
+      }
     }
 
     .main {
