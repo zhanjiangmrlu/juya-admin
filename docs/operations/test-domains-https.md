@@ -29,6 +29,8 @@ HTTP 仅保留 ACME 验证，其余测试域名请求跳转 HTTPS。未配置的
 
 后台前端继续使用空的 `VITE_API_BASE_URL`，由 `/api/` 同源代理访问管理接口。前端流水线只发布静态文件，保留上述域名配置及代理，不以旧 HTTP 模板覆盖它们。
 
+完整前端发布脚本为 `deploy/ecs-web-deploy.sh`，随构建制品发布；云效输入框只填写短入口脚本。配置步骤见 [云效测试前端发布](./yunxiao-web-deployment.md)。
+
 现有后台容器使用 `JUYA_ENVIRONMENT=production`，绑定的 OSS Bucket 和预期 Bucket 均为 `juya-test`。本次接入沿用这些配置和 `juya-admin-small` Compose 项目，不重建数据库或修改运行环境字段。`JUYA_ALLOW_INSECURE_HTTP` 未启用，会话 Cookie 保持 HTTPS 要求。
 
 ## 首次申请证书
