@@ -8,5 +8,7 @@ HTTP 环境缺少 `crypto.randomUUID` 时,请求 ID、幂等键、上传队列�
 后端仅在 test 环境开启临时 HTTP Cookie,保留 CSRF 和 HttpOnly。验收必须包含登录、刷新恢复、写操作、退出和下一次前端发布后的代理检查。
 备案完成后使用可信 HTTPS 并关闭后端临时开关,重新登录。
 
+测试子域名的 Nginx、证书、OSS 来源与外网验收步骤见 [测试子域名 HTTPS 接入](test-domains-https.md)。静态前端发布应保留服务器独立的 `juya-test-domains.conf` 和 TLS 片段。
+
 小程序客户端不需要放到此 Nginx 目录。执行 `pnpm build:mp-weixin` 后,将 `dist/build/mp-weixin` 导入微信开发者工具,选择对应 AppID,上传开发版本,设置体验版,提审并在通过后发布。
 小程序后端仍需独立部署,正式版需配置 HTTPS 合法域名。自动上传可以另行接入官方 `miniprogram-ci`,本次未执行上传或提审。
