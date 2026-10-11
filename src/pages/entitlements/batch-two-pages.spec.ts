@@ -6,6 +6,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
+import EntitlementPreviewDialog from '@/features/entitlements/entitlement-preview-dialog.vue'
 import CampaignEditPage from '@/pages/campaigns/campaign-edit-page.vue'
 import CampaignListPage from '@/pages/campaigns/campaign-list-page.vue'
 
@@ -234,14 +235,20 @@ describe('batch two page regressions', () => {
           )
         return Promise.resolve(
           json({
-            id: 'FORMAL-1',
-            user_id: 'USER-1',
-            package_id: 'PACKAGE-1',
-            status: 'ACTIVE',
-            term: 'month_3',
-            version: 4,
-            granted_at: '2026-09-29T00:00:00Z',
-            expires_at: null
+            before: null,
+            actual_operation: 'GRANT',
+            expected_version: 3,
+            previewed_at: '2026-10-11T03:00:00Z',
+            after: {
+              id: 'FORMAL-1',
+              user_id: 'USER-1',
+              package_id: 'PACKAGE-1',
+              status: 'ACTIVE',
+              term: 'month_3',
+              version: 4,
+              granted_at: '2026-09-29T00:00:00Z',
+              expires_at: null
+            }
           })
         )
       })
@@ -253,10 +260,11 @@ describe('batch two page regressions', () => {
     await flushPromises()
     await wrapper.find('form').trigger('submit')
     await flushPromises()
-    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '测试')
+    wrapper.findComponent(EntitlementPreviewDialog).vm.$emit('confirm', '测试')
     await flushPromises()
     expect(wrapper.text()).not.toMatch(/服务端最新版本：\s*v4/)
-    expect(wrapper.text()).toMatch(/预览.*v4/)
+    expect(wrapper.findComponent(EntitlementPreviewDialog).exists()).toBe(false)
+    expect(wrapper.text()).toContain('版本冲突')
     wrapper.unmount()
   })
 

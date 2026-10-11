@@ -1,7 +1,7 @@
 import { createIdempotencyKey } from '@/services/api/api-client'
 
 import type { SceneFilters, ScenePage, SceneRevision, SceneSummary } from './content-model'
-import type { LexiconRow, SceneContent } from '@/features/content-editor/scene-form'
+import type { LexiconRow } from '@/features/content-editor/scene-form'
 import type { ApiClient } from '@/services/api/api-client'
 import type { components } from '@/shared/contracts/generated/admin-api'
 
@@ -19,18 +19,11 @@ export interface ContentAdapter {
   createSeries(title: string, slug: string, idempotencyKey?: string): Promise<ContentSeries>
   createScene(
     seriesId: string,
-    templateType: 'dialogue' | 'vocabulary',
+    templateType: 'dialogue' | 'vocabulary' | 'word_card',
     idempotencyKey?: string
   ): Promise<SceneSummary>
   listLexicon(query: string, entryType: 'vocabulary' | 'chunk'): Promise<LexiconRow[]>
   saveLexicon(entry: LexiconRow, entryType: 'vocabulary' | 'chunk'): Promise<LexiconRow>
-  adoptOcr(
-    revisionId: string,
-    jobId: string,
-    expectedVersion: number,
-    selectedFields: string[],
-    content: SceneContent
-  ): Promise<SceneRevision>
   signedResource(
     revisionId: string,
     resourceId: string
@@ -108,7 +101,10 @@ export function createContentAdapter(client: ApiClient): ContentAdapter {
           method: 'POST',
           path: '/api/v1/admin/content/scenes',
           idempotencyKey,
-          body: { series_id: seriesId, template_type: templateType }
+          body: {
+            series_id: seriesId,
+            template_type: templateType === 'word_card' ? 'vocabulary' : templateType
+          }
         })
       )
     },
@@ -128,20 +124,6 @@ export function createContentAdapter(client: ApiClient): ContentAdapter {
         path: `/api/v1/admin/content/lexicon${entry.entry_id ? `/${encodeURIComponent(entry.entry_id)}` : ''}`,
         body: { entry, entry_type: entryType === 'chunk' ? 'PHRASE' : 'VOCABULARY' }
       })
-    },
-    async adoptOcr(revisionId, jobId, expectedVersion, selectedFields, content) {
-      return mapRevision(
-        await client.request<RevisionDto>({
-          method: 'POST',
-          path: `/api/v1/admin/content/revisions/${encodeURIComponent(revisionId)}/ocr-adoptions`,
-          body: {
-            job_id: jobId,
-            expected_version: expectedVersion,
-            selected_fields: selectedFields,
-            content
-          }
-        })
-      )
     },
     async signedResource(revisionId, resourceId) {
       return client.request<{ url: string; expires_at: string }>({
@@ -218,7 +200,9 @@ export function createContentAdapter(client: ApiClient): ContentAdapter {
 function mapScene(source: SceneDto): SceneSummary {
   return {
     templateType:
-      source.template_type === 'dialogue' || source.template_type === 'vocabulary'
+      source.template_type === 'dialogue' ||
+      source.template_type === 'vocabulary' ||
+      source.template_type === 'word_card'
         ? source.template_type
         : undefined,
     coverObjectKey: source.cover_object_key,

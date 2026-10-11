@@ -20,8 +20,8 @@ export function useCampaignEditor(adapter: CampaignAdapter) {
   const draft = ref<CampaignDraft>({
     name: '',
     durationDays: 3,
-    activationWindowDays: 7,
-    capacity: 1,
+    activationWindowDays: 3,
+    capacity: null,
     sceneIds: []
   })
   const state = ref<'idle' | 'loading' | 'error' | 'success' | 'submitting'>('idle')
@@ -29,6 +29,7 @@ export function useCampaignEditor(adapter: CampaignAdapter) {
   const apiError = shallowRef<ApiError | null>(null)
   const conflict = ref(false)
   const conflictVersion = ref<number | null>(null)
+  const activationWindowCustomized = ref(false)
   let commandKey = createIdempotencyKey()
   let commandFingerprint = ''
   let requestSequence = 0
@@ -51,11 +52,12 @@ export function useCampaignEditor(adapter: CampaignAdapter) {
       draft.value = {
         name: '',
         durationDays: 3,
-        activationWindowDays: 7,
-        capacity: 1,
+        activationWindowDays: 3,
+        capacity: null,
         sceneIds: []
       }
       conflict.value = false
+      activationWindowCustomized.value = false
       conflictVersion.value = null
       state.value = 'idle'
       return true
@@ -66,14 +68,17 @@ export function useCampaignEditor(adapter: CampaignAdapter) {
       if (result.id !== id) throw new Error('活动详情与当前选择不匹配')
       server.value = result
       if (conflict.value) conflictVersion.value = result.version
-      if (!keepDraft)
+      if (!keepDraft) {
         draft.value = {
           name: result.name,
           durationDays: result.currentVersion?.durationDays === 5 ? 5 : 3,
-          activationWindowDays: result.currentVersion?.activationWindowDays ?? 7,
-          capacity: result.currentVersion?.capacity ?? 1,
+          activationWindowDays: result.currentVersion?.activationWindowDays ?? 3,
+          capacity: result.currentVersion?.capacity ?? null,
           sceneIds: [...(result.currentVersion?.sceneIds ?? [])]
         }
+        activationWindowCustomized.value =
+          draft.value.activationWindowDays !== draft.value.durationDays
+      }
       state.value = 'success'
       return true
     } catch (failure) {
@@ -185,7 +190,10 @@ export function useCampaignEditor(adapter: CampaignAdapter) {
    * @param capacity - 调整容量时的新值
    * @returns 更新后的活动详情
    */
-  function command(operation: CampaignOperation, capacity?: number): Promise<CampaignDetail> {
+  function command(
+    operation: CampaignOperation,
+    capacity?: number | null
+  ): Promise<CampaignDetail> {
     if (!server.value) throw new Error('请先加载活动')
     const { id, version } = server.value
     return execute(
@@ -200,7 +208,32 @@ export function useCampaignEditor(adapter: CampaignAdapter) {
       id
     )
   }
+  const /**
+     * 设置学习模式，days 为管理员选择的 3 或 5 天模式
+     * @param days - 管理员设置的天数
+     */
+    setDuration = (days: 3 | 5): void => {
+      draft.value.durationDays = days
+      if (!activationWindowCustomized.value) draft.value.activationWindowDays = days
+    }
+  const /**
+     * 设置自定义启动窗，days 为开通后允许首次开始的天数
+     * @param days - 管理员设置的天数
+     */
+    setActivationWindow = (days: number): void => {
+      draft.value.activationWindowDays = days
+      activationWindowCustomized.value = true
+    }
+  const /** 恢复与学习模式一致的默认启动窗 */
+    resetActivationWindow = (): void => {
+      activationWindowCustomized.value = false
+      draft.value.activationWindowDays = draft.value.durationDays
+    }
   return {
+    activationWindowCustomized,
+    setDuration,
+    setActivationWindow,
+    resetActivationWindow,
     server,
     draft,
     state,

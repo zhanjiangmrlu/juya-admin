@@ -31,3 +31,19 @@ it('keeps the media instance when registering a row and does not reuse it for a 
   expect(wrapper.findAllComponents(LexiconMediaFields)[0]!.vm === second.vm).toBe(true)
   wrapper.unmount()
 })
+
+it('uses per-content registration for modern entries instead of writing the legacy global dictionary', async () => {
+  const wrapper = mount(LexiconFields, {
+    props: {
+      modelValue: [createLexiconRow()],
+      entryType: 'vocabulary',
+      sentences: [],
+      modern: true
+    },
+    global: { plugins: [createPinia(), ElementPlus], stubs: { LexiconMediaFields: true } }
+  })
+  expect(wrapper.text()).not.toContain('查询词库')
+  expect(wrapper.text()).not.toContain('保存到全局词库')
+  expect(wrapper.text()).toContain('保存并确认这篇义项与来源')
+  wrapper.unmount()
+})

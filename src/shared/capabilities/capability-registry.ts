@@ -17,7 +17,6 @@ export const capabilityRegistry = {
   'content.discovery-config': 'available',
   'content.edit': 'available',
   'content.list': 'available',
-  'content.ocr': 'available',
   'content.publish': 'available',
   'content.upload': 'available',
   'dashboard.read': 'available',

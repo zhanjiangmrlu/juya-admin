@@ -20,15 +20,18 @@ for (const reused of [false, true]) {
         JSON.stringify({ page: 3, pageSize: 10, query: 'old', seriesId: 'OTHER', status: 'DRAFT' })
       )
     )
-    await page.getByLabel('系列编号').press('Enter')
+    await page.locator('.batch-form').getByLabel('内容分类').press('Enter')
     await page.getByRole('option', { name: '日常英语' }).click()
-    await page.getByLabel('识别模板').press('Enter')
+    await page.locator('.batch-form').getByLabel('内容类型').press('Enter')
     await page.getByRole('option', { name: '对话', exact: true }).click()
-    await page.locator('input[type="file"]').setInputFiles({
-      buffer: Buffer.from('e2e-image'),
-      mimeType: 'image/png',
-      name: 'scene.png'
-    })
+    await page
+      .locator('.content-import-page input[type="file"]')
+      .last()
+      .setInputFiles({
+        buffer: Buffer.from('e2e-image'),
+        mimeType: 'image/png',
+        name: 'scene.png'
+      })
     await page.getByRole('button', { name: '开始上传' }).click()
     await expect(
       page.getByText(
@@ -86,17 +89,20 @@ test('混合批量上传只统计重复图片，保留新建草稿入口', async
   })
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/import')
-  await page.getByLabel('系列编号').press('Enter')
+  await page.locator('.batch-form').getByLabel('内容分类').press('Enter')
   await page.getByRole('option', { name: '日常英语' }).click()
-  await page.getByLabel('识别模板').press('Enter')
+  await page.locator('.batch-form').getByLabel('内容类型').press('Enter')
   await page.getByRole('option', { name: '对话', exact: true }).click()
-  await page.locator('input[type="file"]').setInputFiles(
-    ['new.png', 'duplicate.png'].map((name) => ({
-      buffer: Buffer.from(name),
-      mimeType: 'image/png',
-      name
-    }))
-  )
+  await page
+    .locator('.content-import-page input[type="file"]')
+    .last()
+    .setInputFiles(
+      ['new.png', 'duplicate.png'].map((name) => ({
+        buffer: Buffer.from(name),
+        mimeType: 'image/png',
+        name
+      }))
+    )
   await expect(page.getByRole('button', { name: '查看已有内容', exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: '开始上传' }).click()
   await expect(page.getByText('上传已确认，已新建场景草稿', { exact: true })).toBeVisible()

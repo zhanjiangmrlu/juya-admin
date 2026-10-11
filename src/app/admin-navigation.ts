@@ -206,15 +206,15 @@ export const ADMIN_PAGE_DEFINITIONS: readonly AdminPageDefinition[] = [
     navigationPath: '/content/scenes',
     pageNumber: 'A18',
     path: '/content/import',
-    title: '批量上传与 OCR'
+    title: '统一内容导入'
   },
   {
-    capability: 'content.ocr',
+    capability: 'content.upload',
     name: 'content-ocr',
     navigationPath: '/content/scenes',
     pageNumber: 'A19',
     path: '/content/ocr/:taskId/:itemId',
-    title: 'OCR 校对'
+    title: '旧功能已取消'
   },
   {
     capability: 'content.edit',

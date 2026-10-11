@@ -7,13 +7,12 @@ import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import TaskProgress from '@/components/task-progress/task-progress.vue'
 import { createContentAdapter } from '@/features/content/content-adapter'
+import ContentMaterialsPanel from '@/features/content-import/content-materials-panel.vue'
+import ContentPackageWorkflow from '@/features/content-import/content-package-workflow.vue'
 import { validateImageBatch } from '@/features/content-import/import-validation'
 import { createUploadAdapter } from '@/features/content-import/upload-adapter'
 import { useUploadQueue } from '@/features/content-import/use-upload-queue'
-import { createOcrAdapter } from '@/features/ocr/ocr-adapter'
-import { formatOcrQuotaVerifiedAt, isOcrQuotaVerifiedThisMonth } from '@/features/ocr/ocr-model'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
-import { useIdempotentCommand } from '@/shared/commands/idempotent-command'
 
 import type { ContentSeries } from '@/features/content/content-adapter'
 import type { UploadQueueItem } from '@/features/content-import/use-upload-queue'
@@ -27,59 +26,13 @@ const duplicateCount = computed(
 )
 const router = useRouter()
 const adapter = createContentAdapter(useAdminApiClient())
-const ocr = createOcrAdapter(useAdminApiClient())
-const ocrSettingsCommand = useIdempotentCommand(ocr.updateSettings)
-const savingOcr = ref(false)
-const loadingOcr = ref(false)
-const ocrSettingsReady = ref(false)
-const ocrSettingsError = ref('')
 const series = ref<ContentSeries[]>([])
-const ocrSettings = reactive({
-  enabled: false,
-  monthly_limit: 0,
-  free_quota: 0,
-  paid_disabled: true,
-  verify_quota: false
-})
-const quotaText = ref('')
-const /** 加载系列、OCR 额度及本月核验状态 */
+const /** 加载内容分类 */
   loadContext = async (): Promise<void> => {
-    loadingOcr.value = true
-    ocrSettingsReady.value = false
-    ocrSettingsError.value = ''
     try {
       series.value = await adapter.listSeries()
-      const quota = await ocr.getQuota()
-      Object.assign(ocrSettings, quota)
-      ocrSettings.verify_quota = isOcrQuotaVerifiedThisMonth(quota.quota_verified_at, quota.month)
-      quotaText.value = `${quota.month} 已使用 ${quota.reserved_count}，剩余 ${quota.remaining}，控制台核验 ${formatOcrQuotaVerifiedAt(quota.quota_verified_at)}`
-      ocrSettingsReady.value = true
-    } catch (failure) {
-      ocrSettingsError.value = failure instanceof Error ? failure.message : '配置加载失败'
-      ElMessage.error(ocrSettingsError.value)
-    } finally {
-      loadingOcr.value = false
-    }
-  }
-const /** 保存 OCR 配置和管理员控制台核验记录并恢复服务端状态 */
-  saveOcr = async (): Promise<void> => {
-    if (savingOcr.value || !ocrSettingsReady.value) return
-    savingOcr.value = true
-    try {
-      await ocrSettingsCommand.submit({
-        enabled: ocrSettings.enabled,
-        monthly_limit: ocrSettings.monthly_limit,
-        free_quota: ocrSettings.free_quota,
-        paid_disabled: ocrSettings.paid_disabled,
-        verify_quota: ocrSettings.verify_quota
-      })
-      ocrSettingsCommand.reset()
-      await loadContext()
-      ElMessage.success('OCR 设置已保存')
-    } catch (failure) {
-      ElMessage.error(failure instanceof Error ? failure.message : 'OCR 设置保存失败')
-    } finally {
-      savingOcr.value = false
+    } catch {
+      ElMessage.error('分类加载失败，请重试')
     }
   }
 /** 编辑上传确认后自动建立的场景草稿。
@@ -126,10 +79,12 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
 
 <template>
   <section class="content-import-page admin-brand-headings">
+    <ContentPackageWorkflow />
+    <ContentMaterialsPanel />
     <div class="page-heading">
       <div>
         <p class="page-description">
-          批量图片上传建立场景草稿；同一系列和模板下的相同图片复用已有场景，不自动调用 OCR。
+          批量图片上传建立场景草稿；同一系列和模板下的相同图片复用已有场景，图片仅作为可选材料，不提取文字。
         </p>
       </div>
     </div>
@@ -142,7 +97,7 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
           show-icon
         />
         <ElForm class="batch-form" label-position="top">
-          <ElFormItem label="系列编号" required
+          <ElFormItem label="内容分类" required
             ><ElSelect v-model="context.seriesId" :disabled="contextLocked"
               ><ElOption
                 v-for="item in series"
@@ -150,7 +105,7 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
                 :label="item.title"
                 :value="item.id" /></ElSelect
           ></ElFormItem>
-          <ElFormItem label="识别模板" required
+          <ElFormItem label="内容类型" required
             ><ElSelect v-model="context.templateId" :disabled="contextLocked"
               ><ElOption label="对话" value="dialogue" /><ElOption
                 label="词汇"
@@ -207,44 +162,12 @@ function handleFiles(_file: UploadFile, files: UploadFiles): void {
         <ElAlert
           class="ocr-note"
           :closable="false"
-          title="上传只确认素材。进入场景后可手工录入或显式启动 OCR，并逐项采纳候选。"
+          title="上传只确认素材。完整正文由管理员提供，保存草稿后另行校对发布。"
           type="success"
           show-icon
         />
       </AdminPanel>
     </div>
-    <AdminPanel :title="ADMIN_SECTION_TITLES.contentImport.ocrNote" class="ocr-note">
-      <p>{{ quotaText }}</p>
-      <p>内部月额度为 0 时不会发起识别，不代表不限量。</p>
-      <ElAlert v-if="ocrSettingsError" :title="ocrSettingsError" :closable="false" type="error" />
-      <ElButton
-        v-if="ocrSettingsError"
-        :loading="loadingOcr"
-        :disabled="savingOcr"
-        @click="loadContext"
-        >重新读取 OCR 设置</ElButton
-      >
-      <!-- ElInputNumber 仅在挂载时写 aria-disabled，锁定变化时重建以保持状态一致。 -->
-      <ElForm
-        :key="savingOcr || !ocrSettingsReady ? 'locked' : 'ready'"
-        inline
-        :disabled="savingOcr || !ocrSettingsReady"
-        ><ElFormItem label="启用 OCR"><ElSwitch v-model="ocrSettings.enabled" /></ElFormItem
-        ><ElFormItem label="内部月额度"
-          ><ElInputNumber v-model="ocrSettings.monthly_limit" :min="0" :precision="0" /></ElFormItem
-        ><ElFormItem label="控制台免费额度"
-          ><ElInputNumber v-model="ocrSettings.free_quota" :min="0" :precision="0" /></ElFormItem
-        ><ElFormItem
-          ><ElCheckbox v-model="ocrSettings.paid_disabled">已关闭付费调用</ElCheckbox></ElFormItem
-        ><ElFormItem
-          ><ElCheckbox v-model="ocrSettings.verify_quota"
-            >已在百度控制台核验本月额度</ElCheckbox
-          ></ElFormItem
-        ><ElButton :loading="savingOcr" :disabled="savingOcr || !ocrSettingsReady" @click="saveOcr"
-          >保存 OCR 设置</ElButton
-        ></ElForm
-      ></AdminPanel
-    >
   </section>
 </template>
 

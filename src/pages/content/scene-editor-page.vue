@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
@@ -8,15 +8,15 @@ import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import { createAudioAdapter } from '@/features/audio/audio-adapter'
 import { createSegmentPlayer } from '@/features/audio/segment-player'
 import { createContentAdapter } from '@/features/content/content-adapter'
+import ContentCandidatesPanel from '@/features/content-candidates/content-candidates-panel.vue'
 import {
   createRevisionController,
   type RevisionController
 } from '@/features/content-editor/revision-controller'
 import {
-  createDialogueRow,
-  createLexiconRow,
   normalizeSceneContent,
-  replaceSceneAudio
+  replaceSceneAudio,
+  resetSceneContent
 } from '@/features/content-editor/scene-form'
 import SceneHistory from '@/features/content-editor/scene-history.vue'
 import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
@@ -28,20 +28,16 @@ import {
 import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
 import SceneAudioPanel from '@/features/content-production/scene-audio-panel.vue'
 import SceneDraftPanel from '@/features/content-production/scene-draft-panel.vue'
-import SceneOcrPanel from '@/features/content-production/scene-ocr-panel.vue'
 import SceneProofreadPanel from '@/features/content-production/scene-proofread-panel.vue'
-import { createOcrAdapter } from '@/features/ocr/ocr-adapter'
+import { canonical } from '@/features/proofreading/proofreading-adapter'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 import type { AudioVersion } from '@/features/audio/audio-version-model'
 import type { AudioElement } from '@/features/audio/segment-player'
 import type { SceneRevision, SceneSummary } from '@/features/content/content-model'
-import type { DialogueRow, LexiconRow } from '@/features/content-editor/scene-form'
+import type { DialogueRow } from '@/features/content-editor/scene-form'
 import type { ProductionStage } from '@/features/content-production/content-production-model'
-import type { OcrQuota } from '@/features/ocr/ocr-adapter'
-import type { OcrJob } from '@/features/ocr/ocr-model'
-import type { OcrGroup, OcrSuggestions } from '@/features/ocr/ocr-suggestions'
 import type { UploadFile } from 'element-plus'
 
 const route = useRoute()
@@ -55,18 +51,28 @@ const client = useAdminApiClient()
 const adapter = createContentAdapter(client)
 const media = createSceneMediaAdapter(client)
 const audioAdapter = createAudioAdapter(client)
-const ocr = createOcrAdapter(client)
 const scene = ref<SceneSummary | null>(null)
 const revision = ref<SceneRevision | null>(null)
 const controller = shallowRef<RevisionController | null>(null)
 const form = reactive(normalizeSceneContent({}))
-const candidate = reactive(normalizeSceneContent({}))
+const wordCard = computed(
+  () => scene.value?.templateType === 'word_card' || scene.value?.templateType === 'vocabulary'
+)
 const state = ref<'error' | 'loading' | 'ready' | 'saving'>('loading')
 const error = ref('')
 const mediaBusy = ref(false)
+const sliceBusy = ref(false)
+const candidateBusy = ref(false)
 const lexiconBusy = reactive({ vocabulary: false, chunks: false })
-const assetsBusy = computed(() => mediaBusy.value || lexiconBusy.vocabulary || lexiconBusy.chunks)
-const workspaceBusy = computed(() => state.value !== 'ready' || ocrBusy.value || assetsBusy.value)
+const assetsBusy = computed(
+  () =>
+    mediaBusy.value ||
+    sliceBusy.value ||
+    candidateBusy.value ||
+    lexiconBusy.vocabulary ||
+    lexiconBusy.chunks
+)
+const workspaceBusy = computed(() => state.value !== 'ready' || assetsBusy.value)
 const imageUrl = ref('')
 const audioVersions = ref<AudioVersion[]>([])
 const audioTargetId = ref('')
@@ -77,78 +83,128 @@ let pendingAudioVersion: AudioVersion | null = null
 let pendingAudioConfirmKey = ''
 const showPreview = ref(false)
 const historyOpened = ref(false)
-const quota = ref<OcrQuota | null>(null)
-const job = ref<OcrJob | null>(null)
-const ocrBusy = ref(false)
-let pendingOcrKey: string | null = null
-let pendingOcrContext: string | null = null
-const candidateReady = ref(false)
-const rawLines = ref<string[]>([])
-const suggestions = ref<OcrSuggestions | null>(null)
-const acceptedGroups = ref<string[]>([])
-const selectedFields = ref<string[]>([])
-const assignedLines = new Map<string, DialogueRow | LexiconRow>()
 const currentVersion = computed(() => controller.value?.revision.value ?? 0)
 const hasConflict = computed(() => controller.value?.conflict.value ?? false)
+const dirty = computed(() => {
+  if (!revision.value) return true
+  const saved = normalizeSceneContent(revision.value.content)
+  saved.template_type = wordCard.value ? 'word_card' : 'dialogue'
+  return JSON.stringify(canonical(saved)) !== JSON.stringify(canonical(form))
+})
 const audioElement = ref<AudioElement | null>(null)
 const player = shallowRef<ReturnType<typeof createSegmentPlayer> | null>(null)
 const audioUrl = ref('')
 let audioGeneration = 0
+let pageGeneration = 0
+let disposed = false
 
-/** 加载同一场景的当前草稿。 */
-async function load(): Promise<void> {
-  state.value = 'loading'
-  error.value = ''
-  player.value?.stop()
-  audioGeneration++
-  try {
-    scene.value = await adapter.getScene(sceneId.value)
-    if (!scene.value.draftRevisionId) throw new Error('该场景当前没有可编辑草稿，请先创建草稿')
-    accept(await adapter.getRevision(scene.value.draftRevisionId))
-    state.value = 'ready'
-    await refreshImage()
-    if (route.query.ocrJob) job.value = await ocr.getJob(String(route.query.ocrJob))
-  } catch (failure) {
-    error.value = message(failure)
-    state.value = 'error'
+const /** 加载同一场景的当前草稿。 */
+  load = async (): Promise<void> => {
+    const generation = ++pageGeneration
+    const targetId = sceneId.value
+    revision.value = null
+    scene.value = null
+    controller.value = null
+    resetSceneContent(form, {})
+    state.value = 'loading'
+    error.value = ''
+    player.value?.stop()
+    audioGeneration++
+    try {
+      const loaded = await adapter.getScene(targetId)
+      if (disposed || generation !== pageGeneration) return
+      scene.value = loaded
+      if (!scene.value.draftRevisionId) throw new Error('该场景当前没有可编辑草稿，请先创建草稿')
+      const saved = await adapter.getRevision(scene.value.draftRevisionId)
+      if (disposed || generation !== pageGeneration) return
+      accept(saved)
+      state.value = 'ready'
+      await refreshImage()
+    } catch (failure) {
+      if (disposed || generation !== pageGeneration) return
+      error.value = message(failure)
+      state.value = 'error'
+    }
   }
-}
-/** 应用服务端固定版本，刷新服务端生成的词库引用。
- * @param value - 已保存版本
- */
-function accept(value: SceneRevision): void {
-  revision.value = value
-  if (!controller.value) controller.value = createRevisionController(value.version, value.content)
-  else controller.value.acceptSavedVersion(value.version, value.content)
-  Object.assign(form, normalizeSceneContent(value.content))
-  selectedAudioVersion.value = form.audio?.version_id ?? ''
-}
-/** 保存结构化草稿，冲突时保留全部输入。
- * @returns 是否保存成功
- */
-async function save(): Promise<boolean> {
-  if (!revision.value || state.value !== 'ready' || hasConflict.value || assetsBusy.value)
-    return false
-  state.value = 'saving'
-  error.value = ''
-  try {
-    accept(
-      await adapter.saveRevision(
+const /** 应用服务端固定版本，刷新服务端生成的词库引用。
+   * @param value - 已保存版本
+   */
+  accept = (value: SceneRevision): void => {
+    revision.value = value
+    if (!controller.value) controller.value = createRevisionController(value.version, value.content)
+    else controller.value.acceptSavedVersion(value.version, value.content)
+    resetSceneContent(form, value.content)
+    form.template_type = wordCard.value ? 'word_card' : 'dialogue'
+    selectedAudioVersion.value = form.audio?.version_id ?? ''
+  }
+const /** 保存当前候选请求所依赖的草稿版本
+   * @returns 可用于请求候选的固定草稿，保存失败时为空
+   */
+  prepareCandidate = async (): Promise<SceneRevision | null> => {
+    if (dirty.value && !(await save())) return null
+    return revision.value
+  }
+const /** 保存结构化草稿，冲突时保留全部输入。
+   * @returns 是否保存成功
+   */
+  save = async (): Promise<boolean> => {
+    if (!revision.value || state.value !== 'ready' || hasConflict.value || assetsBusy.value)
+      return false
+    const generation = pageGeneration
+    state.value = 'saving'
+    error.value = ''
+    try {
+      const result = await adapter.saveRevision(
         revision.value.id,
         currentVersion.value,
         normalizeSceneContent({ ...form })
       )
-    )
-    ElMessage.success('草稿已保存')
-    return true
-  } catch (failure) {
-    controller.value?.handleSaveFailure(failure)
-    error.value = message(failure)
-    return false
-  } finally {
-    state.value = 'ready'
+      if (disposed || generation !== pageGeneration) return false
+      accept(result)
+      ElMessage.success('草稿已保存')
+      return true
+    } catch (failure) {
+      if (disposed || generation !== pageGeneration) return false
+      controller.value?.handleSaveFailure(failure)
+      error.value = message(failure)
+      return false
+    } finally {
+      if (generation === pageGeneration) state.value = 'ready'
+    }
   }
-}
+const /**
+   * 保存实际本篇输入后确认服务端稳定义项和来源
+   * @param section - 当前单词或语块区
+   * @param index - 管理员明确确认的本篇条目序号
+   */ confirmEntry = async (section: 'vocabulary' | 'chunks', index: number): Promise<void> => {
+    const generation = pageGeneration
+    if (!(await save()) || !revision.value) return
+    if (disposed || generation !== pageGeneration) return
+    const revisionId = revision.value.id
+    const entry = form[section][index]
+    if (!entry?.entry_id) {
+      error.value = '条目尚未生成稳定编号，请重新保存草稿'
+      return
+    }
+    state.value = 'saving'
+    try {
+      await client.request({
+        method: 'POST',
+        path: `/api/v1/admin/content/revisions/${encodeURIComponent(revisionId)}/entries/${encodeURIComponent(entry.entry_id)}/confirm`,
+        body: { expected_version: currentVersion.value, manual_checked: true }
+      })
+      const saved = await adapter.getRevision(revisionId)
+      if (disposed || generation !== pageGeneration) return
+      accept(saved)
+      ElMessage.success('本篇义项与来源已确认')
+    } catch (failure) {
+      if (disposed || generation !== pageGeneration) return
+      controller.value?.handleSaveFailure(failure)
+      error.value = message(failure)
+    } finally {
+      if (generation === pageGeneration) state.value = 'ready'
+    }
+  }
 /** 刷新管理员学习原图。 */
 async function refreshImage(): Promise<void> {
   imageUrl.value = ''
@@ -169,7 +225,7 @@ async function uploadImage(file: UploadFile): Promise<void> {
     const asset = await media.uploadImage(file.raw)
     form.original_image_asset_id = asset.id
     await refreshImage()
-    ElMessage.success('原图已上传，可继续手工录入或显式识别')
+    ElMessage.success('原图已上传，可继续编辑内容')
   } catch (failure) {
     error.value = message(failure)
   } finally {
@@ -323,172 +379,6 @@ watch(
   () => void loadAudioSource(),
   { flush: 'post' }
 )
-/** 用户明确创建 OCR 任务前保存同一草稿。 */
-async function startOcr(): Promise<void> {
-  if (ocrBusy.value || !form.original_image_asset_id || !revision.value || !scene.value) return
-  ocrBusy.value = true
-  try {
-    const context = JSON.stringify([
-      sceneId.value,
-      revision.value.id,
-      scene.value.seriesId,
-      form.original_image_asset_id,
-      scene.value.templateType
-    ])
-    const replayPending = pendingOcrKey !== null && pendingOcrContext === context
-    quota.value = await ocr.getQuota()
-    // A lost creation response may already have reserved the final quota slot.
-    if (!quota.value.enabled || (quota.value.remaining <= 0 && !replayPending))
-      throw new Error('OCR 未启用或本月额度已用完')
-    if (!(await save())) return
-    if (pendingOcrContext !== context || pendingOcrKey === null) {
-      pendingOcrContext = context
-      pendingOcrKey = createIdempotencyKey()
-    }
-    job.value = await ocr.createJob(
-      form.original_image_asset_id,
-      scene.value.seriesId,
-      sceneId.value,
-      revision.value.id,
-      pendingOcrKey,
-      scene.value.templateType ?? 'dialogue'
-    )
-    pendingOcrKey = null
-    pendingOcrContext = null
-    await router.replace({ query: { ...route.query, ocrJob: job.value.id } })
-    candidateReady.value = false
-    suggestions.value = null
-    acceptedGroups.value = []
-    rawLines.value = []
-    selectedFields.value = []
-    assignedLines.clear()
-    ElMessage.success('识别任务已创建，可手动刷新状态')
-  } catch (failure) {
-    error.value = message(failure)
-  } finally {
-    ocrBusy.value = false
-  }
-}
-/** 拉取实际任务和 OCR 原始候选，不自动覆盖草稿。 */
-async function refreshOcr(): Promise<void> {
-  if (!job.value) return
-  ocrBusy.value = true
-  try {
-    job.value = await ocr.getJob(job.value.id)
-    if (job.value.status === 'SUCCEEDED') {
-      const result = await ocr.getCandidate(job.value.id)
-      if (result.confirmedRevisionId) {
-        candidateReady.value = false
-        acceptedGroups.value = []
-        selectedFields.value = []
-        assignedLines.clear()
-        ElMessage.info('该识别结果已采纳，请在当前草稿继续编辑')
-        return
-      }
-      const blocks = Array.isArray(result.content.blocks) ? result.content.blocks : []
-      rawLines.value = blocks
-        .map((block) =>
-          typeof block === 'object' && block && 'text' in block ? String(block.text) : ''
-        )
-        .filter(Boolean)
-      if (!rawLines.value.length && typeof result.content.text === 'string')
-        rawLines.value = result.content.text.split('\n').filter(Boolean)
-      if (!candidateReady.value) {
-        Object.assign(candidate, normalizeSceneContent({}))
-        acceptedGroups.value = []
-        selectedFields.value = []
-        assignedLines.clear()
-      }
-      candidateReady.value = true
-      if (revision.value)
-        suggestions.value = await ocr.getSuggestions(revision.value.id, job.value.id)
-    }
-  } catch (failure) {
-    error.value = message(failure)
-  } finally {
-    ocrBusy.value = false
-  }
-}
-/** 手工将识别行放入需要的候选字段。
- * @param text - OCR 原始行
- * @param field - 候选字段
- * @param lineId - 原图中的独立识别行编号
- */
-function assignLine(text: string, field: string, lineId: number): void {
-  const identity = `${field}:${lineId}`
-  const assigned = assignedLines.get(identity)
-  if (!selectedFields.value.includes(field)) selectedFields.value.push(field)
-  if (field === 'title_en' || field === 'title_zh') candidate[field] = text
-  else if (field === 'dialogue') {
-    if (candidate.dialogue.some((row) => row === assigned)) return
-    const existing = form.dialogue.find(
-      (row) => row.english === text && !candidate.dialogue.some((item) => item.id === row.id)
-    )
-    candidate.dialogue.push(
-      existing ? JSON.parse(JSON.stringify(existing)) : { ...createDialogueRow(), english: text }
-    )
-    assignedLines.set(identity, candidate.dialogue.at(-1)!)
-  } else if (field === 'vocabulary' || field === 'chunks') {
-    if (candidate[field].some((row) => row === assigned)) return
-    const existing = form[field].find((entry) => entry.english === text)
-    if (!candidate[field].some((entry) => entry.english === text))
-      candidate[field].push(
-        existing ? JSON.parse(JSON.stringify(existing)) : { ...createLexiconRow(), english: text }
-      )
-    assignedLines.set(
-      identity,
-      candidate[field].find((entry) => entry.english === text)!
-    )
-  }
-}
-/**
- * 管理员确认后才把分组行放入可编辑候选。
- * @param group - 管理员明确确认的分组建议
- */
-function acceptGroup(group: OcrGroup): void {
-  if (!suggestions.value || acceptedGroups.value.includes(group.field)) return
-  for (const id of group.line_ids) {
-    const line = suggestions.value.lines.find((item) => item.id === id)
-    if (line)
-      assignLine(
-        line.text,
-        group.field === 'title'
-          ? /[\u4e00-\u9fff]/.test(line.text)
-            ? 'title_zh'
-            : 'title_en'
-          : group.field,
-        line.id
-      )
-  }
-  acceptedGroups.value.push(group.field)
-}
-/** 用当前乐观锁版本逐项采纳，非选择字段保留服务端草稿。 */
-async function adopt(): Promise<void> {
-  if (!revision.value || !job.value || !selectedFields.value.length) return
-  ocrBusy.value = true
-  try {
-    if (!(await save())) return
-    accept(
-      await adapter.adoptOcr(
-        revision.value.id,
-        job.value.id,
-        currentVersion.value,
-        selectedFields.value,
-        { ...candidate }
-      )
-    )
-    candidateReady.value = false
-    acceptedGroups.value = []
-    selectedFields.value = []
-    assignedLines.clear()
-    ElMessage.success('选中字段已采纳到当前草稿')
-  } catch (failure) {
-    controller.value?.handleSaveFailure(failure)
-    error.value = message(failure)
-  } finally {
-    ocrBusy.value = false
-  }
-}
 /** 移除整段音频并重置标时。 */
 function removeAudio(): void {
   audioGeneration++
@@ -521,14 +411,14 @@ async function switchWorkspace(next: ProductionStage): Promise<void> {
   player.value?.stop()
   await router.push({ query: { ...route.query, stage: next } })
 }
-/**
- * 将校对子组件的素材任务状态纳入全页编辑保护。
- * @param section - 词汇或语块区
- * @param value - 是否正在执行素材任务
- */
-function setLexiconBusy(section: 'vocabulary' | 'chunks', value: boolean): void {
-  lexiconBusy[section] = value
-}
+const /**
+   * 将校对子组件的素材任务状态纳入全页编辑保护。
+   * @param section - 词汇或语块区
+   * @param value - 是否正在执行素材任务
+   */
+  setLexiconBusy = (section: 'vocabulary' | 'chunks', value: boolean): void => {
+    lexiconBusy[section] = value
+  }
 /** 返回错误文案。
  * @param failure - 操作异常
  * @returns 用户可读错误
@@ -536,17 +426,24 @@ function setLexiconBusy(section: 'vocabulary' | 'chunks', value: boolean): void 
 function message(failure: unknown): string {
   return failure instanceof Error ? failure.message : '操作失败'
 }
-onMounted(async () => {
-  await load()
-})
+watch(sceneId, () => void load(), { immediate: true })
 onBeforeUnmount(() => {
+  disposed = true
+  pageGeneration++
+  revision.value = null
+  controller.value = null
   audioGeneration++
   player.value?.dispose()
 })
 </script>
 <template>
   <section class="scene-editor-page admin-brand-headings">
-    <ContentProductionNav :active="stage" :busy="workspaceBusy" @select="switchWorkspace" />
+    <ContentProductionNav
+      :active="stage"
+      :busy="workspaceBusy"
+      :hide-audio="wordCard"
+      @select="switchWorkspace"
+    />
     <div class="page-heading">
       <div>
         <p class="scene-context">{{ stageLabel }} · {{ scene?.title || sceneId }}</p>
@@ -575,9 +472,9 @@ onBeforeUnmount(() => {
     <fieldset
       v-else
       class="editor-fields"
-      :disabled="state === 'saving' || ocrBusy"
-      :inert="state === 'saving' || ocrBusy"
-      :aria-busy="state === 'saving' || ocrBusy"
+      :disabled="state === 'saving'"
+      :inert="state === 'saving'"
+      :aria-busy="state === 'saving'"
       aria-label="场景内容编辑"
     >
       <ElAlert
@@ -605,7 +502,12 @@ onBeforeUnmount(() => {
             @upload="uploadImage"
             @refresh-image="refreshImage"
           />
-          <SceneProofreadPanel v-if="stage === 'proofread'" :form="form" @busy="setLexiconBusy" />
+          <SceneProofreadPanel
+            v-if="stage === 'proofread'"
+            :form="form"
+            @busy="setLexiconBusy"
+            @confirm="confirmEntry"
+          />
           <aside v-else class="draft-aside">
             <AdminPanel :title="ADMIN_SECTION_TITLES.sceneEditor.entryPanel" class="entry-panel">
               <dl class="material-list">
@@ -630,7 +532,6 @@ onBeforeUnmount(() => {
                 <ElButton type="primary" @click="switchWorkspace('proofread')"
                   >进入内容校对</ElButton
                 >
-                <ElButton @click="switchWorkspace('ocr')">使用 OCR 辅助识别</ElButton>
               </div>
             </AdminPanel>
             <ElAlert title="提交前确认" type="success" :closable="false">
@@ -638,33 +539,40 @@ onBeforeUnmount(() => {
             </ElAlert>
           </aside>
         </div>
-        <SceneOcrPanel
-          v-if="stage === 'ocr'"
-          v-model:selected-fields="selectedFields"
+        <ContentCandidatesPanel
+          v-if="stage === 'proofread' && !wordCard"
+          :revision-id="revision.id"
+          :expected-version="currentVersion"
           :form="form"
-          :candidate="candidate"
-          :quota="quota"
-          :job="job"
-          :busy="ocrBusy"
-          :disabled="hasConflict || assetsBusy"
-          :candidate-ready="candidateReady"
-          :suggestions="suggestions"
-          :accepted-groups="acceptedGroups"
-          :raw-lines="rawLines"
-          :image-url="imageUrl"
-          @start="startOcr"
-          @refresh="refreshOcr"
-          @assign="assignLine"
-          @group="acceptGroup"
-          @adopt="adopt"
+          :dirty="dirty"
+          :disabled="workspaceBusy || hasConflict"
+          :prepare="prepareCandidate"
+          kind="AI_LEXICON"
+          @saved="accept"
+          @busy="candidateBusy = $event"
+        />
+        <ContentCandidatesPanel
+          v-if="stage === 'audio' && !wordCard"
+          :revision-id="revision.id"
+          :expected-version="currentVersion"
+          :form="form"
+          :dirty="dirty"
+          :disabled="workspaceBusy || hasConflict"
+          :prepare="prepareCandidate"
+          kind="ASR_BOUNDARY"
+          @saved="accept"
+          @busy="candidateBusy = $event"
         />
         <SceneAudioPanel
-          v-if="stage === 'audio'"
+          v-if="stage === 'audio' && !wordCard"
           :form="form"
           :versions="audioVersions"
+          :revision-id="revision.id"
+          :expected-version="currentVersion"
           :selected-version="selectedAudioVersion"
+          :prepare="prepareCandidate"
           :pending-file="pendingAudioFile"
-          :busy="mediaBusy"
+          :busy="assetsBusy"
           :player="player"
           :can-record="Boolean(audioUrl)"
           @load="loadAudio"
@@ -675,6 +583,8 @@ onBeforeUnmount(() => {
           @refresh="loadAudioSource"
           @remove="removeAudio"
           @element="audioElement = $event"
+          @saved="accept"
+          @slice-busy="sliceBusy = $event"
         />
       </template>
     </fieldset>

@@ -3,7 +3,7 @@ import ElementPlus, { ElSelect, ElUpload } from 'element-plus'
 import { describe, expect, it } from 'vitest'
 import { toRaw } from 'vue'
 
-import DialogueFields from '@/features/content-editor/dialogue-fields.vue'
+import SentenceSlicesPanel from '@/features/audio/sentence-slices-panel.vue'
 import { createDialogueRow, normalizeSceneContent } from '@/features/content-editor/scene-form'
 
 import type { UploadFile } from 'element-plus'
@@ -38,9 +38,12 @@ function setup(overrides: Partial<InstanceType<typeof SceneAudioPanel>['$props']
       busy: false,
       player: null,
       canRecord: true,
+      revisionId: 'revision-1',
+      expectedVersion: 2,
+      prepare: async () => null,
       ...overrides
     },
-    global: { plugins: [ElementPlus] }
+    global: { plugins: [ElementPlus], stubs: { SentenceSlicesPanel: true } }
   })
 }
 
@@ -77,41 +80,16 @@ describe('scene audio panel', () => {
     wrapper.unmount()
   })
 
-  it('forwards sentence playback and both timing edges while retaining the shared dialogue model', async () => {
+  it('passes the fixed revision and forwards slice commands to the integration owner', async () => {
     const wrapper = setup()
-    const row = wrapper.props('form').dialogue[0]!
-    const dialogue = wrapper.getComponent(DialogueFields)
-    expect(dialogue.props('timing')).toBe(true)
-    expect(dialogue.props('canRecord')).toBe(true)
-    expect(dialogue.props('audio')).toBe(wrapper.props('form').audio)
-    await wrapper
-      .findAll('button')
-      .find((button) => button.text() === '记录本句开始')!
-      .trigger('click')
-    await wrapper
-      .findAll('button')
-      .find((button) => button.text() === '记录本句结束')!
-      .trigger('click')
-    expect(wrapper.emitted('record')).toEqual([
-      [row, 'start_ms'],
-      [row, 'end_ms']
-    ])
-    dialogue.vm.$emit('play', row)
-    expect(wrapper.emitted('play')).toEqual([[row]])
-    const replacement = [createDialogueRow()]
-    dialogue.vm.$emit('update:modelValue', replacement)
-    expect(toRaw(wrapper.props('form').dialogue)).toBe(replacement)
-    wrapper.unmount()
-  })
-
-  it('keeps recording unavailable until the parent has loaded the audio source', () => {
-    const wrapper = setup({ canRecord: false })
-    expect(
-      wrapper
-        .findAll('button')
-        .find((button) => button.text() === '记录本句开始')!
-        .attributes('disabled')
-    ).toBeDefined()
+    const panel = wrapper.getComponent(SentenceSlicesPanel)
+    expect(panel.props('revisionId')).toBe('revision-1')
+    expect(panel.props('expectedVersion')).toBe(2)
+    expect(panel.props('form')).toBe(wrapper.props('form'))
+    panel.vm.$emit('busy', true)
+    expect(wrapper.emitted('sliceBusy')).toEqual([[true]])
+    await wrapper.setProps({ busy: true })
+    expect(panel.props('disabled')).toBe(true)
     wrapper.unmount()
   })
 

@@ -6,14 +6,15 @@ import { useRoute, useRouter } from 'vue-router'
 import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
-import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
+import EntitlementPreviewDialog from '@/features/entitlements/entitlement-preview-dialog.vue'
 import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
 import { createLimitedEntitlementAdapter } from '@/features/entitlements/limited-entitlement-adapter'
 import { LIMITED_OPERATION_LABELS } from '@/features/entitlements/limited-entitlement-model'
 import { useLimitedEntitlementCommand } from '@/features/entitlements/use-limited-entitlement-command'
 import { createApiClient } from '@/services/api/api-client'
 import { ApiError } from '@/shared/errors/api-error'
+import { formatDateTime } from '@/shared/utils/date-time'
 
 import type { LimitedDetail } from '@/features/entitlements/entitlement-query-adapter'
 import type { LimitedEntitlementOperation } from '@/features/entitlements/limited-entitlement-model'
@@ -46,58 +47,65 @@ const commandError = ref<string | null>(null)
 const hadConflict = ref(false)
 const operation = ref<LimitedEntitlementOperation>('PAUSE')
 const confirmVisible = ref(false)
+const confirmationReason = ref('')
+const statusLabels: Record<string, string> = {
+  ACTIVE: '有效',
+  PAUSED: '已暂停',
+  REVOKED: '已撤销',
+  PENDING: '待开始',
+  ENDED: '已结束',
+  START_EXPIRED: '启动窗口已过期'
+}
 const allowedOperations = computed(() =>
   (detail.value?.availableOperations ?? []).filter(
     (value): value is LimitedEntitlementOperation => value in LIMITED_OPERATION_LABELS
   )
 )
-const nextStatus = computed(
-  () =>
-    ({
-      EXTEND_START_DEADLINE: 'PENDING（截止延长）',
-      RESTORE_START_WINDOW: 'PENDING（窗口恢复）',
-      GRANT: 'PENDING',
-      PAUSE: 'PAUSED',
-      RESUME: 'ACTIVE',
-      REVOKE: 'REVOKED'
-    })[operation.value]
-)
-/**
- * 加载限时权益详情。
- * @param keepDraft - 是否保留目标操作
- * @returns 加载完成的 Promise
- */
-async function load(keepDraft = false): Promise<void> {
-  const sequence = ++requestSequence
-  const id = entitlementId.value
-  detail.value = null
-  confirmVisible.value = false
-  if (controllerEntitlementId !== id) {
-    controller.value = useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client))
-    controllerEntitlementId = id
+const /** 请求服务端真实前后状态后打开确认 */ preview = async (): Promise<void> => {
+    const sequence = requestSequence
+    try {
+      await controller.value.preview()
+      if (sequence === requestSequence) confirmVisible.value = true
+    } catch {
+      /* 控制器保留预览错误 */
+    }
   }
-  if (!keepDraft) {
-    commandError.value = null
-    commandApiError.value = null
-    hadConflict.value = false
+const /**
+   * 加载限时权益详情。
+   * @param keepDraft - 是否保留目标操作
+   * @returns 加载完成的 Promise
+   */
+  load = async (keepDraft = false): Promise<void> => {
+    const sequence = ++requestSequence
+    const id = entitlementId.value
+    detail.value = null
+    confirmVisible.value = false
+    if (controllerEntitlementId !== id) {
+      controller.value = useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client))
+      controllerEntitlementId = id
+    }
+    if (!keepDraft) {
+      commandError.value = null
+      commandApiError.value = null
+      hadConflict.value = false
+    }
+    state.value = 'loading'
+    error.value = ''
+    apiError.value = null
+    try {
+      const result = await query.limited(id)
+      if (sequence !== requestSequence || id !== entitlementId.value) return
+      if (result.id !== id) throw new Error('权益详情与当前对象不一致')
+      detail.value = result
+      if (!keepDraft) operation.value = allowedOperations.value[0] ?? 'PAUSE'
+      state.value = 'ready'
+    } catch (failure) {
+      if (sequence !== requestSequence || id !== entitlementId.value) return
+      apiError.value = failure instanceof ApiError ? failure : null
+      state.value = 'error'
+      error.value = '限时权益详情加载失败，请重试'
+    }
   }
-  state.value = 'loading'
-  error.value = ''
-  apiError.value = null
-  try {
-    const result = await query.limited(id)
-    if (sequence !== requestSequence || id !== entitlementId.value) return
-    if (result.id !== id) throw new Error('权益详情与当前对象不一致')
-    detail.value = result
-    if (!keepDraft) operation.value = allowedOperations.value[0] ?? 'PAUSE'
-    state.value = 'ready'
-  } catch (failure) {
-    if (sequence !== requestSequence || id !== entitlementId.value) return
-    apiError.value = failure instanceof ApiError ? failure : null
-    state.value = 'error'
-    error.value = '限时权益详情加载失败，请重试'
-  }
-}
 watch([operation, detail], () => {
   if (!detail.value) return
   controller.value.setDraft({
@@ -114,38 +122,40 @@ watch(
   },
   { immediate: true }
 )
-/**
- * 确认限时权益命令。
- * @param reason - 按接口要求填写的原因
- * @returns 命令完成后的 Promise
- */
-async function confirm(reason: string): Promise<void> {
-  if (
-    state.value !== 'ready' ||
-    detail.value?.id !== entitlementId.value ||
-    !allowedOperations.value.includes(operation.value)
-  )
-    return
-  const sequence = requestSequence
-  try {
-    commandError.value = null
-    commandApiError.value = null
-    hadConflict.value = false
-    await controller.value.submit(reason)
-    if (sequence !== requestSequence) return
-    confirmVisible.value = false
-    ElMessage.success('限时权益状态已更新')
-    await load()
-  } catch (failure) {
-    if (sequence !== requestSequence) return
-    confirmVisible.value = false
-    hadConflict.value = failure instanceof ApiError && failure.status === 409
-    commandError.value =
-      controller.value.disabledReason.value ?? controller.value.errorMessage.value
-    commandApiError.value = controller.value.apiError.value
-    if (hadConflict.value) await load(true)
+const /**
+   * 确认限时权益命令。
+   * @param reason - 按接口要求填写的原因
+   * @returns 命令完成后的 Promise
+   */
+  confirm = async (reason: string): Promise<void> => {
+    if (
+      state.value !== 'ready' ||
+      detail.value?.id !== entitlementId.value ||
+      !allowedOperations.value.includes(operation.value)
+    )
+      return
+    const sequence = requestSequence
+    try {
+      commandError.value = null
+      commandApiError.value = null
+      hadConflict.value = false
+      await controller.value.submit(reason)
+      if (sequence !== requestSequence) return
+      confirmVisible.value = false
+      ElMessage.success('限时权益状态已更新')
+      await load()
+    } catch (failure) {
+      if (sequence !== requestSequence) return
+      hadConflict.value = failure instanceof ApiError && failure.status === 409
+      commandError.value =
+        controller.value.disabledReason.value ?? controller.value.errorMessage.value
+      commandApiError.value = controller.value.apiError.value
+      if (hadConflict.value) {
+        confirmVisible.value = false
+        await load(true)
+      }
+    }
   }
-}
 </script>
 
 <template>
@@ -164,14 +174,18 @@ async function confirm(reason: string): Promise<void> {
           ><span>补救次数 {{ detail.remedyCount }}</span>
         </p>
         <ElDescriptions :column="1" direction="vertical" class="detail-fields"
-          ><ElDescriptionsItem label="当前状态">{{ detail.status }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="当前状态">{{
+            statusLabels[detail.status] || detail.status
+          }}</ElDescriptionsItem
           ><ElDescriptionsItem label="活动版本">{{ detail.campaignVersionId }}</ElDescriptionsItem
           ><ElDescriptionsItem label="首次开始时间">{{
-            detail.activatedAt ?? '尚未开始'
+            formatDateTime(detail.activatedAt, '尚未开始')
           }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="启动截止">{{ detail.startDeadline }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="启动截止">{{
+            formatDateTime(detail.startDeadline)
+          }}</ElDescriptionsItem
           ><ElDescriptionsItem label="到期时间">{{
-            detail.expiresAt ?? '尚未开始'
+            formatDateTime(detail.expiresAt, '尚未开始')
           }}</ElDescriptionsItem></ElDescriptions
         ></AdminPanel
       >
@@ -239,7 +253,7 @@ async function confirm(reason: string): Promise<void> {
             !allowedOperations.includes(operation) || controller.commandState.value === 'submitting'
           "
           :loading="controller.commandState.value === 'submitting'"
-          @click="confirmVisible = true"
+          @click="preview"
           >二次确认并执行</ElButton
         >
       </AdminPanel>
@@ -248,15 +262,20 @@ async function confirm(reason: string): Promise<void> {
       <strong>管理提醒</strong>
       <p>限时权益结束后用户保留学习记录；受限正文按权限回退。</p>
     </aside>
-    <ConfirmDialog
-      v-if="detail"
+    <EntitlementPreviewDialog
+      v-if="detail && controller.previewResult.value"
       v-model="confirmVisible"
-      :before-status="detail.status"
-      :after-status="nextStatus"
-      :impact-scope="`${LIMITED_OPERATION_LABELS[operation]}限时权益；用户 ${detail.userId}`"
+      v-model:reason="confirmationReason"
+      :before="controller.previewResult.value.before"
+      :after="controller.previewResult.value.after"
+      :actual-operation="controller.previewResult.value.actualOperation"
+      :expected-version="controller.previewResult.value.expectedVersion"
+      :user-label="`用户 ${detail.userId}`"
+      :user-id="detail.userId"
+      :content-label="detail.campaignName"
+      :error="controller.errorMessage.value"
       :object-id="entitlementId"
-      :reason-required="operation === 'PAUSE' || operation === 'REVOKE'"
-      title="确认限时权益状态操作"
+      :reason-required="true"
       :submitting="controller.commandState.value === 'submitting'"
       @confirm="confirm"
     />

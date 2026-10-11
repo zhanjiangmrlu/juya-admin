@@ -15,13 +15,14 @@ const props = defineProps<{
   entryType: 'vocabulary' | 'chunk'
   sentences: DialogueRow[]
   candidate?: boolean
+  modern?: boolean
   originalImageAssetId?: string | null
 }>()
 const adapter = createContentAdapter(useAdminApiClient())
 const query = ref('')
 const results = ref<LexiconRow[]>([])
 const busy = ref(false)
-const emit = defineEmits<{ busy: [value: boolean] }>()
+const emit = defineEmits<{ busy: [value: boolean]; confirm: [index: number] }>()
 const rowKeys = new WeakMap<LexiconRow, number>()
 let nextRowKey = 0
 const mediaRows = ref(new Set<LexiconRow>())
@@ -81,7 +82,7 @@ async function saveEntry(index: number): Promise<void> {
 </script>
 <template>
   <div class="lexicon-fields">
-    <div v-if="!candidate" class="search-bar">
+    <div v-if="!candidate && !modern" class="search-bar">
       <ElInput v-model="query" aria-label="查询全局词库" placeholder="查询已有英文词条" /><ElButton
         :loading="busy"
         @click="search"
@@ -103,7 +104,9 @@ async function saveEntry(index: number): Promise<void> {
     <div v-for="(row, index) in rows" :key="rowKey(row)" class="entry-row">
       <div class="row-heading">
         <strong>{{ entryType === 'chunk' ? '语块' : '词汇' }} {{ index + 1 }}</strong
-        ><small>{{ row.entry_id || '保存草稿时自动登记词库' }} · v{{ row.entry_version }}</small
+        ><small
+          >{{ row.entry_id || (modern ? '保存草稿时登记本篇词条' : '保存草稿时自动登记词库') }} ·
+          v{{ row.entry_version }}</small
         ><ElButton link type="danger" :disabled="mediaRows.has(row)" @click="rows.splice(index, 1)"
           >删除条目</ElButton
         >
@@ -144,25 +147,63 @@ async function saveEntry(index: number): Promise<void> {
               :label="`${sentenceIndex + 1}. ${sentence.english || '空白句子'}`"
               :value="sentence.id" /></ElSelect
         ></ElFormItem>
-        <ElFormItem label="图标素材编号"
+        <ElFormItem v-if="entryType === 'vocabulary'" label="单词图片素材编号（可空）"
           ><ElInput v-model="row.icon_asset_id" clearable
         /></ElFormItem>
-        <ElFormItem label="独立发音目标编号（可空）"
+        <ElFormItem label="本篇来源原句" class="full-width">
+          <ElInput
+            v-model="row.source_sentence"
+            type="textarea"
+            :rows="2"
+            placeholder="保留这篇内容中使用本义项的原句"
+          />
+        </ElFormItem>
+        <ElFormItem label="发音文字">
+          <ElInput v-model="row.pronunciation_text" :placeholder="row.english" />
+        </ElFormItem>
+        <ElFormItem label="允许准备独立发音">
+          <ElSwitch v-model="row.allow_synthesis" />
+        </ElFormItem>
+        <ElFormItem label="读音变体（可空）"
+          ><ElInput v-model="row.reading_variant" placeholder="例如不同读法的区分说明"
+        /></ElFormItem>
+        <ElFormItem label="释义变化类型"
+          ><ElSelect v-model="row.meaning_change" clearable
+            ><ElOption label="原义项文字修正" value="wording" /><ElOption
+              label="新义项（保留原义项）"
+              value="new_sense" /></ElSelect
+        ></ElFormItem>
+        <ElFormItem label="本篇词义人工确认"
+          ><ElTag v-if="row.confirmed" type="success">服务端已确认本篇义项</ElTag
+          ><ElButton
+            v-else
+            :disabled="mediaRows.has(row) || candidate"
+            @click="emit('confirm', index)"
+            >保存并确认这篇义项与来源</ElButton
+          ></ElFormItem
+        >
+        <ElFormItem v-if="!modern" label="独立发音目标编号（可空）"
           ><ElInput v-model="row.audio_target_id" clearable
         /></ElFormItem>
-        <ElFormItem label="独立发音版本编号（可空）"
+        <ElFormItem v-if="!modern" label="独立发音版本编号（可空）"
           ><ElInput v-model="row.audio_version_id" clearable
         /></ElFormItem>
       </ElForm>
+      <p v-if="modern">
+        固定发音目标：{{
+          row.pronunciation_target_id || '服务端准备后返回'
+        }}；人工音频可通过独立素材包明确绑定，状态接口尚未公开
+      </p>
       <LexiconMediaFields
         v-if="!candidate"
         :entry="row"
         :entry-type="entryType"
+        :modern="modern"
         :original-image-asset-id="originalImageAssetId"
         @update="Object.assign(row, $event)"
         @busy="setMediaBusy(row, $event)"
       /><ElButton
-        v-if="!candidate"
+        v-if="!candidate && !modern"
         :disabled="!row.english.trim() || mediaRows.has(row)"
         @click="saveEntry(index)"
         >保存到全局词库</ElButton

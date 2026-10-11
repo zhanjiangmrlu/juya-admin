@@ -3,10 +3,11 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
-import DialogueFields from '@/features/content-editor/dialogue-fields.vue'
+import SentenceSlicesPanel from '@/features/audio/sentence-slices-panel.vue'
 
 import type { AudioVersion } from '@/features/audio/audio-version-model'
 import type { AudioElement, createSegmentPlayer } from '@/features/audio/segment-player'
+import type { SceneRevision } from '@/features/content/content-model'
 import type { DialogueRow, SceneContent } from '@/features/content-editor/scene-form'
 import type { UploadFile } from 'element-plus'
 
@@ -18,6 +19,9 @@ const props = defineProps<{
   busy: boolean
   player: ReturnType<typeof createSegmentPlayer> | null
   canRecord: boolean
+  revisionId: string
+  expectedVersion: number
+  prepare: () => Promise<SceneRevision | null>
 }>()
 const emit = defineEmits<{
   load: []
@@ -28,6 +32,8 @@ const emit = defineEmits<{
   refresh: []
   remove: []
   element: [element: AudioElement | null]
+  saved: [revision: SceneRevision]
+  sliceBusy: [value: boolean]
 }>()
 const audioElement = ref<AudioElement | null>(null)
 const form = computed(() => props.form)
@@ -88,21 +94,15 @@ onBeforeUnmount(() => emit('element', null))
       </template>
       <audio ref="audioElement" controls preload="metadata" />
     </AdminPanel>
-    <AdminPanel>
-      <template #header
-        ><h3>逐句起止时间</h3>
-        <p>0 ≤ 开始 ＜ 结束 ≤ 音频时长；逐句试听并人工核对后才可发布</p></template
-      >
-      <DialogueFields
-        v-model="form.dialogue"
-        :audio="form.audio"
-        :playback="player"
-        :can-record="canRecord"
-        timing
-        @play="emit('play', $event)"
-        @record="(row, edge) => emit('record', row, edge)"
-      />
-    </AdminPanel>
+    <SentenceSlicesPanel
+      :form="form"
+      :revision-id="revisionId"
+      :expected-version="expectedVersion"
+      :prepare="prepare"
+      :disabled="busy"
+      @saved="emit('saved', $event)"
+      @busy="emit('sliceBusy', $event)"
+    />
   </div>
 </template>
 

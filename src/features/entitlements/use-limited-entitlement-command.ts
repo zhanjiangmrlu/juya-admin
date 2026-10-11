@@ -6,11 +6,14 @@ import { ApiError } from '@/shared/errors/api-error'
 import type {
   LimitedEntitlement,
   LimitedEntitlementAdapter,
-  LimitedEntitlementCommandInput
+  LimitedEntitlementCommandInput,
+  LimitedEntitlementPreview
 } from './limited-entitlement-adapter'
 import type { DeepReadonly, Ref } from 'vue'
 
 export interface LimitedEntitlementCommandController {
+  preview(): Promise<LimitedEntitlementPreview>
+  previewResult: DeepReadonly<Ref<LimitedEntitlementPreview | null>>
   commandState: Readonly<Ref<'error' | 'idle' | 'submitting' | 'success'>>
   disabledReason: Readonly<Ref<string | null>>
   draft: DeepReadonly<Ref<LimitedEntitlementCommandInput | null>>
@@ -21,91 +24,118 @@ export interface LimitedEntitlementCommandController {
   submit(reason: string): Promise<LimitedEntitlement>
 }
 
-/**
- * 创建限时权益幂等命令控制器
- *
- * @param adapter - 限时权益命令适配器
- * @returns 限时权益命令控制器
- */
-export function useLimitedEntitlementCommand(
-  adapter: LimitedEntitlementAdapter
-): LimitedEntitlementCommandController {
-  const draft = shallowRef<LimitedEntitlementCommandInput | null>(null)
-  const result = shallowRef<LimitedEntitlement | null>(null)
-  const errorMessage = ref<string | null>(null)
-  const apiError = shallowRef<ApiError | null>(null)
-  const disabledReason = ref<string | null>(null)
-  const command = useIdempotentCommand<LimitedEntitlementCommandInput, LimitedEntitlement>(
-    adapter.execute
-  )
-
-  /**
-   * 仅在输入实质变化时替换命令，保留不确定失败的重试身份
+export const /**
+   * 创建限时权益幂等命令控制器
    *
-   * @param nextDraft - 最新限时权益命令输入
-   * @returns 无返回值
+   * @param adapter - 限时权益命令适配器
+   * @returns 限时权益命令控制器
    */
-  function setDraft(nextDraft: LimitedEntitlementCommandInput): void {
-    const previous = draft.value
-    if (
-      previous &&
-      previous.operation === nextDraft.operation &&
-      previous.userId === nextDraft.userId &&
-      previous.entitlementId === nextDraft.entitlementId &&
-      previous.campaignVersionId === nextDraft.campaignVersionId &&
-      previous.reason === nextDraft.reason
+  useLimitedEntitlementCommand = (
+    adapter: LimitedEntitlementAdapter
+  ): LimitedEntitlementCommandController => {
+    const draft = shallowRef<LimitedEntitlementCommandInput | null>(null)
+    const result = shallowRef<LimitedEntitlement | null>(null)
+    const errorMessage = ref<string | null>(null)
+    const apiError = shallowRef<ApiError | null>(null)
+    const disabledReason = ref<string | null>(null)
+    const previewResult = shallowRef<LimitedEntitlementPreview | null>(null)
+    let previewGeneration = 0
+    const command = useIdempotentCommand<LimitedEntitlementCommandInput, LimitedEntitlement>(
+      adapter.execute
     )
-      return
-    draft.value = { ...nextDraft }
-    result.value = null
-    errorMessage.value = null
-    apiError.value = null
-    disabledReason.value = null
-    command.reset(nextDraft)
-  }
 
-  /**
-   * 使用管理员原因提交当前限时权益命令
-   *
-   * @param reason - 二次确认中填写的审计原因
-   * @returns 服务端持久化后的限时权益
-   */
-  async function submit(reason: string): Promise<LimitedEntitlement> {
-    if (draft.value === null) throw new Error('请先填写限时权益操作信息')
-    if (command.state.value === 'submitting') throw new Error('操作正在提交')
-    errorMessage.value = null
-    apiError.value = null
-    disabledReason.value = null
-    try {
-      const nextResult = await command.submit({
-        ...draft.value,
-        reason:
-          draft.value.operation === 'PAUSE' || draft.value.operation === 'REVOKE'
-            ? reason
-            : undefined
-      })
-      result.value = nextResult
-      return nextResult
-    } catch (failure) {
-      apiError.value = failure instanceof ApiError ? failure : null
-      errorMessage.value =
-        failure instanceof ApiError ? failure.message : '限时权益操作失败，请稍后重试'
-      disabledReason.value = mapDisabledReason(failure)
-      throw failure
+    const /**
+       * 仅在输入实质变化时替换命令，保留不确定失败的重试身份
+       *
+       * @param nextDraft - 最新限时权益命令输入
+       * @returns 无返回值
+       */
+      setDraft = (nextDraft: LimitedEntitlementCommandInput): void => {
+        const previous = draft.value
+        if (
+          previous &&
+          previous.operation === nextDraft.operation &&
+          previous.userId === nextDraft.userId &&
+          previous.entitlementId === nextDraft.entitlementId &&
+          previous.campaignVersionId === nextDraft.campaignVersionId &&
+          previous.reason === nextDraft.reason
+        )
+          return
+        draft.value = { ...nextDraft }
+        previewGeneration++
+        previewResult.value = null
+        result.value = null
+        errorMessage.value = null
+        apiError.value = null
+        disabledReason.value = null
+        command.reset(nextDraft)
+      }
+
+    const /**
+       * 使用管理员原因提交当前限时权益命令
+       *
+       * @param reason - 二次确认中填写的审计原因
+       * @returns 服务端持久化后的限时权益
+       */
+      submit = async (reason: string): Promise<LimitedEntitlement> => {
+        if (draft.value === null) throw new Error('请先填写限时权益操作信息')
+        if (command.state.value === 'submitting') throw new Error('操作正在提交')
+        if (draft.value.operation !== 'GRANT' && !previewResult.value)
+          throw new Error('请先获取服务端预览')
+        errorMessage.value = null
+        apiError.value = null
+        disabledReason.value = null
+        try {
+          const nextResult = await command.submit({
+            ...draft.value,
+            reason: draft.value.operation !== 'GRANT' ? reason : undefined,
+            expectedVersion: previewResult.value?.expectedVersion
+          })
+          result.value = nextResult
+          return nextResult
+        } catch (failure) {
+          apiError.value = failure instanceof ApiError ? failure : null
+          errorMessage.value =
+            failure instanceof ApiError ? failure.message : '限时权益操作失败，请稍后重试'
+          disabledReason.value = mapDisabledReason(failure)
+          if (failure instanceof ApiError && failure.status === 409) previewResult.value = null
+          throw failure
+        }
+      }
+
+    const /** 请求服务端前后预览并屏蔽过期返回
+       * @returns 当前操作结果或完成状态
+       */ preview = async (): Promise<LimitedEntitlementPreview> => {
+        if (!draft.value || !adapter.preview) throw new Error('当前权益预览能力不可用')
+        const generation = ++previewGeneration
+        errorMessage.value = null
+        try {
+          const response = await adapter.preview(draft.value)
+          if (generation !== previewGeneration) throw new Error('预览已失效，请重新预览')
+          previewResult.value = response
+          return response
+        } catch (failure) {
+          if (generation === previewGeneration) {
+            previewResult.value = null
+            errorMessage.value = failure instanceof Error ? failure.message : '权益预览失败'
+          }
+          throw failure
+        }
+      }
+
+    return {
+      preview,
+      previewResult: readonly(previewResult),
+      commandState: command.state,
+      disabledReason: readonly(disabledReason),
+      draft: readonly(draft),
+      errorMessage: readonly(errorMessage),
+      apiError,
+      result: readonly(result),
+      setDraft,
+      submit
     }
   }
-
-  return {
-    commandState: command.state,
-    disabledReason: readonly(disabledReason),
-    draft: readonly(draft),
-    errorMessage: readonly(errorMessage),
-    apiError,
-    result: readonly(result),
-    setDraft,
-    submit
-  }
-}
 
 /**
  * 将服务端业务冲突映射为可见的禁用原因

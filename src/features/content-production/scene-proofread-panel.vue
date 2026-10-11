@@ -9,30 +9,46 @@ import LexiconFields from '@/features/content-editor/lexicon-fields.vue'
 import type { SceneContent } from '@/features/content-editor/scene-form'
 
 const props = defineProps<{ form: SceneContent }>()
-const emit = defineEmits<{ busy: [section: 'vocabulary' | 'chunks', value: boolean] }>()
+const emit = defineEmits<{
+  busy: [section: 'vocabulary' | 'chunks', value: boolean]
+  confirm: [section: 'vocabulary' | 'chunks', index: number]
+}>()
 const form = computed(() => props.form)
+const wordCard = computed(
+  () => form.value.template_type === 'word_card' || form.value.template_type === 'vocabulary'
+)
 </script>
 <template>
   <div class="scene-proofread-panel admin-brand-headings">
-    <AdminPanel :title="ADMIN_SECTION_TITLES.sceneProofreadPanel.dialogue">
+    <ElAlert
+      v-if="wordCard"
+      title="原词汇卡：核对主体单词与本篇释义，不要求对话、整段音频或句子切片"
+      type="info"
+      :closable="false"
+    />
+    <AdminPanel v-if="!wordCard" :title="ADMIN_SECTION_TITLES.sceneProofreadPanel.dialogue">
       <DialogueFields v-model="form.dialogue" />
     </AdminPanel>
     <AdminPanel :title="ADMIN_SECTION_TITLES.sceneProofreadPanel.vocabulary">
       <LexiconFields
         v-model="form.vocabulary"
         entry-type="vocabulary"
+        :modern="form.schema_version === 2"
         :sentences="form.dialogue"
         :original-image-asset-id="form.original_image_asset_id"
         @busy="emit('busy', 'vocabulary', $event)"
+        @confirm="emit('confirm', 'vocabulary', $event)"
       />
     </AdminPanel>
     <AdminPanel :title="ADMIN_SECTION_TITLES.sceneProofreadPanel.chunks">
       <LexiconFields
         v-model="form.chunks"
         entry-type="chunk"
+        :modern="form.schema_version === 2"
         :sentences="form.dialogue"
         :original-image-asset-id="form.original_image_asset_id"
         @busy="emit('busy', 'chunks', $event)"
+        @confirm="emit('confirm', 'chunks', $event)"
       />
     </AdminPanel>
   </div>

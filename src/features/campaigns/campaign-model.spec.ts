@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { getCampaignFieldAccess, validateCapacityLimit } from './campaign-model'
 
 describe('campaign model', () => {
+  it('allows explicitly unlimited capacity without using a large placeholder', () => {
+    expect(validateCapacityLimit(42, null)).toEqual({ valid: true })
+  })
   it('locks duration, scene order and activation window after first grant', () => {
     const access = getCampaignFieldAccess({ hasGrantedEntitlements: true })
 

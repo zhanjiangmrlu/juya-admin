@@ -59,9 +59,8 @@ describe('content list page', () => {
     expect(wrapper.findAll('[role="tab"]').map((tab) => tab.text())).toEqual([
       '内容列表',
       '场景草稿',
-      'OCR候选',
       '内容校对',
-      '音频标时',
+      '音频切片',
       '预览发布'
     ])
     expect(wrapper.text()).not.toContain('内容列表接口待接入')

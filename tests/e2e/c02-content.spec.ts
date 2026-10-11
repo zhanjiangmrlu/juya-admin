@@ -51,15 +51,14 @@ test('绑定后立即装载整段音频，采集当前起止并保持暂停位�
   await expect
     .poll(() => audio.evaluate((element) => (element as HTMLAudioElement).currentTime))
     .toBe(0.5)
-  await page.getByRole('button', { name: '记录本句开始' }).first().click()
-  await expect(page.getByRole('spinbutton', { name: '开始毫秒 1', exact: true })).toHaveValue('500')
+  await page.getByRole('button', { name: '调整边界' }).first().click()
+  await page.getByRole('spinbutton', { name: '开始毫秒', exact: true }).fill('500')
+  await expect(page.getByRole('spinbutton', { name: '开始毫秒', exact: true })).toHaveValue('500')
   await audio.evaluate((element) => {
     ;(element as HTMLAudioElement).currentTime = 1.5
   })
-  await page.getByRole('button', { name: '记录本句结束' }).first().click()
-  await expect(page.getByRole('spinbutton', { name: '结束毫秒 1', exact: true })).toHaveValue(
-    '1500'
-  )
+  await page.getByRole('spinbutton', { name: '结束毫秒', exact: true }).fill('1500')
+  await expect(page.getByRole('spinbutton', { name: '结束毫秒', exact: true })).toHaveValue('1500')
   await page.getByRole('button', { name: '播放整段音频', exact: true }).click()
   await expect(page.getByRole('button', { name: '暂停整段音频', exact: true })).toBeVisible()
   await page.getByRole('button', { name: '暂停整段音频', exact: true }).click()
@@ -85,67 +84,6 @@ test('绑定后立即装载整段音频，采集当前起止并保持暂停位�
       ]
     }
   })
-  expect(adminApi.unexpectedRequests).toEqual([])
-})
-
-test('OCR显示位置低可信和四部分建议，确认分组后才填入候选', async ({
-  page,
-  adminApi
-}, testInfo) => {
-  await page.route('**/api/v1/admin/content/revisions/REV-DRAFT-1/ocr-suggestions/JOB-1', (route) =>
-    route.fulfill({
-      json: {
-        template_type: 'dialogue',
-        low_confidence_threshold: 0.85,
-        lines: [
-          {
-            id: 0,
-            text: 'Coffee time',
-            location: { top: 20, left: 10 },
-            confidence: 0.7,
-            low_confidence: true,
-            paragraph: { paragraph_id: 1 }
-          }
-        ],
-        groups: [
-          { field: 'title', label: '标题', line_ids: [0], reason: '固定标签上方首行' },
-          { field: 'dialogue', label: '说话者／对话', line_ids: [], reason: '人工复核' },
-          { field: 'vocabulary', label: '重点词汇', line_ids: [], reason: '人工复核' },
-          { field: 'chunks', label: 'Useful Chunks', line_ids: [], reason: '人工复核' }
-        ],
-        unassigned_line_ids: []
-      }
-    })
-  )
-  await loginAsAdmin(page)
-  await navigateInApp(page, '/content/scenes/SCENE-1/edit?stage=ocr&ocrJob=JOB-1')
-  await expect(page.getByText(/本次识别将消耗 1 次/)).toBeVisible()
-  await page.getByRole('button', { name: '刷新识别状态' }).click()
-  await expect(page.getByText('低可信／需复核', { exact: true })).toBeVisible()
-  await expect(page.getByText(/位置：.*top.*20/)).toBeVisible()
-  await expect(page.getByText(/段落：.*paragraph_id.*1/)).toBeVisible()
-  await expect(page.getByLabel('候选英文标题', { exact: true })).toHaveValue('')
-  await page.getByRole('button', { name: '确认分组并加入候选', exact: true }).first().click()
-  await expect(page.getByLabel('候选英文标题', { exact: true })).toHaveValue('Coffee time')
-  await page.getByRole('tab', { name: '内容校对', exact: true }).click()
-  await expect(page.getByRole('textbox', { name: '英文标题', exact: true })).toHaveValue(
-    'Ordering coffee'
-  )
-  await page.getByRole('tab', { name: 'OCR候选', exact: true }).click()
-  await expect(page.getByLabel('候选英文标题', { exact: true })).toHaveValue('Coffee time')
-  for (const size of [
-    { width: 1440, height: 900 },
-    { width: 1280, height: 800 }
-  ]) {
-    await page.setViewportSize(size)
-    await expect
-      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
-      .toBe(true)
-    await page
-      .locator('.ocr-comparison')
-      .screenshot({ path: testInfo.outputPath(`ocr-${size.width}.png`) })
-  }
-  expect(adminApi.findRequest('POST', '/api/v1/admin/media/ocr/jobs')).toBeUndefined()
   expect(adminApi.unexpectedRequests).toEqual([])
 })
 
@@ -257,45 +195,6 @@ test('词卡预览展示当前固定版本的来源原句且发音可空', async
     adminApi.findRequest('POST', '/api/v1/admin/content/revisions/REV-DRAFT-1/commands/publish')
   ).toBeUndefined()
   expect(adminApi.unexpectedRequests).toEqual([])
-})
-
-test('OCR保留不同位置的重复对话，复用旧句子编号且重复点击同一行不重复添加', async ({ page }) => {
-  await page.route('**/api/v1/admin/content/revisions/REV-DRAFT-1/ocr-suggestions/JOB-1', (route) =>
-    route.fulfill({
-      json: {
-        template_type: 'dialogue',
-        low_confidence_threshold: 0.85,
-        lines: [0, 1].map((id) => ({
-          id,
-          text: 'What would you like?',
-          location: { top: id * 30, left: 10 },
-          confidence: 0.99,
-          low_confidence: false,
-          paragraph: {}
-        })),
-        groups: [
-          { field: 'dialogue', label: '说话者／对话', line_ids: [0, 1], reason: '不同物理行' }
-        ],
-        unassigned_line_ids: []
-      }
-    })
-  )
-  await loginAsAdmin(page)
-  await navigateInApp(page, '/content/scenes/SCENE-1/edit?stage=ocr&ocrJob=JOB-1')
-  await page.getByRole('button', { name: '刷新识别状态' }).click()
-  await page.getByRole('button', { name: '确认分组并加入候选', exact: true }).click()
-  const candidate = page.locator('.comparison-grid').locator(':scope > div').nth(1)
-  await expect(candidate.getByRole('textbox', { name: /英文句子/ })).toHaveCount(2)
-  await expect(candidate.getByText('SENTENCE-1', { exact: true })).toBeVisible()
-  await page.locator('.ocr-line').first().getByRole('button', { name: '分配候选字段' }).hover()
-  await page.getByRole('menuitem', { name: '对话句子', exact: true }).click()
-  await expect(candidate.getByRole('textbox', { name: /英文句子/ })).toHaveCount(2)
-  await candidate.getByRole('button', { name: '删除句子', exact: true }).first().click()
-  await expect(candidate.getByRole('textbox', { name: /英文句子/ })).toHaveCount(1)
-  await page.locator('.ocr-line').first().getByRole('button', { name: '分配候选字段' }).hover()
-  await page.getByRole('menuitem', { name: '对话句子', exact: true }).click()
-  await expect(candidate.getByRole('textbox', { name: /英文句子/ })).toHaveCount(2)
-  await expect(candidate.getByText('SENTENCE-1', { exact: true })).toBeVisible()
 })
 
 test('新词条首次登记后保留发音列表，人工确认才绑定且处理期间禁止保存草稿', async ({ page }) => {

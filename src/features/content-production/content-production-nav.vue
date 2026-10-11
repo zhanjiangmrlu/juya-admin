@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { ElScrollbar } from 'element-plus'
+import { computed } from 'vue'
 
 import type { ProductionStage } from './content-production-model'
 
 import { PRODUCTION_STAGES } from './content-production-model'
 
-const props = defineProps<{ active: ProductionStage; busy?: boolean }>()
+const props = defineProps<{ active: ProductionStage; busy?: boolean; hideAudio?: boolean }>()
+const stages = computed(() =>
+  PRODUCTION_STAGES.filter((item) => !props.hideAudio || item.stage !== 'audio')
+)
 const emit = defineEmits<{ select: [stage: ProductionStage] }>()
 
 /**
@@ -15,7 +19,7 @@ const emit = defineEmits<{ select: [stage: ProductionStage] }>()
  */
 function move(event: globalThis.KeyboardEvent, index: number): void {
   if (props.busy) return
-  const count = PRODUCTION_STAGES.length
+  const count = stages.value.length
   let next: number
   if (event.key === 'ArrowRight') next = (index + 1) % count
   else if (event.key === 'ArrowLeft') next = (index + count - 1) % count
@@ -27,7 +31,7 @@ function move(event: globalThis.KeyboardEvent, index: number): void {
   const target =
     current.parentElement?.querySelectorAll<globalThis.HTMLButtonElement>('[role="tab"]')[next]
   target?.focus()
-  emit('select', PRODUCTION_STAGES[next]!.stage)
+  emit('select', stages.value[next]!.stage)
 }
 </script>
 
@@ -36,7 +40,7 @@ function move(event: globalThis.KeyboardEvent, index: number): void {
     <ElScrollbar>
       <div class="production-tabs" role="tablist" aria-label="内容生产步骤">
         <button
-          v-for="(item, index) in PRODUCTION_STAGES"
+          v-for="(item, index) in stages"
           :key="item.stage"
           class="production-tab"
           :class="{ active: active === item.stage }"

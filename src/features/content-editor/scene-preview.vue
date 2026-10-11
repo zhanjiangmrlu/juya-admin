@@ -38,6 +38,7 @@ async function loadResources(): Promise<void> {
     content.value.original_image_asset_id,
     content.value.cover_asset_id,
     content.value.audio?.asset_id,
+    ...content.value.dialogue.map((row) => row.slice_version),
     ...content.value.vocabulary.flatMap((entry) => [entry.icon_asset_id, entry.audio_version_id]),
     ...content.value.chunks.flatMap((entry) => [entry.icon_asset_id, entry.audio_version_id])
   ].filter((id): id is string => Boolean(id))
@@ -54,25 +55,26 @@ async function loadResources(): Promise<void> {
   if (results.some((result) => result.status === 'rejected'))
     resourceError.value = '部分资源暂不可预览，请保存草稿后刷新预览'
 }
-/** 播放同一音频中的句子片段。
- * @param row - 对话行
- */
-async function playRow(row: DialogueRow): Promise<void> {
-  const audio = content.value.audio
-  if (
-    !audio ||
-    !urls.value[audio.asset_id] ||
-    row.start_ms === null ||
-    row.end_ms === null ||
-    row.audio_version_id !== audio.version_id
-  )
-    return
-  try {
-    await player.value?.play(row.id, urls.value[audio.asset_id]!, row.start_ms, row.end_ms)
-  } catch {
-    ElMessage.warning('音频播放失败，请刷新签名后重试')
+const /** 播放已经人工确认的独立句子文件
+   * @param row - 对话行
+   */
+  playRow = async (row: DialogueRow): Promise<void> => {
+    const audio = content.value.audio
+    if (
+      !audio ||
+      !row.slice_target_id ||
+      !row.slice_version ||
+      !urls.value[row.slice_version] ||
+      !row.timing_confirmed ||
+      row.audio_version_id !== audio.version_id
+    )
+      return
+    try {
+      await player.value?.play(row.id, urls.value[row.slice_version]!)
+    } catch {
+      ElMessage.warning('音频播放失败，请刷新签名后重试')
+    }
   }
-}
 /** 播放整段音频。 */
 async function playAll(): Promise<void> {
   const audio = content.value.audio
@@ -213,7 +215,14 @@ onBeforeUnmount(() => {
           <p v-if="content.audio" aria-live="polite">
             {{ player?.statusText.value }} {{ player?.error.value }}
           </p>
-          <p v-else role="status">尚未绑定整段音频，请在音频标时步骤上传并绑定该场景的录音</p>
+          <p
+            v-else-if="
+              content.template_type !== 'word_card' && content.template_type !== 'vocabulary'
+            "
+            role="status"
+          >
+            尚未绑定整段音频，请在音频切片步骤上传并绑定该场景的录音
+          </p>
           <ElButton v-if="player?.status.value === 'error'" @click="loadResources"
             >刷新音频后重试</ElButton
           >
@@ -243,6 +252,9 @@ onBeforeUnmount(() => {
             <ElButton
               :disabled="
                 !content.audio ||
+                !row.slice_target_id ||
+                !row.slice_version ||
+                !urls[row.slice_version] ||
                 row.audio_version_id !== content.audio.version_id ||
                 !row.timing_confirmed
               "

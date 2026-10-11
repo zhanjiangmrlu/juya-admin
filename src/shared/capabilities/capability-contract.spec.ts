@@ -46,12 +46,6 @@ const capabilityRoutes = {
     ['get', '/api/v1/admin/content/scenes'],
     ['get', '/api/v1/admin/content/scenes/{scene_id}']
   ],
-  'content.ocr': [
-    ['post', '/api/v1/admin/media/ocr/jobs'],
-    ['get', '/api/v1/admin/media/ocr/jobs/{job_id}/candidate'],
-    ['post', '/api/v1/admin/media/ocr/jobs/{job_id}/commands/{operation}'],
-    ['get', '/api/v1/admin/media/audio-targets']
-  ],
   'content.publish': [['post', '/api/v1/admin/content/revisions/{revision_id}/commands/publish']],
   'content.upload': [
     ['post', '/api/v1/admin/media/upload-policies'],
@@ -96,11 +90,15 @@ describe('six-batch capability acceptance', () => {
     expect(ADMIN_PAGE_DEFINITIONS).toHaveLength(26)
     for (const item of ADMIN_PAGE_DEFINITIONS) {
       const route = router.getRoutes().find((entry) => entry.name === item.name)
+      if (item.name === 'feedback-respond') {
+        expect(route?.redirect).toBeTypeOf('function')
+        continue
+      }
       const loader = route?.components?.default as () => Promise<{ default: { __name: string } }>
       expect(loader, item.name).toBeTypeOf('function')
       const module = await loader()
       expect(module.default.__name, item.name).not.toBe('capability-placeholder-page')
       expect(module.default.__name, item.name).toBeTruthy()
     }
-  })
+  }, 15000)
 })

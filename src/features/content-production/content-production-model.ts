@@ -1,12 +1,11 @@
-export type ProductionStage = 'list' | 'draft' | 'ocr' | 'proofread' | 'audio' | 'publish'
+export type ProductionStage = 'list' | 'draft' | 'proofread' | 'audio' | 'publish'
 export type EditorStage = Exclude<ProductionStage, 'list' | 'publish'>
 
 export const PRODUCTION_STAGES: readonly { stage: ProductionStage; label: string }[] = [
   { stage: 'list', label: '内容列表' },
   { stage: 'draft', label: '场景草稿' },
-  { stage: 'ocr', label: 'OCR候选' },
   { stage: 'proofread', label: '内容校对' },
-  { stage: 'audio', label: '音频标时' },
+  { stage: 'audio', label: '音频切片' },
   { stage: 'publish', label: '预览发布' }
 ]
 
@@ -16,5 +15,5 @@ export const PRODUCTION_STAGES: readonly { stage: ProductionStage; label: string
  * @returns 当前编辑步骤
  */
 export function parseEditorStage(value: unknown): EditorStage {
-  return value === 'draft' || value === 'ocr' || value === 'audio' ? value : 'proofread'
+  return value === 'draft' || value === 'audio' ? value : 'proofread'
 }

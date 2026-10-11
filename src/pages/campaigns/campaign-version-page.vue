@@ -29,7 +29,13 @@ const editor = useCampaignEditor(
     })
   )
 )
-const capacity = ref<number | undefined>()
+const capacity = ref<number | null | undefined>()
+const capacityLimited = computed({
+  get: () => capacity.value !== null,
+  set: (limited: boolean) => {
+    capacity.value = limited ? Math.max(1, current.value?.grantedUserCount ?? 1) : null
+  }
+})
 const confirmVisible = ref(false)
 const current = computed(() => editor.server.value?.currentVersion)
 const canChangeCapacity = computed(
@@ -117,7 +123,9 @@ async function confirm(): Promise<void> {
               current.sceneIds.join(' → ') || '未配置'
             }}</span></ElDescriptionsItem
           >
-          <ElDescriptionsItem label="容量上限">{{ current.capacity }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="容量上限">{{
+            current.capacity ?? '不限人数'
+          }}</ElDescriptionsItem>
           <ElDescriptionsItem label="已开通人数">{{ current.grantedUserCount }}</ElDescriptionsItem>
           <ElDescriptionsItem label="开通时间"
             >{{ current.grantStartsAt ?? '—' }} 至
@@ -131,14 +139,22 @@ async function confirm(): Promise<void> {
           <p class="panel-subtitle">容量不能低于服务端已开通人数</p></template
         >
         <ElDescriptions v-if="current" :column="1" class="summary">
-          <ElDescriptionsItem label="当前容量">{{ current.capacity }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="当前容量">{{
+            current.capacity ?? '不限人数'
+          }}</ElDescriptionsItem>
           <ElDescriptionsItem label="已开通人数">{{ current.grantedUserCount }}</ElDescriptionsItem>
           <ElDescriptionsItem label="服务端版本"
             >v{{ editor.server.value?.version }}</ElDescriptionsItem
           >
         </ElDescriptions>
         <ElForm label-position="top"
-          ><ElFormItem label="新容量" class="capacity"
+          ><ElFormItem label="限制人数"
+            ><ElSwitch
+              v-model="capacityLimited"
+              :disabled="!current || !canChangeCapacity"
+              active-text="限制人数"
+              inactive-text="不限人数" /></ElFormItem
+          ><ElFormItem v-if="capacityLimited" label="新容量" class="capacity"
             ><ElInputNumber
               :key="String(canChangeCapacity)"
               v-model="capacity"
@@ -176,8 +192,8 @@ async function confirm(): Promise<void> {
     <ConfirmDialog
       v-if="current && editor.server.value"
       v-model="confirmVisible"
-      :before-status="`容量 ${current.capacity}`"
-      :after-status="`容量 ${capacity ?? current.capacity}`"
+      :before-status="`容量 ${current.capacity ?? '不限人数'}`"
+      :after-status="`容量 ${capacity === null ? '不限人数' : capacity}`"
       :impact-scope="`已开通 ${current.grantedUserCount} 人；新容量将作用于当前版本`"
       :object-id="current.id"
       :reason-required="false"

@@ -3,7 +3,6 @@ import type { components } from '@/shared/contracts/generated/admin-api'
 
 type PageDto = components['schemas']['CampaignPageResponse']
 type DetailDto = components['schemas']['CampaignResponse']
-type SaveDto = components['schemas']['CampaignSaveRequest']
 
 export interface CampaignRow {
   id: string
@@ -23,7 +22,7 @@ export interface CampaignVersion {
   status: string
   durationDays: number
   activationWindowDays: number
-  capacity: number
+  capacity: number | null
   grantedUserCount: number
   grantStartsAt: string | null
   grantEndsAt: string | null
@@ -51,7 +50,7 @@ export interface CampaignDraft {
   name: string
   durationDays: 3 | 5
   activationWindowDays: number
-  capacity: number
+  capacity: number | null
   sceneIds: string[]
 }
 export type CampaignOperation = 'open' | 'pause' | 'resume' | 'end' | 'archive' | 'capacity'
@@ -71,7 +70,7 @@ export interface CampaignAdapter {
     operation: CampaignOperation,
     expectedVersion: number,
     key: string,
-    capacity?: number
+    capacity?: number | null
   ): Promise<CampaignDetail>
 }
 
@@ -149,7 +148,7 @@ export function createCampaignAdapter(client: ApiClient): CampaignAdapter {
       )
     },
     async save(id, draft, expectedVersion, key) {
-      const body: SaveDto = {
+      const body = {
         name: draft.name,
         duration_days: draft.durationDays,
         activation_window_days: draft.activationWindowDays,

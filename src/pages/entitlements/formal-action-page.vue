@@ -6,8 +6,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
-import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
+import EntitlementPreviewDialog from '@/features/entitlements/entitlement-preview-dialog.vue'
 import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
 import { createFormalEntitlementAdapter } from '@/features/entitlements/formal-entitlement-adapter'
 import {
@@ -18,6 +18,7 @@ import {
 import { useFormalEntitlementCommand } from '@/features/entitlements/use-formal-entitlement-command'
 import { createApiClient } from '@/services/api/api-client'
 import { ApiError } from '@/shared/errors/api-error'
+import { formatDateTime } from '@/shared/utils/date-time'
 
 import type { FormalDetail } from '@/features/entitlements/entitlement-query-adapter'
 import type {
@@ -55,47 +56,54 @@ const form = reactive({
   term: 'month_3' as FormalEntitlementTerm
 })
 const confirmVisible = ref(false)
+const confirmationReason = ref('')
+const statusLabels: Record<string, string> = {
+  ACTIVE: '有效',
+  PAUSED: '已暂停',
+  REVOKED: '已撤销',
+  EXPIRED: '已到期'
+}
 const allowedOperations = computed(() =>
   (detail.value?.availableOperations ?? []).filter(
     (value): value is FormalEntitlementOperation => value in FORMAL_OPERATION_LABELS
   )
 )
-/**
- * 加载正式权益详情。
- * @param keepDraft - 是否保留目标操作与期限
- * @returns 加载完成的 Promise
- */
-async function load(keepDraft = false): Promise<void> {
-  const sequence = ++requestSequence
-  const id = entitlementId.value
-  detail.value = null
-  confirmVisible.value = false
-  controller.value = useFormalEntitlementCommand(createFormalEntitlementAdapter(client))
-  if (!keepDraft) {
-    commandError.value = null
-    commandApiError.value = null
-    hadConflict.value = false
-  }
-  state.value = 'loading'
-  error.value = ''
-  apiError.value = null
-  try {
-    const result = await query.formal(id)
-    if (sequence !== requestSequence || id !== entitlementId.value) return
-    if (result.id !== id) throw new Error('权益详情与当前对象不一致')
-    detail.value = result
+const /**
+   * 加载正式权益详情。
+   * @param keepDraft - 是否保留目标操作与期限
+   * @returns 加载完成的 Promise
+   */
+  load = async (keepDraft = false): Promise<void> => {
+    const sequence = ++requestSequence
+    const id = entitlementId.value
+    detail.value = null
+    confirmVisible.value = false
+    controller.value = useFormalEntitlementCommand(createFormalEntitlementAdapter(client))
     if (!keepDraft) {
-      form.operation = allowedOperations.value[0] ?? 'RENEW'
-      form.term = FORMAL_TERMS.find((value) => value === detail.value?.term) ?? 'month_3'
+      commandError.value = null
+      commandApiError.value = null
+      hadConflict.value = false
     }
-    state.value = 'ready'
-  } catch (failure) {
-    if (sequence !== requestSequence || id !== entitlementId.value) return
-    apiError.value = failure instanceof ApiError ? failure : null
-    state.value = 'error'
-    error.value = '正式权益详情加载失败，请重试'
+    state.value = 'loading'
+    error.value = ''
+    apiError.value = null
+    try {
+      const result = await query.formal(id)
+      if (sequence !== requestSequence || id !== entitlementId.value) return
+      if (result.id !== id) throw new Error('权益详情与当前对象不一致')
+      detail.value = result
+      if (!keepDraft) {
+        form.operation = allowedOperations.value[0] ?? 'RENEW'
+        form.term = FORMAL_TERMS.find((value) => value === detail.value?.term) ?? 'month_3'
+      }
+      state.value = 'ready'
+    } catch (failure) {
+      if (sequence !== requestSequence || id !== entitlementId.value) return
+      apiError.value = failure instanceof ApiError ? failure : null
+      state.value = 'error'
+      error.value = '正式权益详情加载失败，请重试'
+    }
   }
-}
 watch(
   [form, detail],
   () => {
@@ -116,57 +124,59 @@ watch(
   },
   { immediate: true }
 )
-/**
- * 获取正式权益服务端预览。
- * @returns 服务端预览完成后的 Promise
- */
-async function preview(): Promise<void> {
-  if (
-    state.value !== 'ready' ||
-    detail.value?.id !== entitlementId.value ||
-    !allowedOperations.value.includes(form.operation)
-  )
-    return
-  const sequence = requestSequence
-  commandError.value = null
-  commandApiError.value = null
-  hadConflict.value = false
-  try {
-    await controller.value.preview()
-    if (sequence !== requestSequence) return
-    confirmVisible.value = true
-  } catch {
-    /* 控制器显示错误 */
+const /**
+   * 获取正式权益服务端预览。
+   * @returns 服务端预览完成后的 Promise
+   */
+  preview = async (): Promise<void> => {
+    if (
+      state.value !== 'ready' ||
+      detail.value?.id !== entitlementId.value ||
+      !allowedOperations.value.includes(form.operation)
+    )
+      return
+    const sequence = requestSequence
+    commandError.value = null
+    commandApiError.value = null
+    hadConflict.value = false
+    try {
+      await controller.value.preview()
+      if (sequence !== requestSequence) return
+      confirmVisible.value = true
+    } catch {
+      /* 控制器显示错误 */
+    }
   }
-}
-/**
- * 确认正式权益命令。
- * @param reason - 审计原因
- * @returns 命令完成后的 Promise
- */
-async function confirm(reason: string): Promise<void> {
-  if (
-    state.value !== 'ready' ||
-    detail.value?.id !== entitlementId.value ||
-    !allowedOperations.value.includes(form.operation)
-  )
-    return
-  const sequence = requestSequence
-  try {
-    await controller.value.submit(reason)
-    if (sequence !== requestSequence) return
-    confirmVisible.value = false
-    ElMessage.success('正式权益状态已更新')
-    await load()
-  } catch {
-    if (sequence !== requestSequence) return
-    confirmVisible.value = false
-    hadConflict.value = controller.value.hasConflict.value
-    commandError.value = controller.value.errorMessage.value
-    commandApiError.value = controller.value.apiError.value
-    if (hadConflict.value) await load(true)
+const /**
+   * 确认正式权益命令。
+   * @param reason - 审计原因
+   * @returns 命令完成后的 Promise
+   */
+  confirm = async (reason: string): Promise<void> => {
+    if (
+      state.value !== 'ready' ||
+      detail.value?.id !== entitlementId.value ||
+      !allowedOperations.value.includes(form.operation)
+    )
+      return
+    const sequence = requestSequence
+    try {
+      await controller.value.submit(reason)
+      if (sequence !== requestSequence) return
+      confirmVisible.value = false
+      ElMessage.success('正式权益状态已更新')
+      await load()
+    } catch {
+      if (sequence !== requestSequence) return
+      hadConflict.value = controller.value.hasConflict.value
+      commandError.value = controller.value.errorMessage.value
+      commandApiError.value = controller.value.apiError.value
+      if (hadConflict.value) {
+        confirmVisible.value = false
+        await load(true)
+      }
+    }
   }
-}
 </script>
 
 <template>
@@ -184,11 +194,17 @@ async function confirm(reason: string): Promise<void> {
           ><span>v{{ detail.version }}</span>
         </p>
         <ElDescriptions :column="1" direction="vertical" class="detail-fields"
-          ><ElDescriptionsItem label="当前状态">{{ detail.status }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="当前期限">{{ detail.term }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="生效时间">{{ detail.grantedAt }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="当前状态">{{
+            statusLabels[detail.status] || detail.status
+          }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="当前期限">{{
+            FORMAL_TERM_LABELS[detail.term as FormalEntitlementTerm] || detail.term
+          }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="生效时间">{{
+            formatDateTime(detail.grantedAt)
+          }}</ElDescriptionsItem
           ><ElDescriptionsItem label="到期时间">{{
-            detail.expiresAt ?? '永久有效'
+            formatDateTime(detail.expiresAt, '无到期日期')
           }}</ElDescriptionsItem></ElDescriptions
         ></AdminPanel
       >
@@ -240,10 +256,11 @@ async function confirm(reason: string): Promise<void> {
           >
           <ElDescriptions v-if="controller.previewResult.value" :column="2" border
             ><ElDescriptionsItem label="目标状态">{{
+              statusLabels[controller.previewResult.value.status] ||
               controller.previewResult.value.status
             }}</ElDescriptionsItem
             ><ElDescriptionsItem label="操作后到期时间">{{
-              controller.previewResult.value.expiresAt ?? '永久有效'
+              formatDateTime(controller.previewResult.value.expiresAt, '无到期日期')
             }}</ElDescriptionsItem></ElDescriptions
           >
           <div class="check-items">
@@ -272,14 +289,24 @@ async function confirm(reason: string): Promise<void> {
       <strong>管理提醒</strong>
       <p>时间档位仅支持 1、2、3、6、12 个月或永久。</p>
     </aside>
-    <ConfirmDialog
+    <EntitlementPreviewDialog
       v-if="detail && controller.previewResult.value"
       v-model="confirmVisible"
-      :before-status="detail.status"
-      :after-status="controller.previewResult.value.status"
-      :impact-scope="`${FORMAL_OPERATION_LABELS[form.operation]}正式权益，影响用户 ${detail.userId} 的内容包 ${detail.packageId}`"
+      v-model:reason="confirmationReason"
+      :before="controller.previewResult.value.before"
+      :after="controller.previewResult.value"
+      :actual-operation="controller.previewResult.value.actualOperation"
+      :expected-version="controller.previewResult.value.expectedVersion"
+      :user-label="`用户 ${detail.userId}`"
+      :user-id="detail.userId"
+      :content-label="detail.packageName"
+      :reason-required="
+        !['GRANT', 'RENEW', 'CONVERT_PERMANENT', 'REGRANT'].includes(
+          controller.previewResult.value.actualOperation
+        )
+      "
+      :error="controller.errorMessage.value"
       :object-id="entitlementId"
-      title="确认正式权益状态操作"
       :submitting="controller.commandState.value === 'submitting'"
       @confirm="confirm"
     />

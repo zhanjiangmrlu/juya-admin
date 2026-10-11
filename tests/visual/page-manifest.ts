@@ -74,20 +74,20 @@ export const pageManifest: readonly AdminPageManifestItem[] = [
   {
     id: 'A16',
     path: '/feedback/FB-1/respond',
-    title: '反馈回复与关闭',
+    title: '问题反馈详情',
     viewports: ACCEPTANCE_VIEWPORTS
   },
   { id: 'A17', path: '/content/scenes', title: '内容列表', viewports: ACCEPTANCE_VIEWPORTS },
   {
     id: 'A18',
     path: '/content/import',
-    title: '批量上传与 OCR',
+    title: '统一内容导入',
     viewports: ACCEPTANCE_VIEWPORTS
   },
   {
     id: 'A19',
     path: '/content/ocr/JOB-1/ITEM-1',
-    title: 'OCR候选对照',
+    title: 'OCR 功能已取消',
     viewports: ACCEPTANCE_VIEWPORTS
   },
   {

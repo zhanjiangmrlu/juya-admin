@@ -11,7 +11,7 @@ import {
   Tickets,
   User
 } from '@element-plus/icons-vue'
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { ADMIN_NAVIGATION_GROUPS } from '@/app/admin-navigation'
@@ -37,7 +37,17 @@ const navigationIconMap = {
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const isCollapsed = ref(false)
+const isCollapsed = ref(globalThis.innerWidth < 768)
+const narrowViewport = globalThis.matchMedia?.('(max-width: 767px)')
+const /**
+   * 窄窗口自动折叠导航并保留手动切换入口
+   * @param event - 当前窗口的窄屏匹配状态
+   * @param event.matches - 是否进入窄屏布局
+   */ adaptNavigation = (event: { matches: boolean }): void => {
+    isCollapsed.value = event.matches
+  }
+onMounted(() => narrowViewport?.addEventListener('change', adaptNavigation))
+onBeforeUnmount(() => narrowViewport?.removeEventListener('change', adaptNavigation))
 const navigationPages = ADMIN_NAVIGATION_GROUPS.flatMap((item) => item.pages)
 const activePageNumber = computed(() => {
   const currentPageNumber = String(route.meta.pageNumber ?? '')
@@ -52,7 +62,7 @@ const pageTitle = computed(() => {
   return ADMIN_DESIGN_TITLES[String(route.meta.pageNumber)] ?? route.meta.title
 })
 const pageDescription = computed(
-  () => ADMIN_DESIGN_DESCRIPTIONS[String(route.meta.pageNumber)] ?? '句芽英语 V1.3 · 单管理员后台'
+  () => ADMIN_DESIGN_DESCRIPTIONS[String(route.meta.pageNumber)] ?? '句芽英语 V1.5 · 单管理员后台'
 )
 
 /**
@@ -115,8 +125,10 @@ async function logout(): Promise<void> {
         wrap-class="menu-scrollbar-wrap"
       >
         <ElMenu
+          :key="isCollapsed ? 'collapsed-navigation' : 'expanded-navigation'"
           class="menu"
           :collapse="isCollapsed"
+          :collapse-transition="false"
           :default-active="activePageNumber"
           :default-openeds="defaultOpenGroups"
           @select="navigateToPage"
@@ -456,6 +468,39 @@ async function logout(): Promise<void> {
 
     .title {
       font-size: 24px;
+    }
+  }
+}
+
+@media (width <= 767px) {
+  .admin-layout {
+    .header {
+      padding-inline: 16px;
+      gap: 12px;
+      align-items: flex-start;
+      padding-top: 14px;
+    }
+
+    .title {
+      font-size: 20px;
+      line-height: 1.4;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .admin-badge {
+      width: 80px;
+    }
+
+    .main {
+      padding-inline: 0;
+    }
+
+    :deep(.page-scrollbar-view) {
+      padding: 16px;
     }
   }
 }

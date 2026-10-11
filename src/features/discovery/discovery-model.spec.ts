@@ -7,8 +7,11 @@ import {
 } from './discovery-model'
 
 describe('discovery configuration', () => {
-  it('only enables scene learning and requires exactly three open scenes', () => {
-    expect(validateLearningModules([{ enabled: true, type: 'grammar' }]).valid).toBe(false)
+  it('allows all four modules and the all-disabled state, rejects unknown types', () => {
+    expect(validateLearningModules([{ enabled: true, type: 'grammar' }]).valid).toBe(true)
+    expect(validateLearningModules([{ enabled: true, type: 'short_reading' }]).valid).toBe(true)
+    expect(validateLearningModules([{ enabled: true, type: 'unknown' }]).valid).toBe(false)
+    expect(validateLearningModules([{ enabled: false, type: 'grammar' }]).valid).toBe(true)
     expect(validateOpenScenes(['scene-1', 'scene-2']).valid).toBe(false)
   })
 

@@ -7,15 +7,11 @@ import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
-import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
+import EntitlementPreviewDialog from '@/features/entitlements/entitlement-preview-dialog.vue'
 import { createEntitlementQueryAdapter } from '@/features/entitlements/entitlement-query-adapter'
 import { createFormalEntitlementAdapter } from '@/features/entitlements/formal-entitlement-adapter'
-import {
-  FORMAL_OPERATION_LABELS,
-  FORMAL_TERM_LABELS,
-  FORMAL_TERMS
-} from '@/features/entitlements/formal-entitlement-model'
+import { FORMAL_TERM_LABELS, FORMAL_TERMS } from '@/features/entitlements/formal-entitlement-model'
 import { useFormalEntitlementCommand } from '@/features/entitlements/use-formal-entitlement-command'
 import { createApiClient } from '@/services/api/api-client'
 import { ApiError } from '@/shared/errors/api-error'
@@ -40,6 +36,7 @@ const form = reactive<GrantForm>({
   userId: ''
 })
 const isConfirmVisible = ref(false)
+const confirmationReason = ref('')
 const conflictMessage = ref<string | null>(null)
 const conflictError = shallowRef<ApiError | null>(null)
 const packageError = shallowRef<ApiError | null>(null)
@@ -123,30 +120,25 @@ async function handlePreview(): Promise<void> {
   }
 }
 
-/**
- * 使用管理员填写的审计原因提交正式权益命令
- *
- * @param reason - 二次确认弹窗中的必填原因
- * @returns 命令提交完成后的 Promise
- */
-async function handleConfirm(reason: string): Promise<void> {
-  try {
-    await controller.submit(reason)
-    isConfirmVisible.value = false
-    ElMessage.success('正式权益操作已完成')
-  } catch {
-    isConfirmVisible.value = false
-    if (controller.hasConflict.value) {
-      conflictMessage.value = controller.errorMessage.value
-      conflictError.value = controller.apiError.value
-      try {
-        projectedVersion.value = (await controller.refreshPreview()).version
-      } catch {
-        // Keep the original draft and conflict message if refresh also fails.
+const /**
+   * 使用管理员填写的审计原因提交正式权益命令
+   *
+   * @param reason - 二次确认弹窗中的必填原因
+   * @returns 命令提交完成后的 Promise
+   */
+  handleConfirm = async (reason: string): Promise<void> => {
+    try {
+      await controller.submit(reason)
+      isConfirmVisible.value = false
+      ElMessage.success('正式权益操作已完成')
+    } catch {
+      if (controller.hasConflict.value) {
+        isConfirmVisible.value = false
+        conflictMessage.value = controller.errorMessage.value
+        conflictError.value = controller.apiError.value
       }
     }
   }
-}
 
 /**
  * 格式化服务端返回的时间，不执行任何到期时间计算
@@ -248,7 +240,14 @@ function formatServerTime(value: string | null): string {
         >
 
         <div v-if="controller.previewResult.value" class="preview">
-          <div><span>当前期限</span><strong>由服务端当前状态校验</strong></div>
+          <div>
+            <span>当前期限</span
+            ><strong>{{
+              controller.previewResult.value.before
+                ? FORMAL_TERM_LABELS[controller.previewResult.value.before.term]
+                : '未开通'
+            }}</strong>
+          </div>
           <div>
             <span>生效时间</span
             ><strong>{{ formatServerTime(controller.previewResult.value.grantedAt) }}</strong>
@@ -299,14 +298,24 @@ function formatServerTime(value: string | null): string {
         </div>
       </div>
     </ElForm>
-    <ConfirmDialog
+    <EntitlementPreviewDialog
       v-if="controller.previewResult.value"
       v-model="isConfirmVisible"
-      :after-status="controller.previewResult.value.status"
-      before-status="由服务端当前状态校验"
-      :impact-scope="`${FORMAL_OPERATION_LABELS[form.operation]}内容包 ${form.packageId}`"
+      v-model:reason="confirmationReason"
+      :before="controller.previewResult.value.before"
+      :after="controller.previewResult.value"
+      :actual-operation="controller.previewResult.value.actualOperation"
+      :expected-version="controller.previewResult.value.expectedVersion"
+      :user-label="`用户 ${form.userId}`"
+      :user-id="form.userId"
+      :content-label="packages.find((item) => item.id === form.packageId)?.name || form.packageId"
+      :reason-required="
+        !['GRANT', 'RENEW', 'CONVERT_PERMANENT', 'REGRANT'].includes(
+          controller.previewResult.value.actualOperation
+        )
+      "
+      :error="controller.errorMessage.value"
       :object-id="`${form.userId} · ${form.packageId}`"
-      title="确认正式权益操作"
       :submitting="controller.commandState.value === 'submitting'"
       @confirm="handleConfirm"
     />

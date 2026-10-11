@@ -17,6 +17,7 @@ import { createSceneMediaAdapter } from './scene-media-adapter'
 const props = defineProps<{
   entry: LexiconRow
   entryType: 'vocabulary' | 'chunk'
+  modern?: boolean
   originalImageAssetId?: string | null
 }>()
 const emit = defineEmits<{ update: [entry: LexiconRow]; busy: [value: boolean] }>()
@@ -235,53 +236,59 @@ onBeforeUnmount(() => {
 <template>
   <fieldset :disabled="busy" :inert="busy" class="lexicon-media-fields">
     <ElAlert v-if="error" :closable="false" :title="error" type="error" />
-    <p>图标与独立发音均为可选。替换后保存词库版本及草稿，线上完整版本仍通过检查发布。</p>
-    <ElUpload
-      :auto-upload="false"
-      :show-file-list="false"
-      accept="image/png,image/jpeg,image/webp"
-      @change="chooseIcon"
-      ><ElButton>选择替代图标</ElButton></ElUpload
-    >
-    <ElButton :disabled="!originalImageAssetId" @click="openCrop">从原图准备裁切建议</ElButton>
-    <div v-if="proposedIcon">
-      <img :src="iconPreview" alt="待确认图标" class="icon-preview" />
-      <p>请确认图标语义清晰、裁切范围正确，避免无语义黑块。</p>
-      <ElButton @click="confirmIcon">确认使用图标</ElButton
-      ><ElButton @click="cancelIcon">放弃图标建议</ElButton>
-    </div>
-    <p>当前图标：{{ entry.icon_asset_id || '无' }}</p>
-    <ElButton v-if="entry.icon_asset_id" @click="emit('update', { ...entry, icon_asset_id: null })"
-      >移除图标引用</ElButton
-    >
-    <ElButton :disabled="!entry.english.trim()" @click="loadVersions"
-      >创建／加载独立发音目标</ElButton
-    >
-    <ElUpload
-      :auto-upload="false"
-      :show-file-list="false"
-      :disabled="!entry.english.trim()"
-      accept=".mp3,.m4a,.wav,.aac"
-      @change="uploadAudio"
-      ><ElButton :disabled="!entry.english.trim()">上传可选独立发音</ElButton></ElUpload
-    >
-    <ElSelect v-model="selectedVersion" placeholder="选择候选或历史发音"
-      ><ElOption
-        v-for="version in versions"
-        :key="version.id"
-        :value="version.id"
-        :label="`v${version.versionNo} · ${version.status}`"
-    /></ElSelect>
-    <ElButton :disabled="!selectedVersion" @click="listen"
-      >{{ playback?.label(selectedVersion) ?? '试听' }}发音</ElButton
-    ><ElButton :disabled="!selectedVersion" @click="bindVersion">确认并绑定所选发音</ElButton>
-    <ElButton
-      v-if="entry.audio_version_id || entry.audio_target_id"
-      @click="emit('update', { ...entry, audio_target_id: null, audio_version_id: null })"
-      >移除发音引用</ElButton
-    >
-    <p aria-live="polite">{{ playback?.statusText.value }} {{ playback?.error.value }}</p>
-    <audio ref="audioElement" preload="metadata" />
+    <p>素材选填，替换后保存当前草稿，线上完整版本仍通过检查发布</p>
+    <template v-if="entryType === 'vocabulary'">
+      <ElUpload
+        :auto-upload="false"
+        :show-file-list="false"
+        accept="image/png,image/jpeg,image/webp"
+        @change="chooseIcon"
+        ><ElButton>选择替代图标</ElButton></ElUpload
+      >
+      <ElButton :disabled="!originalImageAssetId" @click="openCrop">从原图准备裁切建议</ElButton>
+      <div v-if="proposedIcon">
+        <img :src="iconPreview" alt="待确认图标" class="icon-preview" />
+        <p>请确认图标语义清晰、裁切范围正确，避免无语义黑块。</p>
+        <ElButton @click="confirmIcon">确认使用图标</ElButton
+        ><ElButton @click="cancelIcon">放弃图标建议</ElButton>
+      </div>
+      <p>当前图标：{{ entry.icon_asset_id || '无' }}</p>
+      <ElButton
+        v-if="entry.icon_asset_id"
+        @click="emit('update', { ...entry, icon_asset_id: null })"
+        >移除图标引用</ElButton
+      >
+    </template>
+    <template v-if="!modern">
+      <ElButton :disabled="!entry.english.trim()" @click="loadVersions"
+        >创建／加载独立发音目标</ElButton
+      >
+      <ElUpload
+        :auto-upload="false"
+        :show-file-list="false"
+        :disabled="!entry.english.trim()"
+        accept=".mp3,.m4a,.wav,.aac"
+        @change="uploadAudio"
+        ><ElButton :disabled="!entry.english.trim()">上传可选独立发音</ElButton></ElUpload
+      >
+      <ElSelect v-model="selectedVersion" placeholder="选择候选或历史发音"
+        ><ElOption
+          v-for="version in versions"
+          :key="version.id"
+          :value="version.id"
+          :label="`v${version.versionNo} · ${version.status}`"
+      /></ElSelect>
+      <ElButton :disabled="!selectedVersion" @click="listen"
+        >{{ playback?.label(selectedVersion) ?? '试听' }}发音</ElButton
+      ><ElButton :disabled="!selectedVersion" @click="bindVersion">确认并绑定所选发音</ElButton>
+      <ElButton
+        v-if="entry.audio_version_id || entry.audio_target_id"
+        @click="emit('update', { ...entry, audio_target_id: null, audio_version_id: null })"
+        >移除发音引用</ElButton
+      >
+      <p aria-live="polite">{{ playback?.statusText.value }} {{ playback?.error.value }}</p>
+      <audio ref="audioElement" preload="metadata" />
+    </template>
   </fieldset>
   <ElDialog v-model="cropOpened" title="人工核对图标裁切建议" width="min(640px, 90vw)"
     ><p>中心方形仅为初始建议，请修改像素范围并预览；不会自动识别图标。</p>

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createLexiconRow, normalizeSceneContent } from '@/features/content-editor/scene-form'
+import { createLexiconRow } from '@/features/content-editor/scene-form'
 
 import { createContentAdapter } from './content-adapter'
 
@@ -32,25 +32,6 @@ describe('content adapter', () => {
     expect(request.mock.calls[4]?.[0].idempotencyKey).not.toBe(
       request.mock.calls[5]?.[0].idempotencyKey
     )
-  })
-  it('adopts only selected OCR fields into the current draft with its version', async () => {
-    const request = vi.fn().mockResolvedValue({ ...revision, version: 4 })
-    const content = normalizeSceneContent({})
-    content.title_en = 'OCR title'
-    const result = await createContentAdapter({ request }).adoptOcr(
-      'draft-1',
-      'job-1',
-      3,
-      ['title_en'],
-      content
-    )
-    expect(result.id).toBe('draft-1')
-    expect(result.version).toBe(4)
-    expect(request).toHaveBeenCalledWith({
-      method: 'POST',
-      path: '/api/v1/admin/content/revisions/draft-1/ocr-adoptions',
-      body: { job_id: 'job-1', expected_version: 3, selected_fields: ['title_en'], content }
-    })
   })
   it('strips lexicon response type metadata before reusing fixed entries', async () => {
     const entry = { ...createLexiconRow(), entry_id: 'word-1', entry_version: 7, english: 'coffee' }

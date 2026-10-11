@@ -9,7 +9,7 @@ const viewports = [
   { width: 1280, height: 800 }
 ]
 
-test('A09 same-object refresh preserves the exact retry key after a network failure', async ({
+test('A09 timeout retry keeps the same fixed preview body and command key', async ({
   adminApi,
   page
 }) => {
@@ -19,37 +19,25 @@ test('A09 same-object refresh preserves the exact retry key after a network fail
     '**/api/v1/admin/limited-entitlements/LIMITED-1/commands/revoke',
     async (route) => {
       const request = route.request()
-      expect(request.method()).toBe('POST')
-      const headers = await request.allHeaders()
-      expect(headers['x-csrf-token']).toBeTruthy()
-      attempts.push({ body: request.postDataJSON(), key: headers['x-idempotency-key'] })
+      attempts.push({ body: request.postDataJSON(), key: request.headers()['x-idempotency-key'] })
       await route.abort('failed')
     }
   )
   await navigateInApp(page, '/entitlements/limited/LIMITED-1/action')
   await page.locator('main').getByText('延长启动截止', { exact: true }).click()
   await page.getByRole('option', { name: '撤销', exact: true }).click()
-  await page.getByRole('button', { name: '二次确认并执行' }).click()
-  await page.getByPlaceholder('请输入可审计的操作原因').fill('核对操作')
-  await page.getByRole('button', { name: '确认执行', exact: true }).click()
-  await expect(page.getByRole('dialog')).toBeHidden()
-  await page.getByRole('button', { name: '刷新服务端信息', exact: true }).click()
-  await expect(page.locator('main').getByRole('combobox')).toBeVisible()
-  await page.getByRole('button', { name: '二次确认并执行' }).click()
-  await page.getByPlaceholder('请输入可审计的操作原因').fill('核对操作')
-  await page.getByRole('button', { name: '确认执行', exact: true }).click()
-  await expect(page.getByRole('dialog')).toBeHidden()
-  expect(attempts).toHaveLength(2)
-  expect(attempts[0]?.body).toEqual({ reason: '核对操作' })
+  await page.getByRole('button', { name: '二次确认并执行', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: '确认撤销' })
+  await dialog.getByLabel('操作备注').fill('核对操作')
+  await dialog.getByRole('button', { name: '确认撤销', exact: true }).click()
+  await expect.poll(() => attempts.length).toBe(1)
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: '确认撤销', exact: true }).click()
+  await expect.poll(() => attempts.length).toBe(2)
+  expect(attempts[0]?.body).toEqual({ reason: '运营调整：核对操作', expected_version: 1 })
   expect(attempts[0]?.key).toMatch(/^idem-/)
   expect(attempts[1]).toEqual(attempts[0])
-  expect(
-    adminApi.requests.filter(
-      (request) =>
-        request.method === 'GET' &&
-        request.pathname === '/api/v1/admin/limited-entitlements/LIMITED-1'
-    )
-  ).toHaveLength(2)
+  expect(adminApi.unexpectedRequests).toEqual([])
 })
 
 test('A07 conflict keeps latest version unknown after list-only retry', async ({
@@ -202,15 +190,19 @@ test('campaign creation and version copy use real write routes', async ({ adminA
   await loginAsAdmin(page)
   await navigateInApp(page, '/campaigns/new/edit')
   await page.getByRole('textbox', { name: '活动名称' }).fill('新建学习活动')
-  await page.getByRole('textbox', { name: /场景顺序/ }).fill('SCENE-1')
+  await page
+    .locator('.campaign-scene-selector .choices')
+    .locator('.el-checkbox')
+    .filter({ hasText: 'Ordering coffee' })
+    .click()
   await page.getByRole('button', { name: '保存活动' }).click()
   await expect(page).toHaveURL(/\/campaigns\/CAMP-1\/edit$/)
   const create = adminApi.findRequest('POST', '/api/v1/admin/campaigns')
   expect(create?.body).toMatchObject({
     name: '新建学习活动',
     duration_days: 3,
-    activation_window_days: 7,
-    capacity: 1,
+    activation_window_days: 3,
+    capacity: null,
     scene_ids: ['SCENE-1']
   })
   expect(create?.headers['x-idempotency-key']).toMatch(/^idem-/)

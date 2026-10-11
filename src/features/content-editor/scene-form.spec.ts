@@ -4,10 +4,45 @@ import {
   createDialogueRow,
   createLexiconRow,
   normalizeSceneContent,
-  replaceSceneAudio
+  replaceSceneAudio,
+  resetSceneContent
 } from './scene-form'
 
 describe('scene form', () => {
+  it('removes previous content metadata when loading another draft', () => {
+    const form = normalizeSceneContent({ private_old_field: 'previous', title_en: 'Old' })
+    resetSceneContent(form, { title_en: 'New' })
+    expect(form.title_en).toBe('New')
+    expect(form).not.toHaveProperty('private_old_field')
+  })
+  it('preserves revision metadata and current sense/source identities', () => {
+    const form = normalizeSceneContent({
+      content_type: 'word_card',
+      primary_entry_id: 'word-1',
+      category: 'daily',
+      vocabulary: [
+        {
+          entry_id: 'word-1',
+          sense_id: 'sense-1',
+          source_id: 'source-1',
+          source_sentence: 'Coffee please'
+        }
+      ]
+    })
+    expect(form).toMatchObject({
+      content_type: 'word_card',
+      primary_entry_id: 'word-1',
+      category: 'daily'
+    })
+    expect(form.vocabulary[0]).toMatchObject({ sense_id: 'sense-1', source_id: 'source-1' })
+  })
+  it('removes unsupported chunk images from submitted drafts', () => {
+    const chunk = normalizeSceneContent({
+      chunks: [{ english: 'of course', icon_asset_id: 'old', image_asset_id: 'old' }]
+    }).chunks[0]
+    expect(chunk?.icon_asset_id).toBeNull()
+    expect(chunk).not.toHaveProperty('image_asset_id')
+  })
   it('maps cleared optional asset and pronunciation fields to null', () => {
     const form = normalizeSceneContent({
       cover_asset_id: '',
@@ -49,7 +84,15 @@ describe('scene form', () => {
     const form = normalizeSceneContent({
       audio: { target_id: 'a', version_id: 'v1', asset_id: 'asset', duration_ms: 3000 },
       dialogue: [
-        { id: 's', start_ms: 0, end_ms: 2000, audio_version_id: 'v1', timing_confirmed: true }
+        {
+          id: 's',
+          start_ms: 0,
+          end_ms: 2000,
+          audio_version_id: 'v1',
+          timing_confirmed: true,
+          slice_target_id: 'slice',
+          slice_version: 'cut-v1'
+        }
       ]
     })
     replaceSceneAudio(form, {
@@ -62,7 +105,9 @@ describe('scene form', () => {
       start_ms: null,
       end_ms: null,
       audio_version_id: null,
-      timing_confirmed: false
+      timing_confirmed: false,
+      slice_target_id: null,
+      slice_version: null
     })
   })
   it('keeps timing for the same immutable audio version', () => {

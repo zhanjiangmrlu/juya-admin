@@ -53,18 +53,17 @@ describe('publish production navigation', () => {
     document.querySelectorAll('.el-message').forEach((element) => element.remove())
   })
 
-  it('shows all six stages and marks publish active', async () => {
+  it('shows the five supported stages and marks publish active', async () => {
     const { wrapper } = await setup()
-    for (const label of ['内容列表', '场景草稿', 'OCR候选', '内容校对', '音频标时', '预览发布'])
+    for (const label of ['内容列表', '场景草稿', '内容校对', '音频切片', '预览发布'])
       expect(wrapper.text()).toContain(label)
     expect(wrapper.get('[role="tab"][aria-selected="true"]').text()).toBe('预览发布')
   })
 
   it.each([
     ['draft', '场景草稿'],
-    ['ocr', 'OCR候选'],
     ['proofread', '内容校对'],
-    ['audio', '音频标时']
+    ['audio', '音频切片']
   ])(
     'returns to %s using the preview scene id instead of the revision id',
     async (stage, label) => {
@@ -94,7 +93,7 @@ describe('publish production navigation', () => {
     const { wrapper, router } = await setup(true)
     await wrapper
       .findAll('[role="tab"]')
-      .find((tab) => tab.text() === '音频标时')!
+      .find((tab) => tab.text() === '音频切片')!
       .trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.name).toBe('content-publish')

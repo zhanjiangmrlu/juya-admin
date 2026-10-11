@@ -1,9 +1,17 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, type RouteLocation, type RouteRecordRaw } from 'vue-router'
 
 import { ADMIN_PAGE_DEFINITIONS } from '@/app/admin-navigation'
 
 const adminPageRoutes: RouteRecordRaw[] = ADMIN_PAGE_DEFINITIONS.map((page) => ({
-  component: resolveAdminPageComponent(page.name),
+  ...(page.name === 'feedback-respond'
+    ? {
+        redirect: (to: RouteLocation) => ({
+          name: 'feedback-detail',
+          params: to.params,
+          query: to.query
+        })
+      }
+    : { component: resolveAdminPageComponent(page.name) }),
   meta: {
     capability: page.capability,
     navigationPath: page.navigationPath,
@@ -32,7 +40,7 @@ function resolveAdminPageComponent(
     'contact-correction': () => import('@/pages/contacts/contact-correction-page.vue'),
     'content-scenes': () => import('@/pages/content/content-list-page.vue'),
     'content-import': () => import('@/pages/content/content-import-page.vue'),
-    'content-ocr': () => import('@/pages/content/ocr-review-page.vue'),
+    'content-ocr': () => import('@/pages/content/retired-content-page.vue'),
     'content-scene-audio': () => import('@/pages/content/audio-version-page.vue'),
     'content-scene-edit': () => import('@/pages/content/scene-editor-page.vue'),
     'content-scene-publish': () => import('@/pages/content/publish-check-page.vue'),
@@ -69,7 +77,29 @@ export const router = createRouter({
       component: () => import('@/layouts/admin-layout/admin-layout.vue'),
       path: '/',
       redirect: { name: 'dashboard' },
-      children: adminPageRoutes
+      children: [
+        ...adminPageRoutes,
+        {
+          name: 'content-proofreading',
+          path: 'content/proofreading',
+          component: () => import('@/pages/content/content-proofreading-page.vue'),
+          meta: {
+            title: '内容抽样校对',
+            capability: 'content.edit',
+            navigationPath: '/content/scenes'
+          }
+        },
+        {
+          name: 'content-short-reading-edit',
+          path: 'content/short-readings/:id/edit',
+          component: () => import('@/pages/content/short-reading-editor-page.vue'),
+          meta: {
+            title: '短文阅读编辑',
+            capability: 'content.edit',
+            navigationPath: '/content/scenes'
+          }
+        }
+      ]
     }
   ]
 })

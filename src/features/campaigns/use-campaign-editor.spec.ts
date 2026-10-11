@@ -18,6 +18,19 @@ const detail = {
 }
 
 describe('campaign editor', () => {
+  it('defaults to unlimited capacity and follows duration until the window is customized', async () => {
+    const editor = useCampaignEditor({} as CampaignAdapter)
+    await editor.load('new')
+    expect(editor.draft.value.capacity).toBeNull()
+    expect(editor.draft.value.activationWindowDays).toBe(3)
+    editor.setDuration(5)
+    expect(editor.draft.value.activationWindowDays).toBe(5)
+    editor.setActivationWindow(8)
+    editor.setDuration(3)
+    expect(editor.draft.value.activationWindowDays).toBe(8)
+    editor.resetActivationWindow()
+    expect(editor.draft.value.activationWindowDays).toBe(3)
+  })
   it('ignores an older load and saves only the latest selected campaign', async () => {
     let finishA!: (value: typeof detail) => void
     let finishB!: (value: typeof detail) => void

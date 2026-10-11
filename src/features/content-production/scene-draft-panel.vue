@@ -18,8 +18,8 @@ const form = computed(() => props.form)
 <template>
   <AdminPanel class="scene-draft-panel">
     <template #header>
-      <h3>统一场景表单</h3>
-      <p class="panel-description">人工录入与 OCR 候选都进入这份草稿</p>
+      <h3>内容基本信息</h3>
+      <p class="panel-description">人工录入与导入结果均保存到当前草稿，保存不会发布</p>
     </template>
     <ElForm label-position="top">
       <ElFormItem label="所属系列">

@@ -4,8 +4,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
-import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
+import EntitlementPreviewDialog from '@/features/entitlements/entitlement-preview-dialog.vue'
 
 import FormalActionPage from './formal-action-page.vue'
 import LimitedActionPage from './limited-action-page.vue'
@@ -40,6 +40,16 @@ function detail(id: string) {
   }
 }
 
+function preview(id: string) {
+  return {
+    before: detail(id),
+    after: { ...detail(id), status: 'PAUSED', version: 2 },
+    actual_operation: 'PAUSE',
+    expected_version: 1,
+    previewed_at: '2026-10-11T03:00:00Z'
+  }
+}
+
 async function setup(kind: 'formal' | 'limited') {
   const component = kind === 'formal' ? FormalActionPage : LimitedActionPage
   const pinia = createPinia()
@@ -70,7 +80,9 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
       'fetch',
       vi.fn((url: string) => {
         urls.push(url)
-        return Promise.resolve(json(detail('A')))
+        return Promise.resolve(
+          json(url.includes('/preview-operation') ? preview('A') : detail('A'))
+        )
       })
     )
     const { wrapper, router } = await setup(kind)
@@ -94,7 +106,7 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
               commands.push({ url, body: JSON.parse(String(init.body)) })
               return Promise.reject(new TypeError('response lost'))
             }
-            return Promise.resolve(json(detail('B')))
+            return Promise.resolve(json(preview('B')))
           }
           return new Promise<Response>((resolve) => pending.set(url.slice(-1), resolve))
         })
@@ -115,7 +127,9 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
       if (kind === 'formal') await wrapper.find('form').trigger('submit')
       else await wrapper.find('.submit').trigger('click')
       await flushPromises()
-      wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '核对操作')
+      await wrapper.find('.submit').trigger('click')
+      await flushPromises()
+      wrapper.findComponent(EntitlementPreviewDialog).vm.$emit('confirm', '核对操作')
       await flushPromises()
       expect(commands).toHaveLength(1)
       if (kind === 'formal')
@@ -139,7 +153,9 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
           writes.push(url)
           return Promise.reject(new TypeError('response lost'))
         }
-        return Promise.resolve(json(detail('A')))
+        return Promise.resolve(
+          json(url.includes('/preview-operation') ? preview('A') : detail('A'))
+        )
       })
     )
     const { wrapper, router } = await setup(kind)
@@ -147,7 +163,7 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
     if (kind === 'formal') await wrapper.find('form').trigger('submit')
     else await wrapper.find('.submit').trigger('click')
     await flushPromises()
-    const oldDialog = wrapper.findComponent(ConfirmDialog)
+    const oldDialog = wrapper.findComponent(EntitlementPreviewDialog)
     expect(oldDialog.props('modelValue')).toBe(true)
     await router.push('/action/B')
     await flushPromises()
@@ -155,12 +171,13 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
     await flushPromises()
     expect(writes).toEqual([])
     expect(wrapper.text()).not.toContain('USER-A')
-    expect(wrapper.findComponent(ConfirmDialog).exists()).toBe(false)
+    expect(wrapper.findComponent(EntitlementPreviewDialog).exists()).toBe(false)
     finishB(json(detail('B')))
     await flushPromises()
     expect(wrapper.text()).toContain('USER-B')
-    if (kind === 'formal') expect(wrapper.findComponent(ConfirmDialog).exists()).toBe(false)
-    else expect(wrapper.findComponent(ConfirmDialog).props('modelValue')).toBe(false)
+    if (kind === 'formal')
+      expect(wrapper.findComponent(EntitlementPreviewDialog).exists()).toBe(false)
+    else expect(wrapper.findComponent(EntitlementPreviewDialog).exists()).toBe(false)
     wrapper.unmount()
   })
 })
@@ -182,10 +199,10 @@ it('ignores an A preview that completes after B details have loaded', async () =
   await wrapper.find('form').trigger('submit')
   await router.push('/action/B')
   await flushPromises()
-  finishPreview(json(detail('A')))
+  finishPreview(json(preview('A')))
   await flushPromises()
   expect(wrapper.text()).toContain('USER-B')
-  expect(wrapper.findComponent(ConfirmDialog).exists()).toBe(false)
+  expect(wrapper.findComponent(EntitlementPreviewDialog).exists()).toBe(false)
   wrapper.unmount()
   vi.unstubAllGlobals()
 })
@@ -199,6 +216,9 @@ describe('limited action retry identity', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string, init: RequestInit) => {
+        if (url.includes('/users/')) return Promise.resolve(json({}))
+        if (url.includes('/preview-operation'))
+          return Promise.resolve(json(preview(url.includes('/B/') ? 'B' : 'A')))
         if (init.method === 'POST') {
           commands.push({
             url,
@@ -221,7 +241,9 @@ describe('limited action retry identity', () => {
     const { wrapper } = await setup('limited')
     await flushPromises()
     await wrapper.find('.submit').trigger('click')
-    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '核对操作')
+    await wrapper.find('.submit').trigger('click')
+    await flushPromises()
+    wrapper.findComponent(EntitlementPreviewDialog).vm.$emit('confirm', '核对操作')
     await flushPromises()
     expect(commands).toHaveLength(1)
     await wrapper
@@ -232,15 +254,18 @@ describe('limited action retry identity', () => {
     expect(wrapper.text()).toContain('刷新后活动')
     expect(wrapper.text()).toContain('v2')
     await wrapper.find('.submit').trigger('click')
-    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '核对操作')
+    await wrapper.find('.submit').trigger('click')
+    await flushPromises()
+    wrapper.findComponent(EntitlementPreviewDialog).vm.$emit('confirm', '核对操作')
     await flushPromises()
     expect(commands).toHaveLength(2)
     expect(commands[0]?.key).toMatch(/^idem-/)
     expect(commands[1]).toEqual(commands[0])
     await wrapper.find('.submit').trigger('click')
-    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '新的操作原因')
     await flushPromises()
-    expect(commands[2]?.body).toEqual({ reason: '新的操作原因' })
+    wrapper.findComponent(EntitlementPreviewDialog).vm.$emit('confirm', '新的操作原因')
+    await flushPromises()
+    expect(commands[2]?.body).toEqual({ reason: '新的操作原因', expected_version: 1 })
     expect(commands[2]?.key).not.toBe(commands[1]?.key)
     wrapper.unmount()
   })
@@ -252,6 +277,8 @@ describe('limited action retry identity', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string, init: RequestInit) => {
+        if (url.includes('/preview-operation'))
+          return Promise.resolve(json(preview(url.includes('/B/') ? 'B' : 'A')))
         if (init.method === 'POST') {
           commands.push({
             url,
@@ -272,7 +299,9 @@ describe('limited action retry identity', () => {
     )
     const { wrapper, router } = await setup('limited')
     await flushPromises()
-    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '核对操作')
+    await wrapper.find('.submit').trigger('click')
+    await flushPromises()
+    wrapper.findComponent(EntitlementPreviewDialog).vm.$emit('confirm', '核对操作')
     await flushPromises()
     await wrapper
       .findAll('button')
@@ -286,13 +315,17 @@ describe('limited action retry identity', () => {
     expect(wrapper.text()).toContain('USER-B')
     expect(wrapper.text()).not.toContain('USER-A')
     expect(wrapper.text()).not.toContain('v99')
-    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '核对操作')
+    await wrapper.find('.submit').trigger('click')
+    await flushPromises()
+    wrapper.findComponent(EntitlementPreviewDialog).vm.$emit('confirm', '核对操作')
     await flushPromises()
     expect(commands[1]?.url).toContain('/limited-entitlements/B/commands/pause')
     expect(commands[1]?.key).not.toBe(commands[0]?.key)
     await router.push('/action/A')
     await flushPromises()
-    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '核对操作')
+    await wrapper.find('.submit').trigger('click')
+    await flushPromises()
+    wrapper.findComponent(EntitlementPreviewDialog).vm.$emit('confirm', '核对操作')
     await flushPromises()
     expect(commands).toHaveLength(3)
     expect(commands[2]?.url).toBe(commands[0]?.url)

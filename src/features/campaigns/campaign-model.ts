@@ -34,19 +34,20 @@ export function getCampaignFieldAccess(campaign: CampaignViewModel): CampaignFie
   }
 }
 
-/**
- * 校验新容量不得小于当前已开通人数且必须为正整数
- *
- * @param currentCount - 当前已经开通的权益人数
- * @param nextLimit - 管理员拟设置的新容量
- * @returns 容量是否合法及失败文案
- */
-export function validateCapacityLimit(currentCount: number, nextLimit: number): ValidationResult {
-  if (!Number.isInteger(nextLimit) || nextLimit <= 0) {
-    return { message: '容量必须为正整数', valid: false }
+export const /**
+   * 校验新容量不得小于当前已开通人数且必须为正整数
+   *
+   * @param currentCount - 当前已经开通的权益人数
+   * @param nextLimit - 管理员拟设置的新容量
+   * @returns 容量是否合法及失败文案
+   */
+  validateCapacityLimit = (currentCount: number, nextLimit: number | null): ValidationResult => {
+    if (nextLimit === null) return { valid: true }
+    if (!Number.isInteger(nextLimit) || nextLimit <= 0) {
+      return { message: '容量必须为正整数', valid: false }
+    }
+    if (nextLimit < currentCount) {
+      return { message: `容量不能小于已开通人数 ${currentCount}`, valid: false }
+    }
+    return { valid: true }
   }
-  if (nextLimit < currentCount) {
-    return { message: `容量不能小于已开通人数 ${currentCount}`, valid: false }
-  }
-  return { valid: true }
-}

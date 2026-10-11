@@ -12,7 +12,8 @@ import StatusTag from '@/components/status-tag/status-tag.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createFeedbackAdapter } from '@/features/feedback/feedback-adapter'
 import { FEEDBACK_STATUS_LABELS } from '@/features/feedback/feedback-copy'
-import { formatFeedbackSla, getFeedbackOperations } from '@/features/feedback/feedback-model'
+import { formatFeedbackSla } from '@/features/feedback/feedback-model'
+import FeedbackResponsePanel from '@/features/feedback/feedback-response-panel.vue'
 import { useFeedbackDetail } from '@/features/feedback/use-feedback-detail'
 import { createApiClient } from '@/services/api/api-client'
 import { formatAdminActor } from '@/shared/utils/admin-actor'
@@ -48,9 +49,6 @@ const controller = useFeedbackDetail(
     })
   ),
   ticketId
-)
-const operations = computed(() =>
-  controller.ticket.value ? getFeedbackOperations(controller.ticket.value) : []
 )
 const sla = computed(() =>
   controller.ticket.value ? formatFeedbackSla(controller.ticket.value, new Date()) : null
@@ -214,25 +212,17 @@ function getStatusTone(status: FeedbackStatus): 'danger' | 'info' | 'success' | 
           </AdminPanel>
         </div>
         <div class="secondary-column">
+          <FeedbackResponsePanel
+            :key="ticketId"
+            :ticket="controller.ticket.value"
+            @updated="controller.load"
+          />
           <AdminPanel
             :title="ADMIN_SECTION_TITLES.feedbackDetail.timelineCard"
             title-class="panel-title"
             class="timeline-card"
           >
             <AuditTimeline :items="timeline" />
-            <div class="timeline-action">
-              <RouterLink
-                v-if="operations.length"
-                v-slot="{ navigate }"
-                custom
-                :to="{
-                  name: 'feedback-respond',
-                  params: { id: controller.ticket.value.id },
-                  query: route.query
-                }"
-                ><ElButton type="primary" @click="navigate">处理反馈</ElButton></RouterLink
-              >
-            </div>
           </AdminPanel>
         </div>
       </div>

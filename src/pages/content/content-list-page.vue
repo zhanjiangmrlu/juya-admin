@@ -10,6 +10,7 @@ import DataTable from '@/components/data-table/data-table.vue'
 import { createContentAdapter } from '@/features/content/content-adapter'
 import SceneHistory from '@/features/content-editor/scene-history.vue'
 import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
+import ShortReadingListPanel from '@/features/short-reading/short-reading-list-panel.vue'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 import { formatDateTime } from '@/shared/utils/date-time'
@@ -47,7 +48,7 @@ let pendingSeriesKey: string | null = null
 let pendingSceneKey: string | null = null
 const newScene = reactive({
   seriesId: '',
-  templateType: 'dialogue' as 'dialogue' | 'vocabulary',
+  templateType: 'dialogue' as 'dialogue' | 'word_card',
   seriesTitle: '',
   seriesSlug: ''
 })
@@ -284,15 +285,17 @@ onMounted(loadScenes)
 <template>
   <section class="content-list-page">
     <ContentProductionNav active="list" :busy="enteringWorkspace" @select="openWorkspace" />
-    <p class="page-description">人工录入与 OCR 辅助识别共用场景草稿和发布流程。</p>
+    <p class="page-description">场景对话、原词汇卡与独立短文使用各自模板维护完整正文和候选版本。</p>
     <AdminPanel>
       <template #header>
         <div class="page-heading">
           <p>管理场景草稿、候选版本与已发布内容</p>
           <div class="heading-actions">
-            <ElButton type="primary" @click="openCreate">新建场景</ElButton
+            <ElButton @click="router.push({ name: 'content-proofreading' })"
+              >抽样校对候选集合</ElButton
+            ><ElButton type="primary" @click="openCreate">新建场景</ElButton
             ><RouterLink v-slot="{ navigate }" custom :to="{ name: 'content-import' }"
-              ><ElButton type="primary" @click="navigate">批量上传图片</ElButton></RouterLink
+              ><ElButton type="primary" @click="navigate">统一内容导入</ElButton></RouterLink
             >
           </div>
         </div>
@@ -372,8 +375,9 @@ onMounted(loadScenes)
         @change="loadScenes"
       />
     </AdminPanel>
+    <ShortReadingListPanel />
     <ElAlert class="operation-note" title="操作说明" type="success" :closable="false">
-      批量图片上传只建立独立草稿，不自动调用 OCR；已发布内容不能永久删除。
+      内容导入只建立草稿，仍需人工校对与明确发布；已发布内容不能永久删除。
     </ElAlert>
     <ElDialog
       v-model="pickingScene"
@@ -423,7 +427,7 @@ onMounted(loadScenes)
         ><ElFormItem label="内容模板"
           ><ElRadioGroup v-model="newScene.templateType"
             ><ElRadio value="dialogue">对话</ElRadio
-            ><ElRadio value="vocabulary">词汇</ElRadio></ElRadioGroup
+            ><ElRadio value="word_card">原词汇卡</ElRadio></ElRadioGroup
           ></ElFormItem
         ><ElDivider>创建新系列</ElDivider
         ><ElFormItem label="系列名称"><ElInput v-model="newScene.seriesTitle" /></ElFormItem

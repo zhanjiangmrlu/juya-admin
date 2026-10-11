@@ -5,6 +5,23 @@ import type { FeedbackAdapter } from './feedback-adapter'
 import { useFeedbackDetail } from './use-feedback-detail'
 
 describe('feedback detail controller', () => {
+  it('does not restore sensitive data after leaving during an outstanding request', async () => {
+    let finish!: (value: typeof ticket) => void
+    const controller = useFeedbackDetail(
+      {
+        getDetail: () =>
+          new Promise((resolve) => {
+            finish = resolve
+          })
+      } as unknown as FeedbackAdapter,
+      'FB-1'
+    )
+    const pending = controller.load()
+    controller.dispose()
+    finish(ticket)
+    await pending
+    expect(controller.ticket.value).toBeNull()
+  })
   it('loads the real ticket detail by id', async () => {
     const adapter = {
       execute: async () => ticket,

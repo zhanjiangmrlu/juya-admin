@@ -80,7 +80,6 @@ test('内部备注失败保留草稿，成功后进入管理员可见记录', as
   expect(request?.headers['x-idempotency-key']).toBeTruthy()
   await expect(page.getByText('内部备注已保存')).toBeVisible()
   await expect(input).toHaveValue('')
-  await page.getByRole('button', { name: '返回反馈详情' }).click()
   await expect(page.getByText('需要继续排查音频时间轴')).toBeVisible()
 })
 
@@ -89,7 +88,7 @@ test('A14 至 A16 在双视口下保持关键内容和无横向溢出', async ({
   const pages = [
     { heading: '问题反馈列表', path: '/feedback', slug: 'a14' },
     { heading: '问题反馈详情', path: '/feedback/FB-1', slug: 'a15' },
-    { heading: '反馈回复与关闭', path: '/feedback/FB-1/respond', slug: 'a16' }
+    { heading: '问题反馈详情', path: '/feedback/FB-1/respond', slug: 'a16' }
   ]
   for (const viewport of [
     { height: 900, width: 1440 },

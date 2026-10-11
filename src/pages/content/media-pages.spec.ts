@@ -6,33 +6,18 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 
 import AudioVersionPage from './audio-version-page.vue'
 import BatchJobsPage from './batch-jobs-page.vue'
-import OcrReviewPage from './ocr-review-page.vue'
+import RetiredContentPage from './retired-content-page.vue'
 
 afterEach(() => vi.unstubAllGlobals())
 
 describe('media administration pages', () => {
-  it('renders the persisted OCR candidate without pending copy', async () => {
-    const fetchSpy = vi
-      .fn()
-      .mockResolvedValueOnce(json(jobResponse))
-      .mockResolvedValueOnce(
-        json({
-          asset_id: 'ASSET-1',
-          confidence: 0.98,
-          confirmed_revision_id: null,
-          error_code: null,
-          id: 'CANDIDATE-1',
-          job_id: 'JOB-1',
-          status: 'READY',
-          structured_candidate: { text: 'Coffee time', blocks: [{ text: 'Coffee time' }] },
-          template_type: 'learning-card'
-        })
-      )
+  it('explains retired OCR links without sending any OCR request', async () => {
+    const fetchSpy = vi.fn()
     vi.stubGlobal('fetch', fetchSpy)
-    const wrapper = await mountPage(OcrReviewPage, '/content/ocr/JOB-1/ASSET-1')
-
-    await vi.waitFor(() => expect(wrapper.text()).toContain('Coffee time'))
-    expect(wrapper.text()).not.toContain('接口待接入')
+    const wrapper = await mountPage(RetiredContentPage, '/content/ocr/JOB-1/ASSET-1')
+    expect(wrapper.text()).toContain('OCR 功能已取消')
+    expect(fetchSpy).not.toHaveBeenCalled()
+    wrapper.unmount()
   })
 
   it('renders audio targets and their active version', async () => {
@@ -114,7 +99,10 @@ async function mountPage(component: object, path: string) {
       : '/content/jobs'
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ component, path: routePath }]
+    routes: [
+      { component, path: routePath },
+      { name: 'content-import', path: '/content/import', component: { template: '<div />' } }
+    ]
   })
   await router.push(path)
   await router.isReady()
@@ -128,21 +116,6 @@ function json(body: unknown): Response {
     headers: { 'Content-Type': 'application/json' },
     status: 200
   })
-}
-
-const jobResponse = {
-  batch_id: null,
-  business_key: 'ocr:key',
-  cancel_requested_at: null,
-  created_at: '2026-09-30T10:00:00Z',
-  created_by: '7',
-  error_code: null,
-  id: 'JOB-1',
-  job_type: 'OCR',
-  provider_request_id: 'provider-1',
-  status: 'SUCCEEDED',
-  target_id: 'ASSET-1',
-  updated_at: '2026-09-30T10:01:00Z'
 }
 
 const batchResponse = {

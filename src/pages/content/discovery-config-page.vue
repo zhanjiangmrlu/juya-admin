@@ -9,6 +9,7 @@ import {
   type DiscoveryConfigDraft
 } from '@/features/discovery/discovery-adapter'
 import {
+  LEARNING_MODULE_LABELS,
   validateLearningModules,
   validateOpenScenes,
   validatePreviewScenes
@@ -82,23 +83,30 @@ async function save(): Promise<void> {
   }
 }
 
-/**
- * 将配置草稿映射到页面表单
- * @param draft - 待展示的配置草稿
- */
-function applyDraft(draft: ReadonlyDiscoveryDraft): void {
-  form.openScenes.splice(0, form.openScenes.length, ...draft.openSceneIds)
-  while (form.openScenes.length < 3) form.openScenes.push('')
-  form.learningModules = { ...draft.learningModules }
-  form.previews.splice(
-    0,
-    form.previews.length,
-    ...Object.entries(draft.previewBySeries).map(([seriesId, sceneIds]) => ({
-      sceneIds: sceneIds.join(', '),
-      seriesId
-    }))
-  )
-}
+const /**
+   * 将配置草稿映射到页面表单
+   * @param draft - 待展示的配置草稿
+   */
+  applyDraft = (draft: ReadonlyDiscoveryDraft): void => {
+    form.openScenes.splice(0, form.openScenes.length, ...draft.openSceneIds)
+    while (form.openScenes.length < 3) form.openScenes.push('')
+    form.learningModules = {
+      ...Object.fromEntries(
+        Object.keys(LEARNING_MODULE_LABELS).map((type) => [
+          type,
+          draft.learningModules[type] === true
+        ])
+      )
+    }
+    form.previews.splice(
+      0,
+      form.previews.length,
+      ...Object.entries(draft.previewBySeries).map(([seriesId, sceneIds]) => ({
+        sceneIds: sceneIds.join(', '),
+        seriesId
+      }))
+    )
+  }
 
 /**
  * 从页面表单构造完整配置草稿
@@ -231,13 +239,17 @@ onMounted(load)
             :key="moduleName"
             class="module-row"
           >
-            <span>{{ moduleName }}</span
-            ><ElSwitch
-              v-model="form.learningModules[moduleName]"
-              :disabled="moduleName !== 'scene_learning'"
-            />
+            <span>{{ LEARNING_MODULE_LABELS[moduleName] ?? moduleName }}</span
+            ><ElSwitch v-model="form.learningModules[moduleName]" />
           </div>
-          <p class="field-help">V1.3 仅允许启用场景学习；其他模块只读展示。</p>
+          <ElAlert
+            title="模块名称、排序与准备情况尚未由服务端契约公开，当前仅保存四类启用开关"
+            type="info"
+            :closable="false"
+          />
+          <p class="field-help">
+            可同时启用或全部关闭；启用结果以服务端模板、路由、权限和内容准备校验为准。停用保留内容、收藏和历史，不延长权益计时。
+          </p>
         </AdminPanel>
       </div>
     </template>

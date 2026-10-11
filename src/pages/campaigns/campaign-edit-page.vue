@@ -10,6 +10,7 @@ import ApiErrorDetails from '@/components/api-error-details/api-error-details.vu
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
+import CampaignSceneSelector from '@/features/campaigns/campaign-scene-selector.vue'
 import { useCampaignEditor } from '@/features/campaigns/use-campaign-editor'
 import { createApiClient } from '@/services/api/api-client'
 
@@ -32,7 +33,12 @@ const editor = useCampaignEditor(
     })
   )
 )
-const sceneText = ref('')
+const capacityLimited = computed({
+  get: () => editor.draft.value.capacity !== null,
+  set: (limited: boolean) => {
+    editor.draft.value.capacity = limited ? 1 : null
+  }
+})
 const confirmVisible = ref(false)
 const pendingOperation = ref<Exclude<CampaignOperation, 'capacity'> | 'copy'>('open')
 const nextStatus: Record<string, string> = {
@@ -50,13 +56,7 @@ const canEdit = computed(() => isNew.value || editor.server.value?.status === 'D
 watch(
   campaignId,
   (id) => {
-    void editor
-      .load(id)
-      .then((loaded) => {
-        if (loaded && id === campaignId.value)
-          sceneText.value = editor.draft.value.sceneIds.join('\n')
-      })
-      .catch(() => undefined)
+    void editor.load(id).catch(() => undefined)
   },
   { immediate: true }
 )
@@ -65,10 +65,6 @@ watch(
  * @returns 保存完成后的 Promise
  */
 async function save(): Promise<void> {
-  editor.draft.value.sceneIds = sceneText.value
-    .split(/[\n,]/)
-    .map((value) => value.trim())
-    .filter(Boolean)
   if (!editor.draft.value.name.trim()) return
   try {
     const result = await editor.save()
@@ -148,20 +144,44 @@ async function confirm(): Promise<void> {
               show-word-limit
           /></ElFormItem>
           <ElFormItem label="学习时长" required
-            ><ElSelect v-model="editor.draft.value.durationDays" :disabled="!canEdit"
+            ><ElSelect
+              :model-value="editor.draft.value.durationDays"
+              :disabled="!canEdit"
+              @update:model-value="editor.setDuration"
               ><ElOption label="3 天" :value="3" /><ElOption label="5 天" :value="5" /></ElSelect
           ></ElFormItem>
-          <ElFormItem label="场景顺序（每行一个场景编号）"
-            ><ElInput v-model="sceneText" :disabled="!canEdit" type="textarea" :rows="2"
+          <ElFormItem label="选择学习内容与排序"
+            ><CampaignSceneSelector
+              v-model="editor.draft.value.sceneIds"
+              :disabled="!canEdit"
+              :required-count="editor.draft.value.durationDays"
           /></ElFormItem>
-          <ElFormItem label="启动窗口（天）" required
-            ><ElInputNumber
-              v-model="editor.draft.value.activationWindowDays"
+          <ElCollapse
+            ><ElCollapseItem title="高级设置 · 启动期限" name="activation"
+              ><ElFormItem label="开通后多久内需要首次开始"
+                ><ElInputNumber
+                  :model-value="editor.draft.value.activationWindowDays"
+                  :disabled="!canEdit"
+                  :min="1"
+                  @update:model-value="
+                    (value: number | undefined) => value && editor.setActivationWindow(value)
+                  "
+                /><ElButton link @click="editor.resetActivationWindow"
+                  >恢复默认</ElButton
+                ></ElFormItem
+              ></ElCollapseItem
+            ></ElCollapse
+          >
+          <ElFormItem label="限制人数"
+            ><ElSwitch
+              v-model="capacityLimited"
+              :disabled="!canEdit"
+              active-text="限制人数"
+              inactive-text="不限人数" /><ElInputNumber
+              v-if="capacityLimited"
+              v-model="editor.draft.value.capacity"
               :disabled="!canEdit"
               :min="1"
-          /></ElFormItem>
-          <ElFormItem label="容量上限" required
-            ><ElInputNumber v-model="editor.draft.value.capacity" :disabled="!canEdit" :min="1"
           /></ElFormItem>
           <ElFormItem label="当前开通人数"
             ><div class="field-value">
@@ -205,7 +225,8 @@ async function confirm(): Promise<void> {
             }}</span>
           </div>
           <div class="check-item warning">
-            <strong>锁定字段</strong><span>首次开通后期限和场景锁定；容量前往版本页调整</span>
+            <strong>锁定字段</strong
+            ><span>首次开通后期限、启动期限和场景顺序锁定；复制后编辑新草稿</span>
           </div>
           <template v-if="editor.server.value">
             <h4>当前状态与操作</h4>

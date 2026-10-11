@@ -26,7 +26,7 @@ export interface AdminApiMock {
 interface AdminApiState extends AdminApiMock {
   campaignConflictPending: boolean
   campaignVersion: number
-  campaignCapacity: number
+  campaignCapacity: number | null
   campaignGrantedCount: number
   campaignName: string
   campaignStatus: 'DRAFT' | 'OPEN' | 'PAUSED' | 'ENDED' | 'ARCHIVED' | 'CLOSED'
@@ -185,7 +185,9 @@ export async function navigateInApp(page: Page, path: string): Promise<void> {
     window.history.pushState({}, '', nextPath)
     window.dispatchEvent(new PopStateEvent('popstate'))
   }, path)
-  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(path)}$`))
+  await expect(page).toHaveURL(
+    new RegExp(`${escapeRegExp(path.replace(/(\/feedback\/[^/]+)\/respond(?=\?|$)/, '$1'))}$`)
+  )
 }
 
 /**
@@ -339,7 +341,13 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     return
   }
   if (url.pathname === '/api/v1/admin/formal-entitlements/preview-operation') {
-    await replyJson(route, formalEntitlement)
+    await replyJson(route, {
+      before: null,
+      after: formalEntitlement,
+      actual_operation: 'GRANT',
+      expected_version: 0,
+      previewed_at: '2026-10-11T03:00:00Z'
+    })
     return
   }
   if (url.pathname === '/api/v1/admin/formal-entitlements/commands/GRANT') {
@@ -414,6 +422,33 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
       activation_window_days: 7,
       scene_ids: ['SCENE-1'],
       available_operations: ['EXTEND_START_DEADLINE', 'REVOKE']
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/limited-entitlements/LIMITED-1/preview-operation') {
+    const body = record.body as { operation: string; mode?: string }
+    const before = {
+      id: 'LIMITED-1',
+      user_id: 'USER-1',
+      campaign_version_id: 'VERSION-1',
+      status: 'PENDING',
+      granted_at: '2026-09-29T00:00:00Z',
+      start_deadline: '2026-10-06T00:00:00Z',
+      activated_at: null,
+      expires_at: null,
+      remedy_count: 0,
+      version: 1
+    }
+    await replyJson(route, {
+      before,
+      after: {
+        ...before,
+        status: String(body.operation) === 'REVOKE' ? 'REVOKED' : 'PENDING',
+        version: 2
+      },
+      actual_operation: body.mode || body.operation,
+      expected_version: 1,
+      previewed_at: '2026-10-11T03:00:00Z'
     })
     return
   }
@@ -569,7 +604,8 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
         state.campaignWindow = body.activation_window_days
       if (Array.isArray(body.scene_ids)) state.campaignScenes = body.scene_ids as string[]
     }
-    if (typeof body.capacity === 'number') state.campaignCapacity = body.capacity
+    if (body.capacity === null || typeof body.capacity === 'number')
+      state.campaignCapacity = body.capacity
     await replyJson(route, createCampaignDetail(state), creating ? 201 : 200)
     return
   }
@@ -1082,7 +1118,8 @@ function validCampaignBody(
     return false
   if (
     (creating || operation === 'capacity' || value.capacity !== undefined) &&
-    (!Number.isInteger(value.capacity) || Number(value.capacity) < 0)
+    value.capacity !== null &&
+    (!Number.isInteger(value.capacity) || Number(value.capacity) < 1)
   )
     return false
   if (

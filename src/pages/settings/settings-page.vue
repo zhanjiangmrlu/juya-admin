@@ -6,40 +6,20 @@ import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import AuditEventList from '@/components/audit-event-list/audit-event-list.vue'
 import { createAuditAdapter } from '@/features/audit/audit-adapter'
-import { createOcrAdapter } from '@/features/ocr/ocr-adapter'
 import { createSystemConfigAdapter } from '@/features/system-config/system-config-adapter'
 import { useSystemConfig } from '@/features/system-config/use-system-config'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 import type { AuditEvent } from '@/features/audit/audit-adapter'
-import type { OcrQuota } from '@/features/ocr/ocr-adapter'
 import type { SystemConfigDraft } from '@/features/system-config/system-config-model'
 
 const client = useAdminApiClient()
 const controller = useSystemConfig(createSystemConfigAdapter(client))
 const auditAdapter = createAuditAdapter(client)
-const ocrAdapter = createOcrAdapter(client)
-const ocrQuota = ref<OcrQuota | null>(null)
-const ocrQuotaError = ref('')
-
-/**
- * 读取 OCR 现行开关与安全额度，不触发识别或修改费用配置
- *
- * @returns 额度读取完成后的 Promise
- */
-async function loadOcrQuota(): Promise<void> {
-  ocrQuotaError.value = ''
-  try {
-    ocrQuota.value = await ocrAdapter.getQuota()
-  } catch {
-    ocrQuota.value = null
-    ocrQuotaError.value = 'OCR 配置读取失败，请重试'
-  }
-}
 const auditEvents = ref<AuditEvent[]>([])
 const form = reactive<SystemConfigDraft>({
-  expiryWarningDays: 7,
-  feedbackSlaHours: 24,
+  expiryWarningDays: 30,
+  feedbackSlaHours: 48,
   readonlyPreviewEnabled: false,
   shadowingEnabled: false,
   unentitledMaterialEntryEnabled: false
@@ -47,7 +27,6 @@ const form = reactive<SystemConfigDraft>({
 
 onMounted(() => {
   void loadPage()
-  void loadOcrQuota()
 })
 
 /**
@@ -123,35 +102,12 @@ async function saveConfig(): Promise<void> {
               :max="90"
               aria-label="权益即将到期阈值（天）"
           /></ElFormItem>
-          <ElFormItem label="OCR 功能开关"
-            ><div class="readonly-field">
-              {{
-                ocrQuota
-                  ? (ocrQuota.enabled ? '开启' : '关闭') +
-                    (ocrQuota.paid_disabled ? '（付费调用已禁用）' : '（按服务端费用配置）')
-                  : '正在读取现行配置'
-              }}
-            </div></ElFormItem
-          >
-          <ElFormItem label="OCR 月度内部安全上限"
-            ><div class="readonly-field">
-              {{
-                ocrQuota
-                  ? ocrQuota.monthly_limit + ' 次 · 剩余 ' + ocrQuota.remaining + ' 次'
-                  : '正在读取现行额度'
-              }}
-            </div></ElFormItem
-          >
           <ElFormItem label="跟读录音"
             ><div class="switch-field">
               <span>{{ form.shadowingEnabled ? '开启' : '关闭' }}</span
               ><ElSwitch v-model="form.shadowingEnabled" aria-label="跟读录音" /></div
           ></ElFormItem>
-          <RouterLink class="ocr-entry" to="/content/import">管理 OCR 开关与额度</RouterLink>
         </ElForm>
-        <ElAlert v-if="ocrQuotaError" :title="ocrQuotaError" :closable="false" type="error"
-          ><ElButton @click="loadOcrQuota">重试读取 OCR 配置</ElButton></ElAlert
-        >
       </AdminPanel>
       <div class="review-column">
         <AdminPanel
@@ -161,7 +117,7 @@ async function saveConfig(): Promise<void> {
         >
           <ul class="review-list">
             <li><strong>小程序类目</strong><span>以当前 AppID 审核结果为准</span></li>
-            <li><strong>OCR 费用</strong><span>百度控制台额度与付费状态需核实</span></li>
+            <li><strong>词语发音</strong><span>音色、预算与云用量由服务端集中配置</span></li>
             <li><strong>联系资料</strong><span>仅管理员可查看完整微信号</span></li>
             <li><strong>受限素材</strong><span>接口逐次校验权益</span></li>
           </ul>

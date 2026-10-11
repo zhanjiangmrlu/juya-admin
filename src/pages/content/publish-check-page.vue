@@ -7,6 +7,7 @@ import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ScenePreview from '@/features/content-editor/scene-preview.vue'
 import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
+import ProofreadingSetPanel from '@/features/proofreading/proofreading-set-panel.vue'
 import { createPublishAdapter } from '@/features/publishing/publish-adapter'
 import { publishCheckLabel } from '@/features/publishing/publish-check-labels'
 import { useAdminPreview } from '@/features/publishing/use-admin-preview'
@@ -79,6 +80,23 @@ async function handlePublish(): Promise<void> {
       </div>
       <ElButton type="primary" @click="handleCheck">运行发布检查</ElButton>
     </div>
+    <ProofreadingSetPanel
+      v-if="previewController.preview.value"
+      :candidates="[
+        {
+          contentType:
+            previewController.preview.value.content.template_type === 'word_card' ||
+            previewController.preview.value.content.template_type === 'vocabulary'
+              ? 'word_card'
+              : 'dialogue',
+          contentId: previewController.preview.value.sceneId,
+          revisionId,
+          content: previewController.preview.value.content,
+          title: previewController.preview.value.sceneTitle
+        }
+      ]"
+      @confirmed="handleCheck"
+    />
     <div class="publish-grid">
       <AdminPanel
         :title="ADMIN_SECTION_TITLES.publishCheck.validationPanel"
@@ -188,7 +206,7 @@ async function handlePublish(): Promise<void> {
         :disabled="!controller.canPublish.value"
         type="primary"
         @click="handlePublish"
-        >确认发布</ElButton
+        >确认发布这一候选</ElButton
       >
     </div>
   </section>

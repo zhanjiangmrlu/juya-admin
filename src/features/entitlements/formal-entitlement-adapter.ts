@@ -17,6 +17,14 @@ export interface FormalEntitlementPayload {
   reason?: string
   term: FormalEntitlementTerm | null
   userId: string
+  expectedVersion?: number
+}
+
+export interface FormalEntitlementPreview extends FormalEntitlement {
+  before: FormalEntitlement | null
+  actualOperation: string
+  expectedVersion: number
+  previewedAt: string
 }
 
 export interface FormalEntitlementAdapter {
@@ -28,68 +36,77 @@ export interface FormalEntitlementAdapter {
   preview(
     operation: FormalEntitlementOperation,
     payload: FormalEntitlementPayload
-  ): Promise<FormalEntitlement>
+  ): Promise<FormalEntitlementPreview>
 }
 
-/**
- * 创建正式权益预览与命令接口适配器
- *
- * @param client - 统一 API 客户端
- * @returns 正式权益接口适配器
- */
-export function createFormalEntitlementAdapter(client: ApiClient): FormalEntitlementAdapter {
-  return {
-    /**
-     * 执行正式权益写命令
-     *
-     * @param operation - 授予、续期、暂停、恢复或撤销操作
-     * @param payload - 用户、内容包、期限和可选原因
-     * @param idempotencyKey - 当前逻辑操作复用的幂等键
-     * @returns 服务端持久化后的正式权益
-     */
-    async execute(operation, payload, idempotencyKey) {
-      const response = await client.request<unknown>({
-        body: toApiPayload(payload),
-        idempotencyKey,
-        method: 'POST',
-        path: `/api/v1/admin/formal-entitlements/commands/${operation}`
-      })
-      return parseFormalEntitlement(response)
-    },
+export const /**
+   * 创建正式权益预览与命令接口适配器
+   *
+   * @param client - 统一 API 客户端
+   * @returns 正式权益接口适配器
+   */
+  createFormalEntitlementAdapter = (client: ApiClient): FormalEntitlementAdapter => {
+    return {
+      /**
+       * 执行正式权益写命令
+       *
+       * @param operation - 授予、续期、暂停、恢复或撤销操作
+       * @param payload - 用户、内容包、期限和可选原因
+       * @param idempotencyKey - 当前逻辑操作复用的幂等键
+       * @returns 服务端持久化后的正式权益
+       */
+      async execute(operation, payload, idempotencyKey) {
+        const response = await client.request<unknown>({
+          body: toApiPayload(payload),
+          idempotencyKey,
+          method: 'POST',
+          path: `/api/v1/admin/formal-entitlements/commands/${operation}`
+        })
+        return parseFormalEntitlement(response)
+      },
 
-    /**
-     * 从服务端预览正式权益操作结果且不落库
-     *
-     * @param operation - 需要预览的权益操作
-     * @param payload - 用户、内容包、期限和可选原因
-     * @returns 服务端计算的生效时间、到期时间与目标状态
-     */
-    async preview(operation, payload) {
-      const response = await client.request<unknown>({
-        body: toApiPayload(payload),
-        method: 'POST',
-        path: '/api/v1/admin/formal-entitlements/preview-operation',
-        query: { operation }
-      })
-      return parseFormalEntitlement(response)
+      /**
+       * 从服务端预览正式权益操作结果且不落库
+       *
+       * @param operation - 需要预览的权益操作
+       * @param payload - 用户、内容包、期限和可选原因
+       * @returns 服务端计算的生效时间、到期时间与目标状态
+       */
+      async preview(operation, payload) {
+        const response = await client.request<unknown>({
+          body: toApiPayload(payload),
+          method: 'POST',
+          path: '/api/v1/admin/formal-entitlements/preview-operation',
+          query: { operation }
+        })
+        if (!isRecord(response) || !isRecord(response.after))
+          throw new Error('权益预览缺少真实前后状态')
+        return {
+          ...parseFormalEntitlement(response.after),
+          before: response.before === null ? null : parseFormalEntitlement(response.before),
+          actualOperation: requireString(response, 'actual_operation'),
+          expectedVersion: requireNumber(response, 'expected_version'),
+          previewedAt: requireString(response, 'previewed_at')
+        }
+      }
     }
   }
-}
 
-/**
- * 将前端正式权益输入映射为接口字段
- *
- * @param payload - 前端正式权益输入
- * @returns 符合接口契约的下划线字段对象
- */
-function toApiPayload(payload: FormalEntitlementPayload): Record<string, unknown> {
-  return {
-    package_id: payload.packageId,
-    reason: payload.reason,
-    term: payload.term,
-    user_id: payload.userId
+const /**
+   * 将前端正式权益输入映射为接口字段
+   *
+   * @param payload - 前端正式权益输入
+   * @returns 符合接口契约的下划线字段对象
+   */
+  toApiPayload = (payload: FormalEntitlementPayload): Record<string, unknown> => {
+    return {
+      package_id: payload.packageId,
+      reason: payload.reason,
+      term: payload.term,
+      user_id: payload.userId,
+      expected_version: payload.expectedVersion
+    }
   }
-}
 
 /**
  * 校验并映射服务端正式权益响应

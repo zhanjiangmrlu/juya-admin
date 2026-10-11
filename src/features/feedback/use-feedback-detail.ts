@@ -35,6 +35,7 @@ export function useFeedbackDetail(
   const screenshotUrl = ref<string | null>(null)
   const screenshotExpiresAt = ref<string | null>(null)
   let controller: AbortController | null = null
+  let sequence = 0
 
   /**
    * 加载当前反馈详情
@@ -43,27 +44,36 @@ export function useFeedbackDetail(
    */
   async function load(): Promise<void> {
     controller?.abort()
-    controller = new AbortController()
+    const request = ++sequence
+    const pending = new AbortController()
+    controller = pending
+    ticket.value = null
+    screenshotUrl.value = null
+    screenshotExpiresAt.value = null
     isLoading.value = true
     error.value = null
     apiError.value = null
     try {
-      ticket.value = await adapter.getDetail(toValue(ticketId), controller.signal)
+      const result = await adapter.getDetail(toValue(ticketId), pending.signal)
+      if (!pending.signal.aborted && request === sequence) ticket.value = result
     } catch (failure) {
-      if (!controller.signal.aborted)
+      if (!pending.signal.aborted && request === sequence)
         error.value = failure instanceof ApiError ? failure.message : '反馈详情加载失败'
-      if (!controller.signal.aborted) apiError.value = failure instanceof ApiError ? failure : null
+      if (!pending.signal.aborted && request === sequence)
+        apiError.value = failure instanceof ApiError ? failure : null
     } finally {
-      if (!controller.signal.aborted) isLoading.value = false
+      if (!pending.signal.aborted && request === sequence) isLoading.value = false
     }
   }
 
   /** 每次按需向服务端重新签发截图临时地址，地址只保存在内存。 */
   async function loadScreenshot(): Promise<void> {
+    const request = sequence
     error.value = null
     apiError.value = null
     try {
       const signed = await adapter.getScreenshotUrl(toValue(ticketId))
+      if (request !== sequence) return
       screenshotUrl.value = signed.url
       screenshotExpiresAt.value = signed.expiresAt
     } catch (failure) {
@@ -79,6 +89,7 @@ export function useFeedbackDetail(
    * @returns 无返回值
    */
   function dispose(): void {
+    sequence++
     controller?.abort()
     controller = null
     ticket.value = null

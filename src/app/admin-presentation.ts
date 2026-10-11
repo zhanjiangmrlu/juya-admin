@@ -16,8 +16,8 @@ export const ADMIN_DESIGN_TITLES: Readonly<Record<string, string>> = {
   A15: '问题反馈详情',
   A16: '反馈回复与关闭',
   A17: '内容列表',
-  A18: '批量上传与 OCR',
-  A19: 'OCR候选对照',
+  A18: '统一内容导入',
+  A19: 'OCR 功能已取消',
   A20: '结构化内容校对',
   A21: '整段音频与逐句标时',
   A22: '预览与发布检查',
@@ -29,9 +29,8 @@ export const ADMIN_DESIGN_TITLES: Readonly<Record<string, string>> = {
 
 export const CONTENT_STAGE_TITLES: Readonly<Record<string, string>> = {
   draft: '新建场景草稿',
-  ocr: 'OCR候选对照',
   proofread: '结构化内容校对',
-  audio: '整段音频与逐句标时'
+  audio: '实际单句切片与边界调整'
 }
 
 export const ADMIN_DESIGN_DESCRIPTIONS: Readonly<Record<string, string>> = {
