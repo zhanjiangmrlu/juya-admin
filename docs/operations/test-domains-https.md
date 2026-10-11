@@ -106,6 +106,7 @@ sudo certbot renew --cert-name juya-test --dry-run --run-deploy-hooks --no-rando
 - 四个域名的外网证书校验成功；管理后台登录页面与入口 JavaScript 均返回 200。
 - 管理 API 健康检查返回 `ready`，MySQL、schema、Redis、configuration 均为 true。
 - 后台未登录的 `/api/v1/admin/session` 返回 401；独立管理 API 域名的内部接口路径返回 404。
+- 按用户要求将测试管理员密码与本地默认值对齐并清除失败计数，撤销旧会话；公网 HTTP 验证登录返回 200、安全 Cookie 会话恢复返回 200、退出返回 204，退出后会话检查返回 401。验证会话已退出，浏览器页面操作与真实 OSS 上传仍待验收。
 - 四个 HTTP 入口返回 301，ACME HTTP 验证路径仍可用。
 - 小程序 API 和 H5 返回预期 503，尚不能作为业务可用验收。
 - 原 `/etc/nginx/conf.d/juya-private.conf` SHA256 未改变；原有五个容器保持运行。
