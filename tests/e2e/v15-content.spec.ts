@@ -60,6 +60,11 @@ test('ZIP逐行排除、缺省确认与明确哈希范围提交', async ({ admin
   let confirmation: unknown = null
   let key = ''
   await page.route('**/api/v1/admin/content-imports**', async (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path.endsWith('/limits'))
+      return route.fulfill({ json: { max_package_bytes: 104857600, max_items: 1000 } })
+    if (path.endsWith('/stages'))
+      return route.fulfill({ json: { batch_id: 'IMPORT-1', stages: [] } })
     if (route.request().method() === 'POST' && route.request().url().endsWith('/confirm')) {
       confirmation = route.request().postDataJSON()
       key = route.request().headers()['idempotency-key'] || ''
@@ -134,3 +139,53 @@ for (const width of [1280, 1440, 1920, 390]) {
     expect(adminApi.unexpectedRequests).toEqual([])
   })
 }
+
+test('实际失败阶段必须明确确认后发出恢复命令，并读取新阶段状态', async ({ adminApi, page }) => {
+  const failed = {
+    public_id: 'FAILED-STAGE',
+    item_id: 'FAILED-BATCH',
+    stage: 'VALIDATE',
+    status: 'FAILED',
+    input_hash: 'a'.repeat(64),
+    config_version: 'parser-v1',
+    fencing_version: 3,
+    attempt: 1,
+    error_code: 'LOCAL_TEST_FAILURE'
+  }
+  let retried: unknown = null
+  await page.route('**/api/v1/admin/content-stages/**', (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path.endsWith('/retry')) {
+      retried = route.request().postDataJSON()
+      return route.fulfill({ status: 202, json: { stage_id: 'NEXT-STAGE', status: 'QUEUED' } })
+    }
+    return route.fulfill({
+      json: path.endsWith('/NEXT-STAGE')
+        ? { ...failed, public_id: 'NEXT-STAGE', status: 'SUCCEEDED', attempt: 2 }
+        : failed
+    })
+  })
+  await loginAsAdmin(page)
+  await navigateInApp(page, '/content/import')
+  await page.getByRole('textbox', { name: '失败阶段编号', exact: true }).fill('FAILED-STAGE')
+  await page.getByRole('button', { name: '读取阶段状态', exact: true }).click()
+  const retry = page.getByRole('button', { name: '恢复明确失败阶段', exact: true })
+  await expect(retry).toBeDisabled()
+  await page
+    .locator('.content-stage-recovery-panel .el-checkbox')
+    .filter({ hasText: '明确重试这个失败阶段' })
+    .click()
+  await expect(
+    page.getByRole('checkbox', { name: '明确重试这个失败阶段', exact: true })
+  ).toBeChecked()
+  await expect(retry).toBeEnabled()
+  await retry.click()
+  await expect
+    .poll(() => retried)
+    .toMatchObject({ expected_fence: 3, input_hash: failed.input_hash, manual_confirmed: true })
+  await expect(page.getByRole('textbox', { name: '失败阶段编号', exact: true })).toHaveValue(
+    'NEXT-STAGE'
+  )
+  await expect(page.locator('.content-stage-recovery-panel')).toContainText('阶段成功')
+  expect(adminApi.unexpectedRequests).toEqual([])
+})

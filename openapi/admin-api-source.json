@@ -1,13 +1,13 @@
 {
-  "backend_commit": "b1e347d93c09a998da834b05e17d59ede7da07ab",
-  "source_document": "../doc/juya-admin-api-V1.5接口文档-20261011.md",
-  "source_openapi": "../doc/接口文档/20261011-V1.5/admin-api.openapi.json",
-  "source_sha256": "501dd9daf40402db6eee1fe6976ca22ecac465c56b6e9b983ddd894456e0de19",
-  "semantic_sha256": "ce54f562772fe305b402950cc2fed8cb93894ae418038cf25eace059a93727fe",
-  "paths": 131,
-  "operations": 147,
-  "management_operations": 120,
-  "internal_operations": 25,
+  "backend_commit": "76da6a5fc3482bce4d30773d3d08c60d4e964433",
+  "source_document": "../juya-admin-api/docs/contracts/v15-routes.md",
+  "source_openapi": "../juya-admin-api/docs/contracts/v15-openapi.json",
+  "source_sha256": "f15d55991a5a661a4bde82910b51cb8979e5f6f8705ff861965fe6c30cb24b54",
+  "semantic_sha256": "c48549151c334f3b5f501393b8c2de00c0086358f7b2fc49607871cea2f0f8b0",
+  "paths": 152,
+  "operations": 169,
+  "management_operations": 140,
+  "internal_operations": 27,
   "health_operations": 2,
-  "schemas": 153
+  "schemas": 169
 }

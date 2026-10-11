@@ -93,8 +93,19 @@ export const /**
         run(
           () => adapter.load(id),
           (result) => {
+            if (batch.value?.id !== result.id) {
+              previewResult.value = null
+              selected.value = []
+              excluded.value = []
+              defaultConfirmations.value = []
+              diffConfirmations.value = []
+              stale.value = false
+              confirmationSignature = ''
+            }
             batch.value = result
-            phase.value = ['COMPLETED', 'CONFIRMED', 'PARTIAL', 'CANCELLED'].includes(result.status)
+            phase.value = ['COMPLETED', 'CONFIRMED', 'PARTIAL', 'CANCELLED', 'FAILED'].includes(
+              result.status
+            )
               ? 'result'
               : 'validation'
           }
@@ -177,21 +188,6 @@ export const /**
           }
         )
       }
-    const /** 只重试失败项，保留已成功阶段
-       * @returns 当前操作结果或完成状态
-       */ retryFailed = async (): Promise<void> => {
-        if (!batch.value) return
-        const ids = batch.value.items
-          .filter((item) => item.status === 'FAILED')
-          .map((item) => item.id)
-        if (!ids.length) return
-        await run(
-          () => adapter.retry(batch.value!.id, ids, createIdempotencyKey()),
-          (result) => {
-            batch.value = result
-          }
-        )
-      }
     const /** 取消服务端尚未开始项
        * @returns 当前操作结果或完成状态
        */ cancel = async (): Promise<void> => {
@@ -230,7 +226,6 @@ export const /**
       validate,
       preview,
       confirm,
-      retryFailed,
       cancel,
       dispose
     }

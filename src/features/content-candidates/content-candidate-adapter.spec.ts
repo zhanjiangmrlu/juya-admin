@@ -1,8 +1,18 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createContentCandidateAdapter, validCandidateSelection } from './content-candidate-adapter'
+import {
+  candidateBelongsToRevision,
+  createContentCandidateAdapter,
+  validCandidateSelection
+} from './content-candidate-adapter'
 
 describe('human reviewed production candidates', () => {
+  it('restores only a verified revision and never overrides a mismatching server origin', () => {
+    expect(candidateBelongsToRevision({ revision_id: 'REV' }, 'REV')).toBe(true)
+    expect(candidateBelongsToRevision({ revision_id: 'OTHER' }, 'REV', 'REV')).toBe(false)
+    expect(candidateBelongsToRevision({}, 'REV')).toBe(false)
+    expect(candidateBelongsToRevision({}, 'REV', 'REV')).toBe(true)
+  })
   it('uses Unicode code point offsets and requires an exact source occurrence', () => {
     const row = { source_id: 'sentence', english: 'hello', chinese: '你好', start: 2, end: 7 }
     expect(validCandidateSelection(row, { sentence: '😀 hello hello' })).toBe(true)

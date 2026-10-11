@@ -119,6 +119,8 @@ onBeforeUnmount(() => {
         ><template #default="{ row }">{{
           row.trialEnabled === null ? '状态未返回' : row.trialEnabled ? '允许' : '关闭'
         }}</template></ElTableColumn
+      ><ElTableColumn label="全局顺序" min-width="100"
+        ><template #default="{ row }">{{ row.sortOrder ?? '未返回' }}</template></ElTableColumn
       ><ElTableColumn label="操作" min-width="150"
         ><template #default="{ row }"
           ><ElButton

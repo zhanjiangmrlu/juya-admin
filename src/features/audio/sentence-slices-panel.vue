@@ -43,7 +43,13 @@ const statusLabels: Record<string, string> = {
   PENDING: '等待切片',
   RUNNING: '切片生成中',
   FAILED: '生成失败',
-  STALE: '边界已变化'
+  STALE: '边界已变化',
+  READY_TO_LISTEN: '实际切片可试听',
+  PREPARING: '切片处理中',
+  REVIEW_PENDING: '素材审核中',
+  UNALIGNED: '尚未确认边界',
+  SOURCE_NOT_READY: '原音频未准备',
+  CANCELLED: '任务已取消'
 }
 const /**
    * 绑定人工作业到实际切片资源与依赖

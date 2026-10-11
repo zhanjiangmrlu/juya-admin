@@ -2,6 +2,7 @@
 import { ElMessage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 
+import PronunciationStatusPanel from '@/features/audio/pronunciation-status-panel.vue'
 import { createContentAdapter } from '@/features/content/content-adapter'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
@@ -192,8 +193,13 @@ async function saveEntry(index: number): Promise<void> {
       <p v-if="modern">
         固定发音目标：{{
           row.pronunciation_target_id || '服务端准备后返回'
-        }}；人工音频可通过独立素材包明确绑定，状态接口尚未公开
+        }}；人工音频可通过独立素材包明确绑定
       </p>
+      <PronunciationStatusPanel
+        v-if="modern && row.pronunciation_target_id"
+        :target-id="row.pronunciation_target_id"
+        :disabled="candidate || mediaRows.has(row)"
+      />
       <LexiconMediaFields
         v-if="!candidate"
         :entry="row"

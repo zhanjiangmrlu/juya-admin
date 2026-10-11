@@ -14,6 +14,11 @@ import {
   validateOpenScenes,
   validatePreviewScenes
 } from '@/features/discovery/discovery-model'
+import {
+  createLearningModulesAdapter,
+  type LearningModuleRow
+} from '@/features/discovery/learning-modules-adapter'
+import LearningModulesPanel from '@/features/discovery/learning-modules-panel.vue'
 import { useDiscoveryConfig } from '@/features/discovery/use-discovery-config'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
@@ -29,6 +34,13 @@ interface ReadonlyDiscoveryDraft {
 }
 
 const controller = useDiscoveryConfig(createDiscoveryAdapter(useAdminApiClient()))
+const moduleMetadataAvailable = createLearningModulesAdapter(useAdminApiClient()).available
+const /**
+   * 同步已实际保存模块的启用值，其他配置仍以原全局版本检查冲突
+   * @param row - 服务端确认的模块配置
+   */ moduleSaved = (row: LearningModuleRow): void => {
+    form.learningModules[row.type] = row.enabled
+  }
 const form = reactive<{
   learningModules: Record<string, boolean>
   openScenes: string[]
@@ -229,7 +241,8 @@ onMounted(load)
             <ElButton link type="danger" @click="form.previews.splice(index, 1)">移除</ElButton>
           </div>
         </AdminPanel>
-        <AdminPanel :title="ADMIN_SECTION_TITLES.discoveryConfig.learningModules">
+        <LearningModulesPanel v-if="moduleMetadataAvailable" @saved="moduleSaved" />
+        <AdminPanel v-else :title="ADMIN_SECTION_TITLES.discoveryConfig.learningModules">
           <ElEmpty
             v-if="Object.keys(form.learningModules).length === 0"
             description="暂无学习模块配置"

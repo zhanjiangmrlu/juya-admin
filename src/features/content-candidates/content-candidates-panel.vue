@@ -13,7 +13,11 @@ import type {
 import type { SceneRevision } from '@/features/content/content-model'
 import type { SceneContent } from '@/features/content-editor/scene-form'
 
-import { createContentCandidateAdapter, validCandidateSelection } from './content-candidate-adapter'
+import {
+  candidateBelongsToRevision,
+  createContentCandidateAdapter,
+  validCandidateSelection
+} from './content-candidate-adapter'
 
 const props = defineProps<{
   revisionId: string
@@ -41,7 +45,7 @@ const origins = new Map<string, string>()
 const current = computed(
   () =>
     result.value?.candidate.kind === props.kind &&
-    origins.get(result.value.id) === props.revisionId &&
+    candidateBelongsToRevision(result.value, props.revisionId, origins.get(result.value.id)) &&
     result.value.candidate.edit_version === props.expectedVersion &&
     !props.dirty &&
     Object.entries(result.value.candidate.sources).every(([id, text]) =>
@@ -163,8 +167,8 @@ const /**
     <template v-if="result">
       <p>任务 {{ result.id }} · {{ result.status }} · 草稿 v{{ result.candidate.edit_version }}</p>
       <ElAlert
-        v-if="origins.get(result.id) !== revisionId"
-        title="接口尚未返回任务所属草稿，恢复结果只供参考，无法采纳；请对当前草稿明确请求候选"
+        v-if="!candidateBelongsToRevision(result, revisionId, origins.get(result.id))"
+        title="候选所属草稿与当前草稿不一致或无法核验，当前只供参考，不能采纳"
         type="warning"
         :closable="false"
       />

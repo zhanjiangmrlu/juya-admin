@@ -14,12 +14,10 @@ const checkLabels: Readonly<Record<string, string>> = {
   ICONS_INVALID: '请上传并确认词汇或短语图标'
 }
 
-/**
- * 将发布检查码转换为可操作的中文说明，未知检查码保留原文。
- *
- * @param code - 服务端返回的发布检查码
- * @returns 检查项目说明
- */
-export function publishCheckLabel(code: string): string {
-  return checkLabels[code] ?? code
-}
+export const /**
+   * 将发布检查码转换为可操作的中文说明，未知检查码保留原文
+   * @param code - 服务端返回的发布检查码
+   * @returns 检查项目说明
+   */ publishCheckLabel = (code: string): string => {
+    return Object.hasOwn(checkLabels, code) ? checkLabels[code]! : code
+  }

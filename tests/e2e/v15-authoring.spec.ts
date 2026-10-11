@@ -385,3 +385,102 @@ test('固定短文抽样完成后只批准明确选择且不伪造听音事实',
   })
   expect(adminApi.unexpectedRequests).toEqual([])
 })
+
+test('短文替换音频后迟到的旧签名不能覆盖新文件或解锁旧试听确认', async ({ adminApi, page }) => {
+  const audioA = {
+    target_id: 'FULL-A',
+    asset_id: 'AUDIO-A',
+    version_id: 'VERSION-A',
+    duration_ms: 1000
+  }
+  const audioB = {
+    target_id: 'FULL-B',
+    asset_id: 'AUDIO-B',
+    version_id: 'VERSION-B',
+    duration_ms: 2000
+  }
+  let current = { ...structuredClone(reading), audio: audioA }
+  let releaseA!: () => void
+  let signingA = false
+  await page.route('**/api/v1/admin/media/assets/AUDIO-A/signed-url', async (route) => {
+    signingA = true
+    await new Promise<void>((done) => {
+      releaseA = done
+    })
+    await route.fulfill({
+      json: { url: '/__audio-A.wav', expires_at: new Date(Date.now() + 60000).toISOString() }
+    })
+  })
+  await page.route('**/api/v1/admin/media/assets/AUDIO-B/signed-url', (route) =>
+    route.fulfill({
+      json: { url: '/__audio-B.wav', expires_at: new Date(Date.now() + 60000).toISOString() }
+    })
+  )
+  await page.route('**/api/v1/admin/content/short-readings/RACE-READING**', (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path.endsWith('/audio-upload-target/bind')) {
+      current = { ...current, audio: audioB }
+      return route.fulfill({ json: { version: 2 } })
+    }
+    if (path.endsWith('/audio-upload-target'))
+      return route.fulfill({
+        json: {
+          id: 'FULL-B',
+          target_type: 'FULL',
+          content_id: 'RACE-READING',
+          revision_id: 'RACE-REV'
+        }
+      })
+    return route.fulfill({
+      json: path.includes('/revisions/')
+        ? {
+            public_id: 'RACE-REV',
+            status: 'DRAFT',
+            edit_version: current.audio === audioA ? 1 : 2,
+            content_snapshot: current,
+            content_hash: 'a'.repeat(64)
+          }
+        : { public_id: 'RACE-READING', version: 1, draft_revision_id: 'RACE-REV', status: 'DRAFT' }
+    })
+  })
+  await page.route('**/api/v1/admin/media/upload-policies', (route) =>
+    route.fulfill({ json: { upload_url: '/__audio-upload', fields: { key: 'audio/test.wav' } } })
+  )
+  await page.route('**/__audio-upload', (route) => route.fulfill({ status: 204 }))
+  await page.route('**/api/v1/admin/media/uploads/confirm', (route) =>
+    route.fulfill({ json: { id: 'AUDIO-B', status: 'CONFIRMED' } })
+  )
+  await page.route('**/api/v1/admin/media/audio-targets/FULL-B/versions', (route) =>
+    route.fulfill({
+      json: {
+        id: 'VERSION-B',
+        target_id: 'FULL-B',
+        asset_id: 'AUDIO-B',
+        status: 'CANDIDATE',
+        version_no: 1,
+        source: 'UPLOAD',
+        created_at: new Date().toISOString()
+      }
+    })
+  )
+  await loginAsAdmin(page)
+  await navigateInApp(page, '/content/short-readings/RACE-READING/edit')
+  await expect.poll(() => signingA).toBe(true)
+  await page
+    .locator('.short-reading-fields input[type=file]')
+    .last()
+    .setInputFiles({
+      name: 'test.wav',
+      mimeType: 'audio/wav',
+      buffer: Buffer.from('fixture bytes for transport race only')
+    })
+  const player = page.locator('.short-reading-fields audio')
+  await expect(player).toHaveAttribute('src', /__audio-B.wav$/)
+  releaseA()
+  await page.waitForResponse((response) => response.url().endsWith('/AUDIO-A/signed-url'))
+  await expect(player).toHaveAttribute('src', /__audio-B.wav$/)
+  await expect(
+    page.getByRole('checkbox', { name: '已实际试听完整音频，确认与本篇正文一致' })
+  ).toBeDisabled()
+  expect(adminApi.unexpectedRequests).toEqual([])
+})

@@ -3,6 +3,7 @@ import { hasAdminOperation } from '@/shared/contracts/contract-capabilities'
 
 import type { ApiClient } from '@/services/api/api-client'
 
+import { createShortReadingAudioAdapter } from './short-reading-audio-adapter'
 import {
   normalizeShortReading,
   type ShortReadingAdapter,
@@ -16,6 +17,7 @@ export const /**
    * @returns 纯阅读内容适配器
    */ createShortReadingAdapter = (client: ApiClient): ShortReadingAdapter => {
     const snapshots = new Map<string, ShortReadingSnapshot>()
+    const audioUploads = createShortReadingAudioAdapter(client)
     const /**
        * 读取独立内容及当前草稿或发布快照
        * @param id - 短文稳定编号
@@ -49,7 +51,8 @@ export const /**
           status: String(revision.status ?? row.status),
           content: normalizeShortReading(raw as Record<string, unknown>),
           trialEnabled: typeof row.trial_enabled === 'boolean' ? row.trial_enabled : null,
-          trialVersion: Number(row.version)
+          trialVersion: Number(row.version),
+          sortOrder: Number.isInteger(row.sort_order) ? Number(row.sort_order) : null
         }
         snapshots.set(revisionId, result)
         return result
@@ -65,7 +68,11 @@ export const /**
       }
     return {
       available: hasAdminOperation(base, 'post'),
-      audioAvailable: false,
+      audioAvailable: hasAdminOperation(
+        `${base}/{identity}/revisions/{revision_id}/audio-upload-target`,
+        'post'
+      ),
+      sortAvailable: hasAdminOperation(`${base}/{identity}/sort-order`, 'post'),
       load,
       /**
        * 创建独立纯阅读草稿
@@ -130,8 +137,44 @@ export const /**
         })
         return { enabled, version: result.version }
       },
-      /** 告知短文专用上传目标尚未提供 */ uploadAudio: async () => {
-        throw new Error('服务尚未提供短文专用全文音频上传目标，可通过明确绑定的统一内容包导入')
+      /**
+       * 绑定上传后重新读取实际内容与编辑版本
+       * @param snapshot - 当前已保存短文
+       * @param file - 管理员选择音频
+       * @param key - 上传和绑定的固定重试身份
+       * @param progress - 实际上传进度
+       * @param signal - 离页取消信号
+       * @returns 绑定后的实际草稿
+       */ uploadAudio: async (snapshot, file, key, progress, signal) => {
+        await audioUploads.upload(snapshot, file, key, progress, signal)
+        return load(snapshot.id)
+      },
+      /**
+       * 保存全局运营顺序，不修改历史正文或段落快照
+       * @param id - 短文固定内容编号
+       * @param order - int32 全局顺序
+       * @param expectedVersion - 当前内容版本
+       * @param key - 同载荷失败重试身份
+       * @returns 实际顺序与新内容版本
+       */ sort: async (id, order, expectedVersion, key) => {
+        if (!Number.isInteger(order) || order < -2147483648 || order > 2147483647)
+          throw new Error('短文排序必须为 int32 整数')
+        const result = await client.request<{ version: number; sort_order: number }>({
+          method: 'POST',
+          path: `${base}/${encodeURIComponent(id)}/sort-order`,
+          headers: { 'Idempotency-Key': key },
+          body: { expected_version: expectedVersion, sort_order: order }
+        })
+        for (const [revisionId, snapshot] of snapshots) {
+          if (snapshot.id === id)
+            snapshots.set(revisionId, {
+              ...snapshot,
+              version: result.version,
+              trialVersion: result.version,
+              sortOrder: result.sort_order
+            })
+        }
+        return { version: result.version, sortOrder: result.sort_order }
       },
       /**
        * 检查当前独立短文候选

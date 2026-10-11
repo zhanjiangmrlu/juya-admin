@@ -4,15 +4,15 @@
  */
 
 export interface paths {
-  '/health/live': {
+  '/api/v1/admin/analytics': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    /** Live */
-    get: operations['live_health_live_get']
+    /** Query Analytics */
+    get: operations['query_analytics_api_v1_admin_analytics_get']
     put?: never
     post?: never
     delete?: never
@@ -21,15 +21,15 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/health/ready': {
+  '/api/v1/admin/analytics/export': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    /** Ready */
-    get: operations['ready_health_ready_get']
+    /** Analytics Export */
+    get: operations['analytics_export_api_v1_admin_analytics_export_get']
     put?: never
     post?: never
     delete?: never
@@ -38,15 +38,272 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/content/usage': {
+  '/api/v1/admin/audit-events': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    /** Summary */
-    get: operations['summary_api_v1_admin_content_usage_get']
+    /** List Audit Events */
+    get: operations['list_audit_events_api_v1_admin_audit_events_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/campaigns': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Campaigns */
+    get: operations['list_campaigns_api_v1_admin_campaigns_get']
+    put?: never
+    /** Create Campaign */
+    post: operations['create_campaign_api_v1_admin_campaigns_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/campaigns/{campaign_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Campaign */
+    get: operations['get_campaign_api_v1_admin_campaigns__campaign_id__get']
+    /** Update Campaign */
+    put: operations['update_campaign_api_v1_admin_campaigns__campaign_id__put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/campaigns/{campaign_id}/commands/{operation}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Command Campaign */
+    post: operations['command_campaign_api_v1_admin_campaigns__campaign_id__commands__operation__post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/campaigns/{campaign_id}/versions/copy': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Copy Version */
+    post: operations['copy_version_api_v1_admin_campaigns__campaign_id__versions_copy_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/contact-corrections': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Corrections */
+    get: operations['list_corrections_api_v1_admin_contact_corrections_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/contact-corrections/{correction_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Correction Detail */
+    get: operations['correction_detail_api_v1_admin_contact_corrections__correction_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/contact-corrections/{correction_id}/commands/{command}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Decide Correction */
+    post: operations['decide_correction_api_v1_admin_contact_corrections__correction_id__commands__command__post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-imports': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Upload */
+    post: operations['upload_api_v1_admin_content_imports_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-imports/limits': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Limits */
+    get: operations['limits_api_v1_admin_content_imports_limits_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-imports/{batch_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Preview */
+    get: operations['preview_api_v1_admin_content_imports__batch_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-imports/{batch_id}/cancel': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Cancel */
+    post: operations['cancel_api_v1_admin_content_imports__batch_id__cancel_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-imports/{batch_id}/confirm': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Confirm */
+    post: operations['confirm_api_v1_admin_content_imports__batch_id__confirm_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-imports/{batch_id}/resources/preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Preview */
+    post: operations['preview_api_v1_admin_content_imports__batch_id__resources_preview_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-imports/{batch_id}/resources/preview-content': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Preview Content */
+    get: operations['preview_content_api_v1_admin_content_imports__batch_id__resources_preview_content_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-imports/{batch_id}/stages': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Batch Stages */
+    get: operations['batch_stages_api_v1_admin_content_imports__batch_id__stages_get']
     put?: never
     post?: never
     delete?: never
@@ -123,32 +380,15 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/content-imports': {
+  '/api/v1/admin/content-packages': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    get?: never
-    put?: never
-    /** Upload */
-    post: operations['upload_api_v1_admin_content_imports_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content-imports/{batch_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Preview */
-    get: operations['preview_api_v1_admin_content_imports__batch_id__get']
+    /** List Packages */
+    get: operations['list_packages_api_v1_admin_content_packages_get']
     put?: never
     post?: never
     delete?: never
@@ -157,24 +397,24 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/content-imports/{batch_id}/confirm': {
+  '/api/v1/admin/content-stages/{stage_id}': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    get?: never
+    /** Stage */
+    get: operations['stage_api_v1_admin_content_stages__stage_id__get']
     put?: never
-    /** Confirm */
-    post: operations['confirm_api_v1_admin_content_imports__batch_id__confirm_post']
+    post?: never
     delete?: never
     options?: never
     head?: never
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/content-imports/{batch_id}/cancel': {
+  '/api/v1/admin/content-stages/{stage_id}/retry': {
     parameters: {
       query?: never
       header?: never
@@ -183,8 +423,180 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Cancel */
-    post: operations['cancel_api_v1_admin_content_imports__batch_id__cancel_post']
+    /** Retry */
+    post: operations['retry_api_v1_admin_content_stages__stage_id__retry_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/candidates/{candidate_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get */
+    get: operations['get_api_v1_admin_content_candidates__candidate_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/candidates/{candidate_id}/adoptions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Adopt */
+    post: operations['adopt_api_v1_admin_content_candidates__candidate_id__adoptions_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/discovery-config': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Discovery Config */
+    get: operations['get_discovery_config_api_v1_admin_content_discovery_config_get']
+    /** Save Discovery Config */
+    put: operations['save_discovery_config_api_v1_admin_content_discovery_config_put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/imports': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Import Images */
+    post: operations['import_images_api_v1_admin_content_imports_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/learning-modules': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Listing */
+    get: operations['listing_api_v1_admin_content_learning_modules_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/learning-modules/{module_type}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Update */
+    put: operations['update_api_v1_admin_content_learning_modules__module_type__put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/lexicon': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Lexicon */
+    get: operations['list_lexicon_api_v1_admin_content_lexicon_get']
+    put?: never
+    /** Create Lexicon */
+    post: operations['create_lexicon_api_v1_admin_content_lexicon_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/lexicon/{entry_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Update Lexicon */
+    put: operations['update_lexicon_api_v1_admin_content_lexicon__entry_id__put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/open-scenes': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Replace Open Scenes */
+    put: operations['replace_open_scenes_api_v1_admin_content_open_scenes_put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/preview-configs/{series_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Replace Preview Scenes */
+    put: operations['replace_preview_scenes_api_v1_admin_content_preview_configs__series_id__put']
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -225,7 +637,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/content/proofreading/{set_id}/samples': {
+  '/api/v1/admin/content/proofreading/{set_id}/complete': {
     parameters: {
       query?: never
       header?: never
@@ -234,8 +646,8 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Append */
-    post: operations['append_api_v1_admin_content_proofreading__set_id__samples_post']
+    /** Complete */
+    post: operations['complete_api_v1_admin_content_proofreading__set_id__complete_post']
     delete?: never
     options?: never
     head?: never
@@ -293,7 +705,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/content/proofreading/{set_id}/complete': {
+  '/api/v1/admin/content/proofreading/{set_id}/samples': {
     parameters: {
       query?: never
       header?: never
@@ -302,8 +714,59 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Complete */
-    post: operations['complete_api_v1_admin_content_proofreading__set_id__complete_post']
+    /** Append */
+    post: operations['append_api_v1_admin_content_proofreading__set_id__samples_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/publication-ranges': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Preview */
+    post: operations['preview_api_v1_admin_content_publication_ranges_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/publication-ranges/{token}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Recover */
+    get: operations['recover_api_v1_admin_content_publication_ranges__token__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/publication-ranges/{token}/confirm': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Confirm */
+    post: operations['confirm_api_v1_admin_content_publication_ranges__token__confirm_post']
     delete?: never
     options?: never
     head?: never
@@ -327,17 +790,52 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/content/revisions/{revision_id}/sentences/{sentence_id}/slice-preview': {
+  '/api/v1/admin/content/revisions/{revision_id}': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    /** Preview */
-    get: operations['preview_api_v1_admin_content_revisions__revision_id__sentences__sentence_id__slice_preview_get']
-    put?: never
+    /** Get Revision */
+    get: operations['get_revision_api_v1_admin_content_revisions__revision_id__get']
+    /** Save Revision */
+    put: operations['save_revision_api_v1_admin_content_revisions__revision_id__put']
     post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/revisions/{revision_id}/candidates': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Queue */
+    post: operations['queue_api_v1_admin_content_revisions__revision_id__candidates_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/revisions/{revision_id}/commands/publish': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Publish Revision */
+    post: operations['publish_revision_api_v1_admin_content_revisions__revision_id__commands_publish_post']
     delete?: never
     options?: never
     head?: never
@@ -355,6 +853,57 @@ export interface paths {
     put?: never
     /** Entry */
     post: operations['entry_api_v1_admin_content_revisions__revision_id__entries__entry_id__confirm_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/revisions/{revision_id}/preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Admin Preview */
+    get: operations['admin_preview_api_v1_admin_content_revisions__revision_id__preview_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/revisions/{revision_id}/publish-checks': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Validate Publish */
+    post: operations['validate_publish_api_v1_admin_content_revisions__revision_id__publish_checks_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/revisions/{revision_id}/resources/{resource_id}/signed-url': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Draft Resource */
+    get: operations['draft_resource_api_v1_admin_content_revisions__revision_id__resources__resource_id__signed_url_get']
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -395,32 +944,15 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/content/revisions/{revision_id}/candidates': {
+  '/api/v1/admin/content/revisions/{revision_id}/sentences/{sentence_id}/slice-preview': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    get?: never
-    put?: never
-    /** Queue */
-    post: operations['queue_api_v1_admin_content_revisions__revision_id__candidates_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/candidates/{candidate_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get */
-    get: operations['get_api_v1_admin_content_candidates__candidate_id__get']
+    /** Preview */
+    get: operations['preview_api_v1_admin_content_revisions__revision_id__sentences__sentence_id__slice_preview_get']
     put?: never
     post?: never
     delete?: never
@@ -429,7 +961,59 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/content/candidates/{candidate_id}/adoptions': {
+  '/api/v1/admin/content/revisions/{revision_id}/sentences/{sentence_id}/slice-state': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Slice State */
+    get: operations['slice_state_api_v1_admin_content_revisions__revision_id__sentences__sentence_id__slice_state_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/scenes': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Scenes */
+    get: operations['list_scenes_api_v1_admin_content_scenes_get']
+    put?: never
+    /** Create Scene */
+    post: operations['create_scene_api_v1_admin_content_scenes_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/scenes/{scene_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Scene */
+    get: operations['get_scene_api_v1_admin_content_scenes__scene_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/scenes/{scene_id}/commands/offline': {
     parameters: {
       query?: never
       header?: never
@@ -438,8 +1022,44 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Adopt */
-    post: operations['adopt_api_v1_admin_content_candidates__candidate_id__adoptions_post']
+    /** Offline Scene */
+    post: operations['offline_scene_api_v1_admin_content_scenes__scene_id__commands_offline_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/scenes/{scene_id}/revisions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Revision History */
+    get: operations['revision_history_api_v1_admin_content_scenes__scene_id__revisions_get']
+    put?: never
+    /** Create Revision */
+    post: operations['create_revision_api_v1_admin_content_scenes__scene_id__revisions_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/series': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Series */
+    get: operations['list_series_api_v1_admin_content_series_get']
+    put?: never
+    /** Create Series */
+    post: operations['create_series_api_v1_admin_content_series_post']
     delete?: never
     options?: never
     head?: never
@@ -475,6 +1095,23 @@ export interface paths {
     get: operations['detail_api_v1_admin_content_short_readings__identity__get']
     put?: never
     post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/short-readings/{identity}/offline': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Offline */
+    post: operations['offline_api_v1_admin_content_short_readings__identity__offline_post']
     delete?: never
     options?: never
     head?: never
@@ -517,7 +1154,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/content/short-readings/{identity}/revisions/{revision_id}/publish-check': {
+  '/api/v1/admin/content/short-readings/{identity}/revisions/{revision_id}/audio-upload-target': {
     parameters: {
       query?: never
       header?: never
@@ -526,8 +1163,25 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Check */
-    post: operations['check_api_v1_admin_content_short_readings__identity__revisions__revision_id__publish_check_post']
+    /** Target */
+    post: operations['target_api_v1_admin_content_short_readings__identity__revisions__revision_id__audio_upload_target_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/short-readings/{identity}/revisions/{revision_id}/audio-upload-target/bind': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Bind */
+    post: operations['bind_api_v1_admin_content_short_readings__identity__revisions__revision_id__audio_upload_target_bind_post']
     delete?: never
     options?: never
     head?: never
@@ -551,7 +1205,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/content/short-readings/{identity}/offline': {
+  '/api/v1/admin/content/short-readings/{identity}/revisions/{revision_id}/publish-check': {
     parameters: {
       query?: never
       header?: never
@@ -560,8 +1214,25 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Offline */
-    post: operations['offline_api_v1_admin_content_short_readings__identity__offline_post']
+    /** Check */
+    post: operations['check_api_v1_admin_content_short_readings__identity__revisions__revision_id__publish_check_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/short-readings/{identity}/sort-order': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Sort Order */
+    post: operations['sort_order_api_v1_admin_content_short_readings__identity__sort_order_post']
     delete?: never
     options?: never
     head?: never
@@ -585,273 +1256,15 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/internal/v1/short-readings': {
+  '/api/v1/admin/content/usage': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    get?: never
-    put?: never
-    /** Short Readings */
-    post: operations['short_readings_internal_v1_short_readings_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/internal/v1/content/{content_type}/{content_id}/open': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Open Content */
-    post: operations['open_content_internal_v1_content__content_type___content_id__open_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/internal/v1/content/{content_type}/{content_id}/preview': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Preview */
-    post: operations['preview_internal_v1_content__content_type___content_id__preview_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/internal/v1/content/{content_type}/{content_id}/resources/{target_id}/signed-url': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Resource */
-    post: operations['resource_internal_v1_content__content_type___content_id__resources__target_id__signed_url_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/internal/v1/favorite-snapshots/confirmation': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Confirmation */
-    post: operations['confirmation_internal_v1_favorite_snapshots_confirmation_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/internal/v1/favorite-snapshots/{favorite_id}/source-resolution': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Source */
-    post: operations['source_internal_v1_favorite_snapshots__favorite_id__source_resolution_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/internal/v1/favorite-snapshots/{favorite_id}/resources/{target_id}/signed-url': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Review */
-    post: operations['review_internal_v1_favorite_snapshots__favorite_id__resources__target_id__signed_url_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/internal/v1/favorite-resource-projections': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Projection */
-    post: operations['projection_internal_v1_favorite_resource_projections_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/internal/v1/pronunciations/{target_id}/resolve': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Resolve */
-    post: operations['resolve_internal_v1_pronunciations__target_id__resolve_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/internal/v1/pronunciations/tasks/{task_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Task */
-    post: operations['task_internal_v1_pronunciations_tasks__task_id__post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/imports': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Import Images */
-    post: operations['import_images_api_v1_admin_content_imports_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/series': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** List Series */
-    get: operations['list_series_api_v1_admin_content_series_get']
-    put?: never
-    /** Create Series */
-    post: operations['create_series_api_v1_admin_content_series_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/scenes': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** List Scenes */
-    get: operations['list_scenes_api_v1_admin_content_scenes_get']
-    put?: never
-    /** Create Scene */
-    post: operations['create_scene_api_v1_admin_content_scenes_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/lexicon': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** List Lexicon */
-    get: operations['list_lexicon_api_v1_admin_content_lexicon_get']
-    put?: never
-    /** Create Lexicon */
-    post: operations['create_lexicon_api_v1_admin_content_lexicon_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/lexicon/{entry_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    /** Update Lexicon */
-    put: operations['update_lexicon_api_v1_admin_content_lexicon__entry_id__put']
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/revisions/{revision_id}/resources/{resource_id}/signed-url': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Draft Resource */
-    get: operations['draft_resource_api_v1_admin_content_revisions__revision_id__resources__resource_id__signed_url_get']
+    /** Summary */
+    get: operations['summary_api_v1_admin_content_usage_get']
     put?: never
     post?: never
     delete?: never
@@ -860,446 +1273,17 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/analytics': {
+  '/api/v1/admin/dashboard': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    /** Query Analytics */
-    get: operations['query_analytics_api_v1_admin_analytics_get']
+    /** Dashboard Snapshot */
+    get: operations['dashboard_snapshot_api_v1_admin_dashboard_get']
     put?: never
     post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/session': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get Session */
-    get: operations['get_session_api_v1_admin_session_get']
-    put?: never
-    /** Create Password Session */
-    post: operations['create_password_session_api_v1_admin_session_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/session/logout': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Logout */
-    post: operations['logout_api_v1_admin_session_logout_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/settings': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** List Settings */
-    get: operations['list_settings_api_v1_admin_settings_get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/settings/{key}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    /** Update Setting */
-    patch: operations['update_setting_api_v1_admin_settings__key__patch']
-    trace?: never
-  }
-  '/api/v1/admin/audit-events': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** List Audit Events */
-    get: operations['list_audit_events_api_v1_admin_audit_events_get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/scenes/{scene_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get Scene */
-    get: operations['get_scene_api_v1_admin_content_scenes__scene_id__get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/revisions/{revision_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get Revision */
-    get: operations['get_revision_api_v1_admin_content_revisions__revision_id__get']
-    /** Save Revision */
-    put: operations['save_revision_api_v1_admin_content_revisions__revision_id__put']
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/discovery-config': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get Discovery Config */
-    get: operations['get_discovery_config_api_v1_admin_content_discovery_config_get']
-    /** Save Discovery Config */
-    put: operations['save_discovery_config_api_v1_admin_content_discovery_config_put']
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/revisions/{revision_id}/preview': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Admin Preview */
-    get: operations['admin_preview_api_v1_admin_content_revisions__revision_id__preview_get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/scenes/{scene_id}/revisions': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Revision History */
-    get: operations['revision_history_api_v1_admin_content_scenes__scene_id__revisions_get']
-    put?: never
-    /** Create Revision */
-    post: operations['create_revision_api_v1_admin_content_scenes__scene_id__revisions_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/revisions/{revision_id}/publish-checks': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Validate Publish */
-    post: operations['validate_publish_api_v1_admin_content_revisions__revision_id__publish_checks_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/revisions/{revision_id}/commands/publish': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Publish Revision */
-    post: operations['publish_revision_api_v1_admin_content_revisions__revision_id__commands_publish_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/open-scenes': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    /** Replace Open Scenes */
-    put: operations['replace_open_scenes_api_v1_admin_content_open_scenes_put']
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/preview-configs/{series_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    /** Replace Preview Scenes */
-    put: operations['replace_preview_scenes_api_v1_admin_content_preview_configs__series_id__put']
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content/scenes/{scene_id}/commands/offline': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Offline Scene */
-    post: operations['offline_scene_api_v1_admin_content_scenes__scene_id__commands_offline_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/formal-entitlements/{entitlement_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get Entitlement */
-    get: operations['get_entitlement_api_v1_admin_formal_entitlements__entitlement_id__get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/formal-entitlements/preview-operation': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Preview Operation */
-    post: operations['preview_operation_api_v1_admin_formal_entitlements_preview_operation_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/formal-entitlements/commands/{operation}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Apply Operation */
-    post: operations['apply_operation_api_v1_admin_formal_entitlements_commands__operation__post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/limited-entitlements/{entitlement_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get Entitlement */
-    get: operations['get_entitlement_api_v1_admin_limited_entitlements__entitlement_id__get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/limited-entitlements/commands/grant': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Grant */
-    post: operations['grant_api_v1_admin_limited_entitlements_commands_grant_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/limited-entitlements/{entitlement_id}/preview-operation': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Preview Operation */
-    post: operations['preview_operation_api_v1_admin_limited_entitlements__entitlement_id__preview_operation_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/limited-entitlements/{entitlement_id}/commands/remedy': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Remedy */
-    post: operations['remedy_api_v1_admin_limited_entitlements__entitlement_id__commands_remedy_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/limited-entitlements/{entitlement_id}/commands/pause': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Pause */
-    post: operations['pause_api_v1_admin_limited_entitlements__entitlement_id__commands_pause_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/limited-entitlements/{entitlement_id}/commands/resume': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Resume */
-    post: operations['resume_api_v1_admin_limited_entitlements__entitlement_id__commands_resume_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/limited-entitlements/{entitlement_id}/commands/revoke': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Revoke */
-    post: operations['revoke_api_v1_admin_limited_entitlements__entitlement_id__commands_revoke_post']
     delete?: never
     options?: never
     head?: never
@@ -1317,93 +1301,6 @@ export interface paths {
     get: operations['list_entitlements_api_v1_admin_entitlements_get']
     put?: never
     post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/content-packages': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** List Packages */
-    get: operations['list_packages_api_v1_admin_content_packages_get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/campaigns': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** List Campaigns */
-    get: operations['list_campaigns_api_v1_admin_campaigns_get']
-    put?: never
-    /** Create Campaign */
-    post: operations['create_campaign_api_v1_admin_campaigns_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/campaigns/{campaign_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get Campaign */
-    get: operations['get_campaign_api_v1_admin_campaigns__campaign_id__get']
-    /** Update Campaign */
-    put: operations['update_campaign_api_v1_admin_campaigns__campaign_id__put']
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/campaigns/{campaign_id}/versions/copy': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Copy Version */
-    post: operations['copy_version_api_v1_admin_campaigns__campaign_id__versions_copy_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/campaigns/{campaign_id}/commands/{operation}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Command Campaign */
-    post: operations['command_campaign_api_v1_admin_campaigns__campaign_id__commands__operation__post']
     delete?: never
     options?: never
     head?: never
@@ -1444,7 +1341,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/feedback/{ticket_id}/screenshot-url': {
+  '/api/v1/admin/feedback/{ticket_id}/commands/close-insufficient': {
     parameters: {
       query?: never
       header?: never
@@ -1453,42 +1350,8 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Screenshot Url */
-    post: operations['screenshot_url_api_v1_admin_feedback__ticket_id__screenshot_url_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/feedback/{ticket_id}/internal-notes': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Add Internal Note */
-    post: operations['add_internal_note_api_v1_admin_feedback__ticket_id__internal_notes_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/feedback/{ticket_id}/commands/start': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Start */
-    post: operations['start_api_v1_admin_feedback__ticket_id__commands_start_post']
+    /** Close Insufficient */
+    post: operations['close_insufficient_api_v1_admin_feedback__ticket_id__commands_close_insufficient_post']
     delete?: never
     options?: never
     head?: never
@@ -1529,7 +1392,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/feedback/{ticket_id}/commands/close-insufficient': {
+  '/api/v1/admin/feedback/{ticket_id}/commands/start': {
     parameters: {
       query?: never
       header?: never
@@ -1538,23 +1401,91 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Close Insufficient */
-    post: operations['close_insufficient_api_v1_admin_feedback__ticket_id__commands_close_insufficient_post']
+    /** Start */
+    post: operations['start_api_v1_admin_feedback__ticket_id__commands_start_post']
     delete?: never
     options?: never
     head?: never
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/contact-corrections': {
+  '/api/v1/admin/feedback/{ticket_id}/internal-notes': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    /** List Corrections */
-    get: operations['list_corrections_api_v1_admin_contact_corrections_get']
+    get?: never
+    put?: never
+    /** Add Internal Note */
+    post: operations['add_internal_note_api_v1_admin_feedback__ticket_id__internal_notes_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/feedback/{ticket_id}/screenshot-url': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Screenshot Url */
+    post: operations['screenshot_url_api_v1_admin_feedback__ticket_id__screenshot_url_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/formal-entitlements/commands/{operation}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Apply Operation */
+    post: operations['apply_operation_api_v1_admin_formal_entitlements_commands__operation__post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/formal-entitlements/preview-operation': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Preview Operation */
+    post: operations['preview_operation_api_v1_admin_formal_entitlements_preview_operation_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/formal-entitlements/{entitlement_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Entitlement */
+    get: operations['get_entitlement_api_v1_admin_formal_entitlements__entitlement_id__get']
     put?: never
     post?: never
     delete?: never
@@ -1563,15 +1494,50 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/contact-corrections/{correction_id}': {
+  '/api/v1/admin/learning-features': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    /** Correction Detail */
-    get: operations['correction_detail_api_v1_admin_contact_corrections__correction_id__get']
+    /** Read */
+    get: operations['read_api_v1_admin_learning_features_get']
+    /** Update */
+    put: operations['update_api_v1_admin_learning_features_put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/limited-entitlements/commands/grant': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Grant */
+    post: operations['grant_api_v1_admin_limited_entitlements_commands_grant_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/limited-entitlements/{entitlement_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Entitlement */
+    get: operations['get_entitlement_api_v1_admin_limited_entitlements__entitlement_id__get']
     put?: never
     post?: never
     delete?: never
@@ -1580,7 +1546,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/contact-corrections/{correction_id}/commands/{command}': {
+  '/api/v1/admin/limited-entitlements/{entitlement_id}/commands/pause': {
     parameters: {
       query?: never
       header?: never
@@ -1589,15 +1555,15 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Decide Correction */
-    post: operations['decide_correction_api_v1_admin_contact_corrections__correction_id__commands__command__post']
+    /** Pause */
+    post: operations['pause_api_v1_admin_limited_entitlements__entitlement_id__commands_pause_post']
     delete?: never
     options?: never
     head?: never
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/users/{user_id}/commands/contact-status': {
+  '/api/v1/admin/limited-entitlements/{entitlement_id}/commands/remedy': {
     parameters: {
       query?: never
       header?: never
@@ -1606,15 +1572,15 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Update Contact Status */
-    post: operations['update_contact_status_api_v1_admin_users__user_id__commands_contact_status_post']
+    /** Remedy */
+    post: operations['remedy_api_v1_admin_limited_entitlements__entitlement_id__commands_remedy_post']
     delete?: never
     options?: never
     head?: never
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/users/{user_id}/commands/verify-contact-change': {
+  '/api/v1/admin/limited-entitlements/{entitlement_id}/commands/resume': {
     parameters: {
       query?: never
       header?: never
@@ -1623,15 +1589,15 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Verify Contact Change */
-    post: operations['verify_contact_change_api_v1_admin_users__user_id__commands_verify_contact_change_post']
+    /** Resume */
+    post: operations['resume_api_v1_admin_limited_entitlements__entitlement_id__commands_resume_post']
     delete?: never
     options?: never
     head?: never
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/users/{user_id}/contact-copy-events': {
+  '/api/v1/admin/limited-entitlements/{entitlement_id}/commands/revoke': {
     parameters: {
       query?: never
       header?: never
@@ -1640,15 +1606,15 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Audit Contact Copy */
-    post: operations['audit_contact_copy_api_v1_admin_users__user_id__contact_copy_events_post']
+    /** Revoke */
+    post: operations['revoke_api_v1_admin_limited_entitlements__entitlement_id__commands_revoke_post']
     delete?: never
     options?: never
     head?: never
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/media/upload-policies': {
+  '/api/v1/admin/limited-entitlements/{entitlement_id}/preview-operation': {
     parameters: {
       query?: never
       header?: never
@@ -1657,25 +1623,8 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Create Upload Policy */
-    post: operations['create_upload_policy_api_v1_admin_media_upload_policies_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/media/uploads/confirm': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Confirm Upload */
-    post: operations['confirm_upload_api_v1_admin_media_uploads_confirm_post']
+    /** Preview Operation */
+    post: operations['preview_operation_api_v1_admin_limited_entitlements__entitlement_id__preview_operation_post']
     delete?: never
     options?: never
     head?: never
@@ -1734,6 +1683,40 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/media/audio-targets/{target_id}/commands/generate': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Generate Audio */
+    post: operations['generate_audio_api_v1_admin_media_audio_targets__target_id__commands_generate_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/audio-targets/{target_id}/commands/rollback': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Rollback Audio Version */
+    post: operations['rollback_audio_version_api_v1_admin_media_audio_targets__target_id__commands_rollback_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/media/audio-targets/{target_id}/versions': {
     parameters: {
       query?: never
@@ -1752,23 +1735,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/media/audio-targets/{target_id}/commands/generate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Generate Audio */
-    post: operations['generate_audio_api_v1_admin_media_audio_targets__target_id__commands_generate_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/api/v1/admin/media/audio-versions/{version_id}/commands/confirm': {
     parameters: {
       query?: never
@@ -1780,23 +1746,6 @@ export interface paths {
     put?: never
     /** Confirm Audio Version */
     post: operations['confirm_audio_version_api_v1_admin_media_audio_versions__version_id__commands_confirm_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/admin/media/audio-targets/{target_id}/commands/rollback': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Rollback Audio Version */
-    post: operations['rollback_audio_version_api_v1_admin_media_audio_targets__target_id__commands_rollback_post']
     delete?: never
     options?: never
     head?: never
@@ -1890,6 +1839,160 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/media/upload-policies': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Create Upload Policy */
+    post: operations['create_upload_policy_api_v1_admin_media_upload_policies_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/media/uploads/confirm': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Confirm Upload */
+    post: operations['confirm_upload_api_v1_admin_media_uploads_confirm_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/pronunciations/targets/{target_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get */
+    get: operations['get_api_v1_admin_pronunciations_targets__target_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/pronunciations/targets/{target_id}/preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Preview */
+    post: operations['preview_api_v1_admin_pronunciations_targets__target_id__preview_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/pronunciations/tasks/{task_id}/retry': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Retry */
+    post: operations['retry_api_v1_admin_pronunciations_tasks__task_id__retry_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/session': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Session */
+    get: operations['get_session_api_v1_admin_session_get']
+    put?: never
+    /** Create Password Session */
+    post: operations['create_password_session_api_v1_admin_session_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/session/logout': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Logout */
+    post: operations['logout_api_v1_admin_session_logout_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/settings': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Settings */
+    get: operations['list_settings_api_v1_admin_settings_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/settings/{key}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    /** Update Setting */
+    patch: operations['update_setting_api_v1_admin_settings__key__patch']
+    trace?: never
+  }
   '/api/v1/admin/users': {
     parameters: {
       query?: never
@@ -1941,17 +2044,51 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/dashboard': {
+  '/api/v1/admin/users/{user_id}/commands/contact-status': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    /** Dashboard Snapshot */
-    get: operations['dashboard_snapshot_api_v1_admin_dashboard_get']
+    get?: never
     put?: never
-    post?: never
+    /** Update Contact Status */
+    post: operations['update_contact_status_api_v1_admin_users__user_id__commands_contact_status_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/users/{user_id}/commands/verify-contact-change': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Verify Contact Change */
+    post: operations['verify_contact_change_api_v1_admin_users__user_id__commands_verify_contact_change_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/users/{user_id}/contact-copy-events': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Audit Contact Copy */
+    post: operations['audit_contact_copy_api_v1_admin_users__user_id__contact_copy_events_post']
     delete?: never
     options?: never
     head?: never
@@ -1975,15 +2112,15 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/analytics/export': {
+  '/health/live': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    /** Analytics Export */
-    get: operations['analytics_export_api_v1_admin_analytics_export_get']
+    /** Live */
+    get: operations['live_health_live_get']
     put?: never
     post?: never
     delete?: never
@@ -1992,51 +2129,17 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/internal/v1/learning/modules': {
+  '/health/ready': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    /** Learning Modules */
-    get: operations['learning_modules_internal_v1_learning_modules_get']
+    /** Ready */
+    get: operations['ready_health_ready_get']
     put?: never
     post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/internal/v1/learning/catalog': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Learning Catalog */
-    post: operations['learning_catalog_internal_v1_learning_catalog_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/internal/v1/entitlements': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Entitlements */
-    post: operations['entitlements_internal_v1_entitlements_post']
     delete?: never
     options?: never
     head?: never
@@ -2060,7 +2163,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/internal/v1/scenes/{scene_id}/open': {
+  '/internal/v1/account-deletions': {
     parameters: {
       query?: never
       header?: never
@@ -2069,15 +2172,15 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Open Scene */
-    post: operations['open_scene_internal_v1_scenes__scene_id__open_post']
+    /** Cleanup Account */
+    post: operations['cleanup_account_internal_v1_account_deletions_post']
     delete?: never
     options?: never
     head?: never
     patch?: never
     trace?: never
   }
-  '/internal/v1/scenes/{scene_id}/entries/{entry_id}': {
+  '/internal/v1/content/{content_type}/{content_id}/open': {
     parameters: {
       query?: never
       header?: never
@@ -2086,15 +2189,15 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Get Entry */
-    post: operations['get_entry_internal_v1_scenes__scene_id__entries__entry_id__post']
+    /** Open Content */
+    post: operations['open_content_internal_v1_content__content_type___content_id__open_post']
     delete?: never
     options?: never
     head?: never
     patch?: never
     trace?: never
   }
-  '/internal/v1/scenes/{scene_id}/resources/{resource_id}/signed-url': {
+  '/internal/v1/content/{content_type}/{content_id}/preview': {
     parameters: {
       query?: never
       header?: never
@@ -2103,15 +2206,15 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Signed Resource */
-    post: operations['signed_resource_internal_v1_scenes__scene_id__resources__resource_id__signed_url_post']
+    /** Preview */
+    post: operations['preview_internal_v1_content__content_type___content_id__preview_post']
     delete?: never
     options?: never
     head?: never
     patch?: never
     trace?: never
   }
-  '/internal/v1/feedback/query': {
+  '/internal/v1/content/{content_type}/{content_id}/preview-cover/signed-url': {
     parameters: {
       query?: never
       header?: never
@@ -2120,8 +2223,110 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Query Feedback */
-    post: operations['query_feedback_internal_v1_feedback_query_post']
+    /** Preview Cover */
+    post: operations['preview_cover_internal_v1_content__content_type___content_id__preview_cover_signed_url_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/content/{content_type}/{content_id}/resources/{target_id}/signed-url': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Resource */
+    post: operations['resource_internal_v1_content__content_type___content_id__resources__target_id__signed_url_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/entitlements': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Entitlements */
+    post: operations['entitlements_internal_v1_entitlements_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/favorite-resource-projections': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Projection */
+    post: operations['projection_internal_v1_favorite_resource_projections_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/favorite-snapshots/confirmation': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Confirmation */
+    post: operations['confirmation_internal_v1_favorite_snapshots_confirmation_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/favorite-snapshots/{favorite_id}/resources/{target_id}/signed-url': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Review */
+    post: operations['review_internal_v1_favorite_snapshots__favorite_id__resources__target_id__signed_url_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/favorite-snapshots/{favorite_id}/source-resolution': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Source */
+    post: operations['source_internal_v1_favorite_snapshots__favorite_id__source_resolution_post']
     delete?: never
     options?: never
     head?: never
@@ -2145,6 +2350,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/internal/v1/feedback/query': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Query Feedback */
+    post: operations['query_feedback_internal_v1_feedback_query_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/internal/v1/feedback/{ticket_id}': {
     parameters: {
       query?: never
@@ -2156,23 +2378,6 @@ export interface paths {
     get: operations['feedback_detail_internal_v1_feedback__ticket_id__get']
     put?: never
     post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/internal/v1/feedback/{ticket_id}/supplements': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Supply */
-    post: operations['supply_internal_v1_feedback__ticket_id__supplements_post']
     delete?: never
     options?: never
     head?: never
@@ -2196,6 +2401,74 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/internal/v1/feedback/{ticket_id}/supplements': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Supply */
+    post: operations['supply_internal_v1_feedback__ticket_id__supplements_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/learning-features': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Internal */
+    post: operations['internal_internal_v1_learning_features_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/learning/catalog': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Learning Catalog */
+    post: operations['learning_catalog_internal_v1_learning_catalog_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/learning/modules': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Learning Modules */
+    get: operations['learning_modules_internal_v1_learning_modules_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/internal/v1/media/{target_id}/signed-url': {
     parameters: {
       query?: never
@@ -2213,7 +2486,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/internal/v1/account-deletions': {
+  '/internal/v1/pronunciations/tasks/{task_id}': {
     parameters: {
       query?: never
       header?: never
@@ -2222,8 +2495,93 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Cleanup Account */
-    post: operations['cleanup_account_internal_v1_account_deletions_post']
+    /** Task */
+    post: operations['task_internal_v1_pronunciations_tasks__task_id__post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/pronunciations/{target_id}/resolve': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Resolve */
+    post: operations['resolve_internal_v1_pronunciations__target_id__resolve_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/scenes/{scene_id}/entries/{entry_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Get Entry */
+    post: operations['get_entry_internal_v1_scenes__scene_id__entries__entry_id__post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/scenes/{scene_id}/open': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Open Scene */
+    post: operations['open_scene_internal_v1_scenes__scene_id__open_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/scenes/{scene_id}/resources/{resource_id}/signed-url': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Signed Resource */
+    post: operations['signed_resource_internal_v1_scenes__scene_id__resources__resource_id__signed_url_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/internal/v1/short-readings': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Short Readings */
+    post: operations['short_readings_internal_v1_short_readings_post']
     delete?: never
     options?: never
     head?: never
@@ -2253,54 +2611,54 @@ export interface components {
   schemas: {
     /** AccessBatchRequest */
     AccessBatchRequest: {
-      /** User Id */
-      user_id: string
       /** Scene Ids */
       scene_ids: string[]
+      /** User Id */
+      user_id: string
     }
     /** AccountDeletionRequest */
     AccountDeletionRequest: {
-      /** User Id */
-      user_id: string
       /** Deletion Request Id */
       deletion_request_id: string
       /** Event Id */
       event_id: string
+      /** User Id */
+      user_id: string
     }
     /** AdminPreviewResponse */
     AdminPreviewResponse: {
-      /** Scene Id */
-      scene_id: string
+      content: components['schemas']['SceneContent']
       /** Revision Id */
       revision_id: string
       /** Revision Status */
       revision_status: string
+      /** Scene Id */
+      scene_id: string
       /** Scene Title */
       scene_title: string
       /** Series Title */
       series_title: string
-      content: components['schemas']['SceneContent']
     }
     /** AdoptCandidateRequest */
     AdoptCandidateRequest: {
-      /** Index */
-      index: number
-      /** Source Id */
-      source_id: string
-      /** Start */
-      start: number
-      /** End */
-      end: number
       /** Chinese */
       chinese: string
-      /** Expected Version */
-      expected_version: number
+      /** End */
+      end: number
       /**
        * Entry Type
        * @default VOCABULARY
        * @enum {string}
        */
       entry_type: 'VOCABULARY' | 'PHRASE'
+      /** Expected Version */
+      expected_version: number
+      /** Index */
+      index: number
+      /** Source Id */
+      source_id: string
+      /** Start */
+      start: number
     }
     /** AnalyticsCountResponse */
     AnalyticsCountResponse: {
@@ -2309,32 +2667,32 @@ export interface components {
        * Format: date
        */
       day: string
-      /** Metric */
-      metric: string
       /** Dimension */
       dimension: string
+      /** Metric */
+      metric: string
       /** Value */
       value: number
     }
     /** AnalyticsRatioResponse */
     AnalyticsRatioResponse: {
+      /** Basis */
+      basis: string
       /**
        * Day
        * Format: date
        */
       day: string
+      /** Denominator */
+      denominator: number
+      /** Dimension */
+      dimension?: string | null
       /** Metric */
       metric: string
       /** Numerator */
       numerator: number
-      /** Denominator */
-      denominator: number
       /** Rate */
       rate: number | null
-      /** Basis */
-      basis: string
-      /** Dimension */
-      dimension?: string | null
       /**
        * Unit
        * @default ratio
@@ -2345,35 +2703,35 @@ export interface components {
     /** AnalyticsResponse */
     AnalyticsResponse: {
       /**
-       * Period
-       * @enum {string}
-       */
-      period: 'day' | 'week' | 'month'
-      /**
        * Activity Basis
        * @enum {string}
        */
       activity_basis: 'DAILY_USERS' | 'CALENDAR_WEEK_USERS' | 'CALENDAR_MONTH_USERS' | 'PERSON_DAYS'
       /**
-       * Timezone
-       * @default Asia/Shanghai
-       * @constant
+       * End
+       * Format: date
        */
-      timezone: 'Asia/Shanghai'
+      end: string
+      /**
+       * Period
+       * @enum {string}
+       */
+      period: 'day' | 'week' | 'month'
+      /** Ratios */
+      ratios: components['schemas']['AnalyticsRatioResponse'][]
+      /** Rows */
+      rows: components['schemas']['AnalyticsCountResponse'][]
       /**
        * Start
        * Format: date
        */
       start: string
       /**
-       * End
-       * Format: date
+       * Timezone
+       * @default Asia/Shanghai
+       * @constant
        */
-      end: string
-      /** Rows */
-      rows: components['schemas']['AnalyticsCountResponse'][]
-      /** Ratios */
-      ratios: components['schemas']['AnalyticsRatioResponse'][]
+      timezone: 'Asia/Shanghai'
     }
     /** AppendRequest */
     AppendRequest: {
@@ -2382,14 +2740,14 @@ export interface components {
     }
     /** AudioReference */
     AudioReference: {
-      /** Target Id */
-      target_id: string
-      /** Version Id */
-      version_id: string
       /** Asset Id */
       asset_id: string
       /** Duration Ms */
       duration_ms: number
+      /** Target Id */
+      target_id: string
+      /** Version Id */
+      version_id: string
     }
     /** AudioTargetListResponse */
     AudioTargetListResponse: {
@@ -2398,14 +2756,14 @@ export interface components {
     }
     /** AudioTargetResponse */
     AudioTargetResponse: {
+      /** Active Version Id */
+      active_version_id: string | null
       /** Id */
       id: string
       /** Stable Key */
       stable_key: string
       /** Target Type */
       target_type: string
-      /** Active Version Id */
-      active_version_id: string | null
     }
     /** AudioVersionListResponse */
     AudioVersionListResponse: {
@@ -2414,89 +2772,85 @@ export interface components {
     }
     /** AudioVersionResponse */
     AudioVersionResponse: {
-      /** Id */
-      id: string
-      /** Target Id */
-      target_id: string
       /** Asset Id */
       asset_id: string
-      /** Version No */
-      version_no: number
-      /** Source */
-      source: string
-      /** Status */
-      status: string
-      /** Provider Request Id */
-      provider_request_id: string | null
-      /** Processing Job Id */
-      processing_job_id: string | null
-      /** Created By */
-      created_by: string
       /**
        * Created At
        * Format: date-time
        */
       created_at: string
+      /** Created By */
+      created_by: string
+      /** Id */
+      id: string
+      /** Processing Job Id */
+      processing_job_id: string | null
+      /** Provider Request Id */
+      provider_request_id: string | null
+      /** Source */
+      source: string
+      /** Status */
+      status: string
+      /** Target Id */
+      target_id: string
+      /** Version No */
+      version_no: number
     }
     /** AuthorizedEntryResponse */
     AuthorizedEntryResponse: {
       /**
-       * Entry Id
-       * @default
+       * Allow Synthesis
+       * @default false
        */
-      entry_id: string
-      /**
-       * Entry Version
-       * @default 1
-       */
-      entry_version: number
-      /**
-       * English
-       * @default
-       */
-      english: string
-      /** Variants */
-      variants?: string[]
-      /**
-       * Phonetic
-       * @default
-       */
-      phonetic: string
+      allow_synthesis: boolean
+      /** Audio Target Id */
+      audio_target_id?: string | null
+      /** Audio Version Id */
+      audio_version_id?: string | null
       /**
        * Chinese
        * @default
        */
       chinese: string
       /**
+       * Confirmed
+       * @default false
+       */
+      confirmed: boolean
+      /**
+       * English
+       * @default
+       */
+      english: string
+      /**
+       * Entry Id
+       * @default
+       */
+      entry_id: string
+      /**
+       * Entry Type
+       * @enum {string}
+       */
+      entry_type: 'VOCABULARY' | 'PHRASE'
+      /**
+       * Entry Version
+       * @default 1
+       */
+      entry_version: number
+      /**
        * Explanation
        * @default
        */
       explanation: string
-      /** Source Sentence Ids */
-      source_sentence_ids?: string[]
       /** Icon Asset Id */
       icon_asset_id?: string | null
-      /** Audio Target Id */
-      audio_target_id?: string | null
-      /** Audio Version Id */
-      audio_version_id?: string | null
+      /** Meaning Change */
+      meaning_change?: ('wording' | 'new_sense') | null
       /**
-       * Sense Id
+       * Phonetic
        * @default
        */
-      sense_id: string
-      /**
-       * Source Id
-       * @default
-       */
-      source_id: string
-      /**
-       * Source Sentence
-       * @default
-       */
-      source_sentence: string
-      /** Source Locator */
-      source_locator: string
+      phonetic: string
       /** Pronunciation Target Id */
       pronunciation_target_id?: string | null
       /**
@@ -2509,48 +2863,52 @@ export interface components {
        * @default
        */
       reading_variant: string
-      /**
-       * Allow Synthesis
-       * @default false
-       */
-      allow_synthesis: boolean
-      /**
-       * Confirmed
-       * @default false
-       */
-      confirmed: boolean
-      /** Meaning Change */
-      meaning_change?: ('wording' | 'new_sense') | null
-      /** Scene Id */
-      scene_id: string
       /** Revision Id */
       revision_id: string
+      /** Scene Id */
+      scene_id: string
+      /**
+       * Sense Id
+       * @default
+       */
+      sense_id: string
       /** Sentence Snapshot */
       sentence_snapshot: string
       /**
-       * Entry Type
-       * @enum {string}
+       * Source Id
+       * @default
        */
-      entry_type: 'VOCABULARY' | 'PHRASE'
+      source_id: string
+      /** Source Locator */
+      source_locator: string
+      /**
+       * Source Sentence
+       * @default
+       */
+      source_sentence: string
+      /** Source Sentence Ids */
+      source_sentence_ids?: string[]
+      /** Variants */
+      variants?: string[]
     }
     /** BatchJobItemResponse */
     BatchJobItemResponse: {
-      /** Id */
-      id: string
-      /** Item Key */
-      item_key: string
-      /** Target Id */
-      target_id: string
-      /** Status */
-      status: string
       /** Attempt Count */
       attempt_count: number
       /** Error Code */
       error_code: string | null
-      /** Result Version */
-      result_version: number | null
+      /** Id */
+      id: string
+      /** Item Key */
+      item_key: string
       /** Processing Job Id */
       processing_job_id: string | null
+      /** Result Version */
+      result_version: number | null
+      /** Status */
+      status: string
+      /** Target Id */
+      target_id: string
     }
     /** BatchJobPageResponse */
     BatchJobPageResponse: {
@@ -2565,122 +2923,165 @@ export interface components {
     }
     /** BatchJobResponse */
     BatchJobResponse: {
-      /** Id */
-      id: string
       /** Business Key */
       business_key: string
-      /** Job Type */
-      job_type: string
-      /** Status */
-      status: string
-      /** Total Count */
-      total_count: number
-      /** Success Count */
-      success_count: number
-      /** Failure Count */
-      failure_count: number
-      /** Created By */
-      created_by: string
+      /** Cancel Requested At */
+      cancel_requested_at: string | null
+      /** Completed At */
+      completed_at: string | null
       /**
        * Created At
        * Format: date-time
        */
       created_at: string
+      /** Created By */
+      created_by: string
+      /** Failure Count */
+      failure_count: number
+      /** Id */
+      id: string
+      /** Input Payload */
+      input_payload: {
+        [key: string]: unknown
+      }
+      /** Items */
+      items: components['schemas']['BatchJobItemResponse'][]
+      /** Job Type */
+      job_type: string
+      /** Result Payload */
+      result_payload: {
+        [key: string]: unknown
+      }
+      /** Status */
+      status: string
+      /** Success Count */
+      success_count: number
+      /** Total Count */
+      total_count: number
       /**
        * Updated At
        * Format: date-time
        */
       updated_at: string
-      /** Completed At */
-      completed_at: string | null
-      /** Cancel Requested At */
-      cancel_requested_at: string | null
-      /** Items */
-      items: components['schemas']['BatchJobItemResponse'][]
-      /** Input Payload */
-      input_payload: {
-        [key: string]: unknown
-      }
-      /** Result Payload */
-      result_payload: {
-        [key: string]: unknown
-      }
+    }
+    /** BatchStage */
+    BatchStage: {
+      /** Attempt */
+      attempt: number
+      /** Config Version */
+      config_version: string
+      /** Error Code */
+      error_code: string | null
+      /** Fencing Version */
+      fencing_version: number
+      /** Input Hash */
+      input_hash: string
+      /** Item Id */
+      item_id: string
+      /** Lease Until */
+      lease_until: string | null
+      /** Next Retry At */
+      next_retry_at: string | null
+      /** Stage */
+      stage: string
+      /** Stage Id */
+      stage_id: string
+      /** Status */
+      status: string
+    }
+    /** BatchStagesResponse */
+    BatchStagesResponse: {
+      /** Batch Id */
+      batch_id: string
+      /** Stages */
+      stages: components['schemas']['BatchStage'][]
+    }
+    /** BindRequest */
+    BindRequest: {
+      /** Asset Id */
+      asset_id: string
+      /** Expected Edit Version */
+      expected_edit_version: number
+      /** Expected Version */
+      expected_version: number
+      /** Target Id */
+      target_id: string
     }
     /** Body_upload_api_v1_admin_content_imports_post */
     Body_upload_api_v1_admin_content_imports_post: {
-      /** File */
-      file: string
-      /** Series Id */
-      series_id: string
       /**
        * Content Type
        * @enum {string}
        */
       content_type: 'dialogue' | 'word_card' | 'short_reading'
+      /** File */
+      file: string
       /**
        * Mode
        * @enum {string}
        */
       mode: 'ZIP' | 'DOCX'
+      /** Series Id */
+      series_id: string
     }
     /** Body_upload_api_v1_admin_content_materials_post */
     Body_upload_api_v1_admin_content_materials_post: {
-      /** File */
-      file: string
-      /** Series Id */
-      series_id: string
       /**
        * Content Type
        * @enum {string}
        */
       content_type: 'dialogue' | 'word_card' | 'short_reading'
+      /** File */
+      file: string
+      /** Series Id */
+      series_id: string
     }
     /** BulkConfirmRequest */
     BulkConfirmRequest: {
+      /** Accept Normal Results */
+      accept_normal_results: boolean
       /** Collection Hash */
       collection_hash: string
       /** Revision Ids */
       revision_ids: string[]
-      /** Accept Normal Results */
-      accept_normal_results: boolean
     }
     /** CampaignCommandRequest */
     CampaignCommandRequest: {
-      /** Expected Version */
-      expected_version: number
       /** Capacity */
       capacity?: number | null
+      /** Expected Version */
+      expected_version: number
     }
     /** CampaignListItemResponse */
     CampaignListItemResponse: {
+      /** Available Operations */
+      available_operations: (
+        ('open' | 'pause' | 'resume' | 'end' | 'archive' | 'capacity') | 'copy'
+      )[]
+      /** Capacity */
+      capacity?: number | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /** Current Version Id */
+      current_version_id?: string | null
+      /** Granted User Count */
+      granted_user_count?: number | null
       /** Id */
       id: string
       /** Name */
       name: string
       /** Status */
       status: string
-      /** Version */
-      version: number
-      /** Current Version Id */
-      current_version_id?: string | null
-      /** Capacity */
-      capacity?: number | null
-      /** Granted User Count */
-      granted_user_count?: number | null
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
       /**
        * Updated At
        * Format: date-time
        */
       updated_at: string
-      /** Available Operations */
-      available_operations: (
-        ('open' | 'pause' | 'resume' | 'end' | 'archive' | 'capacity') | 'copy'
-      )[]
+      /** Version */
+      version: number
     }
     /** CampaignPageResponse */
     CampaignPageResponse: {
@@ -2695,90 +3096,88 @@ export interface components {
     }
     /** CampaignResponse */
     CampaignResponse: {
-      /** Id */
-      id: string
-      /** Name */
-      name: string
-      /** Status */
-      status: string
-      /** Version */
-      version: number
+      /** Available Operations */
+      available_operations: (
+        ('open' | 'pause' | 'resume' | 'end' | 'archive' | 'capacity') | 'copy'
+      )[]
       /**
        * Created At
        * Format: date-time
        */
       created_at: string
+      current_version: components['schemas']['CampaignVersionResponse'] | null
+      /** Id */
+      id: string
+      /** Name */
+      name: string
+      /** Status */
+      status: string
       /**
        * Updated At
        * Format: date-time
        */
       updated_at: string
-      current_version: components['schemas']['CampaignVersionResponse'] | null
-      /** Available Operations */
-      available_operations: (
-        ('open' | 'pause' | 'resume' | 'end' | 'archive' | 'capacity') | 'copy'
-      )[]
+      /** Version */
+      version: number
     }
     /** CampaignSaveRequest */
     CampaignSaveRequest: {
-      /** Expected Version */
-      expected_version?: number | null
-      /** Name */
-      name: string
-      /** Duration Days */
-      duration_days?: (3 | 5) | null
       /** Activation Window Days */
       activation_window_days?: number | null
       /** Capacity */
       capacity?: number | null
+      /** Duration Days */
+      duration_days?: (3 | 5) | null
+      /** Expected Version */
+      expected_version?: number | null
+      /** Name */
+      name: string
       /** Scene Ids */
       scene_ids?: string[] | null
     }
     /** CampaignVersionResponse */
     CampaignVersionResponse: {
-      /** Id */
-      id: string
-      /** Version No */
-      version_no: number
-      /** Status */
-      status: string
-      /** Duration Days */
-      duration_days: number
       /** Activation Window Days */
       activation_window_days: number
       /** Capacity */
       capacity: number | null
-      /** Granted User Count */
-      granted_user_count: number
-      /** Grant Starts At */
-      grant_starts_at: string | null
+      /** Duration Days */
+      duration_days: number
       /** Grant Ends At */
       grant_ends_at: string | null
+      /** Grant Starts At */
+      grant_starts_at: string | null
+      /** Granted User Count */
+      granted_user_count: number
+      /** Id */
+      id: string
       /** Locked At */
       locked_at: string | null
-      /** Version */
-      version: number
       /** Scene Ids */
       scene_ids: string[]
+      /** Status */
+      status: string
+      /** Version */
+      version: number
+      /** Version No */
+      version_no: number
     }
     /** CandidateRequest */
     CandidateRequest: {
+      /** Candidate Hash */
+      candidate_hash: string
+      /** Content Id */
+      content_id: string
       /**
        * Content Type
        * @enum {string}
        */
       content_type: 'dialogue' | 'word_card' | 'short_reading'
-      /** Content Id */
-      content_id: string
       /** Revision Id */
       revision_id: string
-      /** Candidate Hash */
-      candidate_hash: string
     }
     /** ClickableSpan */
     ClickableSpan: {
-      /** Start */
-      start: number
       /** End */
       end: number
       /** Entry Id */
@@ -2787,6 +3186,8 @@ export interface components {
       entry_version: number
       /** Source Locator */
       source_locator: string
+      /** Start */
+      start: number
     }
     /** CloseCommand */
     CloseCommand: {
@@ -2808,42 +3209,53 @@ export interface components {
     }
     /** ConfigUpdateRequest */
     ConfigUpdateRequest: {
+      /** Expected Version */
+      expected_version: number
       /** Value */
       value: {
         [key: string]: unknown
       }
-      /** Expected Version */
-      expected_version: number
     }
     /** ConfirmImport */
     ConfirmImport: {
+      /** Acknowledged Defaults */
+      acknowledged_defaults?: string[]
+      /** Confirmed Conflicts */
+      confirmed_conflicts?: string[]
       /** Preview Hash */
       preview_hash: string
       /** Preview Version */
       preview_version: number
       /** Selected */
       selected: string[]
-      /** Acknowledged Defaults */
-      acknowledged_defaults?: string[]
-      /** Confirmed Conflicts */
-      confirmed_conflicts?: string[]
+    }
+    /** ConfirmRange */
+    ConfirmRange: {
+      /** Collection Hash */
+      collection_hash: string
+      /** Expected Version */
+      expected_version: number
+      /** Manual Confirmed */
+      manual_confirmed: boolean
+      /** Selected Revision Ids */
+      selected_revision_ids: string[]
     }
     /** ConfirmRequest */
     ConfirmRequest: {
-      /** Candidate Hash */
-      candidate_hash: string
-      /** Text Checked */
-      text_checked: boolean
-      /**
-       * Images Checked
-       * @default false
-       */
-      images_checked: boolean
       /**
        * Audio Listened
        * @default false
        */
       audio_listened: boolean
+      /** Candidate Hash */
+      candidate_hash: string
+      /**
+       * Images Checked
+       * @default false
+       */
+      images_checked: boolean
+      /** Text Checked */
+      text_checked: boolean
     }
     /** ConfirmUploadRequest */
     ConfirmUploadRequest: {
@@ -2854,41 +3266,41 @@ export interface components {
     }
     /** ConfirmationCredential */
     ConfirmationCredential: {
+      /** Authorization Version */
+      authorization_version: string
+      /** Content Id */
+      content_id: string
       /**
        * Content Type
        * @enum {string}
        */
       content_type: 'dialogue' | 'word_card' | 'short_reading'
-      /** Content Id */
-      content_id: string
       /** Content Version */
       content_version: number
+      /** Details Hash */
+      details_hash: string
       /** Entry Id */
       entry_id: string
+      /** Expires At */
+      expires_at: string
+      /** Module Version */
+      module_version: number
+      /** Revision Id */
+      revision_id: string
       /** Sense Id */
       sense_id: string
       /** Source Id */
       source_id: string
-      /** User Id */
-      user_id: string
-      /** Revision Id */
-      revision_id: string
-      /** Details Hash */
-      details_hash: string
-      /** Module Version */
-      module_version: number
-      /** Authorization Version */
-      authorization_version: string
-      /** Expires At */
-      expires_at: string
       /** Token */
       token: string
+      /** User Id */
+      user_id: string
     }
     /** ConfirmationQuery */
     ConfirmationQuery: {
+      reference: components['schemas']['FavoriteReference']
       /** User Id */
       user_id: string
-      reference: components['schemas']['FavoriteReference']
     }
     /** ConfirmationResponse */
     ConfirmationResponse: {
@@ -2901,6 +3313,8 @@ export interface components {
     }
     /** ConfirmedEntry */
     ConfirmedEntry: {
+      /** English */
+      english: string
       /** Entry Id */
       entry_id: string
       /**
@@ -2908,64 +3322,65 @@ export interface components {
        * @enum {string}
        */
       entry_type: 'word' | 'chunk'
-      /** Sense Id */
-      sense_id: string
-      /** Source Id */
-      source_id: string
       /**
        * Entry Version
        * @default 1
        */
       entry_version: number
-      /** English */
-      english: string
-      /**
-       * Phonetic
-       * @default
-       */
-      phonetic: string
-      /** Meaning Zh */
-      meaning_zh: string
       /**
        * Explanation
        * @default
        */
       explanation: string
-      /** Source Sentence */
-      source_sentence: string
-      source_locator?: components['schemas']['SourceLocator'] | null
       /** Image Asset Id */
       image_asset_id?: string | null
-      pronunciation?: components['schemas']['PronunciationReference'] | null
       /**
        * Legacy Incomplete
        * @default false
        */
       legacy_incomplete: boolean
+      /** Meaning Zh */
+      meaning_zh: string
+      /**
+       * Phonetic
+       * @default
+       */
+      phonetic: string
+      pronunciation?: components['schemas']['PronunciationReference'] | null
+      /** Sense Id */
+      sense_id: string
+      /** Source Id */
+      source_id: string
+      source_locator?: components['schemas']['SourceLocator'] | null
+      /** Source Sentence */
+      source_sentence: string
     }
     /** ContactCorrectionPageResponse */
     ContactCorrectionPageResponse: {
       /** Items */
       items: components['schemas']['ContactCorrectionResponse'][]
-      /** Total */
-      total: number
       /** Page */
       page: number
       /** Page Size */
       page_size: number
+      /** Total */
+      total: number
     }
     /** ContactCorrectionResponse */
     ContactCorrectionResponse: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
       /** Id */
       id: string
-      /** User Id */
-      user_id: string
       /** Juya Number */
       juya_number: string
       /** Nickname */
       nickname: string | null
-      /** Wechat Id */
-      wechat_id: string | null
+      /** Processed At */
+      processed_at: string | null
       /** Reason */
       reason: string
       /**
@@ -2973,38 +3388,35 @@ export interface components {
        * @enum {string}
        */
       status: 'PENDING' | 'PROCESSING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
-      /** Processed At */
-      processed_at: string | null
       /** Timeline */
       timeline: components['schemas']['ContactTimelineResponse'][]
-    }
-    /** ContactProjectionResponse */
-    ContactProjectionResponse: {
       /** User Id */
       user_id: string
       /** Wechat Id */
       wechat_id: string | null
+    }
+    /** ContactProjectionResponse */
+    ContactProjectionResponse: {
+      /** Change Pending */
+      change_pending: boolean
       /**
        * Contact Status
        * @enum {string}
        */
       contact_status: 'NOT_PROVIDED' | 'PENDING' | 'CONTACTED' | 'UNREACHABLE' | 'DO_NOT_CONTACT'
-      /** Change Pending */
-      change_pending: boolean
-      /** Verified At */
-      verified_at: string | null
-      /** Verified By */
-      verified_by: string | null
       /**
        * Updated At
        * Format: date-time
        */
       updated_at: string
+      /** User Id */
+      user_id: string
+      /** Verified At */
+      verified_at: string | null
+      /** Verified By */
+      verified_by: string | null
+      /** Wechat Id */
+      wechat_id: string | null
     }
     /** ContactStatusRequest */
     ContactStatusRequest: {
@@ -3016,12 +3428,10 @@ export interface components {
     }
     /** ContactTimelineResponse */
     ContactTimelineResponse: {
-      /** Status */
-      status: string
-      /** Actor Type */
-      actor_type: string
       /** Actor Id */
       actor_id: string
+      /** Actor Type */
+      actor_type: string
       /** Event Type */
       event_type: string
       /**
@@ -3029,21 +3439,23 @@ export interface components {
        * Format: date-time
        */
       occurred_at: string
+      /** Status */
+      status: string
     }
     /** CorrectionDecisionResponse */
     CorrectionDecisionResponse: {
       /** Id */
       id: string
       /**
-       * Status
-       * @enum {string}
-       */
-      status: 'APPROVED' | 'REJECTED'
-      /**
        * Processed At
        * Format: date-time
        */
       processed_at: string
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'APPROVED' | 'REJECTED'
     }
     /** CreateAudioTargetRequest */
     CreateAudioTargetRequest: {
@@ -3059,27 +3471,27 @@ export interface components {
     }
     /** CreateBatchJobRequest */
     CreateBatchJobRequest: {
-      /** Job Type */
-      job_type: string
-      /** Target Ids */
-      target_ids: string[]
       /** Input Payload */
       input_payload?: {
         [key: string]: unknown
       }
+      /** Job Type */
+      job_type: string
+      /** Target Ids */
+      target_ids: string[]
     }
     /** CreateProofreadingRequest */
     CreateProofreadingRequest: {
-      /** Set Id */
-      set_id?: string | null
       /** Candidates */
       candidates: components['schemas']['CandidateRequest'][]
+      /** Set Id */
+      set_id?: string | null
     }
     /** CreateRequest */
     CreateRequest: {
+      content?: components['schemas']['ReadingContent']
       /** Series Id */
       series_id: string
-      content?: components['schemas']['ReadingContent']
     }
     /** CreateRevisionRequest */
     CreateRevisionRequest: {
@@ -3099,19 +3511,19 @@ export interface components {
     }
     /** CreateSeriesRequest */
     CreateSeriesRequest: {
-      /** Title */
-      title: string
-      /** Slug */
-      slug: string
       /** Cover Asset Id */
       cover_asset_id?: string | null
+      /** Slug */
+      slug: string
+      /** Title */
+      title: string
     }
     /** CreateTrashRequest */
     CreateTrashRequest: {
-      /** Scene Id */
-      scene_id: string
       /** Revision Id */
       revision_id: string
+      /** Scene Id */
+      scene_id: string
     }
     /** DeletionRequest */
     DeletionRequest: {
@@ -3120,105 +3532,115 @@ export interface components {
     }
     /** DialogueSentence */
     DialogueSentence: {
-      /** Id */
-      id?: string
-      /**
-       * Speaker
-       * @default
-       */
-      speaker: string
-      /**
-       * English
-       * @default
-       */
-      english: string
-      /**
-       * Chinese
-       * @default
-       */
-      chinese: string
-      /** Start Ms */
-      start_ms?: number | null
-      /** End Ms */
-      end_ms?: number | null
       /** Audio Version Id */
       audio_version_id?: string | null
-      /**
-       * Timing Confirmed
-       * @default false
-       */
-      timing_confirmed: boolean
       /**
        * Boundary Verified By
        * @default
        */
       boundary_verified_by: string
+      /**
+       * Chinese
+       * @default
+       */
+      chinese: string
+      /** Clickable Spans */
+      clickable_spans?: components['schemas']['ClickableSpan'][]
+      /** End Ms */
+      end_ms?: number | null
+      /**
+       * English
+       * @default
+       */
+      english: string
+      /** Id */
+      id?: string
+      /** Slice Dependency Hash */
+      slice_dependency_hash?: string | null
       /** Slice Target Id */
       slice_target_id?: string | null
       /** Slice Version */
       slice_version?: string | null
-      /** Slice Dependency Hash */
-      slice_dependency_hash?: string | null
-      /** Clickable Spans */
-      clickable_spans?: components['schemas']['ClickableSpan'][]
+      /**
+       * Speaker
+       * @default
+       */
+      speaker: string
+      /** Start Ms */
+      start_ms?: number | null
+      /**
+       * Timing Confirmed
+       * @default false
+       */
+      timing_confirmed: boolean
     }
     /** DiscoveryConfigResponse */
     DiscoveryConfigResponse: {
-      /** Version */
-      version: number
+      /** Actor Id */
+      actor_id: string | null
+      /** Learning Modules */
+      learning_modules: {
+        [key: string]: boolean
+      }
       /** Open Scene Ids */
       open_scene_ids: string[]
       /** Preview By Series */
       preview_by_series: {
         [key: string]: string[]
       }
-      /** Learning Modules */
-      learning_modules: {
-        [key: string]: boolean
-      }
       /** Updated At */
       updated_at: string | null
-      /** Actor Id */
-      actor_id: string | null
+      /** Version */
+      version: number
     }
     /** EmptyCommandRequest */
     EmptyCommandRequest: Record<string, never>
     /** EntitlementCommandRequest */
     EntitlementCommandRequest: {
-      /** User Id */
-      user_id: string
-      /** Package Id */
-      package_id: string
       /** Expected Version */
       expected_version?: number | null
-      term?: components['schemas']['EntitlementTerm'] | null
+      /** Package Id */
+      package_id: string
       /** Reason */
       reason?: string | null
+      term?: components['schemas']['EntitlementTerm'] | null
+      /** User Id */
+      user_id: string
     }
     /** EntitlementListItemResponse */
     EntitlementListItemResponse: {
-      /** Id */
-      id: string
+      /** Campaign Id */
+      campaign_id: string | null
+      /** Campaign Version Id */
+      campaign_version_id?: string | null
+      /** Campaign Version No */
+      campaign_version_no?: number | null
       /**
-       * Type
-       * @enum {string}
+       * Contact Degraded
+       * @default false
        */
-      type: 'FORMAL' | 'LIMITED'
-      /** User Id */
-      user_id: string
-      /** Status */
-      status: string
+      contact_degraded: boolean
+      /**
+       * Contact Status
+       * @default NOT_PROVIDED
+       */
+      contact_status: string
+      /**
+       * Content Name
+       * @default
+       */
+      content_name: string
+      /** Effective At */
+      effective_at?: string | null
+      /** Expires At */
+      expires_at: string | null
       /**
        * Granted At
        * Format: date-time
        */
       granted_at: string
-      /** Expires At */
-      expires_at: string | null
-      /** Package Id */
-      package_id: string | null
-      /** Campaign Id */
-      campaign_id: string | null
+      /** Id */
+      id: string
       /**
        * Juya Number
        * @default
@@ -3226,33 +3648,23 @@ export interface components {
       juya_number: string
       /** Nickname */
       nickname?: string | null
-      /** Wechat Id */
-      wechat_id?: string | null
-      /**
-       * Contact Status
-       * @default NOT_PROVIDED
-       */
-      contact_status: string
-      /**
-       * Contact Degraded
-       * @default false
-       */
-      contact_degraded: boolean
-      /**
-       * Content Name
-       * @default
-       */
-      content_name: string
-      /** Campaign Version Id */
-      campaign_version_id?: string | null
-      /** Campaign Version No */
-      campaign_version_no?: number | null
-      /** Term */
-      term?: string | null
-      /** Effective At */
-      effective_at?: string | null
+      /** Package Id */
+      package_id: string | null
       /** Start Deadline */
       start_deadline?: string | null
+      /** Status */
+      status: string
+      /** Term */
+      term?: string | null
+      /**
+       * Type
+       * @enum {string}
+       */
+      type: 'FORMAL' | 'LIMITED'
+      /** User Id */
+      user_id: string
+      /** Wechat Id */
+      wechat_id?: string | null
     }
     /**
      * EntitlementOperation
@@ -3277,12 +3689,12 @@ export interface components {
     EntitlementTerm: 'month_1' | 'month_2' | 'month_3' | 'month_6' | 'month_12' | 'permanent'
     /** EntryBatchCandidate */
     EntryBatchCandidate: {
-      /** Revision Id */
-      revision_id: string
-      /** Expected Version */
-      expected_version: number
       /** Candidate Hash */
       candidate_hash: string
+      /** Expected Version */
+      expected_version: number
+      /** Revision Id */
+      revision_id: string
     }
     /** EntryBatchRequest */
     EntryBatchRequest: {
@@ -3293,14 +3705,14 @@ export interface components {
     }
     /** EntryQuery */
     EntryQuery: {
-      /** User Id */
-      user_id: string
-      /** Revision Id */
-      revision_id: string
       /** Entry Version */
       entry_version: number
+      /** Revision Id */
+      revision_id: string
       /** Source Locator */
       source_locator: string
+      /** User Id */
+      user_id: string
     }
     /** FailRequest */
     FailRequest: {
@@ -3309,13 +3721,13 @@ export interface components {
     }
     /** FavoriteReference */
     FavoriteReference: {
+      /** Content Id */
+      content_id: string
       /**
        * Content Type
        * @enum {string}
        */
       content_type: 'dialogue' | 'word_card' | 'short_reading'
-      /** Content Id */
-      content_id: string
       /** Content Version */
       content_version: number
       /** Entry Id */
@@ -3327,45 +3739,95 @@ export interface components {
     }
     /** FavoriteResourceEvent */
     FavoriteResourceEvent: {
-      /** Event Id */
-      event_id: string
-      /** Sequence */
-      sequence: number
-      /** Favorite Id */
-      favorite_id: string
-      /** Snapshot Revision Id */
-      snapshot_revision_id: string
       /** Active */
       active: boolean
+      /** Content Id */
+      content_id: string
       /**
        * Content Type
        * @enum {string}
        */
       content_type: 'dialogue' | 'word_card' | 'short_reading'
-      /** Content Id */
-      content_id: string
-      /** Revision Id */
-      revision_id: string
+      /** Event Id */
+      event_id: string
+      /** Favorite Id */
+      favorite_id: string
       /** Image Asset Id */
       image_asset_id?: string | null
       /** Pronunciation Target Id */
       pronunciation_target_id?: string | null
       /** Resource Version */
       resource_version?: string | null
+      /** Revision Id */
+      revision_id: string
+      /** Sequence */
+      sequence: number
+      /** Snapshot Revision Id */
+      snapshot_revision_id: string
+    }
+    /** FeaturesCommand */
+    FeaturesCommand: {
+      /** Expected Version */
+      expected_version: number
+      /**
+       * Profile Completion Enabled
+       * @default false
+       */
+      profile_completion_enabled: boolean
+      /** Recording Enabled */
+      recording_enabled: boolean
+    }
+    /** FeaturesRead */
+    FeaturesRead: Record<string, never>
+    /** FeaturesResponse */
+    FeaturesResponse: {
+      /**
+       * Profile Completion Enabled
+       * @default false
+       */
+      profile_completion_enabled: boolean
+      /**
+       * Recording Enabled
+       * @default false
+       */
+      recording_enabled: boolean
+      /** Version */
+      version: number
     }
     /** FeedbackAdminDetailResponse */
     FeedbackAdminDetailResponse: {
-      /** Id */
-      id: string
-      /** User Id */
-      user_id: string
       /**
        * Category
        * @enum {string}
        */
       category: 'CONTENT' | 'PRONUNCIATION' | 'DISPLAY' | 'FUNCTION'
+      /** Closed At */
+      closed_at: string | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /** Deadline At */
+      deadline_at: string | null
       /** Description */
       description: string
+      /** Id */
+      id: string
+      /** Internal Notes */
+      internal_notes: components['schemas']['FeedbackInternalNoteResponse'][]
+      /** Reopen Count */
+      reopen_count: number
+      /** Replies */
+      replies: components['schemas']['FeedbackReplyResponse'][]
+      /** Resolved At */
+      resolved_at: string | null
+      /** Rounds */
+      rounds: components['schemas']['FeedbackRoundResponse'][]
+      /** Screenshots */
+      screenshots: components['schemas']['FeedbackScreenshotResponse'][]
+      /** Sla Remaining Seconds */
+      sla_remaining_seconds: number | null
       /** Source */
       source: {
         [key: string]: unknown
@@ -3381,58 +3843,35 @@ export interface components {
         | 'USER_SUPPLIED'
         | 'RESOLVED'
         | 'CLOSED_INSUFFICIENT'
-      /** Deadline At */
-      deadline_at: string | null
-      /** Sla Remaining Seconds */
-      sla_remaining_seconds: number | null
       /** Supplement Rounds */
       supplement_rounds: number
-      /** Reopen Count */
-      reopen_count: number
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
+      /** Timeline */
+      timeline: components['schemas']['FeedbackTimelineResponse'][]
       /**
        * Updated At
        * Format: date-time
        */
       updated_at: string
-      /** Resolved At */
-      resolved_at: string | null
-      /** Closed At */
-      closed_at: string | null
-      /** Screenshots */
-      screenshots: components['schemas']['FeedbackScreenshotResponse'][]
-      /** Rounds */
-      rounds: components['schemas']['FeedbackRoundResponse'][]
-      /** Replies */
-      replies: components['schemas']['FeedbackReplyResponse'][]
-      /** Timeline */
-      timeline: components['schemas']['FeedbackTimelineResponse'][]
-      /** Internal Notes */
-      internal_notes: components['schemas']['FeedbackInternalNoteResponse'][]
+      /** User Id */
+      user_id: string
     }
     /** FeedbackCreateRequest */
     FeedbackCreateRequest: {
-      /** User Id */
-      user_id: string
       /** Category */
       category: string
       /** Description */
       description: string
+      /** Screenshots */
+      screenshots?: string[]
       /** Source */
       source?: {
         [key: string]: unknown
       }
-      /** Screenshots */
-      screenshots?: string[]
+      /** User Id */
+      user_id: string
     }
     /** FeedbackInternalNoteResponse */
     FeedbackInternalNoteResponse: {
-      /** Id */
-      id: string
       /** Admin Id */
       admin_id: string
       /** Content */
@@ -3442,20 +3881,41 @@ export interface components {
        * Format: date-time
        */
       created_at: string
+      /** Id */
+      id: string
     }
     /** FeedbackListItemResponse */
     FeedbackListItemResponse: {
-      /** Id */
-      id: string
-      /** User Id */
-      user_id: string
       /**
        * Category
        * @enum {string}
        */
       category: 'CONTENT' | 'PRONUNCIATION' | 'DISPLAY' | 'FUNCTION'
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /** Deadline At */
+      deadline_at: string | null
       /** Description */
       description: string
+      /** Id */
+      id: string
+      /**
+       * Screenshot Status
+       * @default NONE
+       */
+      screenshot_status: string
+      /**
+       * Sla State
+       * @enum {string}
+       */
+      sla_state: 'PAUSED' | 'OVERDUE' | 'DUE_SOON' | 'ON_TRACK' | 'COMPLETED'
+      /** Source */
+      source?: {
+        [key: string]: unknown
+      }
       /**
        * Status
        * @enum {string}
@@ -3467,41 +3927,22 @@ export interface components {
         | 'USER_SUPPLIED'
         | 'RESOLVED'
         | 'CLOSED_INSUFFICIENT'
-      /** Deadline At */
-      deadline_at: string | null
-      /**
-       * Sla State
-       * @enum {string}
-       */
-      sla_state: 'PAUSED' | 'OVERDUE' | 'DUE_SOON' | 'ON_TRACK' | 'COMPLETED'
       /** Supplement Rounds */
       supplement_rounds: number
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string
-      /** Source */
-      source?: {
-        [key: string]: unknown
-      }
+      /** Supplied At */
+      supplied_at?: string | null
       /**
        * Title
        * @default
        */
       title: string
       /**
-       * Screenshot Status
-       * @default NONE
+       * Updated At
+       * Format: date-time
        */
-      screenshot_status: string
-      /** Supplied At */
-      supplied_at?: string | null
+      updated_at: string
+      /** User Id */
+      user_id: string
     }
     /** FeedbackPageResponse */
     FeedbackPageResponse: {
@@ -3516,53 +3957,66 @@ export interface components {
     }
     /** FeedbackReplyResponse */
     FeedbackReplyResponse: {
-      /** Template */
-      template: string
-      /** Note */
-      note: string | null
       /** Admin Id */
       admin_id: string
+      /** Note */
+      note: string | null
       /**
        * Sent At
        * Format: date-time
        */
       sent_at: string
+      /** Template */
+      template: string
     }
     /** FeedbackRoundResponse */
     FeedbackRoundResponse: {
-      /** Round Number */
-      round_number: number
-      /** Request Text */
-      request_text: string | null
-      /** Supplement Text */
-      supplement_text: string | null
       /** Paused At */
       paused_at: string | null
+      /** Request Text */
+      request_text: string | null
+      /** Round Number */
+      round_number: number
+      /** Supplement Text */
+      supplement_text: string | null
       /** Supplied At */
       supplied_at: string | null
     }
     /** FeedbackScreenshotResponse */
     FeedbackScreenshotResponse: {
-      /** Security Status */
-      security_status: string
       /** Delete After */
       delete_after: string | null
       /** Deleted At */
       deleted_at: string | null
+      /** Security Status */
+      security_status: string
     }
     /** FeedbackTicketResponse */
     FeedbackTicketResponse: {
-      /** Id */
-      id: string
-      /** User Id */
-      user_id: string
       /**
        * Category
        * @enum {string}
        */
       category: 'CONTENT' | 'PRONUNCIATION' | 'DISPLAY' | 'FUNCTION'
+      /** Closed At */
+      closed_at: string | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /** Deadline At */
+      deadline_at: string | null
       /** Description */
       description: string
+      /** Id */
+      id: string
+      /** Reopen Count */
+      reopen_count: number
+      /** Resolved At */
+      resolved_at: string | null
+      /** Sla Remaining Seconds */
+      sla_remaining_seconds: number | null
       /** Source */
       source: {
         [key: string]: unknown
@@ -3578,57 +4032,56 @@ export interface components {
         | 'USER_SUPPLIED'
         | 'RESOLVED'
         | 'CLOSED_INSUFFICIENT'
-      /** Deadline At */
-      deadline_at: string | null
-      /** Sla Remaining Seconds */
-      sla_remaining_seconds: number | null
       /** Supplement Rounds */
       supplement_rounds: number
-      /** Reopen Count */
-      reopen_count: number
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
       /**
        * Updated At
        * Format: date-time
        */
       updated_at: string
-      /** Resolved At */
-      resolved_at: string | null
-      /** Closed At */
-      closed_at: string | null
+      /** User Id */
+      user_id: string
     }
     /** FeedbackTimelineResponse */
     FeedbackTimelineResponse: {
-      /** Event Type */
-      event_type: string
-      /** Actor Type */
-      actor_type: string
       /** Actor Id */
       actor_id: string
       /** Actor Name */
       actor_name?: string | null
-      /** Visibility */
-      visibility: string
-      /** Payload */
-      payload: {
-        [key: string]: unknown
-      }
+      /** Actor Type */
+      actor_type: string
+      /** Event Type */
+      event_type: string
       /**
        * Occurred At
        * Format: date-time
        */
       occurred_at: string
+      /** Payload */
+      payload: {
+        [key: string]: unknown
+      }
+      /** Visibility */
+      visibility: string
+    }
+    /** FixedPreviewRequest */
+    FixedPreviewRequest: {
+      /** Resource Version */
+      resource_version: string
     }
     /** FormalEntitlementDetailResponse */
     FormalEntitlementDetailResponse: {
+      /** Available Operations */
+      available_operations: string[]
+      /** Expires At */
+      expires_at: string | null
+      /**
+       * Granted At
+       * Format: date-time
+       */
+      granted_at: string
       /** Id */
       id: string
-      /** User Id */
-      user_id: string
       /** Package Id */
       package_id: string
       /** Package Name */
@@ -3637,17 +4090,10 @@ export interface components {
       status: string
       /** Term */
       term: string
-      /**
-       * Granted At
-       * Format: date-time
-       */
-      granted_at: string
-      /** Expires At */
-      expires_at: string | null
+      /** User Id */
+      user_id: string
       /** Version */
       version: number
-      /** Available Operations */
-      available_operations: string[]
     }
     /** GenerateAudioRequest */
     GenerateAudioRequest: {
@@ -3662,10 +4108,10 @@ export interface components {
     }
     /** GrantRequest */
     GrantRequest: {
-      /** User Id */
-      user_id: string
       /** Campaign Version Id */
       campaign_version_id: string
+      /** User Id */
+      user_id: string
     }
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -3674,6 +4120,8 @@ export interface components {
     }
     /** ImportImagesRequest */
     ImportImagesRequest: {
+      /** Asset Ids */
+      asset_ids: string[]
       /** Series Id */
       series_id: string
       /**
@@ -3682,8 +4130,6 @@ export interface components {
        * @enum {string}
        */
       template_type: 'dialogue' | 'word_card' | 'vocabulary'
-      /** Asset Ids */
-      asset_ids: string[]
     }
     /** ImportImagesResponse */
     ImportImagesResponse: {
@@ -3699,73 +4145,73 @@ export interface components {
     }
     /** LexiconWriteRequest */
     LexiconWriteRequest: {
+      entry: components['schemas']['SceneEntry']
       /**
        * Entry Type
        * @enum {string}
        */
       entry_type: 'VOCABULARY' | 'PHRASE'
-      entry: components['schemas']['SceneEntry']
     }
     /** LimitedEntitlementDetailResponse */
     LimitedEntitlementDetailResponse: {
-      /** Id */
-      id: string
-      /** User Id */
-      user_id: string
-      /** Campaign Version Id */
-      campaign_version_id: string
+      /** Activated At */
+      activated_at: string | null
+      /** Activation Window Days */
+      activation_window_days: number
+      /** Available Operations */
+      available_operations: string[]
       /** Campaign Id */
       campaign_id: string
       /** Campaign Name */
       campaign_name: string
-      /** Status */
-      status: string
+      /** Campaign Version Id */
+      campaign_version_id: string
+      /** Duration Days */
+      duration_days: number
+      /** Expires At */
+      expires_at: string | null
       /**
        * Granted At
        * Format: date-time
        */
       granted_at: string
+      /** Id */
+      id: string
+      /** Remedy Count */
+      remedy_count: number
+      /** Scene Ids */
+      scene_ids: string[]
       /**
        * Start Deadline
        * Format: date-time
        */
       start_deadline: string
-      /** Activated At */
-      activated_at: string | null
-      /** Expires At */
-      expires_at: string | null
-      /** Remedy Count */
-      remedy_count: number
+      /** Status */
+      status: string
+      /** User Id */
+      user_id: string
       /** Version */
       version: number
-      /** Duration Days */
-      duration_days: number
-      /** Activation Window Days */
-      activation_window_days: number
-      /** Scene Ids */
-      scene_ids: string[]
-      /** Available Operations */
-      available_operations: string[]
     }
     /** LimitedPreviewRequest */
     LimitedPreviewRequest: {
+      mode?: components['schemas']['RemedyMode'] | null
       /**
        * Operation
        * @enum {string}
        */
       operation: 'PAUSE' | 'RESUME' | 'REVOKE' | 'REMEDY'
-      mode?: components['schemas']['RemedyMode'] | null
     }
     /** ManualBoundaryRequest */
     ManualBoundaryRequest: {
+      /** End Ms */
+      end_ms: number
       /** Expected Version */
       expected_version: number
       /** Manual Checked */
       manual_checked: boolean
       /** Start Ms */
       start_ms: number
-      /** End Ms */
-      end_ms: number
     }
     /** ManualEntryRequest */
     ManualEntryRequest: {
@@ -3776,15 +4222,17 @@ export interface components {
     }
     /** ManualSliceRequest */
     ManualSliceRequest: {
-      /** Expected Version */
-      expected_version: number
       /** Dependency Hash */
       dependency_hash: string
+      /** Expected Version */
+      expected_version: number
       /** Listened */
       listened: boolean
     }
     /** MaterialBinding */
     MaterialBinding: {
+      /** Entry Id */
+      entry_id?: string | null
       /** Path */
       path: string
       /**
@@ -3799,19 +4247,28 @@ export interface components {
         | 'FULL_AUDIO'
         | 'WORD_AUDIO'
         | 'CHUNK_AUDIO'
-      /** Entry Id */
-      entry_id?: string | null
     }
     /** MaterialBindingsRequest */
     MaterialBindingsRequest: {
-      /** Revision Id */
-      revision_id: string
+      /** Bindings */
+      bindings: components['schemas']['MaterialBinding'][]
       /** Expected Version */
       expected_version: number
       /** Manual Checked */
       manual_checked: boolean
-      /** Bindings */
-      bindings: components['schemas']['MaterialBinding'][]
+      /** Revision Id */
+      revision_id: string
+    }
+    /** ModuleCommand */
+    ModuleCommand: {
+      /** Display Name */
+      display_name: string
+      /** Enabled */
+      enabled: boolean
+      /** Expected Version */
+      expected_version: number
+      /** Sort Order */
+      sort_order: number
     }
     /** OpenScenesRequest */
     OpenScenesRequest: {
@@ -3835,22 +4292,39 @@ export interface components {
       id: string
       /** Name */
       name: string
-      /** Status */
-      status: string
       /** Sort Order */
       sort_order: number
+      /** Status */
+      status: string
     }
     /** PasswordLoginRequest */
     PasswordLoginRequest: {
-      /** Username */
-      username: string
       /** Password */
       password: string
+      /** Username */
+      username: string
+    }
+    /** PreviewRange */
+    PreviewRange: {
+      /** Candidates */
+      candidates: components['schemas']['PublicationCandidate'][]
     }
     /** PreviewSceneResponse */
     PreviewSceneResponse: {
+      /** Cover Url */
+      cover_url?: string | null
+      /** Introduction */
+      introduction?: string | null
+      /**
+       * Preview Status
+       * @default PREVIEW
+       * @constant
+       */
+      preview_status: 'PREVIEW'
       /** Public Id */
       public_id: string
+      /** Series */
+      series?: string | null
       /** Title */
       title: string
       /**
@@ -3863,18 +4337,6 @@ export interface components {
        * @default
        */
       title_zh: string
-      /** Series */
-      series?: string | null
-      /** Cover Url */
-      cover_url?: string | null
-      /** Introduction */
-      introduction?: string | null
-      /**
-       * Preview Status
-       * @default PREVIEW
-       * @constant
-       */
-      preview_status: 'PREVIEW'
     }
     /** PreviewScenesRequest */
     PreviewScenesRequest: {
@@ -3883,71 +4345,69 @@ export interface components {
     }
     /** ProcessingJobResponse */
     ProcessingJobResponse: {
-      /** Id */
-      id: string
-      /** Business Key */
-      business_key: string
-      /** Job Type */
-      job_type: string
-      /** Target Id */
-      target_id: string
       /** Batch Id */
       batch_id: string | null
-      /** Status */
-      status: string
-      /** Provider Request Id */
-      provider_request_id: string | null
-      /** Error Code */
-      error_code: string | null
-      /** Created By */
-      created_by: string
+      /** Business Key */
+      business_key: string
+      /** Cancel Requested At */
+      cancel_requested_at: string | null
       /**
        * Created At
        * Format: date-time
        */
       created_at: string
+      /** Created By */
+      created_by: string
+      /** Error Code */
+      error_code: string | null
+      /** Id */
+      id: string
+      /** Job Type */
+      job_type: string
+      /** Provider Request Id */
+      provider_request_id: string | null
+      /** Status */
+      status: string
+      /** Target Id */
+      target_id: string
       /**
        * Updated At
        * Format: date-time
        */
       updated_at: string
-      /** Cancel Requested At */
-      cancel_requested_at: string | null
     }
     /** PronunciationContext */
     PronunciationContext: {
-      /**
-       * Purpose
-       * @enum {string}
-       */
-      purpose: 'CONTENT' | 'FAVORITE_REVIEW'
-      /** User Id */
-      user_id: string
-      /** Content Type */
-      content_type?: string | null
       /** Content Id */
       content_id?: string | null
+      /** Content Type */
+      content_type?: string | null
       /** Content Version */
       content_version?: number | null
       /** Entry Id */
       entry_id?: string | null
       /** Favorite Id */
       favorite_id?: string | null
-      /** Snapshot Version */
-      snapshot_version?: number | null
-      /** Snapshot Revision Id */
-      snapshot_revision_id?: string | null
-      /** Target Id */
-      target_id?: string | null
-      /** Resource Version */
-      resource_version?: string | null
       /** Nonce */
       nonce?: string | null
+      /**
+       * Purpose
+       * @enum {string}
+       */
+      purpose: 'CONTENT' | 'FAVORITE_REVIEW'
+      /** Resource Version */
+      resource_version?: string | null
+      /** Snapshot Revision Id */
+      snapshot_revision_id?: string | null
+      /** Snapshot Version */
+      snapshot_version?: number | null
+      /** Target Id */
+      target_id?: string | null
+      /** User Id */
+      user_id: string
     }
     /** PronunciationReference */
     PronunciationReference: {
-      /** Target Id */
-      target_id: string
       /**
        * Can Prepare
        * @default false
@@ -3955,6 +4415,28 @@ export interface components {
       can_prepare: boolean
       /** Resource Version */
       resource_version?: string | null
+      /** Target Id */
+      target_id: string
+    }
+    /** PublicationCandidate */
+    PublicationCandidate: {
+      /** Candidate Hash */
+      candidate_hash: string
+      /** Content Id */
+      content_id: string
+      /**
+       * Content Type
+       * @enum {string}
+       */
+      content_type: 'dialogue' | 'word_card' | 'short_reading'
+      /** Expected Edit Version */
+      expected_edit_version?: number | null
+      /** Expected Version */
+      expected_version: number
+      /** Revision Id */
+      revision_id: string
+      /** Warning Codes */
+      warning_codes?: string[]
     }
     /** PublishCheckRequest */
     PublishCheckRequest: {
@@ -3980,53 +4462,53 @@ export interface components {
     }
     /** PublishedSceneResponse */
     PublishedSceneResponse: {
-      /** Scene Id */
-      scene_id: string
-      /** Revision Id */
-      revision_id: string
+      content: components['schemas']['SceneContent']
       /** Content Version */
       content_version: number
-      content: components['schemas']['SceneContent']
+      /** Revision Id */
+      revision_id: string
+      /** Scene Id */
+      scene_id: string
     }
     /** PublishedSentence */
     PublishedSentence: {
-      /** Sentence Id */
-      sentence_id: string
-      /** Speaker */
-      speaker: string
-      /** English */
-      english: string
       /** Chinese */
       chinese: string
-      /** Position */
-      position: number
-      /** Start Ms */
-      start_ms?: number | null
       /** End Ms */
       end_ms?: number | null
+      /** English */
+      english: string
+      /** Position */
+      position: number
+      /** Sentence Id */
+      sentence_id: string
       /** Slice Target Id */
       slice_target_id?: string | null
       /** Slice Version */
       slice_version?: string | null
+      /** Speaker */
+      speaker: string
+      /** Start Ms */
+      start_ms?: number | null
     }
     /** QueueCandidateRequest */
     QueueCandidateRequest: {
+      /** Expected Version */
+      expected_version: number
       /**
        * Kind
        * @enum {string}
        */
       kind: 'AI_LEXICON' | 'ASR_BOUNDARY'
-      /** Expected Version */
-      expected_version: number
     }
     /** ReadingAudio */
     ReadingAudio: {
       /** Asset Id */
       asset_id: string
-      /** Version Id */
-      version_id: string
-      /** Target Id */
-      target_id: string
+      /** Confirmed Asset Id */
+      confirmed_asset_id?: string | null
+      /** Confirmed Version Id */
+      confirmed_version_id?: string | null
       /** Duration Ms */
       duration_ms: number
       /**
@@ -4034,13 +4516,45 @@ export interface components {
        * @default false
        */
       listening_confirmed: boolean
-      /** Confirmed Asset Id */
-      confirmed_asset_id?: string | null
-      /** Confirmed Version Id */
-      confirmed_version_id?: string | null
+      /** Target Id */
+      target_id: string
+      /** Version Id */
+      version_id: string
     }
     /** ReadingContent */
     ReadingContent: {
+      audio?: components['schemas']['ReadingAudio'] | null
+      /**
+       * Category
+       * @default
+       */
+      category: string
+      /**
+       * Copyright Source
+       * @default
+       */
+      copyright_source: string
+      /**
+       * Copyright Status
+       * @default
+       */
+      copyright_status: string
+      /** Cover Asset Id */
+      cover_asset_id?: string | null
+      /**
+       * Level
+       * @default
+       */
+      level: string
+      /** Paragraph Ids */
+      paragraph_ids?: string[]
+      /** Paragraphs En */
+      paragraphs_en?: string[]
+      /**
+       * Safe Intro
+       * @default
+       */
+      safe_intro: string
       /**
        * Title En
        * @default
@@ -4052,54 +4566,22 @@ export interface components {
        */
       title_zh: string
       /**
-       * Category
-       * @default
-       */
-      category: string
-      /**
        * Topic
        * @default
        */
       topic: string
       /**
-       * Level
-       * @default
-       */
-      level: string
-      /**
-       * Safe Intro
-       * @default
-       */
-      safe_intro: string
-      /** Paragraphs En */
-      paragraphs_en?: string[]
-      /** Paragraph Ids */
-      paragraph_ids?: string[]
-      /**
        * Translation Zh
        * @default
        */
       translation_zh: string
-      /**
-       * Copyright Status
-       * @default
-       */
-      copyright_status: string
-      /**
-       * Copyright Source
-       * @default
-       */
-      copyright_source: string
-      /** Cover Asset Id */
-      cover_asset_id?: string | null
-      audio?: components['schemas']['ReadingAudio'] | null
     }
     /** ReasonRequest */
     ReasonRequest: {
-      /** Reason */
-      reason: string
       /** Expected Version */
       expected_version: number
+      /** Reason */
+      reason: string
     }
     /**
      * RemedyMode
@@ -4108,48 +4590,53 @@ export interface components {
     RemedyMode: 'EXTEND_START_DEADLINE' | 'RESTORE_START_WINDOW'
     /** RemedyRequest */
     RemedyRequest: {
-      mode: components['schemas']['RemedyMode']
       /** Expected Version */
       expected_version: number
+      mode: components['schemas']['RemedyMode']
       /** Reason */
       reason: string
     }
     /** ResolveCommand */
     ResolveCommand: {
-      /** Template */
-      template: string
       /** Note */
       note?: string | null
+      /** Template */
+      template: string
+    }
+    /** ResourcePreviewRequest */
+    ResourcePreviewRequest: {
+      /** Path */
+      path: string
     }
     /** ResourceReference */
     ResourceReference: {
-      /** Target Id */
-      target_id: string
-      /** Resource Version */
-      resource_version: string
       /** Duration Ms */
       duration_ms: number
+      /** Resource Version */
+      resource_version: string
+      /** Target Id */
+      target_id: string
     }
     /** RevisionHistoryItemResponse */
     RevisionHistoryItemResponse: {
-      /** Id */
-      id: string
-      /** Version No */
-      version_no: number
-      /** Edit Version */
-      edit_version: number
-      /** Status */
-      status: string
-      /** Source Revision Id */
-      source_revision_id: string | null
-      /** Title En */
-      title_en: string | null
       /** Created At */
       created_at: string | null
       /** Created By */
       created_by: string
+      /** Edit Version */
+      edit_version: number
+      /** Id */
+      id: string
       /** Is Current */
       is_current: boolean
+      /** Source Revision Id */
+      source_revision_id: string | null
+      /** Status */
+      status: string
+      /** Title En */
+      title_en: string | null
+      /** Version No */
+      version_no: number
     }
     /** RevisionHistoryResponse */
     RevisionHistoryResponse: {
@@ -4171,25 +4658,25 @@ export interface components {
     }
     /** RevisionResponse */
     RevisionResponse: {
+      content: components['schemas']['SceneContent']
+      /** Created At */
+      created_at: string | null
+      /** Created By */
+      created_by: string
       /** Id */
       id: string
       /** Scene Id */
       scene_id: string
       /** Source Revision Id */
       source_revision_id: string | null
-      /** Version */
-      version: number
-      /** Status */
-      status: string
-      /** Stable Sentence Ids */
-      stable_sentence_ids: string[]
       /** Stable Entry Ids */
       stable_entry_ids: string[]
-      content: components['schemas']['SceneContent']
-      /** Created By */
-      created_by: string
-      /** Created At */
-      created_at: string | null
+      /** Stable Sentence Ids */
+      stable_sentence_ids: string[]
+      /** Status */
+      status: string
+      /** Version */
+      version: number
     }
     /** RollbackAudioRequest */
     RollbackAudioRequest: {
@@ -4200,39 +4687,65 @@ export interface components {
     SaveDiscoveryConfigRequest: {
       /** Expected Version */
       expected_version: number
+      /** Learning Modules */
+      learning_modules: {
+        [key: string]: boolean
+      }
       /** Open Scene Ids */
       open_scene_ids: string[]
       /** Preview By Series */
       preview_by_series: {
         [key: string]: string[]
       }
-      /** Learning Modules */
-      learning_modules: {
-        [key: string]: boolean
-      }
     }
     /** SaveRequest */
     SaveRequest: {
-      /** Expected Version */
-      expected_version: number
+      content: components['schemas']['ReadingContent']
       /** Expected Edit Version */
       expected_edit_version: number
-      content: components['schemas']['ReadingContent']
+      /** Expected Version */
+      expected_version: number
     }
     /** SaveRevisionRequest */
     SaveRevisionRequest: {
+      content: components['schemas']['SceneContent']
       /** Expected Version */
       expected_version: number
-      content: components['schemas']['SceneContent']
     }
     /** SceneContent */
     SceneContent: {
+      audio?: components['schemas']['AudioReference'] | null
+      /** Chunks */
+      chunks?: components['schemas']['SceneEntry'][]
+      /**
+       * Copyright
+       * @default
+       */
+      copyright: string
+      /** Cover Asset Id */
+      cover_asset_id?: string | null
+      /** Dialogue */
+      dialogue?: components['schemas']['DialogueSentence'][]
+      /** Original Image Asset Id */
+      original_image_asset_id?: string | null
       /**
        * Schema Version
        * @default 1
        * @enum {integer}
        */
       schema_version: 1 | 2
+      /**
+       * Source
+       * @default
+       */
+      source: string
+      /**
+       * Summary
+       * @default
+       */
+      summary: string
+      /** Tags */
+      tags?: string[]
       /**
        * Template Type
        * @default dialogue
@@ -4249,37 +4762,13 @@ export interface components {
        * @default
        */
       title_zh: string
-      /**
-       * Summary
-       * @default
-       */
-      summary: string
-      /** Tags */
-      tags?: string[]
-      /** Original Image Asset Id */
-      original_image_asset_id?: string | null
-      /** Cover Asset Id */
-      cover_asset_id?: string | null
-      /**
-       * Copyright
-       * @default
-       */
-      copyright: string
-      /**
-       * Source
-       * @default
-       */
-      source: string
-      audio?: components['schemas']['AudioReference'] | null
-      /** Dialogue */
-      dialogue?: components['schemas']['DialogueSentence'][]
       /** Vocabulary */
       vocabulary?: components['schemas']['SceneEntry'][]
-      /** Chunks */
-      chunks?: components['schemas']['SceneEntry'][]
     }
     /** SceneDetail */
     SceneDetail: {
+      /** Chunks */
+      chunks?: components['schemas']['ConfirmedEntry'][]
       /** Content Id */
       content_id: string
       /**
@@ -4289,6 +4778,17 @@ export interface components {
       content_type: 'dialogue' | 'word_card'
       /** Content Version */
       content_version: number
+      /** Cover Asset Id */
+      cover_asset_id?: string | null
+      /** Dialogue */
+      dialogue?: components['schemas']['PublishedSentence'][]
+      /** Learning Image Asset Id */
+      learning_image_asset_id?: string | null
+      /**
+       * Recording Enabled
+       * @default false
+       */
+      recording_enabled: boolean
       /** Revision Id */
       revision_id: string
       /**
@@ -4301,20 +4801,36 @@ export interface components {
       title_en: string
       /** Title Zh */
       title_zh: string
-      /** Dialogue */
-      dialogue?: components['schemas']['PublishedSentence'][]
+      whole_audio?: components['schemas']['ResourceReference'] | null
       /** Words */
       words?: components['schemas']['ConfirmedEntry'][]
-      /** Chunks */
-      chunks?: components['schemas']['ConfirmedEntry'][]
-      whole_audio?: components['schemas']['ResourceReference'] | null
-      /** Cover Asset Id */
-      cover_asset_id?: string | null
-      /** Learning Image Asset Id */
-      learning_image_asset_id?: string | null
     }
     /** SceneEntry */
     SceneEntry: {
+      /**
+       * Allow Synthesis
+       * @default false
+       */
+      allow_synthesis: boolean
+      /** Audio Target Id */
+      audio_target_id?: string | null
+      /** Audio Version Id */
+      audio_version_id?: string | null
+      /**
+       * Chinese
+       * @default
+       */
+      chinese: string
+      /**
+       * Confirmed
+       * @default false
+       */
+      confirmed: boolean
+      /**
+       * English
+       * @default
+       */
+      english: string
       /**
        * Entry Id
        * @default
@@ -4326,57 +4842,19 @@ export interface components {
        */
       entry_version: number
       /**
-       * English
+       * Explanation
        * @default
        */
-      english: string
-      /** Variants */
-      variants?: string[]
+      explanation: string
+      /** Icon Asset Id */
+      icon_asset_id?: string | null
+      /** Meaning Change */
+      meaning_change?: ('wording' | 'new_sense') | null
       /**
        * Phonetic
        * @default
        */
       phonetic: string
-      /**
-       * Chinese
-       * @default
-       */
-      chinese: string
-      /**
-       * Explanation
-       * @default
-       */
-      explanation: string
-      /** Source Sentence Ids */
-      source_sentence_ids?: string[]
-      /** Icon Asset Id */
-      icon_asset_id?: string | null
-      /** Audio Target Id */
-      audio_target_id?: string | null
-      /** Audio Version Id */
-      audio_version_id?: string | null
-      /**
-       * Sense Id
-       * @default
-       */
-      sense_id: string
-      /**
-       * Source Id
-       * @default
-       */
-      source_id: string
-      /**
-       * Source Sentence
-       * @default
-       */
-      source_sentence: string
-      /** Source Locator */
-      source_locator?:
-        | {
-            [key: string]: string
-          }
-        | string
-        | null
       /** Pronunciation Target Id */
       pronunciation_target_id?: string | null
       /**
@@ -4390,17 +4868,31 @@ export interface components {
        */
       reading_variant: string
       /**
-       * Allow Synthesis
-       * @default false
+       * Sense Id
+       * @default
        */
-      allow_synthesis: boolean
+      sense_id: string
       /**
-       * Confirmed
-       * @default false
+       * Source Id
+       * @default
        */
-      confirmed: boolean
-      /** Meaning Change */
-      meaning_change?: ('wording' | 'new_sense') | null
+      source_id: string
+      /** Source Locator */
+      source_locator?:
+        | {
+            [key: string]: string
+          }
+        | string
+        | null
+      /**
+       * Source Sentence
+       * @default
+       */
+      source_sentence: string
+      /** Source Sentence Ids */
+      source_sentence_ids?: string[]
+      /** Variants */
+      variants?: string[]
     }
     /** SceneOpenResponse */
     SceneOpenResponse: {
@@ -4409,16 +4901,16 @@ export interface components {
        * @enum {string}
        */
       access: 'OPEN' | 'FORMAL' | 'LIMITED' | 'PREVIEW'
-      /** Sources */
-      sources: string[]
-      /** Earliest Expires At */
-      earliest_expires_at?: string | null
       /** Activated At */
       activated_at?: string | null
+      /** Earliest Expires At */
+      earliest_expires_at?: string | null
       /** Scene */
       scene:
         | components['schemas']['PublishedSceneResponse']
         | components['schemas']['PreviewSceneResponse']
+      /** Sources */
+      sources: string[]
     }
     /** ScenePageResponse */
     ScenePageResponse: {
@@ -4433,34 +4925,36 @@ export interface components {
     }
     /** SceneResponse */
     SceneResponse: {
+      /** Cover Object Key */
+      cover_object_key: string | null
+      /** Draft Revision Id */
+      draft_revision_id: string | null
+      /** Id */
+      id: string
+      /** Published Revision Id */
+      published_revision_id: string | null
+      /** Series Id */
+      series_id: string
+      /** Series Title */
+      series_title: string
+      /** Status */
+      status: string
+      /** Summary */
+      summary: string | null
       /**
        * Template Type
        * @default dialogue
        */
       template_type: string
-      /** Id */
-      id: string
-      /** Series Id */
-      series_id: string
       /** Title */
       title: string
-      /** Series Title */
-      series_title: string
-      /** Summary */
-      summary: string | null
-      /** Cover Object Key */
-      cover_object_key: string | null
-      /** Status */
-      status: string
-      /** Draft Revision Id */
-      draft_revision_id: string | null
-      /** Published Revision Id */
-      published_revision_id: string | null
       /** Updated At */
       updated_at: string | null
     }
     /** ShortReadingDetail */
     ShortReadingDetail: {
+      /** Category */
+      category: string
       /** Content Id */
       content_id: string
       /**
@@ -4471,8 +4965,18 @@ export interface components {
       content_type: 'short_reading'
       /** Content Version */
       content_version: number
+      /** Cover Asset Id */
+      cover_asset_id?: string | null
+      /** Level */
+      level: string
+      /** Paragraph Ids */
+      paragraph_ids?: string[]
+      /** Paragraphs En */
+      paragraphs_en: string[]
       /** Revision Id */
       revision_id: string
+      /** Safe Intro */
+      safe_intro: string
       /**
        * Schema Version
        * @default 2
@@ -4483,28 +4987,14 @@ export interface components {
       title_en: string
       /** Title Zh */
       title_zh: string
-      /** Category */
-      category: string
       /** Topic */
       topic: string
-      /** Level */
-      level: string
-      /** Safe Intro */
-      safe_intro: string
-      /** Paragraphs En */
-      paragraphs_en: string[]
-      /** Paragraph Ids */
-      paragraph_ids?: string[]
       /** Translation Zh */
       translation_zh: string
       whole_audio?: components['schemas']['ResourceReference'] | null
-      /** Cover Asset Id */
-      cover_asset_id?: string | null
     }
     /** ShortReadingListRequest */
     ShortReadingListRequest: {
-      /** User Id */
-      user_id: string
       /**
        * Page
        * @default 1
@@ -4515,52 +5005,79 @@ export interface components {
        * @default 20
        */
       page_size: number
+      /** User Id */
+      user_id: string
     }
     /** SignedFeedbackScreenshotResponse */
     SignedFeedbackScreenshotResponse: {
-      /** Url */
-      url: string
       /**
        * Expires At
        * Format: date-time
        */
       expires_at: string
+      /** Url */
+      url: string
     }
     /** SignedSceneResourceResponse */
     SignedSceneResourceResponse: {
+      /**
+       * Expires At
+       * Format: date-time
+       */
+      expires_at: string
       /** Resource Id */
       resource_id: string
       /** Url */
       url: string
-      /**
-       * Expires At
-       * Format: date-time
-       */
-      expires_at: string
+    }
+    /** SortOrderRequest */
+    SortOrderRequest: {
+      /** Expected Version */
+      expected_version: number
+      /** Sort Order */
+      sort_order: number
     }
     /** SourceLocator */
     SourceLocator: {
-      /** Sentence Id */
-      sentence_id?: string | null
       /** Paragraph Id */
       paragraph_id?: string | null
+      /** Sentence Id */
+      sentence_id?: string | null
     }
     /** SourceResolution */
     SourceResolution: {
-      /** Saved Content Version */
-      saved_content_version: number | null
-      /** Target Content Version */
-      target_content_version: number | null
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'EXACT' | 'UPDATED_OR_UNRESOLVED' | 'NO_ACCESS'
       locator?: components['schemas']['SourceLocator'] | null
       /** Safe Summary */
       safe_summary: {
         [key: string]: string
       }
+      /** Saved Content Version */
+      saved_content_version: number | null
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'EXACT' | 'UPDATED_OR_UNRESOLVED' | 'NO_ACCESS'
+      /** Target Content Version */
+      target_content_version: number | null
+    }
+    /** StageRetryRequest */
+    StageRetryRequest: {
+      /**
+       * Acknowledged Charged Retry
+       * @default false
+       */
+      acknowledged_charged_retry: boolean
+      /** Config Version */
+      config_version: string
+      /** Expected Edit Version */
+      expected_edit_version?: number | null
+      /** Expected Fence */
+      expected_fence: number
+      /** Input Hash */
+      input_hash: string
+      /** Manual Confirmed */
+      manual_confirmed: boolean
     }
     /** SupplementCommand */
     SupplementCommand: {
@@ -4569,39 +5086,46 @@ export interface components {
     }
     /** SupplementRequest */
     SupplementRequest: {
-      /** User Id */
-      user_id: string
-      /** Text */
-      text: string
       /** Screenshots */
       screenshots?: string[]
+      /** Text */
+      text: string
+      /** User Id */
+      user_id: string
+    }
+    /** TargetRequest */
+    TargetRequest: {
+      /** Expected Edit Version */
+      expected_edit_version: number
+      /** Expected Version */
+      expected_version: number
     }
     /** TrashEntryResponse */
     TrashEntryResponse: {
+      /** Cleaned At */
+      cleaned_at: string | null
       /** Id */
       id: string
-      /** Scene Id */
-      scene_id: string
-      /** Revision Id */
-      revision_id: string
-      /** Status */
-      status: string
-      /** Trashed By */
-      trashed_by: string
-      /**
-       * Trashed At
-       * Format: date-time
-       */
-      trashed_at: string
+      /** Restored At */
+      restored_at: string | null
       /**
        * Retention Until
        * Format: date-time
        */
       retention_until: string
-      /** Restored At */
-      restored_at: string | null
-      /** Cleaned At */
-      cleaned_at: string | null
+      /** Revision Id */
+      revision_id: string
+      /** Scene Id */
+      scene_id: string
+      /** Status */
+      status: string
+      /**
+       * Trashed At
+       * Format: date-time
+       */
+      trashed_at: string
+      /** Trashed By */
+      trashed_by: string
     }
     /** TrashListResponse */
     TrashListResponse: {
@@ -4610,86 +5134,105 @@ export interface components {
     }
     /** TrialRequest */
     TrialRequest: {
-      /** Expected Version */
-      expected_version: number
       /** Enabled */
       enabled: boolean
+      /** Expected Version */
+      expected_version: number
     }
     /** UploadPolicyRequest */
     UploadPolicyRequest: {
       /** Asset Type */
       asset_type: string
     }
+    /** UploadTargetResponse */
+    UploadTargetResponse: {
+      /** Active Version Id */
+      active_version_id: string | null
+      /** Content Id */
+      content_id: string
+      /** Edit Version */
+      edit_version: number
+      /** Id */
+      id: string
+      /** Revision Id */
+      revision_id: string
+      /** Stable Key */
+      stable_key: string
+      /** Target Type */
+      target_type: string
+      /** Version */
+      version: number
+    }
     /** UserContactResponse */
     UserContactResponse: {
-      /** Wechat Id */
-      wechat_id: string | null
+      /** Change Pending */
+      change_pending: boolean
       /**
        * Contact Status
        * @enum {string}
        */
       contact_status: 'NOT_PROVIDED' | 'PENDING' | 'CONTACTED' | 'UNREACHABLE' | 'DO_NOT_CONTACT'
-      /** Change Pending */
-      change_pending: boolean
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string
       /** Verified At */
       verified_at: string | null
       /** Verified By */
       verified_by: string | null
       /** Verified By Name */
       verified_by_name?: string | null
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string
+      /** Wechat Id */
+      wechat_id: string | null
     }
     /** UserDetailResponse */
     UserDetailResponse: {
-      /** User Id */
-      user_id: string
       /** Account Status */
       account_status: string
-      /** Last Active At */
-      last_active_at: string | null
-      /** Formal Entitlement Count */
-      formal_entitlement_count: number
-      /** Limited Entitlement Count */
-      limited_entitlement_count: number
-      /** Open Feedback Count */
-      open_feedback_count: number
-      contact: components['schemas']['UserContactResponse'] | null
-      /** Contact Degraded */
-      contact_degraded: boolean
-      /**
-       * Juya Number
-       * @default
-       */
-      juya_number: string
-      /** Nickname */
-      nickname?: string | null
       /** Avatar Object Key */
       avatar_object_key?: string | null
       /** Avatar Url */
       avatar_url?: string | null
-      /** Open Scene Completed Count */
-      open_scene_completed_count: number | null
       /**
        * Change Pending
        * @default false
        */
       change_pending: boolean
+      contact: components['schemas']['UserContactResponse'] | null
       /** Contact Changed At */
       contact_changed_at?: string | null
-      /** Learning Degraded */
-      learning_degraded: boolean
-      /** Learning Days */
-      learning_days: number | null
+      /** Contact Degraded */
+      contact_degraded: boolean
       /** Favorite Count */
       favorite_count: number | null
+      /** Formal Entitlement Count */
+      formal_entitlement_count: number
+      /**
+       * Juya Number
+       * @default
+       */
+      juya_number: string
+      /** Last Active At */
+      last_active_at: string | null
+      /** Learning Days */
+      learning_days: number | null
+      /** Learning Degraded */
+      learning_degraded: boolean
+      /** Limited Entitlement Count */
+      limited_entitlement_count: number
+      /** Nickname */
+      nickname?: string | null
+      /** Open Feedback Count */
+      open_feedback_count: number
+      /** Open Scene Completed Count */
+      open_scene_completed_count: number | null
       /** Records */
       records?: {
         [key: string]: unknown
       }
+      /** User Id */
+      user_id: string
     }
     /** UserFeedbackQuery */
     UserFeedbackQuery: {
@@ -4698,44 +5241,44 @@ export interface components {
     }
     /** UserProjectionResponse */
     UserProjectionResponse: {
-      /** User Id */
-      user_id: string
       /** Account Status */
       account_status: string
-      /** Last Active At */
-      last_active_at: string | null
-      /** Formal Entitlement Count */
-      formal_entitlement_count: number
-      /** Limited Entitlement Count */
-      limited_entitlement_count: number
-      /** Open Feedback Count */
-      open_feedback_count: number
-      contact: components['schemas']['UserContactResponse'] | null
-      /** Contact Degraded */
-      contact_degraded: boolean
-      /**
-       * Juya Number
-       * @default
-       */
-      juya_number: string
-      /** Nickname */
-      nickname?: string | null
       /** Avatar Object Key */
       avatar_object_key?: string | null
       /** Avatar Url */
       avatar_url?: string | null
       /**
-       * Open Scene Completed Count
-       * @default 0
-       */
-      open_scene_completed_count: number | null
-      /**
        * Change Pending
        * @default false
        */
       change_pending: boolean
+      contact: components['schemas']['UserContactResponse'] | null
       /** Contact Changed At */
       contact_changed_at?: string | null
+      /** Contact Degraded */
+      contact_degraded: boolean
+      /** Formal Entitlement Count */
+      formal_entitlement_count: number
+      /**
+       * Juya Number
+       * @default
+       */
+      juya_number: string
+      /** Last Active At */
+      last_active_at: string | null
+      /** Limited Entitlement Count */
+      limited_entitlement_count: number
+      /** Nickname */
+      nickname?: string | null
+      /** Open Feedback Count */
+      open_feedback_count: number
+      /**
+       * Open Scene Completed Count
+       * @default 0
+       */
+      open_scene_completed_count: number | null
+      /** User Id */
+      user_id: string
     }
     /** UserQuery */
     UserQuery: {
@@ -4749,30 +5292,36 @@ export interface components {
     }
     /** UserResolutionRequest */
     UserResolutionRequest: {
-      /** User Id */
-      user_id: string
       /** Action */
       action: string
       /** Reason */
       reason?: string | null
+      /** User Id */
+      user_id: string
     }
     /** ValidationError */
     ValidationError: {
+      /** Context */
+      ctx?: Record<string, never>
+      /** Input */
+      input?: unknown
       /** Location */
       loc: (string | number)[]
       /** Message */
       msg: string
       /** Error Type */
       type: string
-      /** Input */
-      input?: unknown
-      /** Context */
-      ctx?: Record<string, never>
     }
     /** WechatSearchRequest */
     WechatSearchRequest: {
-      /** Wechat Id */
-      wechat_id: string
+      /** Cohort */
+      cohort?: ('NEW_TODAY' | 'OPEN_WITHOUT_CONTACT') | null
+      /** Contact Status */
+      contact_status?: string | null
+      /** Entitlement Status */
+      entitlement_status?: string | null
+      /** Entitlement Type */
+      entitlement_type?: ('FORMAL' | 'LIMITED') | null
       /**
        * Page
        * @default 1
@@ -4783,30 +5332,24 @@ export interface components {
        * @default 20
        */
       page_size: number
-      /** Contact Status */
-      contact_status?: string | null
-      /** Entitlement Type */
-      entitlement_type?: ('FORMAL' | 'LIMITED') | null
-      /** Entitlement Status */
-      entitlement_status?: string | null
       /** Profile Completeness */
       profile_completeness?: ('COMPLETE' | 'INCOMPLETE') | null
-      /** Cohort */
-      cohort?: ('NEW_TODAY' | 'OPEN_WITHOUT_CONTACT') | null
+      /** Wechat Id */
+      wechat_id: string
     }
     /** ResourceQuery */
     juya_admin_api__modules__access_policy__router__ResourceQuery: {
-      /** User Id */
-      user_id: string
       /** Revision Id */
       revision_id: string
+      /** User Id */
+      user_id: string
     }
     /** ResourceQuery */
     juya_admin_api__modules__v15_access__router__ResourceQuery: {
-      /** User Id */
-      user_id: string
       /** Resource Version */
       resource_version?: string | null
+      /** User Id */
+      user_id: string
     }
   }
   responses: never
@@ -4817,12 +5360,18 @@ export interface components {
 }
 export type $defs = Record<string, never>
 export interface operations {
-  live_health_live_get: {
+  query_analytics_api_v1_admin_analytics_get: {
     parameters: {
-      query?: never
+      query: {
+        period?: 'day' | 'week' | 'month'
+        start: string
+        end: string
+      }
       header?: never
       path?: never
-      cookie?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
     }
     requestBody?: never
     responses: {
@@ -4832,19 +5381,31 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: string
-          }
+          'application/json': components['schemas']['AnalyticsResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
         }
       }
     }
   }
-  ready_health_ready_get: {
+  analytics_export_api_v1_admin_analytics_export_get: {
     parameters: {
-      query?: never
+      query: {
+        start: string
+        end: string
+      }
       header?: never
       path?: never
-      cookie?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
     }
     requestBody?: never
     responses: {
@@ -4856,15 +5417,24 @@ export interface operations {
         content: {
           'application/json': {
             [key: string]: unknown
-          }
+          }[]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
         }
       }
     }
   }
-  summary_api_v1_admin_content_usage_get: {
+  list_audit_events_api_v1_admin_audit_events_get: {
     parameters: {
-      query: {
-        period: string
+      query?: {
+        limit?: number
       }
       header?: never
       path?: never
@@ -4883,6 +5453,634 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_campaigns_api_v1_admin_campaigns_get: {
+    parameters: {
+      query?: {
+        status?: ('DRAFT' | 'OPEN' | 'PAUSED' | 'ENDED' | 'ARCHIVED' | 'CLOSED') | null
+        page?: number
+        page_size?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CampaignPageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_campaign_api_v1_admin_campaigns_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CampaignSaveRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CampaignResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_campaign_api_v1_admin_campaigns__campaign_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        campaign_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CampaignResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  update_campaign_api_v1_admin_campaigns__campaign_id__put: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        campaign_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CampaignSaveRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CampaignResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  command_campaign_api_v1_admin_campaigns__campaign_id__commands__operation__post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        campaign_id: string
+        operation: 'open' | 'pause' | 'resume' | 'end' | 'archive' | 'capacity'
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CampaignCommandRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CampaignResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  copy_version_api_v1_admin_campaigns__campaign_id__versions_copy_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        campaign_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CampaignCommandRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CampaignResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_corrections_api_v1_admin_contact_corrections_get: {
+    parameters: {
+      query?: {
+        status?: ('PENDING' | 'PROCESSING' | 'APPROVED' | 'REJECTED' | 'CANCELLED') | null
+        page?: number
+        page_size?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ContactCorrectionPageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  correction_detail_api_v1_admin_contact_corrections__correction_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        correction_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ContactCorrectionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  decide_correction_api_v1_admin_contact_corrections__correction_id__commands__command__post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        correction_id: string
+        command: 'approve' | 'reject'
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CorrectionDecisionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  upload_api_v1_admin_content_imports_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_upload_api_v1_admin_content_imports_post']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  limits_api_v1_admin_content_imports_limits_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_api_v1_admin_content_imports__batch_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        batch_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  cancel_api_v1_admin_content_imports__batch_id__cancel_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        batch_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  confirm_api_v1_admin_content_imports__batch_id__confirm_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        batch_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ConfirmImport']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_api_v1_admin_content_imports__batch_id__resources_preview_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        batch_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResourcePreviewRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_content_api_v1_admin_content_imports__batch_id__resources_preview_content_get: {
+    parameters: {
+      query: {
+        token: string
+      }
+      header?: {
+        Range?: string | null
+      }
+      path: {
+        batch_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  batch_stages_api_v1_admin_content_imports__batch_id__stages_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        batch_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['BatchStagesResponse']
         }
       }
       /** @description Validation Error */
@@ -5050,33 +6248,27 @@ export interface operations {
       }
     }
   }
-  upload_api_v1_admin_content_imports_post: {
+  list_packages_api_v1_admin_content_packages_get: {
     parameters: {
-      query?: never
-      header: {
-        'Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
+      query?: {
+        page?: number
+        page_size?: number
       }
+      header?: never
       path?: never
       cookie?: {
         juya_admin_session?: string | null
       }
     }
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_upload_api_v1_admin_content_imports_post']
-      }
-    }
+    requestBody?: never
     responses: {
       /** @description Successful Response */
-      202: {
+      200: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['PackagePageResponse']
         }
       }
       /** @description Validation Error */
@@ -5090,12 +6282,12 @@ export interface operations {
       }
     }
   }
-  preview_api_v1_admin_content_imports__batch_id__get: {
+  stage_api_v1_admin_content_stages__stage_id__get: {
     parameters: {
       query?: never
       header?: never
       path: {
-        batch_id: string
+        stage_id: string
       }
       cookie?: {
         juya_admin_session?: string | null
@@ -5125,7 +6317,7 @@ export interface operations {
       }
     }
   }
-  confirm_api_v1_admin_content_imports__batch_id__confirm_post: {
+  retry_api_v1_admin_content_stages__stage_id__retry_post: {
     parameters: {
       query?: never
       header: {
@@ -5133,7 +6325,7 @@ export interface operations {
         'X-CSRF-Token'?: string | null
       }
       path: {
-        batch_id: string
+        stage_id: string
       }
       cookie?: {
         juya_admin_session?: string | null
@@ -5141,7 +6333,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['ConfirmImport']
+        'application/json': components['schemas']['StageRetryRequest']
       }
     }
     responses: {
@@ -5167,20 +6359,431 @@ export interface operations {
       }
     }
   }
-  cancel_api_v1_admin_content_imports__batch_id__cancel_post: {
+  get_api_v1_admin_content_candidates__candidate_id__get: {
     parameters: {
       query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
+      header?: never
       path: {
-        batch_id: string
+        candidate_id: string
       }
       cookie?: {
         juya_admin_session?: string | null
       }
     }
     requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  adopt_api_v1_admin_content_candidates__candidate_id__adoptions_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        candidate_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AdoptCandidateRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_discovery_config_api_v1_admin_content_discovery_config_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DiscoveryConfigResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  save_discovery_config_api_v1_admin_content_discovery_config_put: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveDiscoveryConfigRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DiscoveryConfigResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  import_images_api_v1_admin_content_imports_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ImportImagesRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ImportImagesResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  listing_api_v1_admin_content_learning_modules_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  update_api_v1_admin_content_learning_modules__module_type__put: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        module_type: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ModuleCommand']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_lexicon_api_v1_admin_content_lexicon_get: {
+    parameters: {
+      query?: {
+        query?: string
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_lexicon_api_v1_admin_content_lexicon_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LexiconWriteRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SceneEntry']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  update_lexicon_api_v1_admin_content_lexicon__entry_id__put: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        entry_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LexiconWriteRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SceneEntry']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  replace_open_scenes_api_v1_admin_content_open_scenes_put: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OpenScenesRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  replace_preview_scenes_api_v1_admin_content_preview_configs__series_id__put: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        series_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PreviewScenesRequest']
+      }
+    }
     responses: {
       /** @description Successful Response */
       200: {
@@ -5278,7 +6881,7 @@ export interface operations {
       }
     }
   }
-  append_api_v1_admin_content_proofreading__set_id__samples_post: {
+  complete_api_v1_admin_content_proofreading__set_id__complete_post: {
     parameters: {
       query?: never
       header?: {
@@ -5291,9 +6894,9 @@ export interface operations {
         juya_admin_session?: string | null
       }
     }
-    requestBody: {
+    requestBody?: {
       content: {
-        'application/json': components['schemas']['AppendRequest']
+        'application/json': components['schemas']['CompleteRequest'] | null
       }
     }
     responses: {
@@ -5445,7 +7048,7 @@ export interface operations {
       }
     }
   }
-  complete_api_v1_admin_content_proofreading__set_id__complete_post: {
+  append_api_v1_admin_content_proofreading__set_id__samples_post: {
     parameters: {
       query?: never
       header?: {
@@ -5458,9 +7061,9 @@ export interface operations {
         juya_admin_session?: string | null
       }
     }
-    requestBody?: {
+    requestBody: {
       content: {
-        'application/json': components['schemas']['CompleteRequest'] | null
+        'application/json': components['schemas']['AppendRequest']
       }
     }
     responses: {
@@ -5472,6 +7075,122 @@ export interface operations {
         content: {
           'application/json': {
             [key: string]: boolean
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_api_v1_admin_content_publication_ranges_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PreviewRange']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  recover_api_v1_admin_content_publication_ranges__token__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        token: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  confirm_api_v1_admin_content_publication_ranges__token__confirm_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        token: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ConfirmRange']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
           }
         }
       }
@@ -5525,15 +7244,12 @@ export interface operations {
       }
     }
   }
-  preview_api_v1_admin_content_revisions__revision_id__sentences__sentence_id__slice_preview_get: {
+  get_revision_api_v1_admin_content_revisions__revision_id__get: {
     parameters: {
-      query: {
-        dependency_hash: string
-      }
+      query?: never
       header?: never
       path: {
         revision_id: string
-        sentence_id: string
       }
       cookie?: {
         juya_admin_session?: string | null
@@ -5547,7 +7263,129 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': unknown
+          'application/json': components['schemas']['RevisionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  save_revision_api_v1_admin_content_revisions__revision_id__put: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveRevisionRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RevisionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  queue_api_v1_admin_content_revisions__revision_id__candidates_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['QueueCandidateRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: string
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  publish_revision_api_v1_admin_content_revisions__revision_id__commands_publish_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PublishRevisionRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
         }
       }
       /** @description Validation Error */
@@ -5580,6 +7418,114 @@ export interface operations {
         'application/json': components['schemas']['ManualEntryRequest']
       }
     }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  admin_preview_api_v1_admin_content_revisions__revision_id__preview_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminPreviewResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  validate_publish_api_v1_admin_content_revisions__revision_id__publish_checks_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PublishCheckRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  draft_resource_api_v1_admin_content_revisions__revision_id__resources__resource_id__signed_url_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        revision_id: string
+        resource_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
     responses: {
       /** @description Successful Response */
       200: {
@@ -5687,14 +7633,263 @@ export interface operations {
       }
     }
   }
-  queue_api_v1_admin_content_revisions__revision_id__candidates_post: {
+  preview_api_v1_admin_content_revisions__revision_id__sentences__sentence_id__slice_preview_get: {
+    parameters: {
+      query: {
+        dependency_hash: string
+      }
+      header?: never
+      path: {
+        revision_id: string
+        sentence_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  slice_state_api_v1_admin_content_revisions__revision_id__sentences__sentence_id__slice_state_get: {
+    parameters: {
+      query: {
+        expected_version: number
+      }
+      header?: never
+      path: {
+        revision_id: string
+        sentence_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_scenes_api_v1_admin_content_scenes_get: {
+    parameters: {
+      query?: {
+        page?: number
+        page_size?: number
+        query?: string | null
+        series_id?: string | null
+        status?: ('DRAFT' | 'PUBLISHED' | 'OFFLINE') | null
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ScenePageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_scene_api_v1_admin_content_scenes_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateSceneRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SceneResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_scene_api_v1_admin_content_scenes__scene_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        scene_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SceneResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  offline_scene_api_v1_admin_content_scenes__scene_id__commands_offline_post: {
     parameters: {
       query?: never
       header?: {
         'X-CSRF-Token'?: string | null
       }
       path: {
-        revision_id: string
+        scene_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  revision_history_api_v1_admin_content_scenes__scene_id__revisions_get: {
+    parameters: {
+      query?: {
+        page?: number
+        page_size?: number
+      }
+      header?: never
+      path: {
+        scene_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RevisionHistoryResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_revision_api_v1_admin_content_scenes__scene_id__revisions_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        scene_id: string
       }
       cookie?: {
         juya_admin_session?: string | null
@@ -5702,18 +7897,18 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['QueueCandidateRequest']
+        'application/json': components['schemas']['CreateRevisionRequest']
       }
     }
     responses: {
       /** @description Successful Response */
-      202: {
+      201: {
         headers: {
           [name: string]: unknown
         }
         content: {
           'application/json': {
-            [key: string]: string
+            [key: string]: unknown
           }
         }
       }
@@ -5728,13 +7923,11 @@ export interface operations {
       }
     }
   }
-  get_api_v1_admin_content_candidates__candidate_id__get: {
+  list_series_api_v1_admin_content_series_get: {
     parameters: {
       query?: never
       header?: never
-      path: {
-        candidate_id: string
-      }
+      path?: never
       cookie?: {
         juya_admin_session?: string | null
       }
@@ -5763,27 +7956,26 @@ export interface operations {
       }
     }
   }
-  adopt_api_v1_admin_content_candidates__candidate_id__adoptions_post: {
+  create_series_api_v1_admin_content_series_post: {
     parameters: {
       query?: never
-      header?: {
+      header: {
+        'X-Idempotency-Key': string
         'X-CSRF-Token'?: string | null
       }
-      path: {
-        candidate_id: string
-      }
+      path?: never
       cookie?: {
         juya_admin_session?: string | null
       }
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['AdoptCandidateRequest']
+        'application/json': components['schemas']['CreateSeriesRequest']
       }
     }
     responses: {
       /** @description Successful Response */
-      200: {
+      201: {
         headers: {
           [name: string]: unknown
         }
@@ -5892,6 +8084,48 @@ export interface operations {
       }
     }
     requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  offline_api_v1_admin_content_short_readings__identity__offline_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        identity: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CommandRequest']
+      }
+    }
     responses: {
       /** @description Successful Response */
       200: {
@@ -6071,10 +8305,13 @@ export interface operations {
       }
     }
   }
-  check_api_v1_admin_content_short_readings__identity__revisions__revision_id__publish_check_post: {
+  target_api_v1_admin_content_short_readings__identity__revisions__revision_id__audio_upload_target_post: {
     parameters: {
       query?: never
-      header?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
       path: {
         identity: string
         revision_id: string
@@ -6083,7 +8320,11 @@ export interface operations {
         juya_admin_session?: string | null
       }
     }
-    requestBody?: never
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TargetRequest']
+      }
+    }
     responses: {
       /** @description Successful Response */
       200: {
@@ -6091,9 +8332,48 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['UploadTargetResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  bind_api_v1_admin_content_short_readings__identity__revisions__revision_id__audio_upload_target_bind_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        identity: string
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BindRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
         }
       }
       /** @description Validation Error */
@@ -6150,7 +8430,43 @@ export interface operations {
       }
     }
   }
-  offline_api_v1_admin_content_short_readings__identity__offline_post: {
+  check_api_v1_admin_content_short_readings__identity__revisions__revision_id__publish_check_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        identity: string
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  sort_order_api_v1_admin_content_short_readings__identity__sort_order_post: {
     parameters: {
       query?: never
       header: {
@@ -6166,7 +8482,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['CommandRequest']
+        'application/json': components['schemas']['SortOrderRequest']
       }
     }
     responses: {
@@ -6234,741 +8550,11 @@ export interface operations {
       }
     }
   }
-  short_readings_internal_v1_short_readings_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ShortReadingListRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  open_content_internal_v1_content__content_type___content_id__open_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        content_type: 'dialogue' | 'word_card' | 'short_reading'
-        content_id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UserRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json':
-            components['schemas']['SceneDetail'] | components['schemas']['ShortReadingDetail']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  preview_internal_v1_content__content_type___content_id__preview_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        content_type: 'dialogue' | 'word_card' | 'short_reading'
-        content_id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UserRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  resource_internal_v1_content__content_type___content_id__resources__target_id__signed_url_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        content_type: 'dialogue' | 'word_card' | 'short_reading'
-        content_id: string
-        target_id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['juya_admin_api__modules__v15_access__router__ResourceQuery']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  confirmation_internal_v1_favorite_snapshots_confirmation_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ConfirmationQuery']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ConfirmationResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  source_internal_v1_favorite_snapshots__favorite_id__source_resolution_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        favorite_id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UserRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SourceResolution']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  review_internal_v1_favorite_snapshots__favorite_id__resources__target_id__signed_url_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        favorite_id: string
-        target_id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['juya_admin_api__modules__v15_access__router__ResourceQuery']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  projection_internal_v1_favorite_resource_projections_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['FavoriteResourceEvent']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  resolve_internal_v1_pronunciations__target_id__resolve_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        target_id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PronunciationContext']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  task_internal_v1_pronunciations_tasks__task_id__post: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        task_id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PronunciationContext']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  import_images_api_v1_admin_content_imports_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ImportImagesRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ImportImagesResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  list_series_api_v1_admin_content_series_get: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  create_series_api_v1_admin_content_series_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateSeriesRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  list_scenes_api_v1_admin_content_scenes_get: {
-    parameters: {
-      query?: {
-        page?: number
-        page_size?: number
-        query?: string | null
-        series_id?: string | null
-        status?: ('DRAFT' | 'PUBLISHED' | 'OFFLINE') | null
-      }
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ScenePageResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  create_scene_api_v1_admin_content_scenes_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateSceneRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SceneResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  list_lexicon_api_v1_admin_content_lexicon_get: {
-    parameters: {
-      query?: {
-        query?: string
-      }
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  create_lexicon_api_v1_admin_content_lexicon_post: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['LexiconWriteRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SceneEntry']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  update_lexicon_api_v1_admin_content_lexicon__entry_id__put: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        entry_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['LexiconWriteRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SceneEntry']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  draft_resource_api_v1_admin_content_revisions__revision_id__resources__resource_id__signed_url_get: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        revision_id: string
-        resource_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  query_analytics_api_v1_admin_analytics_get: {
+  summary_api_v1_admin_content_usage_get: {
     parameters: {
       query: {
-        period?: 'day' | 'week' | 'month'
-        start: string
-        end: string
+        period: string
       }
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['AnalyticsResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  get_session_api_v1_admin_session_get: {
-    parameters: {
-      query?: never
       header?: never
       path?: never
       cookie?: {
@@ -6999,73 +8585,7 @@ export interface operations {
       }
     }
   }
-  create_password_session_api_v1_admin_session_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PasswordLoginRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  logout_api_v1_admin_session_logout_post: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  list_settings_api_v1_admin_settings_get: {
+  dashboard_snapshot_api_v1_admin_dashboard_get: {
     parameters: {
       query?: never
       header?: never
@@ -7083,7 +8603,7 @@ export interface operations {
         }
         content: {
           'application/json': {
-            [key: string]: unknown
+            [key: string]: number
           }
         }
       }
@@ -7098,297 +8618,104 @@ export interface operations {
       }
     }
   }
-  update_setting_api_v1_admin_settings__key__patch: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        key: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ConfigUpdateRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  list_audit_events_api_v1_admin_audit_events_get: {
+  list_entitlements_api_v1_admin_entitlements_get: {
     parameters: {
       query?: {
-        limit?: number
-      }
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  get_scene_api_v1_admin_content_scenes__scene_id__get: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        scene_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SceneResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  get_revision_api_v1_admin_content_revisions__revision_id__get: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        revision_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['RevisionResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  save_revision_api_v1_admin_content_revisions__revision_id__put: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        revision_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SaveRevisionRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['RevisionResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  get_discovery_config_api_v1_admin_content_discovery_config_get: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['DiscoveryConfigResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  save_discovery_config_api_v1_admin_content_discovery_config_put: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SaveDiscoveryConfigRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['DiscoveryConfigResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  admin_preview_api_v1_admin_content_revisions__revision_id__preview_get: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        revision_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['AdminPreviewResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  revision_history_api_v1_admin_content_scenes__scene_id__revisions_get: {
-    parameters: {
-      query?: {
+        user_id?: string | null
+        type?: ('FORMAL' | 'LIMITED') | null
+        status?:
+          | ('ACTIVE' | 'PAUSED' | 'REVOKED' | 'PENDING' | 'ENDED' | 'START_EXPIRED' | 'EXPIRED')
+          | null
+        package_id?: string | null
+        campaign_id?: string | null
+        campaign_version_id?: string | null
+        expiry?: ('EXPIRING' | 'ENDING' | 'START_EXPIRING') | null
+        date_from?: string | null
+        date_to?: string | null
         page?: number
         page_size?: number
       }
       header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['EntitlementPageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_feedback_api_v1_admin_feedback_get: {
+    parameters: {
+      query?: {
+        status?:
+          | (
+              | 'PENDING'
+              | 'PROCESSING'
+              | 'NEED_MORE'
+              | 'USER_SUPPLIED'
+              | 'RESOLVED'
+              | 'CLOSED_INSUFFICIENT'
+            )
+          | null
+        category?: ('CONTENT' | 'PRONUNCIATION' | 'DISPLAY' | 'FUNCTION') | null
+        keyword?: string | null
+        sla?: ('PAUSED' | 'OVERDUE' | 'DUE_SOON' | 'ON_TRACK' | 'COMPLETED' | 'URGENT') | null
+        page?: number
+        page_size?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FeedbackPageResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  detail_api_v1_admin_feedback__ticket_id__get: {
+    parameters: {
+      query?: never
+      header?: never
       path: {
-        scene_id: string
+        ticket_id: string
       }
       cookie?: {
         juya_admin_session?: string | null
@@ -7402,7 +8729,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['RevisionHistoryResponse']
+          'application/json': components['schemas']['FeedbackAdminDetailResponse']
         }
       }
       /** @description Validation Error */
@@ -7416,87 +8743,7 @@ export interface operations {
       }
     }
   }
-  create_revision_api_v1_admin_content_scenes__scene_id__revisions_post: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        scene_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateRevisionRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  validate_publish_api_v1_admin_content_revisions__revision_id__publish_checks_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        revision_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PublishCheckRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  publish_revision_api_v1_admin_content_revisions__revision_id__commands_publish_post: {
+  close_insufficient_api_v1_admin_feedback__ticket_id__commands_close_insufficient_post: {
     parameters: {
       query?: never
       header: {
@@ -7504,7 +8751,7 @@ export interface operations {
         'X-CSRF-Token'?: string | null
       }
       path: {
-        revision_id: string
+        ticket_id: string
       }
       cookie?: {
         juya_admin_session?: string | null
@@ -7512,7 +8759,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['PublishRevisionRequest']
+        'application/json': components['schemas']['CloseCommand']
       }
     }
     responses: {
@@ -7522,9 +8769,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['FeedbackTicketResponse']
         }
       }
       /** @description Validation Error */
@@ -7538,20 +8783,23 @@ export interface operations {
       }
     }
   }
-  replace_open_scenes_api_v1_admin_content_open_scenes_put: {
+  request_supplement_api_v1_admin_feedback__ticket_id__commands_request_supplement_post: {
     parameters: {
       query?: never
-      header?: {
+      header: {
+        'X-Idempotency-Key': string
         'X-CSRF-Token'?: string | null
       }
-      path?: never
+      path: {
+        ticket_id: string
+      }
       cookie?: {
         juya_admin_session?: string | null
       }
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['OpenScenesRequest']
+        'application/json': components['schemas']['SupplementCommand']
       }
     }
     responses: {
@@ -7561,9 +8809,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['FeedbackTicketResponse']
         }
       }
       /** @description Validation Error */
@@ -7577,14 +8823,15 @@ export interface operations {
       }
     }
   }
-  replace_preview_scenes_api_v1_admin_content_preview_configs__series_id__put: {
+  resolve_api_v1_admin_feedback__ticket_id__commands_resolve_post: {
     parameters: {
       query?: never
-      header?: {
+      header: {
+        'X-Idempotency-Key': string
         'X-CSRF-Token'?: string | null
       }
       path: {
-        series_id: string
+        ticket_id: string
       }
       cookie?: {
         juya_admin_session?: string | null
@@ -7592,7 +8839,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['PreviewScenesRequest']
+        'application/json': components['schemas']['ResolveCommand']
       }
     }
     responses: {
@@ -7602,9 +8849,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['FeedbackTicketResponse']
         }
       }
       /** @description Validation Error */
@@ -7618,45 +8863,15 @@ export interface operations {
       }
     }
   }
-  offline_scene_api_v1_admin_content_scenes__scene_id__commands_offline_post: {
+  start_api_v1_admin_feedback__ticket_id__commands_start_post: {
     parameters: {
       query?: never
-      header?: {
+      header: {
+        'X-Idempotency-Key': string
         'X-CSRF-Token'?: string | null
       }
       path: {
-        scene_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  get_entitlement_api_v1_admin_formal_entitlements__entitlement_id__get: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        entitlement_id: string
+        ticket_id: string
       }
       cookie?: {
         juya_admin_session?: string | null
@@ -7670,7 +8885,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['FormalEntitlementDetailResponse']
+          'application/json': components['schemas']['FeedbackTicketResponse']
         }
       }
       /** @description Validation Error */
@@ -7684,20 +8899,23 @@ export interface operations {
       }
     }
   }
-  preview_operation_api_v1_admin_formal_entitlements_preview_operation_post: {
+  add_internal_note_api_v1_admin_feedback__ticket_id__internal_notes_post: {
     parameters: {
-      query: {
-        operation: components['schemas']['EntitlementOperation']
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
       }
-      header?: never
-      path?: never
+      path: {
+        ticket_id: string
+      }
       cookie?: {
         juya_admin_session?: string | null
       }
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['EntitlementCommandRequest']
+        'application/json': components['schemas']['InternalNoteRequest']
       }
     }
     responses: {
@@ -7707,9 +8925,42 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: unknown
-          }
+          'application/json': components['schemas']['FeedbackInternalNoteResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  screenshot_url_api_v1_admin_feedback__ticket_id__screenshot_url_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        ticket_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SignedFeedbackScreenshotResponse']
         }
       }
       /** @description Validation Error */
@@ -7765,7 +9016,46 @@ export interface operations {
       }
     }
   }
-  get_entitlement_api_v1_admin_limited_entitlements__entitlement_id__get: {
+  preview_operation_api_v1_admin_formal_entitlements_preview_operation_post: {
+    parameters: {
+      query: {
+        operation: components['schemas']['EntitlementOperation']
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EntitlementCommandRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_entitlement_api_v1_admin_formal_entitlements__entitlement_id__get: {
     parameters: {
       query?: never
       header?: never
@@ -7784,7 +9074,76 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['LimitedEntitlementDetailResponse']
+          'application/json': components['schemas']['FormalEntitlementDetailResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  read_api_v1_admin_learning_features_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FeaturesResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  update_api_v1_admin_learning_features_put: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FeaturesCommand']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FeaturesResponse']
         }
       }
       /** @description Validation Error */
@@ -7838,7 +9197,7 @@ export interface operations {
       }
     }
   }
-  preview_operation_api_v1_admin_limited_entitlements__entitlement_id__preview_operation_post: {
+  get_entitlement_api_v1_admin_limited_entitlements__entitlement_id__get: {
     parameters: {
       query?: never
       header?: never
@@ -7849,9 +9208,45 @@ export interface operations {
         juya_admin_session?: string | null
       }
     }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['LimitedEntitlementDetailResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  pause_api_v1_admin_limited_entitlements__entitlement_id__commands_pause_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        entitlement_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
     requestBody: {
       content: {
-        'application/json': components['schemas']['LimitedPreviewRequest']
+        'application/json': components['schemas']['ReasonRequest']
       }
     }
     responses: {
@@ -7894,48 +9289,6 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['RemedyRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  pause_api_v1_admin_limited_entitlements__entitlement_id__commands_pause_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        entitlement_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ReasonRequest']
       }
     }
     responses: {
@@ -8045,200 +9398,12 @@ export interface operations {
       }
     }
   }
-  list_entitlements_api_v1_admin_entitlements_get: {
-    parameters: {
-      query?: {
-        user_id?: string | null
-        type?: ('FORMAL' | 'LIMITED') | null
-        status?:
-          | ('ACTIVE' | 'PAUSED' | 'REVOKED' | 'PENDING' | 'ENDED' | 'START_EXPIRED' | 'EXPIRED')
-          | null
-        package_id?: string | null
-        campaign_id?: string | null
-        campaign_version_id?: string | null
-        expiry?: ('EXPIRING' | 'ENDING' | 'START_EXPIRING') | null
-        date_from?: string | null
-        date_to?: string | null
-        page?: number
-        page_size?: number
-      }
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['EntitlementPageResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  list_packages_api_v1_admin_content_packages_get: {
-    parameters: {
-      query?: {
-        page?: number
-        page_size?: number
-      }
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PackagePageResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  list_campaigns_api_v1_admin_campaigns_get: {
-    parameters: {
-      query?: {
-        status?: ('DRAFT' | 'OPEN' | 'PAUSED' | 'ENDED' | 'ARCHIVED' | 'CLOSED') | null
-        page?: number
-        page_size?: number
-      }
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CampaignPageResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  create_campaign_api_v1_admin_campaigns_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CampaignSaveRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CampaignResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  get_campaign_api_v1_admin_campaigns__campaign_id__get: {
+  preview_operation_api_v1_admin_limited_entitlements__entitlement_id__preview_operation_post: {
     parameters: {
       query?: never
       header?: never
       path: {
-        campaign_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CampaignResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  update_campaign_api_v1_admin_campaigns__campaign_id__put: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        campaign_id: string
+        entitlement_id: string
       }
       cookie?: {
         juya_admin_session?: string | null
@@ -8246,692 +9411,12 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['CampaignSaveRequest']
+        'application/json': components['schemas']['LimitedPreviewRequest']
       }
     }
     responses: {
       /** @description Successful Response */
       200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CampaignResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  copy_version_api_v1_admin_campaigns__campaign_id__versions_copy_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        campaign_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CampaignCommandRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CampaignResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  command_campaign_api_v1_admin_campaigns__campaign_id__commands__operation__post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        campaign_id: string
-        operation: 'open' | 'pause' | 'resume' | 'end' | 'archive' | 'capacity'
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CampaignCommandRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CampaignResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  list_feedback_api_v1_admin_feedback_get: {
-    parameters: {
-      query?: {
-        status?:
-          | (
-              | 'PENDING'
-              | 'PROCESSING'
-              | 'NEED_MORE'
-              | 'USER_SUPPLIED'
-              | 'RESOLVED'
-              | 'CLOSED_INSUFFICIENT'
-            )
-          | null
-        category?: ('CONTENT' | 'PRONUNCIATION' | 'DISPLAY' | 'FUNCTION') | null
-        keyword?: string | null
-        sla?: ('PAUSED' | 'OVERDUE' | 'DUE_SOON' | 'ON_TRACK' | 'COMPLETED' | 'URGENT') | null
-        page?: number
-        page_size?: number
-      }
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['FeedbackPageResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  detail_api_v1_admin_feedback__ticket_id__get: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        ticket_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['FeedbackAdminDetailResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  screenshot_url_api_v1_admin_feedback__ticket_id__screenshot_url_post: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        ticket_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SignedFeedbackScreenshotResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  add_internal_note_api_v1_admin_feedback__ticket_id__internal_notes_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        ticket_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['InternalNoteRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['FeedbackInternalNoteResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  start_api_v1_admin_feedback__ticket_id__commands_start_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        ticket_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['FeedbackTicketResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  request_supplement_api_v1_admin_feedback__ticket_id__commands_request_supplement_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        ticket_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SupplementCommand']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['FeedbackTicketResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  resolve_api_v1_admin_feedback__ticket_id__commands_resolve_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        ticket_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ResolveCommand']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['FeedbackTicketResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  close_insufficient_api_v1_admin_feedback__ticket_id__commands_close_insufficient_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        ticket_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CloseCommand']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['FeedbackTicketResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  list_corrections_api_v1_admin_contact_corrections_get: {
-    parameters: {
-      query?: {
-        status?: ('PENDING' | 'PROCESSING' | 'APPROVED' | 'REJECTED' | 'CANCELLED') | null
-        page?: number
-        page_size?: number
-      }
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ContactCorrectionPageResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  correction_detail_api_v1_admin_contact_corrections__correction_id__get: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        correction_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ContactCorrectionResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  decide_correction_api_v1_admin_contact_corrections__correction_id__commands__command__post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        correction_id: string
-        command: 'approve' | 'reject'
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CorrectionDecisionResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  update_contact_status_api_v1_admin_users__user_id__commands_contact_status_post: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        user_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ContactStatusRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ContactProjectionResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  verify_contact_change_api_v1_admin_users__user_id__commands_verify_contact_change_post: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        user_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ContactProjectionResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  audit_contact_copy_api_v1_admin_users__user_id__contact_copy_events_post: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        user_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  create_upload_policy_api_v1_admin_media_upload_policies_post: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UploadPolicyRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            [key: string]: unknown
-          }
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  confirm_upload_api_v1_admin_media_uploads_confirm_post: {
-    parameters: {
-      query?: never
-      header?: {
-        'X-CSRF-Token'?: string | null
-      }
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ConfirmUploadRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      201: {
         headers: {
           [name: string]: unknown
         }
@@ -9093,6 +9578,86 @@ export interface operations {
       }
     }
   }
+  generate_audio_api_v1_admin_media_audio_targets__target_id__commands_generate_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        target_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GenerateAudioRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProcessingJobResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  rollback_audio_version_api_v1_admin_media_audio_targets__target_id__commands_rollback_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        target_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RollbackAudioRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AudioTargetResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   list_audio_versions_api_v1_admin_media_audio_targets__target_id__versions_get: {
     parameters: {
       query?: never
@@ -9166,46 +9731,6 @@ export interface operations {
       }
     }
   }
-  generate_audio_api_v1_admin_media_audio_targets__target_id__commands_generate_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        target_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['GenerateAudioRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ProcessingJobResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
   confirm_audio_version_api_v1_admin_media_audio_versions__version_id__commands_confirm_post: {
     parameters: {
       query?: never
@@ -9223,46 +9748,6 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['EmptyCommandRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['AudioTargetResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  rollback_audio_version_api_v1_admin_media_audio_targets__target_id__commands_rollback_post: {
-    parameters: {
-      query?: never
-      header: {
-        'X-Idempotency-Key': string
-        'X-CSRF-Token'?: string | null
-      }
-      path: {
-        target_id: string
-      }
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['RollbackAudioRequest']
       }
     }
     responses: {
@@ -9542,6 +10027,368 @@ export interface operations {
       }
     }
   }
+  create_upload_policy_api_v1_admin_media_upload_policies_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UploadPolicyRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  confirm_upload_api_v1_admin_media_uploads_confirm_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ConfirmUploadRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_api_v1_admin_pronunciations_targets__target_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        target_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_api_v1_admin_pronunciations_targets__target_id__preview_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        target_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FixedPreviewRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  retry_api_v1_admin_pronunciations_tasks__task_id__retry_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        task_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_session_api_v1_admin_session_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_password_session_api_v1_admin_session_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PasswordLoginRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  logout_api_v1_admin_session_logout_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_settings_api_v1_admin_settings_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  update_setting_api_v1_admin_settings__key__patch: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        key: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ConfigUpdateRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   search_users_api_v1_admin_users_get: {
     parameters: {
       query?: {
@@ -9653,11 +10500,54 @@ export interface operations {
       }
     }
   }
-  dashboard_snapshot_api_v1_admin_dashboard_get: {
+  update_contact_status_api_v1_admin_users__user_id__commands_contact_status_post: {
     parameters: {
       query?: never
-      header?: never
-      path?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        user_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ContactStatusRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ContactProjectionResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  verify_contact_change_api_v1_admin_users__user_id__commands_verify_contact_change_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        user_id: string
+      }
       cookie?: {
         juya_admin_session?: string | null
       }
@@ -9670,10 +10560,41 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            [key: string]: number
-          }
+          'application/json': components['schemas']['ContactProjectionResponse']
         }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  audit_contact_copy_api_v1_admin_users__user_id__contact_copy_events_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        user_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description Validation Error */
       422: {
@@ -9719,17 +10640,12 @@ export interface operations {
       }
     }
   }
-  analytics_export_api_v1_admin_analytics_export_get: {
+  live_health_live_get: {
     parameters: {
-      query: {
-        start: string
-        end: string
-      }
+      query?: never
       header?: never
       path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
+      cookie?: never
     }
     requestBody?: never
     responses: {
@@ -9740,22 +10656,13 @@ export interface operations {
         }
         content: {
           'application/json': {
-            [key: string]: unknown
-          }[]
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
+            [key: string]: string
+          }
         }
       }
     }
   }
-  learning_modules_internal_v1_learning_modules_get: {
+  ready_health_ready_get: {
     parameters: {
       query?: never
       header?: never
@@ -9777,7 +10684,7 @@ export interface operations {
       }
     }
   }
-  learning_catalog_internal_v1_learning_catalog_post: {
+  access_batch_internal_v1_access_batch_post: {
     parameters: {
       query?: never
       header?: never
@@ -9786,7 +10693,194 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['UserQuery']
+        'application/json': components['schemas']['AccessBatchRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  cleanup_account_internal_v1_account_deletions_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AccountDeletionRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  open_content_internal_v1_content__content_type___content_id__open_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        content_type: 'dialogue' | 'word_card' | 'short_reading'
+        content_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UserRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json':
+            components['schemas']['SceneDetail'] | components['schemas']['ShortReadingDetail']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_internal_v1_content__content_type___content_id__preview_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        content_type: 'dialogue' | 'word_card' | 'short_reading'
+        content_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UserRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_cover_internal_v1_content__content_type___content_id__preview_cover_signed_url_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        content_type: 'dialogue' | 'word_card' | 'short_reading'
+        content_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UserRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  resource_internal_v1_content__content_type___content_id__resources__target_id__signed_url_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        content_type: 'dialogue' | 'word_card' | 'short_reading'
+        content_id: string
+        target_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['juya_admin_api__modules__v15_access__router__ResourceQuery']
       }
     }
     responses: {
@@ -9847,7 +10941,7 @@ export interface operations {
       }
     }
   }
-  access_batch_internal_v1_access_batch_post: {
+  projection_internal_v1_favorite_resource_projections_post: {
     parameters: {
       query?: never
       header?: never
@@ -9856,7 +10950,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['AccessBatchRequest']
+        'application/json': components['schemas']['FavoriteResourceEvent']
       }
     }
     responses: {
@@ -9882,114 +10976,7 @@ export interface operations {
       }
     }
   }
-  open_scene_internal_v1_scenes__scene_id__open_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        scene_id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UserQuery']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SceneOpenResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  get_entry_internal_v1_scenes__scene_id__entries__entry_id__post: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        scene_id: string
-        entry_id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['EntryQuery']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['AuthorizedEntryResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  signed_resource_internal_v1_scenes__scene_id__resources__resource_id__signed_url_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        scene_id: string
-        resource_id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['juya_admin_api__modules__access_policy__router__ResourceQuery']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SignedSceneResourceResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  query_feedback_internal_v1_feedback_query_post: {
+  confirmation_internal_v1_favorite_snapshots_confirmation_post: {
     parameters: {
       query?: never
       header?: never
@@ -9998,7 +10985,43 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['UserFeedbackQuery']
+        'application/json': components['schemas']['ConfirmationQuery']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ConfirmationResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  review_internal_v1_favorite_snapshots__favorite_id__resources__target_id__signed_url_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        favorite_id: string
+        target_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['juya_admin_api__modules__v15_access__router__ResourceQuery']
       }
     }
     responses: {
@@ -10011,6 +11034,41 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  source_internal_v1_favorite_snapshots__favorite_id__source_resolution_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        favorite_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UserRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SourceResolution']
         }
       }
       /** @description Validation Error */
@@ -10061,16 +11119,18 @@ export interface operations {
       }
     }
   }
-  feedback_detail_internal_v1_feedback__ticket_id__get: {
+  query_feedback_internal_v1_feedback_query_post: {
     parameters: {
       query?: never
       header?: never
-      path: {
-        ticket_id: string
-      }
+      path?: never
       cookie?: never
     }
-    requestBody?: never
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UserFeedbackQuery']
+      }
+    }
     responses: {
       /** @description Successful Response */
       200: {
@@ -10094,22 +11154,16 @@ export interface operations {
       }
     }
   }
-  supply_internal_v1_feedback__ticket_id__supplements_post: {
+  feedback_detail_internal_v1_feedback__ticket_id__get: {
     parameters: {
       query?: never
-      header: {
-        'X-Idempotency-Key': string
-      }
+      header?: never
       path: {
         ticket_id: string
       }
       cookie?: never
     }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SupplementRequest']
-      }
-    }
+    requestBody?: never
     responses: {
       /** @description Successful Response */
       200: {
@@ -10172,6 +11226,135 @@ export interface operations {
       }
     }
   }
+  supply_internal_v1_feedback__ticket_id__supplements_post: {
+    parameters: {
+      query?: never
+      header: {
+        'X-Idempotency-Key': string
+      }
+      path: {
+        ticket_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SupplementRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  internal_internal_v1_learning_features_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FeaturesRead']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FeaturesResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  learning_catalog_internal_v1_learning_catalog_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UserQuery']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  learning_modules_internal_v1_learning_modules_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+    }
+  }
   signed_url_internal_v1_media__target_id__signed_url_get: {
     parameters: {
       query?: never
@@ -10207,7 +11390,188 @@ export interface operations {
       }
     }
   }
-  cleanup_account_internal_v1_account_deletions_post: {
+  task_internal_v1_pronunciations_tasks__task_id__post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PronunciationContext']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  resolve_internal_v1_pronunciations__target_id__resolve_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        target_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PronunciationContext']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_entry_internal_v1_scenes__scene_id__entries__entry_id__post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        scene_id: string
+        entry_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EntryQuery']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AuthorizedEntryResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  open_scene_internal_v1_scenes__scene_id__open_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        scene_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UserQuery']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SceneOpenResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  signed_resource_internal_v1_scenes__scene_id__resources__resource_id__signed_url_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        scene_id: string
+        resource_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['juya_admin_api__modules__access_policy__router__ResourceQuery']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SignedSceneResourceResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  short_readings_internal_v1_short_readings_post: {
     parameters: {
       query?: never
       header?: never
@@ -10216,7 +11580,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['AccountDeletionRequest']
+        'application/json': components['schemas']['ShortReadingListRequest']
       }
     }
     responses: {

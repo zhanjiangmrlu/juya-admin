@@ -118,11 +118,39 @@ export const /**
                       : 'CREATE',
                 expectedVersion: Number(mapping.current_version || 0),
                 content: { ...candidate, entries: row.entries },
-                bindings: Object.entries(record(row.resources)).map(([role, value]) => ({
-                  path: String(record(value).path || ''),
-                  role: role.replace(/_path$/, ''),
-                  target: String(row.import_content_id)
-                })),
+                bindings: [
+                  ...Object.entries(record(row.resources))
+                    .filter(([role]) => role !== 'document_path')
+                    .map(([role, value]) => ({
+                      path: String(record(value).path || ''),
+                      role: role.replace(/_path$/, ''),
+                      target: String(row.import_content_id)
+                    })),
+                  ...(Array.isArray(row.entries) ? row.entries : []).flatMap((value) => {
+                    const entry = record(value)
+                    return [
+                      ...(entry.image_path &&
+                      !['PHRASE', 'CHUNK', 'chunk'].includes(String(entry.entry_type))
+                        ? [
+                            {
+                              path: String(entry.image_path),
+                              role: 'word_image',
+                              target: `${row.import_content_id}:${entry.import_entry_id}`
+                            }
+                          ]
+                        : []),
+                      ...(entry.pronunciation_path
+                        ? [
+                            {
+                              path: String(entry.pronunciation_path),
+                              role: 'pronunciation_audio',
+                              target: `${row.import_content_id}:${entry.import_entry_id}`
+                            }
+                          ]
+                        : [])
+                    ]
+                  })
+                ],
                 requiredDefaults: Array.isArray(row.defaults) ? row.defaults.map(String) : []
               }
               if (item.action === 'UPDATE' && mapping.draft_revision_id) {
@@ -149,9 +177,23 @@ export const /**
       }
     return {
       available: hasAdminOperation(base, 'post'),
-      /** 返回尚未公开的动态规模策略，上传仍由服务端严格校验
+      /** 读取当前部署的动态规模策略，上传仍由服务端严格校验
        * @returns 当前操作结果或完成状态
-       */ limits: async () => null,
+       */ limits: async () => {
+        if (!hasAdminOperation(`${base}/limits`, 'get')) return null
+        const result = await client.request<{ max_package_bytes: number; max_items: number }>({
+          method: 'GET',
+          path: `${base}/limits`
+        })
+        if (
+          !Number.isSafeInteger(result.max_package_bytes) ||
+          result.max_package_bytes < 1 ||
+          !Number.isSafeInteger(result.max_items) ||
+          result.max_items < 1
+        )
+          throw new Error('导入规模策略响应无效')
+        return { maxBytes: result.max_package_bytes, maxItems: result.max_items }
+      },
       /**
        * 上传真实文件，上传完成不等同于解析完成
        * @param file - 完整原始导入文件
@@ -230,11 +272,6 @@ export const /**
           }
         })
         return mapBatch(await get(id))
-      },
-      /** 明确告知局部重试契约仍待装配
-       * @returns 当前操作结果或完成状态
-       */ retry: async () => {
-        throw new Error('服务暂未提供失败阶段局部重试接口，成功草稿已保留；请刷新结果并继续编辑')
       },
       /**
        * 取消尚未开始的导入项并重新读取结果

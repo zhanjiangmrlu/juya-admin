@@ -18,7 +18,15 @@ const statusLabels: Record<string, string> = {
 </script>
 <template>
   <AdminPanel title="草稿保存结果">
-    <ElAlert title="保存草稿不会发布；成功项继续进入校对与发布" type="success" :closable="false" />
+    <ElAlert
+      :title="
+        batch.status === 'FAILED'
+          ? '当前批次处理失败，请读取实际失败阶段后明确恢复'
+          : '保存草稿不会发布；成功项继续进入校对与发布'
+      "
+      :type="batch.status === 'FAILED' ? 'error' : 'info'"
+      :closable="false"
+    />
     <div class="result-counts">
       <span>成功 {{ batch.counts.success }}</span
       ><span>失败 {{ batch.counts.failed }}</span
@@ -53,9 +61,12 @@ const statusLabels: Record<string, string> = {
     <div class="actions">
       <ElButton :loading="busy" @click="emit('refresh')">刷新任务结果</ElButton
       ><ElButton
-        :disabled="busy || !batch.items.some((item) => item.status === 'FAILED')"
+        :disabled="
+          busy ||
+          !(batch.status === 'FAILED' || batch.items.some((item) => item.status === 'FAILED'))
+        "
         @click="emit('retry')"
-        >仅重试失败项</ElButton
+        >查看失败阶段并恢复</ElButton
       ><ElButton :disabled="busy || batch.status === 'COMPLETED'" @click="emit('cancel')"
         >取消未开始项</ElButton
       ><RouterLink :to="{ name: 'content-scenes' }">前往内容列表</RouterLink>

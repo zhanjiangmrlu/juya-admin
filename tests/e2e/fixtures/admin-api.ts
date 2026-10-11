@@ -951,6 +951,55 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     await replyJson(route, createDiscoveryConfig(state.discoveryVersion))
     return
   }
+  if (url.pathname === '/api/v1/admin/learning-features') {
+    await replyJson(route, {
+      recording_enabled: false,
+      profile_completion_enabled: false,
+      version: 0
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content/learning-modules') {
+    await replyJson(route, {
+      items: Object.entries({
+        scene_learning: '场景学习',
+        short_reading: '短文阅读',
+        long_sentence: '长难句分析',
+        grammar: '语法'
+      }).map(([module_type, display_name], sort_order) => ({
+        module_type,
+        display_name,
+        sort_order,
+        enabled: module_type === 'scene_learning',
+        config_version: 1,
+        ready: ['scene_learning', 'short_reading'].includes(module_type),
+        reason: ['scene_learning', 'short_reading'].includes(module_type)
+          ? null
+          : 'MODULE_NOT_IMPLEMENTED',
+        entry_path: `/pages/${module_type}`
+      }))
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/admin/content-imports/limits') {
+    await replyJson(route, { max_package_bytes: 104857600, max_items: 1000 })
+    return
+  }
+  if (/\/sentences\/[^/]+\/slice-state$/.test(url.pathname)) {
+    await replyJson(route, {
+      revision_id: url.pathname.split('/')[6],
+      sentence_id: url.pathname.split('/')[8],
+      edit_version: Number(url.searchParams.get('expected_version')),
+      status: 'UNALIGNED',
+      dependency_hash: null,
+      target_id: null,
+      resource_version: null,
+      asset_id: null,
+      duration_ms: null,
+      listening_confirmed: false
+    })
+    return
+  }
   if (url.pathname === '/api/v1/admin/content/discovery-config' && request.method() === 'PUT') {
     if (state.discoveryConflictPending) {
       state.discoveryConflictPending = false

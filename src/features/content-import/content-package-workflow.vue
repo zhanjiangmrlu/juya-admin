@@ -11,6 +11,7 @@ import type { ContentSeries } from '@/features/content/content-adapter'
 import type { UploadFile } from 'element-plus'
 
 import { createContentPackageAdapter } from './content-package-adapter'
+import ContentStageRecoveryPanel from './content-stage-recovery-panel.vue'
 import PackageBindingPreview from './package-binding-preview.vue'
 import PackageImportResult from './package-import-result.vue'
 import PackageValidationTable from './package-validation-table.vue'
@@ -32,6 +33,7 @@ const file = shallowRef<globalThis.File | null>(null)
 const limits = ref<{ maxBytes: number; maxItems: number } | null>(null)
 const loadingError = ref('')
 const recoverId = ref(String(route.query.batch_id ?? ''))
+const stageRecovery = ref<InstanceType<typeof ContentStageRecoveryPanel> | null>(null)
 const locked = computed(() => controller.busy.value || !!controller.batch.value)
 const steps = [
   { id: 'upload', label: '1 上传导入包' },
@@ -189,6 +191,7 @@ onBeforeUnmount(() => {
       v-model:defaults="controller.defaultConfirmations.value"
       v-model:diffs="controller.diffConfirmations.value"
       :preview="controller.previewResult.value"
+      :batch-id="controller.batch.value?.id || ''"
       :busy="controller.busy.value"
       :can-confirm="controller.canConfirm.value"
       @confirm="controller.confirm"
@@ -198,10 +201,11 @@ onBeforeUnmount(() => {
       v-if="controller.phase.value === 'result' && controller.batch.value"
       :batch="controller.batch.value"
       :busy="controller.busy.value"
-      @retry="controller.retryFailed"
+      @retry="stageRecovery?.focus()"
       @refresh="controller.restore(controller.batch.value!.id)"
       @cancel="controller.cancel"
     />
+    <ContentStageRecoveryPanel ref="stageRecovery" :batch-id="controller.batch.value?.id" />
   </div>
 </template>
 <style scoped lang="scss">

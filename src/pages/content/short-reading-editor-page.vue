@@ -34,6 +34,15 @@ const previewOpened = ref(false)
 const publishOpened = ref(false)
 const publishVersion = ref<number | null>(null)
 const trialEnabled = ref<boolean | null>(null)
+const sortOrder = ref<number | null>(null)
+const pendingAudioFile = shallowRef<UploadFile | null>(null)
+const audioUploadProgress = ref(0)
+let audioUploadController: globalThis.AbortController | null = null
+let audioFile: globalThis.File | null = null
+let audioSignature = ''
+let audioKey = ''
+let sortSignature = ''
+let sortKey = ''
 const dirty = computed(
   () => !!snapshot.value && JSON.stringify(form.value) !== JSON.stringify(snapshot.value.content)
 )
@@ -41,6 +50,7 @@ const editable = computed(() => !snapshot.value || snapshot.value.status === 'DR
 let saveSignature = ''
 let saveKey = ''
 let generation = 0
+let resourceGeneration = 0
 let disposed = false
 let createKey = createIdempotencyKey()
 let publishKey = ''
@@ -57,15 +67,25 @@ const /** 刷新受控素材 URL 并忽略离页返回
    * @returns 当前操作结果或完成状态
    */ refreshResources = async (): Promise<void> => {
     const current = generation
+    const request = ++resourceGeneration
     const cover = form.value.cover_asset_id
     const asset = form.value.audio?.asset_id
+    const version = form.value.audio?.version_id
     coverUrl.value = ''
     audioUrl.value = ''
     const results = await Promise.allSettled([
       cover ? media.signedUrl(cover) : Promise.resolve(null),
       asset ? media.signedUrl(asset) : Promise.resolve(null)
     ])
-    if (disposed || current !== generation) return
+    if (
+      disposed ||
+      current !== generation ||
+      request !== resourceGeneration ||
+      cover !== form.value.cover_asset_id ||
+      asset !== form.value.audio?.asset_id ||
+      version !== form.value.audio?.version_id
+    )
+      return
     coverUrl.value = results[0].status === 'fulfilled' ? (results[0].value?.url ?? '') : ''
     audioUrl.value = results[1].status === 'fulfilled' ? (results[1].value?.url ?? '') : ''
     if (results.some((result) => result.status === 'rejected'))
@@ -76,6 +96,9 @@ const /** 加载独立短文当前草稿
    */ load = async (): Promise<void> => {
     const current = ++generation
     snapshot.value = null
+    audioUploadController?.abort()
+    pendingAudioFile.value = null
+    audioFile = null
     busy.value = false
     publishOpened.value = false
     form.value = normalizeShortReading({})
@@ -96,6 +119,7 @@ const /** 加载独立短文当前草稿
       snapshot.value = result
       form.value = normalizeShortReading({ ...result.content })
       trialEnabled.value = result.trialEnabled
+      sortOrder.value = result.sortOrder ?? null
       state.value = 'ready'
       await refreshResources()
     } catch (failure) {
@@ -166,16 +190,53 @@ const /**
    * @param file - 管理员选择的完整音频
    * @returns 当前操作结果或完成状态
    */ uploadAudio = async (file: UploadFile): Promise<void> => {
-    if (!file.raw || !snapshot.value || busy.value) {
+    if (
+      !file.raw ||
+      !snapshot.value ||
+      busy.value ||
+      conflict.value ||
+      !editable.value ||
+      !adapter.audioAvailable
+    ) {
       error.value = '请先保存短文草稿再上传音频'
       return
     }
+    pendingAudioFile.value = file
+    if (dirty.value && !(await save())) return
+    if (!snapshot.value) return
+    const uploadSnapshot = snapshot.value
+    const signature = JSON.stringify([
+      uploadSnapshot.id,
+      uploadSnapshot.revisionId,
+      uploadSnapshot.version,
+      uploadSnapshot.editVersion
+    ])
+    if (file.raw !== audioFile || audioSignature !== signature) {
+      audioFile = file.raw
+      audioSignature = signature
+      audioKey = createIdempotencyKey()
+    }
     busy.value = true
     const current = generation
+    error.value = ''
+    audioUploadProgress.value = 0
+    audioUploadController = new globalThis.AbortController()
     try {
-      const result = await adapter.uploadAudio(snapshot.value.id, file.raw, createIdempotencyKey())
+      const result = await adapter.uploadAudio(
+        uploadSnapshot,
+        file.raw,
+        audioKey,
+        (value) => {
+          if (!disposed && current === generation) audioUploadProgress.value = value
+        },
+        audioUploadController.signal
+      )
       if (disposed || current !== generation) return
-      form.value.audio = result
+      snapshot.value = result
+      form.value = normalizeShortReading({ ...result.content })
+      pendingAudioFile.value = null
+      audioFile = null
+      audioSignature = ''
       await refreshResources()
     } catch (failure) {
       if (!disposed && current === generation) fail(failure)
@@ -203,6 +264,45 @@ const /** 保存逐篇试读，不套用场景数量规则
         trialVersion: result.version
       }
       ElMessage.success('本篇试读配置已保存')
+    } catch (failure) {
+      if (!disposed && current === generation) fail(failure)
+    } finally {
+      if (current === generation) busy.value = false
+    }
+  }
+const /** 独立保存运营顺序，保留未保存正文输入 */ saveSort = async (): Promise<void> => {
+    if (
+      !snapshot.value ||
+      sortOrder.value === null ||
+      busy.value ||
+      conflict.value ||
+      !adapter.sortAvailable
+    )
+      return
+    const current = generation
+    const signature = JSON.stringify([snapshot.value.id, snapshot.value.version, sortOrder.value])
+    if (sortSignature !== signature) {
+      sortSignature = signature
+      sortKey = createIdempotencyKey()
+    }
+    busy.value = true
+    try {
+      const result = await adapter.sort(
+        snapshot.value.id,
+        sortOrder.value,
+        snapshot.value.version,
+        sortKey
+      )
+      if (disposed || current !== generation || !snapshot.value) return
+      snapshot.value = {
+        ...snapshot.value,
+        version: result.version,
+        trialVersion: result.version,
+        sortOrder: result.sortOrder
+      }
+      sortOrder.value = result.sortOrder
+      sortSignature = ''
+      ElMessage.success('短文全局顺序已保存')
     } catch (failure) {
       if (!disposed && current === generation) fail(failure)
     } finally {
@@ -277,6 +377,20 @@ const /** 明确移除选填音频并撤销固定文件试听事实 */ removeAud
     audioUrl.value = ''
   }
 watch(
+  () =>
+    JSON.stringify([
+      form.value.cover_asset_id,
+      form.value.audio?.asset_id,
+      form.value.audio?.version_id
+    ]),
+  () => {
+    resourceGeneration++
+    coverUrl.value = ''
+    audioUrl.value = ''
+  },
+  { flush: 'sync' }
+)
+watch(
   () => JSON.stringify([snapshot.value?.version, form.value]),
   () => {
     publishVersion.value = null
@@ -287,9 +401,13 @@ watch(id, load, { immediate: true })
 onBeforeUnmount(() => {
   disposed = true
   generation++
+  resourceGeneration++
   snapshot.value = null
   coverUrl.value = ''
   audioUrl.value = ''
+  audioUploadController?.abort()
+  pendingAudioFile.value = null
+  audioFile = null
 })
 </script>
 <template>
@@ -326,6 +444,13 @@ onBeforeUnmount(() => {
       ><ElButton v-if="conflict || state === 'error'" @click="load"
         >明确放弃本地输入并加载最新草稿</ElButton
       ></ElAlert
+    >
+    <ElProgress v-if="busy && pendingAudioFile" :percentage="audioUploadProgress" />
+    <ElButton
+      v-if="pendingAudioFile && error && !conflict"
+      :disabled="busy"
+      @click="uploadAudio(pendingAudioFile)"
+      >重试选定全文音频（复用成功阶段）</ElButton
     >
     <ElAlert
       v-if="snapshot && !editable"
@@ -368,6 +493,21 @@ onBeforeUnmount(() => {
       ><small v-if="trialEnabled === null">服务暂未返回当前试读状态，请明确选择目标状态</small
       ><ElButton :disabled="busy" @click="saveTrial">保存试读配置</ElButton
       ><small>逐篇配置，没有场景预览篇数限制</small>
+    </div>
+    <div v-if="snapshot && adapter.sortAvailable" class="trial">
+      <span>全局短文顺序（数值较小的在前）</span>
+      <ElInputNumber
+        v-model="sortOrder"
+        :min="-2147483648"
+        :max="2147483647"
+        :precision="0"
+        :disabled="busy || conflict"
+        aria-label="全局短文顺序"
+      />
+      <ElButton :disabled="busy || conflict || sortOrder === null" @click="saveSort"
+        >保存全局顺序</ElButton
+      >
+      <small>只调整运营顺序，不修改已发布正文；其他正文输入继续保留</small>
     </div>
     <ElDialog v-model="previewOpened" title="当前输入预览（尚未发布）" width="min(860px, 94vw)"
       ><ShortReadingPreview

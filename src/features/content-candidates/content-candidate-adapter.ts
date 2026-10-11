@@ -11,6 +11,7 @@ export interface CandidateSelection {
 }
 export interface ProductionCandidate {
   id: string
+  revision_id?: string
   status: string
   input_hash: string
   candidate: {
@@ -22,6 +23,21 @@ export interface ProductionCandidate {
       CandidateSelection[] | { text: string; boundaries: { start_ms: number; end_ms: number }[] }
   }
 }
+export const /**
+   * 恢复候选须绑定服务端修订；旧接口仅接受本页明确排队的来源
+   * @param candidate - 已读取的候选归属
+   * @param candidate.revision_id - 服务端返回的固定草稿编号
+   * @param revisionId - 当前正在编辑的固定修订
+   * @param queuedOrigin - 本页明确创建候选时记录的修订
+   * @returns 是否属于当前草稿
+   */ candidateBelongsToRevision = (
+    candidate: { revision_id?: string },
+    revisionId: string,
+    queuedOrigin?: string
+  ): boolean =>
+    candidate.revision_id !== undefined
+      ? candidate.revision_id === revisionId
+      : queuedOrigin === revisionId
 export const /**
    * 核对人工选择的 Unicode 位置确实属于原句，且有本篇中文
    * @param row - 人工核对后的来源位置和释义

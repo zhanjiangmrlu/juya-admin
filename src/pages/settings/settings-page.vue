@@ -6,6 +6,7 @@ import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import AuditEventList from '@/components/audit-event-list/audit-event-list.vue'
 import { createAuditAdapter } from '@/features/audit/audit-adapter'
+import LearningFeaturesPanel from '@/features/learning-features/learning-features-panel.vue'
 import { createSystemConfigAdapter } from '@/features/system-config/system-config-adapter'
 import { useSystemConfig } from '@/features/system-config/use-system-config'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
@@ -102,14 +103,15 @@ async function saveConfig(): Promise<void> {
               :max="90"
               aria-label="权益即将到期阈值（天）"
           /></ElFormItem>
-          <ElFormItem label="跟读录音"
+          <ElFormItem label="跟读学习入口"
             ><div class="switch-field">
               <span>{{ form.shadowingEnabled ? '开启' : '关闭' }}</span
-              ><ElSwitch v-model="form.shadowingEnabled" aria-label="跟读录音" /></div
+              ><ElSwitch v-model="form.shadowingEnabled" aria-label="跟读学习入口" /></div
           ></ElFormItem>
         </ElForm>
       </AdminPanel>
       <div class="review-column">
+        <LearningFeaturesPanel />
         <AdminPanel
           :title="ADMIN_SECTION_TITLES.settings.reviewCard"
           :heading="2"

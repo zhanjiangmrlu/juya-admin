@@ -4,7 +4,9 @@ import AppAudioPlayer from '@/components/app-audio-player/app-audio-player.vue'
 
 import type { ImportPreview } from './content-package-model'
 
-defineProps<{ preview: ImportPreview; busy: boolean; canConfirm: boolean }>()
+import ImportResourcePreview from './import-resource-preview.vue'
+
+defineProps<{ preview: ImportPreview; busy: boolean; canConfirm: boolean; batchId: string }>()
 const selected = defineModel<string[]>('selected', { required: true })
 const defaults = defineModel<string[]>('defaults', { required: true })
 const diffs = defineModel<string[]>('diffs', { required: true })
@@ -92,6 +94,12 @@ const fieldLabels: Record<string, string> = {
           :alt="binding.role === 'word_image' ? '本篇单词图片' : '封面或学习材料'"
         />
         <AppAudioPlayer v-if="binding.url && binding.role.includes('audio')" :src="binding.url" />
+        <ImportResourcePreview
+          v-if="!binding.url && binding.path"
+          :batch-id="batchId"
+          :path="binding.path"
+          :disabled="busy"
+        />
       </div>
       <template v-if="item.action === 'UPDATE' && item.previous">
         <h4>当前与候选差异</h4>

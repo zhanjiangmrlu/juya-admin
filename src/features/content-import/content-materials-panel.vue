@@ -14,6 +14,7 @@ import type { ContentSeries } from '@/features/content/content-adapter'
 import type { UploadFile } from 'element-plus'
 
 import { createContentMaterialsAdapter } from './content-materials-adapter'
+import ImportResourcePreview from './import-resource-preview.vue'
 
 const client = useAdminApiClient()
 const adapter = createContentMaterialsAdapter(client)
@@ -315,7 +316,7 @@ const /**
     </div>
     <template v-if="batch">
       <p>批次 {{ batch.batch_id }} · {{ batch.status }}</p>
-      <p>素材预览地址尚未公开，当前核对 ZIP 相对路径与 SHA256；不可把标题建议视为已绑定</p>
+      <p>逐项预览原始素材并核对路径与角色；标题建议不会自动成为绑定，预览不代替安全审核</p>
       <div class="actions">
         <ElInputNumber
           v-model="context.page"
@@ -341,6 +342,7 @@ const /**
       </p>
       <article v-for="(resource, index) in batch.manifest.resources || []" :key="resource.path">
         <p>{{ resource.path }} · {{ resource.sha256 }}</p>
+        <ImportResourcePreview :batch-id="batch.batch_id" :path="resource.path" :disabled="busy" />
         <p v-if="resource.matching_candidates.length">
           标题建议：{{
             resource.matching_candidates

@@ -14,6 +14,7 @@ export interface SentenceSlice {
   dependencyHash?: string
   url?: string
   confirmed: boolean
+  errorCode?: string
 }
 export interface SentenceSliceAdapter {
   available: boolean
@@ -59,7 +60,7 @@ export const /**
     sourceVersion: string
   ): boolean =>
     !!slice &&
-    ['READY', 'CONFIRMED'].includes(slice.status) &&
+    ['READY', 'READY_TO_LISTEN', 'CONFIRMED'].includes(slice.status) &&
     !!slice.targetId &&
     !!slice.resourceVersion &&
     !!slice.assetId &&

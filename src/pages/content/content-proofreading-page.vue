@@ -6,6 +6,7 @@ import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import { createContentAdapter } from '@/features/content/content-adapter'
 import ContentEntryConfirmationPanel from '@/features/proofreading/content-entry-confirmation-panel.vue'
 import ProofreadingSetPanel from '@/features/proofreading/proofreading-set-panel.vue'
+import PublicationRangePanel from '@/features/publishing/publication-range-panel.vue'
 import { createShortReadingAdapter } from '@/features/short-reading/short-reading-adapter'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
@@ -187,11 +188,14 @@ onBeforeUnmount(() => {
           >检查并明确发布这一候选</ElButton
         >
       </div>
-      <ElAlert
-        title="跨篇明确发布范围令牌接口待装配，当前按选定候选逐篇检查与确认发布"
-        type="info"
-        :closable="false"
-    /></AdminPanel>
+    </AdminPanel>
+    <PublicationRangePanel
+      :candidates="
+        approved?.candidates.filter((candidate) =>
+          approved!.confirmed_ids.includes(candidate.revision_id)
+        ) || []
+      "
+    />
   </section>
 </template>
 <style scoped lang="scss">

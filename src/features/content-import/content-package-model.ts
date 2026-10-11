@@ -74,6 +74,5 @@ export interface ContentPackageAdapter {
     confirmation: ImportConfirmation,
     idempotencyKey: string
   ): Promise<ImportBatch>
-  retry(id: string, itemIds: string[], idempotencyKey: string): Promise<ImportBatch>
   cancel(id: string, idempotencyKey: string): Promise<ImportBatch>
 }

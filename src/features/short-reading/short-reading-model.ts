@@ -32,10 +32,12 @@ export interface ShortReadingSnapshot {
   content: ShortReadingContent
   trialEnabled: boolean | null
   trialVersion: number
+  sortOrder?: number | null
 }
 export interface ShortReadingAdapter {
   available: boolean
   audioAvailable: boolean
+  sortAvailable: boolean
   load(id: string): Promise<ShortReadingSnapshot>
   create(seriesId: string, content: ShortReadingContent, key: string): Promise<ShortReadingSnapshot>
   save(
@@ -49,7 +51,19 @@ export interface ShortReadingAdapter {
     enabled: boolean,
     expectedVersion: number
   ): Promise<{ enabled: boolean; version: number }>
-  uploadAudio(id: string, file: globalThis.File, key: string): Promise<SceneAudio>
+  uploadAudio(
+    snapshot: ShortReadingSnapshot,
+    file: globalThis.File,
+    key: string,
+    progress?: (value: number) => void,
+    signal?: AbortSignal
+  ): Promise<ShortReadingSnapshot>
+  sort(
+    id: string,
+    order: number,
+    expectedVersion: number,
+    key: string
+  ): Promise<{ version: number; sortOrder: number }>
   check(id: string): Promise<{ ready: boolean; errors: string[]; version: number }>
   publish(id: string, version: number, key: string): Promise<ShortReadingSnapshot>
 }

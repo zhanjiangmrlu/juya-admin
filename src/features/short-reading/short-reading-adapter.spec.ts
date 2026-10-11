@@ -47,4 +47,16 @@ describe('independent reading contract', () => {
     expect(result.editVersion).toBe(8)
     expect(result.trialEnabled).toBe(null)
   })
+
+  it('updates global reading order with the content version without editing text snapshots', async () => {
+    const request = vi.fn().mockResolvedValue({ content_id: 'READING', version: 4, sort_order: -3 })
+    const result = await createShortReadingAdapter({ request }).sort('READING', -3, 3, 'sort-retry')
+    expect(request).toHaveBeenCalledWith({
+      method: 'POST',
+      path: '/api/v1/admin/content/short-readings/READING/sort-order',
+      headers: { 'Idempotency-Key': 'sort-retry' },
+      body: { expected_version: 3, sort_order: -3 }
+    })
+    expect(result).toEqual({ version: 4, sortOrder: -3 })
+  })
 })

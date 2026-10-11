@@ -28,22 +28,43 @@ export const /**
         const form = normalizeSceneContent(revision.content)
         return Promise.all(
           form.dialogue.map(async (row) => {
-            const dependencyHash =
+            let dependencyHash =
               row.slice_dependency_hash || dependencies.get(`${revisionId}:${row.id}`)
+            let state: Record<string, unknown> | null = null
+            if (
+              hasAdminOperation(`${base}/{revision_id}/sentences/{sentence_id}/slice-state`, 'get')
+            ) {
+              state = await client.request<Record<string, unknown>>({
+                method: 'GET',
+                path: `${base}/${encodeURIComponent(revisionId)}/sentences/${encodeURIComponent(row.id)}/slice-state`,
+                query: { expected_version: revision.version }
+              })
+              if (
+                state.revision_id !== revisionId ||
+                state.sentence_id !== row.id ||
+                state.edit_version !== revision.version
+              )
+                throw new Error('切片状态不属于当前句子与草稿版本，请重新加载')
+              dependencyHash =
+                typeof state.dependency_hash === 'string' ? state.dependency_hash : undefined
+            }
             const slice = {
               sentenceId: row.id,
               sourceVersion: form.audio?.version_id || '',
               startMs: row.start_ms ?? 0,
               endMs: row.end_ms ?? 0,
-              status: 'PENDING',
-              targetId: null as string | null,
-              resourceVersion: null as string | null,
-              assetId: null as string | null,
-              durationMs: 0,
-              confirmed: false,
+              status: String(state?.status || 'PENDING'),
+              targetId: typeof state?.target_id === 'string' ? state.target_id : null,
+              resourceVersion:
+                typeof state?.resource_version === 'string' ? state.resource_version : null,
+              assetId: typeof state?.asset_id === 'string' ? state.asset_id : null,
+              durationMs: Number(state?.duration_ms || 0),
+              confirmed: state?.listening_confirmed === true,
+              errorCode: typeof state?.error_code === 'string' ? state.error_code : undefined,
               dependencyHash
             }
             if (!dependencyHash) return slice
+            if (state && !['READY_TO_LISTEN', 'CONFIRMED'].includes(slice.status)) return slice
             try {
               const result = await client.request<{
                 url: string
@@ -60,6 +81,13 @@ export const /**
               })
               if (result.dependency_hash !== dependencyHash)
                 throw new Error('切片依赖响应已变化，请重新标记边界')
+              if (
+                state &&
+                (result.resource_version !== slice.resourceVersion ||
+                  result.asset_id !== slice.assetId ||
+                  result.target_id !== slice.targetId)
+              )
+                throw new Error('切片文件在读取期间已变化，请刷新后重新试听')
               return {
                 ...slice,
                 status: result.status,

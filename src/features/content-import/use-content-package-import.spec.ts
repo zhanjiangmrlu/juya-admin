@@ -48,7 +48,6 @@ const adapterFactory = (): ContentPackageAdapter => ({
   validate: vi.fn(async () => batch),
   preview: vi.fn(async () => preview),
   confirm: vi.fn(async () => ({ ...batch, status: 'COMPLETED' })),
-  retry: vi.fn(async () => batch),
   cancel: vi.fn(async () => batch)
 })
 
@@ -101,7 +100,7 @@ describe('content package import', () => {
     expect(controller.defaultConfirmations.value).toEqual([])
     expect(controller.diffConfirmations.value).toEqual([])
   })
-  it('reuses the same command key after transport failure and retries only failed items', async () => {
+  it('reuses the same command key after transport failure', async () => {
     const adapter = adapterFactory()
     vi.mocked(adapter.confirm).mockRejectedValueOnce(new Error('network'))
     const controller = useContentPackageImport(adapter)
@@ -115,12 +114,6 @@ describe('content package import', () => {
     expect(vi.mocked(adapter.confirm).mock.calls[0]?.[2]).toBe(
       vi.mocked(adapter.confirm).mock.calls[1]?.[2]
     )
-    controller.batch.value = {
-      ...batch,
-      items: [...batch.items, { ...batch.items[0]!, id: 'failed-1', status: 'FAILED' }]
-    }
-    await controller.retryFailed()
-    expect(adapter.retry).toHaveBeenCalledWith('batch-1', ['failed-1'], expect.any(String))
   })
   it('does not restore an abandoned request after disposal', async () => {
     const adapter = adapterFactory()
@@ -137,5 +130,24 @@ describe('content package import', () => {
     finish(batch)
     await pending
     expect(controller.batch.value).toBeNull()
+  })
+
+  it('clears preview and explicit confirmations when another batch is restored', async () => {
+    const adapter = adapterFactory()
+    const controller = useContentPackageImport(adapter)
+    await controller.restore('batch-1')
+    await controller.preview()
+    controller.selected.value = ['row-1']
+    controller.excluded.value = ['bad-row']
+    controller.defaultConfirmations.value = ['row-1:NO_WORD_IMAGE']
+    controller.diffConfirmations.value = ['row-1']
+    vi.mocked(adapter.load).mockResolvedValueOnce({ ...batch, id: 'batch-2' })
+    await controller.restore('batch-2')
+    expect(controller.previewResult.value).toBeNull()
+    expect(controller.selected.value).toEqual([])
+    expect(controller.excluded.value).toEqual([])
+    expect(controller.defaultConfirmations.value).toEqual([])
+    expect(controller.diffConfirmations.value).toEqual([])
+    expect(controller.canConfirm.value).toBe(false)
   })
 })
