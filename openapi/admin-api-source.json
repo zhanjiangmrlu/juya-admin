@@ -1,0 +1,13 @@
+{
+  "backend_commit": "b1e347d93c09a998da834b05e17d59ede7da07ab",
+  "source_document": "../doc/juya-admin-api-V1.5接口文档-20261011.md",
+  "source_openapi": "../doc/接口文档/20261011-V1.5/admin-api.openapi.json",
+  "source_sha256": "501dd9daf40402db6eee1fe6976ca22ecac465c56b6e9b983ddd894456e0de19",
+  "semantic_sha256": "ce54f562772fe305b402950cc2fed8cb93894ae418038cf25eace059a93727fe",
+  "paths": 131,
+  "operations": 147,
+  "management_operations": 120,
+  "internal_operations": 25,
+  "health_operations": 2,
+  "schemas": 153
+}

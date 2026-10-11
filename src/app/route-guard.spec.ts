@@ -49,4 +49,26 @@ describe('route guard', () => {
 
     await expect(guard(createRoute())).resolves.toBe(true)
   })
+
+  it('preserves a newer login when an older navigation probe returns false', async () => {
+    let authenticated = false
+    let finish!: () => void
+    const authStore: RouteGuardAuthStore = {
+      clearSensitiveState: vi.fn(),
+      get isAuthenticated() {
+        return authenticated
+      },
+      probeSession: vi.fn(
+        () =>
+          new Promise<boolean>((resolve) => {
+            finish = () => resolve(false)
+          })
+      )
+    }
+    const pending = createRouteGuard(authStore)(createRoute())
+    authenticated = true
+    finish()
+    await expect(pending).resolves.toBe(true)
+    expect(authStore.clearSensitiveState).not.toHaveBeenCalled()
+  })
 })

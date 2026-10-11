@@ -52,6 +52,45 @@ describe('auth store', () => {
     expect(store.sessionExpiresAt).toBe('2026-09-29T21:00:00Z')
   })
 
+  it('shares a single CSRF-rotating request between concurrent session probes', async () => {
+    const adapter = createAdapter()
+    let finish!: (value: { csrfToken: string; expiresAt: string }) => void
+    vi.mocked(adapter.probeSession).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        })
+    )
+    const store = createUseAuthStore(adapter, 'auth-shared-probe-test')()
+    const first = store.probeSession()
+    const second = store.probeSession()
+    expect(adapter.probeSession).toHaveBeenCalledTimes(1)
+    finish({ csrfToken: 'csrf-rotated-once', expiresAt: '2026-10-11T20:00:00Z' })
+    await expect(first).resolves.toBe(true)
+    await expect(second).resolves.toBe(true)
+    expect(store.csrfToken).toBe('csrf-rotated-once')
+  })
+
+  it('does not restore a cleared session from a late rotating response', async () => {
+    const adapter = createAdapter()
+    let finish!: (value: { csrfToken: string; expiresAt: string }) => void
+    vi.mocked(adapter.probeSession).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        })
+    )
+    const store = createUseAuthStore(adapter, 'auth-late-probe-test')()
+    const pending = store.probeSession()
+    store.clearSensitiveState()
+    finish({ csrfToken: 'csrf-stale', expiresAt: '2026-10-11T20:00:00Z' })
+    await expect(pending).resolves.toBe(false)
+    expect(store.csrfToken).toBeNull()
+    expect(store.isAuthenticated).toBe(false)
+    await expect(store.probeSession()).resolves.toBe(true)
+    expect(adapter.probeSession).toHaveBeenCalledTimes(2)
+  })
+
   it('clears sensitive state when the session probe returns 401', async () => {
     const adapter = createAdapter()
     vi.mocked(adapter.probeSession).mockRejectedValue(

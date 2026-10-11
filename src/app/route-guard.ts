@@ -6,30 +6,31 @@ export interface RouteGuardAuthStore {
   probeSession(): Promise<boolean>
 }
 
-/**
- * 创建管理员路由认证守卫
- *
- * @param authStore - 提供会话状态和探测能力的认证 Store
- * @returns 可注册到 Vue Router 的异步前置守卫
- */
-export function createRouteGuard(authStore: RouteGuardAuthStore) {
-  /**
-   * 校验目标路由是否允许当前会话访问
+export const /**
+   * 创建管理员路由认证守卫
    *
-   * @param to - 即将进入的目标路由
-   * @returns 放行结果或登录页重定向
+   * @param authStore - 提供会话状态和探测能力的认证 Store
+   * @returns 可注册到 Vue Router 的异步前置守卫
    */
-  return async function guard(to: RouteLocationNormalized): Promise<NavigationGuardReturn> {
-    if (to.meta.public) return true
-    if (authStore.isAuthenticated) return true
+  createRouteGuard = (authStore: RouteGuardAuthStore) => {
+    const /**
+       * 校验目标路由是否允许当前会话访问
+       *
+       * @param to - 即将进入的目标路由
+       * @returns 放行结果或登录页重定向
+       */
+      guard = async (to: RouteLocationNormalized): Promise<NavigationGuardReturn> => {
+        if (to.meta.public) return true
+        if (authStore.isAuthenticated) return true
 
-    const hasSession = await authStore.probeSession()
-    if (hasSession) return true
+        const hasSession = await authStore.probeSession()
+        if (hasSession || authStore.isAuthenticated) return true
 
-    authStore.clearSensitiveState()
-    return { name: 'login' }
+        authStore.clearSensitiveState()
+        return { name: 'login' }
+      }
+    return guard
   }
-}
 
 /**
  * 将管理员认证守卫安装到指定路由器
