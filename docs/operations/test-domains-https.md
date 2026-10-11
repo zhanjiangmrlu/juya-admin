@@ -100,16 +100,16 @@ sudo certbot renew --cert-name juya-test --dry-run --run-deploy-hooks --no-rando
 
 随后使用真实管理账号验证登录、刷新恢复、保存、OSS 上传和退出。服务器 SSH 账号不能替代应用管理账号。
 
-2026 年 10 月 11 日的服务器验证结果：
+2026 年 10 月 11 日的服务器及外网验证结果：
 
-- 四个域名的证书校验成功；管理后台 HTTPS 返回 200。
+- 四个域名的外网证书校验成功；管理后台登录页面与入口 JavaScript 均返回 200。
 - 管理 API 健康检查返回 `ready`，MySQL、schema、Redis、configuration 均为 true。
 - 后台未登录的 `/api/v1/admin/session` 返回 401；独立管理 API 域名的内部接口路径返回 404。
 - 四个 HTTP 入口返回 301，ACME HTTP 验证路径仍可用。
 - 小程序 API 和 H5 返回预期 503，尚不能作为业务可用验收。
 - 原 `/etc/nginx/conf.d/juya-private.conf` SHA256 未改变；原有五个容器保持运行。
-- Certbot 定时器已启用，续期钩子已安装；续期演练先后遇到 CA 次级验证的 CAA SERVFAIL 和 HTTP 连接超时，尚未通过。
-- 服务器本机 443 正常监听，UFW 未启用，INPUT 策略为 ACCEPT；外网 443 连接超时，需在阿里云安全组核查放行。
+- Certbot 定时器已启用，续期钩子已安装；安全组放行后，四域名续期演练及 Nginx 重新加载钩子均通过。
+- 安全组已放行公网 TCP 443，四个测试域名的外网 HTTPS 已接通；管理 API 健康检查从外网返回 `ready`。
 - 新后台来源的 OSS POST 预检返回 403，待管理员追加 CORS 来源。
 
 服务器本机的 `--resolve 域名:443:127.0.0.1` 验证只证明 Nginx 和证书正常，不能替代外网访问、真实账号会话、OSS 上传或微信真机验收。
