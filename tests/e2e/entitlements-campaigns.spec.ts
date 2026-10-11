@@ -131,13 +131,22 @@ for (const viewport of viewports) {
       if (number === 'A08') await page.getByRole('button', { name: '查看当前权益详情' }).click()
       if (number === 'A09') await expect(page.getByText('v1', { exact: true })).toBeVisible()
       if (number === 'A11') {
+        await expect(page.getByRole('textbox', { name: '活动名称', exact: true })).toHaveValue(
+          '秋季限时学习'
+        )
         await page.getByRole('button', { name: '活动状态与版本详情' }).click()
         await expect(page.getByText(/当前服务端版本 v3/)).toBeVisible()
       }
       if (number === 'A10') await expect(page.getByRole('cell', { name: 'CAMP-1' })).toBeVisible()
       if (number === 'A12') {
-        await page.getByRole('button', { name: '查看对象与版本详情' }).click()
-        await expect(page.getByText(/VERSION-1/)).toBeVisible()
+        await expect(page.getByRole('button', { name: '保存容量', exact: true })).toBeEnabled()
+        await expect(page.locator('.rules-card .campaign-status')).toHaveText('可开通')
+        await page.screenshot({
+          path: testInfo.outputPath(`A12-rules-${viewport.width}.png`),
+          fullPage: true,
+          animations: 'disabled'
+        })
+        await expect(page.locator('.scene-order')).toHaveText('Ordering coffee')
       }
       await expect(page.locator('main')).not.toContainText('接口待接入')
       await expect
@@ -181,6 +190,9 @@ test('capacity command uses server version, confirmation and idempotency key', a
   await loginAsAdmin(page)
   await navigateInApp(page, '/campaigns/CAMP-1/versions')
   await expect(page.getByText(/累计开通人数/)).toBeVisible()
+  await page.getByRole('spinbutton').fill('4')
+  await expect(page.getByText('容量不能小于已开通人数 5', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '保存容量', exact: true })).toBeDisabled()
   await page.getByRole('spinbutton').fill('35')
   await page.getByRole('button', { name: '保存容量' }).click()
   await expect(page.getByRole('dialog', { name: '确认容量调整' })).toBeVisible()
@@ -191,9 +203,49 @@ test('capacity command uses server version, confirmation and idempotency key', a
   expect(request?.headers['x-idempotency-key']).toMatch(/^idem-/)
 })
 
+test('capacity toggle preserves an unsubmitted limit and submits null only after confirmation', async ({
+  adminApi,
+  page
+}) => {
+  await loginAsAdmin(page)
+  await navigateInApp(page, '/campaigns/CAMP-1/versions')
+  const limit = page.getByRole('spinbutton', { name: '人数上限', exact: true })
+  await expect(limit).toHaveValue('30')
+  await limit.fill('45')
+  const toggle = page.locator('.capacity-summary .el-switch')
+  await toggle.click()
+  await expect(limit).toBeHidden()
+  await toggle.click()
+  await expect(limit).toHaveValue('45')
+  await toggle.click()
+  expect(
+    adminApi.findRequest('POST', '/api/v1/admin/campaigns/CAMP-1/commands/capacity')
+  ).toBeUndefined()
+  await page.getByRole('button', { name: '保存容量', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: '确认容量调整' })).toBeVisible()
+  await page.getByRole('button', { name: '确认执行', exact: true }).click()
+  await expect(page.getByText('容量已更新', { exact: true })).toBeVisible()
+  expect(
+    adminApi.findRequest('POST', '/api/v1/admin/campaigns/CAMP-1/commands/capacity')?.body
+  ).toEqual({
+    expected_version: 3,
+    capacity: null
+  })
+})
+
 test('campaign creation and version copy use real write routes', async ({ adminApi, page }) => {
   await loginAsAdmin(page)
   await navigateInApp(page, '/campaigns/new/edit')
+  await expect(page.getByText('累计开通人数：0人（只读）', { exact: true })).toBeVisible()
+  const limit = page.getByRole('spinbutton', { name: '人数上限', exact: true })
+  await expect(limit).toBeHidden()
+  const toggle = page.locator('.capacity-row .el-switch')
+  await toggle.click()
+  await limit.fill('45')
+  await toggle.click()
+  await toggle.click()
+  await expect(limit).toHaveValue('45')
+  await toggle.click()
   await page.getByRole('textbox', { name: '活动名称' }).fill('新建学习活动')
   await page
     .locator('.campaign-scene-selector .choices')

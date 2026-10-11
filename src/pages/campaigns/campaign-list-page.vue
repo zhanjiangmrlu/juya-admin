@@ -154,7 +154,7 @@ void load()
             >编辑</RouterLink
           >
           <RouterLink class="link" :to="{ name: 'campaign-versions', params: { id: scope.row.id } }"
-            >版本与容量</RouterLink
+            >规则与容量</RouterLink
           >
         </template>
       </DataTable>

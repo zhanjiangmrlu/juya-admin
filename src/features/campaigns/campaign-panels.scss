@@ -1,0 +1,65 @@
+/* stylelint-disable selector-pseudo-class-no-unknown -- 仅由 Vue scoped SCSS 引入，:deep 交给 Vue 编译 */
+.campaign-edit-page,
+.campaign-version-page {
+  :deep(.campaign-panel) {
+    border-color: var(--juya-color-border);
+    background: var(--juya-color-surface);
+
+    [class~='el-card__header'] {
+      padding: 20px 20px 0;
+    }
+
+    [class~='el-card__body'] {
+      padding: 12px 20px 20px;
+    }
+
+    .admin-panel-title {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 29px;
+    }
+  }
+
+  :deep([class~='el-form-item__label']) {
+    margin-bottom: 8px;
+    color: var(--juya-color-text-primary);
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  :deep(.campaign-number-input) {
+    width: 100%;
+
+    [class~='el-input__inner'] {
+      text-align: left;
+    }
+  }
+}
+
+.campaign-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+
+  :deep(.el-button) {
+    min-width: 160px;
+    font-size: 15px;
+
+    &[class~='el-button--primary'] {
+      min-width: 200px;
+    }
+  }
+
+  @media (width <= 700px) {
+    :deep(.el-button) {
+      min-width: 0;
+
+      &[class~='el-button--primary'] {
+        min-width: 0;
+      }
+    }
+  }
+}
+/* stylelint-enable selector-pseudo-class-no-unknown */

@@ -9,6 +9,7 @@ import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
+import CampaignCapacityToggle from '@/features/campaigns/campaign-capacity-toggle.vue'
 import CampaignSceneSelector from '@/features/campaigns/campaign-scene-selector.vue'
 import { useCampaignEditor } from '@/features/campaigns/use-campaign-editor'
 import { createApiClient } from '@/services/api/api-client'
@@ -32,12 +33,7 @@ const editor = useCampaignEditor(
     })
   )
 )
-const capacityLimited = computed({
-  get: () => editor.draft.value.capacity !== null,
-  set: (limited: boolean) => {
-    editor.draft.value.capacity = limited ? 1 : null
-  }
-})
+const capacityLimited = computed(() => editor.draft.value.capacity !== null)
 const validationError = ref('')
 const confirmVisible = ref(false)
 const pendingOperation = ref<Exclude<CampaignOperation, 'capacity'> | 'copy'>('open')
@@ -142,7 +138,7 @@ const /** 保存草稿后读取真实可执行状态，再确认启用 */
       ></ElAlert
     >
     <ElAlert v-if="validationError" :title="validationError" type="warning" :closable="false" />
-    <AdminPanel title="活动基本信息"
+    <AdminPanel class="campaign-panel" title="活动基本信息"
       ><ElForm class="basic-form" label-position="top" @submit.prevent="save"
         ><ElFormItem label="活动名称"
           ><ElInput
@@ -159,6 +155,7 @@ const /** 保存草稿后读取真实可执行状态，再确认启用 */
               :value="5" /></ElSelect></ElFormItem></ElForm
     ></AdminPanel>
     <AdminPanel
+      class="campaign-panel"
       :title="`选择学习内容 · 已选${editor.draft.value.sceneIds.length} / 所需${editor.draft.value.durationDays}`"
       ><CampaignSceneSelector
         v-model="editor.draft.value.sceneIds"
@@ -167,30 +164,43 @@ const /** 保存草稿后读取真实可执行状态，再确认启用 */
     /></AdminPanel>
     <div class="capacity-row">
       <span>限制人数</span
-      ><ElSwitch
-        v-model="capacityLimited"
-        :disabled="!canEdit"
-        active-text="限制人数"
-        inactive-text="不限人数"
-      /><ElInputNumber
-        v-if="capacityLimited"
+      ><CampaignCapacityToggle
+        :key="`${campaignId}:${editor.server.value?.currentVersion?.id ?? 'new'}`"
         v-model="editor.draft.value.capacity"
-        :disabled="!canEdit"
-        :min="1"
-        :precision="0"
-        aria-label="人数上限"
-      /><span v-if="editor.server.value" class="count"
-        >累计开通人数：{{
-          editor.server.value.currentVersion?.grantedUserCount ?? 0
-        }}
-        人（只读）</span
-      >
+        :minimum="Math.max(1, editor.server.value?.currentVersion?.grantedUserCount ?? 1)"
+        :disabled="!canEdit || editor.state.value === 'submitting'"
+      />
     </div>
+    <ElForm v-if="capacityLimited" class="capacity-form" label-position="top"
+      ><ElFormItem label="人数上限"
+        ><ElInputNumber
+          v-model="editor.draft.value.capacity"
+          class="campaign-number-input"
+          :controls="false"
+          :disabled="!canEdit"
+          :min="1"
+          :precision="0" /></ElFormItem
+    ></ElForm>
+    <p class="count">
+      累计开通人数：{{ editor.server.value?.currentVersion?.grantedUserCount ?? 0 }}人（只读）
+    </p>
     <ElCollapse class="advanced"
-      ><ElCollapseItem
-        :title="`高级设置 · 启动期限：开通后${editor.draft.value.activationWindowDays}天内首次开始`"
-        name="activation"
-        ><p>启动期限已随学习时长带入，可展开修改，或恢复默认。</p>
+      ><ElCollapseItem name="activation"
+        ><template #title
+          ><div class="advanced-summary">
+            <strong
+              >高级设置 ·
+              {{
+                editor.activationWindowCustomized.value ? '已自定义启动期限' : '已随学习时长带入'
+              }}</strong
+            >
+            <p>
+              启动期限：开通后{{
+                editor.draft.value.activationWindowDays
+              }}天内首次开始。可展开修改，或恢复默认。
+            </p>
+          </div></template
+        >
         <ElForm label-position="top"
           ><ElFormItem label="开通后多久内需要首次开始"
             ><ElInputNumber
@@ -239,32 +249,34 @@ const /** 保存草稿后读取真实可执行状态，再确认启用 */
       ></template
     >
     <AppPageActions
-      ><template v-if="canEdit"
-        ><ElButton
-          :disabled="!editor.draft.value.name.trim()"
-          :loading="editor.state.value === 'submitting'"
-          @click="save"
-          >保存草稿</ElButton
-        ><ElButton
-          type="primary"
-          :disabled="!editor.draft.value.name.trim()"
-          :loading="editor.state.value === 'submitting'"
-          @click="saveAndEnable"
-          >检查并启用</ElButton
-        ><ElButton v-if="availableOperations.includes('copy')" @click="ask('copy')"
-          >复制并编辑</ElButton
-        ></template
-      ><template v-else
-        ><RouterLink v-slot="{ navigate }" custom :to="{ name: 'campaigns' }"
-          ><ElButton @click="navigate">返回列表</ElButton></RouterLink
-        ><ElButton
-          v-if="availableOperations.includes('copy')"
-          type="primary"
-          :disabled="editor.state.value === 'submitting'"
-          @click="ask('copy')"
-          >复制并编辑</ElButton
-        ></template
-      ></AppPageActions
+      ><div class="campaign-actions">
+        <template v-if="canEdit"
+          ><ElButton
+            :disabled="!editor.draft.value.name.trim()"
+            :loading="editor.state.value === 'submitting'"
+            @click="save"
+            >保存草稿</ElButton
+          ><ElButton
+            type="primary"
+            :disabled="!editor.draft.value.name.trim()"
+            :loading="editor.state.value === 'submitting'"
+            @click="saveAndEnable"
+            >检查并启用</ElButton
+          ><ElButton v-if="availableOperations.includes('copy')" @click="ask('copy')"
+            >复制并编辑</ElButton
+          ></template
+        ><template v-else
+          ><RouterLink v-slot="{ navigate }" custom :to="{ name: 'campaigns' }"
+            ><ElButton @click="navigate">返回列表</ElButton></RouterLink
+          ><ElButton
+            v-if="availableOperations.includes('copy')"
+            type="primary"
+            :disabled="editor.state.value === 'submitting'"
+            @click="ask('copy')"
+            >复制并编辑</ElButton
+          ></template
+        >
+      </div></AppPageActions
     >
     <ConfirmDialog
       v-if="editor.server.value"
@@ -285,6 +297,8 @@ const /** 保存草稿后读取真实可执行状态，再确认启用 */
   </section>
 </template>
 <style scoped lang="scss">
+@use '@/features/campaigns/campaign-panels';
+
 .campaign-edit-page {
   display: grid;
   gap: 20px;
@@ -292,7 +306,7 @@ const /** 保存草稿后读取真实可执行状态，再确认启用 */
 
   .basic-form {
     display: grid;
-    grid-template-columns: minmax(0, 650fr) minmax(0, 350fr);
+    grid-template-columns: minmax(0, 714fr) minmax(0, 384fr);
     gap: 16px;
 
     :deep(.el-form-item) {
@@ -305,17 +319,23 @@ const /** 保存草稿后读取真实可执行状态，再确认启用 */
   }
 
   .capacity-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 700fr) minmax(200px, 438fr);
     align-items: center;
-    flex-wrap: wrap;
     gap: 16px;
     font-size: 14px;
+    line-height: 22px;
+  }
 
-    .count {
-      margin-left: auto;
-      color: var(--juya-color-text-secondary);
-      font-size: 12px;
-    }
+  .capacity-form :deep(.el-form-item) {
+    margin-bottom: 0;
+  }
+
+  .count {
+    margin: -8px 0 0;
+    color: var(--juya-color-text-secondary);
+    font-size: 12px;
+    line-height: 18px;
   }
 
   .advanced {
@@ -332,7 +352,26 @@ const /** 保存草稿后读取真实可执行状态，再确认启用 */
     }
 
     :deep([class~='el-collapse-item__header']) {
+      height: auto;
+      min-height: 84px;
       color: var(--juya-color-primary);
+      font-size: 14px;
+    }
+  }
+
+  .advanced-summary {
+    display: grid;
+    gap: 8px;
+    padding-block: 16px;
+    line-height: 22px;
+
+    strong {
+      font-weight: 500;
+    }
+
+    p {
+      margin: 0;
+      color: var(--juya-color-text-primary);
       font-size: 14px;
     }
   }
@@ -353,6 +392,10 @@ const /** 保存草稿后读取真实可执行状态，再确认启用 */
   @media (width <= 700px) {
     .basic-form {
       grid-template-columns: 1fr;
+    }
+
+    .capacity-row {
+      grid-template-columns: minmax(0, 1fr) 150px;
     }
   }
 }
