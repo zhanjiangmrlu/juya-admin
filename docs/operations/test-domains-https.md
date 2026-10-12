@@ -1,15 +1,15 @@
 # 测试子域名 HTTPS 接入
 
-四个测试子域名解析至 ECS `8.163.84.24`。管理后台和管理 API 沿用现有服务，小程序 API 和 H5 在部署前返回明确的 503 未就绪响应。此配置仅声明 `test-` 子域名，生产域名另行接入。
+四个测试子域名解析至 ECS `8.163.84.24`。管理后台和管理 API 沿用现有服务。2026-10-12 已接入 H5 静态网站，小程序 API 尚未部署，继续返回明确的 503 未就绪响应。此配置仅声明 `test-` 子域名，生产域名另行接入。
 
 ## 域名与服务
 
-| 域名                            | 目标                                                        | 当前行为                        |
-| ------------------------------- | ----------------------------------------------------------- | ------------------------------- |
-| `test-admin.juyayingyu.com`     | `/opt/juya/juya-admin-web`；`/api/` 转发至 `127.0.0.1:8000` | 提供管理后台与同源接口          |
-| `test-admin-api.juyayingyu.com` | `/api/v1/admin/` 与 `/health/ready` 转发至 `127.0.0.1:8000` | 根路径及其他路径返回 404        |
-| `test-api.juyayingyu.com`       | 等待小程序 API 部署                                         | 返回 503 与 `not_deployed` JSON |
-| `test-h5.juyayingyu.com`        | 等待 H5 部署                                                | 返回 503 与中文未部署页面       |
+| 域名                            | 目标                                                         | 当前行为                                          |
+| ------------------------------- | ------------------------------------------------------------ | ------------------------------------------------- |
+| `test-admin.juyayingyu.com`     | `/opt/juya/juya-admin-web`；`/api/` 转发至 `127.0.0.1:8000`  | 提供管理后台与同源接口                            |
+| `test-admin-api.juyayingyu.com` | `/api/v1/admin/` 与 `/health/ready` 转发至 `127.0.0.1:8000`  | 根路径及其他路径返回 404                          |
+| `test-api.juyayingyu.com`       | 等待小程序 API 部署                                          | 返回 503 与 `not_deployed` JSON                   |
+| `test-h5.juyayingyu.com`        | `/opt/juya/juya-miniapp-h5`；`/api/` 转发至 `127.0.0.1:8001` | 首页与入口 JavaScript 返回 200；小程序 API 待部署 |
 
 DNS A 记录的解析来源为默认，TTL 为 10 分钟。小程序前端的微信版本发布到微信平台，H5 静态部署不替代微信上传或审核。
 
@@ -122,4 +122,6 @@ sudo certbot renew --cert-name juya-test --dry-run --run-deploy-hooks --no-rando
 
 部署小程序 API 后，将 `test-api` 的 503 响应替换为实际后端反向代理，并先验证后端就绪。不要将尚未监听的本地开发端口当作已部署服务。
 
-发布 H5 时配置独立静态目录与同源 `/api/` 代理，再替换 `test-h5` 的 503 页面。微信小程序构建使用 `VITE_API_BASE_URL=https://test-api.juyayingyu.com`，并在微信公众平台配置实际使用的 HTTPS 服务器域名。
+2026-10-12 已将 H5 占位页替换为独立静态目录 `/opt/juya/juya-miniapp-h5`，并执行云效第 2 次运行下载的制品部署。Nginx 修改前备份位于 `/opt/juya/backups/h5-first-deploy-20261012T030146Z/juya-test-domains.conf`。发布脚本校验首页及入口 JavaScript 后输出 `DEPLOY_OK service=juya-miniapp-h5`；公网两个请求均返回 200，后台登录页与后台就绪检查仍返回 200。服务器小程序 API 的 `8001` 端口尚未监听，同域 API 与真实登录不在本次静态发布验收内。
+
+微信小程序构建使用 `VITE_API_BASE_URL=https://test-api.juyayingyu.com`，并在微信公众平台配置实际使用的 HTTPS 服务器域名。
