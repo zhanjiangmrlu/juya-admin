@@ -52,6 +52,8 @@ sh "$work/deploy/ecs-web-deploy.sh"
 
 脚本不修改 Nginx、TLS 配置、后端容器或数据库。云端成功日志包含 `DEPLOY_OK version=...`；仍需从外网打开测试登录页并验证业务操作。
 
+管理端 Nginx 模板的 API 代理入口使用 `client_max_body_size 513m`，与后端导入包的 512 MiB 上限对齐，并预留 1 MiB 给 multipart 字段。站点其他路径保留 20 MiB 上限。Nginx 配置单独维护，前端发布脚本不会自动应用模板；修改生效配置 `/etc/nginx/conf.d/juya-test-domains.conf` 后，需执行 `nginx -t && systemctl reload nginx`。上传返回 Nginx HTML 413 表示网关提前拒绝；后端 JSON `IMPORT_PACKAGE_TOO_LARGE` 表示导入包超过业务上限。
+
 本地 Linux 发布与回滚模拟：
 
 ```sh
