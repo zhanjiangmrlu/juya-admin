@@ -1,6 +1,8 @@
 # 测试后台 HTTP 接入
 
-`VITE_API_BASE_URL` 保持为空,浏览器以相对路径请求当前站点 `/api/v1/admin/**`。
+本页描述此前的临时 HTTP 接入。当前测试环境已使用 HTTPS 和独立 API 子域名：通过 `pnpm build:test` 构建，浏览器请求 `https://test-admin-api.juyayingyu.com/api/v1/admin/**`。当前配置与验收以 [测试子域名 HTTPS 接入](test-domains-https.md) 为准。
+
+此前 `VITE_API_BASE_URL` 保持为空,浏览器以相对路径请求当前站点 `/api/v1/admin/**`。
 公网测试站点现有静态目录为 `/opt/juya/juya-admin-web`,Nginx 配置模板见 `deploy/nginx/juya-admin-test.conf`。
 前端云效继续构建并上传 `dist/`,发布脚本应保留现有 `/api/` 和 `/health/` 代理;不要安装返回 503 的旧模板。
 

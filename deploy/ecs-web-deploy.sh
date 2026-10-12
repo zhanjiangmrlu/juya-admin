@@ -42,6 +42,11 @@ chmod -R u=rwX,go=rX "$release/dist"
 asset=$(sed -n 's/.*src="\([^"]*\.js\)".*/\1/p' "$release/dist/index.html" | head -n 1)
 case "$asset" in /assets/*.js) ;; *) printf 'Invalid entry JS path\n' >&2; exit 1 ;; esac
 test -s "$release/dist$asset"
+# 拒绝旧的同源构建产物，防止后续流水线发布覆盖独立 API 域名配置
+grep -rlF --include='*.js' 'https://test-admin-api.juyayingyu.com' "$release/dist/assets" > /dev/null || {
+  printf 'Test API domain missing; rebuild with pnpm build:test\n' >&2
+  exit 1
+}
 nginx -t
 curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8000/health/ready > "$release/backend.json"
 grep -q '"status"[[:space:]]*:[[:space:]]*"ready"' "$release/backend.json"
@@ -60,7 +65,7 @@ ln -s "$release/dist" "$web.next.$$"
 mv -Tf "$web.next.$$" "$web"
 changed=1
 
-# 核对测试域名 HTTPS 返回的新页面、入口 JS 和后端代理
+# 核对测试域名 HTTPS 返回的新页面、入口 JS 和独立 API 域名
 test_domain=test-admin.juyayingyu.com
 curl --fail --silent --show-error --max-time 10 \
   --noproxy '*' --resolve "${test_domain}:443:127.0.0.1" \
@@ -70,9 +75,10 @@ curl --fail --silent --show-error --max-time 10 \
   --noproxy '*' --resolve "${test_domain}:443:127.0.0.1" \
   "https://${test_domain}${asset}" > "$release/http-entry.js"
 cmp -s "$release/dist$asset" "$release/http-entry.js"
+api_domain=test-admin-api.juyayingyu.com
 curl --fail --silent --show-error --max-time 10 \
-  --noproxy '*' --resolve "${test_domain}:443:127.0.0.1" \
-  "https://${test_domain}/health/ready" > "$release/proxy-health.json"
-grep -q '"status"[[:space:]]*:[[:space:]]*"ready"' "$release/proxy-health.json"
+  --noproxy '*' --resolve "${api_domain}:443:127.0.0.1" \
+  "https://${api_domain}/health/ready" > "$release/api-health.json"
+grep -q '"status"[[:space:]]*:[[:space:]]*"ready"' "$release/api-health.json"
 printf 'DEPLOY_OK version=%s\n' "$version"
-printf 'Verified: /login, entry JS, /health/ready\n'
+printf 'Verified: /login, entry JS, test-admin-api /health/ready\n'

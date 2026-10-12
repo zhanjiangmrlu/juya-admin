@@ -6,7 +6,7 @@
 
 | 域名                            | 目标                                                         | 当前行为                                          |
 | ------------------------------- | ------------------------------------------------------------ | ------------------------------------------------- |
-| `test-admin.juyayingyu.com`     | `/opt/juya/juya-admin-web`；`/api/` 转发至 `127.0.0.1:8000`  | 提供管理后台与同源接口                            |
+| `test-admin.juyayingyu.com`     | `/opt/juya/juya-admin-web`；保留旧 `/api/` 代理              | 提供管理后台，新前端直接请求独立 API 子域名       |
 | `test-admin-api.juyayingyu.com` | `/api/v1/admin/` 与 `/health/ready` 转发至 `127.0.0.1:8000`  | 根路径及其他路径返回 404                          |
 | `test-api.juyayingyu.com`       | 等待小程序 API 部署                                          | 返回 503 与 `not_deployed` JSON                   |
 | `test-h5.juyayingyu.com`        | `/opt/juya/juya-miniapp-h5`；`/api/` 转发至 `127.0.0.1:8001` | 首页与入口 JavaScript 返回 200；小程序 API 待部署 |
@@ -27,7 +27,15 @@ DNS A 记录的解析来源为默认，TTL 为 10 分钟。小程序前端的微
 
 HTTP 仅保留 ACME 验证，其余测试域名请求跳转 HTTPS。未配置的 TLS 域名拒绝握手，不使用测试证书承接其他域名。
 
-后台前端继续使用空的 `VITE_API_BASE_URL`，由 `/api/` 同源代理访问管理接口。前端流水线只发布静态文件，保留上述域名配置及代理，不以旧 HTTP 模板覆盖它们。
+后台测试前端使用 `pnpm build:test`，读取 `.env.ecs-test` 中的 `VITE_API_BASE_URL=https://test-admin-api.juyayingyu.com`。接口路径本身包含 `/api/v1/admin/`，环境变量不能再加 `/api`。该变量在构建时写入 JavaScript，修改后需要重新构建和发布。
+
+API 子域名的 Nginx `/api/v1/admin/` 配置仅允许 `https://test-admin.juyayingyu.com` 来源读取响应，支持携带 Cookie、自定义 CSRF/请求 ID/幂等键请求头和 OPTIONS 预检；401 等错误响应同样包含跨域头。其他来源不返回 `Access-Control-Allow-Origin`。前端客户端已使用 `credentials: 'include'`；两个 HTTPS 子域名属于同站点，保留现有 Secure、HttpOnly、SameSite=Strict 和 CSRF 校验，切换后需要在 API 域名下重新登录。
+
+前端流水线只发布静态文件，保留上述域名配置及代理，不以旧 HTTP 模板覆盖它们。旧同源代理仅保留兼容已有页面，新构建产物使用 API 子域名。
+
+2026-10-12 已手动发布 `pnpm build:test` 产物并仅更新服务器管理 API 的跨域配置，保留小程序 API/H5 的现有配置。浏览器从 `/dashboard` 进入时实际请求 `https://test-admin-api.juyayingyu.com/api/v1/admin/session`；新浏览器未登录，401 响应可由前端读取并跳转登录页，无页面脚本错误。允许来源的 OPTIONS 返回 204，其他来源不返回允许来源响应头。同时携带 `Idempotency-Key`、`X-Idempotency-Key`、CSRF 和请求 ID 的未登录 POST 请求也可读取 401，确认这些写请求头不会被预检拦截。未在本次验证中完成真实账号登录、业务写操作或成功退出。
+
+服务器切换前的回滚备份：`/opt/juya/backups/admin-api-domain-20261012.oWDyg5`；补齐幂等请求头前的备份：`/opt/juya/backups/admin-api-domain-headers-20261012.lF089M`；最终前端发布版本：`api-domain-final-20261012-20261012175455-21964`。云效控制台本次无法连接，构建步骤仍需按 [云效测试前端发布](yunxiao-web-deployment.md) 改为 `pnpm build:test`，提交推送后再用于后续自动发布。
 
 完整前端发布脚本为 `deploy/ecs-web-deploy.sh`，随构建制品发布；云效输入框只填写短入口脚本。配置步骤见 [云效测试前端发布](./yunxiao-web-deployment.md)。
 

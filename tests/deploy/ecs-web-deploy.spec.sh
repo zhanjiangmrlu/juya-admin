@@ -18,7 +18,13 @@ run_case() {
   printf OLD > "$case_dir/base/juya-admin-web/index.html"
   printf OLD_JS > "$case_dir/base/juya-admin-web/assets/old.js"
   printf '<title>NEW</title><script src="/assets/new.js"></script>\n' > "$case_dir/package/dist/index.html"
-  if [ "$mode" != missing_asset ]; then printf NEW_JS > "$case_dir/package/dist/assets/new.js"; fi
+  if [ "$mode" != missing_asset ]; then
+    if [ "$mode" = wrong_api_base ]; then
+      printf OLD_SAME_ORIGIN > "$case_dir/package/dist/assets/new.js"
+    else
+      printf 'NEW_JS https://test-admin-api.juyayingyu.com' > "$case_dir/package/dist/assets/new.js"
+    fi
+  fi
   sed -e "s|/opt/juya|$case_dir/base|g" -e "s|/home/admin/app/package.tgz|$case_dir/package.tgz|g" "$deploy_script" > "$case_dir/package/deploy/ecs-web-deploy.sh"
   tar -czf "$case_dir/package.tgz" -C "$case_dir/package" dist deploy
   cat > "$case_dir/bin/nginx" <<'MOCK'
@@ -39,14 +45,18 @@ for arg do
 done
 case "$url" in
   https://*)
-    [ "$resolve" = test-admin.juyayingyu.com:443:127.0.0.1 ] || exit 22
+    case "$url" in
+      https://test-admin.juyayingyu.com/*) [ "$resolve" = test-admin.juyayingyu.com:443:127.0.0.1 ] || exit 22 ;;
+      https://test-admin-api.juyayingyu.com/*) [ "$resolve" = test-admin-api.juyayingyu.com:443:127.0.0.1 ] || exit 22 ;;
+      *) exit 22 ;;
+    esac
     if [ "$MOCK_MODE" = tls_fail ]; then exit 60; fi ;;
 esac
 case "$url" in
   *:8000/health/ready)
     if [ "$MOCK_MODE" = backend_fail ]; then exit 22; fi
     printf '{"status":"ready"}' ;;
-  https://test-admin.juyayingyu.com/health/ready)
+  https://test-admin-api.juyayingyu.com/health/ready)
     if [ "$MOCK_MODE" = health_fail ]; then exit 22; fi
     printf '{"status":"ready"}' ;;
   https://test-admin.juyayingyu.com/login)
@@ -92,6 +102,7 @@ sh -n "$deploy_script"
 sh -n "$entry_script"
 run_case directory_migration_and_second_release success
 run_case missing_entry_asset missing_asset
+run_case reject_same_origin_artifact wrong_api_base
 run_case nginx_validation_failure nginx_fail
 run_case backend_not_ready backend_fail
 run_case rollback_after_index_mismatch wrong_index

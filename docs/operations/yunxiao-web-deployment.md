@@ -4,7 +4,9 @@
 
 ## 构建与构建物上传
 
-构建命令保持现有配置。构建物上传步骤使用以下配置：
+测试前端的构建步骤使用 `pnpm build:test`，替换原来的 `pnpm build`。该命令读取仓库的 `.env.ecs-test`，将 `https://test-admin-api.juyayingyu.com` 写入 JavaScript；流水线不要设置为空的 `VITE_API_BASE_URL` 来覆盖它。使用独立的 `ecs-test` 模式避免影响 Vitest 的默认 `test` 模式。其他安装、检查及测试命令保持现有配置。
+
+构建物上传步骤使用以下配置：
 
 - 制品名称：`juya-admin-web`
 - 制品版本：`${BUILD_NUMBER}`
@@ -46,7 +48,7 @@ sh "$work/deploy/ecs-web-deploy.sh"
 
 发布脚本使用 `/opt/juya/juya-admin-web`，保留旧版本后切换到新页面目录。校验失败时恢复旧前端路径，并返回非零退出码。旧版本目录保留，后续按磁盘容量制定清理策略。
 
-后端就绪检查保持 `http://127.0.0.1:8000/health/ready`。随后通过 `--resolve` 检查本机 Nginx 提供的 `https://test-admin.juyayingyu.com/login`、入口 JavaScript 和 `/health/ready`，并保留证书校验。
+发布前确认 JavaScript 包含测试 API 域名；缺少时拒绝切换网站，并提示使用 `pnpm build:test` 重建。后端就绪检查保持 `http://127.0.0.1:8000/health/ready`。随后通过 `--resolve` 检查本机 Nginx 提供的 `https://test-admin.juyayingyu.com/login`、入口 JavaScript 和 `https://test-admin-api.juyayingyu.com/health/ready`，并保留证书校验。
 
 脚本不修改 Nginx、TLS 配置、后端容器或数据库。云端成功日志包含 `DEPLOY_OK version=...`；仍需从外网打开测试登录页并验证业务操作。
 

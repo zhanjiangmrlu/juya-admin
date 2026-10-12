@@ -11,6 +11,7 @@
   },
   "scripts": {
     "build": "vite build",
+    "build:test": "vite build --mode ecs-test",
     "check": "pnpm format:check && pnpm lint && pnpm lint:style && pnpm typecheck",
     "dev": "vite",
     "format": "prettier . --write",

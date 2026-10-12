@@ -10,6 +10,7 @@ yarn.lock
 .env
 .env.*
 !.env.example
+!.env.ecs-test
 *.tsbuildinfo
 *.local
 .DS_Store
