@@ -64,7 +64,12 @@ const /** 加载当前页真实草稿，已发布快照不加入候选集合 */ 
               contentId: scene.id,
               revisionId: revision.id,
               version: revision.version,
-              title: scene.title,
+              title:
+                [revision.content.title_zh, revision.content.title_en, scene.title]
+                  .find(
+                    (title): title is string => typeof title === 'string' && Boolean(title.trim())
+                  )
+                  ?.trim() || '未命名场景',
               content: revision.content
             }
           })
@@ -255,6 +260,10 @@ onBeforeUnmount(() => {
   .candidate {
     padding: 12px 0;
     border-bottom: 1px solid var(--el-border-color-light);
+
+    // 复选框组默认字号和行高为 0，候选元数据需要恢复可读文本
+    font-size: var(--el-font-size-base);
+    line-height: 1.5;
   }
 
   small {
