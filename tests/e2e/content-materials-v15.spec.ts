@@ -165,6 +165,8 @@ test('词汇图包四阶段按稳定词条确认，并等实际绑定结果后�
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.screenshot({ path: testInfo.outputPath('word-images-upload.png') })
   await panel.getByRole('button', { name: '加载素材分类 / 草稿', exact: true }).click()
+  // 键盘输入不会等待异步加载解除禁用，先确认分类选择器已可操作
+  await expect(panel.getByRole('combobox', { name: '素材目标分类', exact: true })).toBeEnabled()
   await panel.getByRole('combobox', { name: '素材目标分类', exact: true }).press('Enter')
   await page.getByRole('option', { name: '日常英语', exact: true }).click()
   await panel.getByRole('combobox', { name: '素材内容模板', exact: true }).press('Enter')
@@ -306,6 +308,8 @@ test('正式词汇表预览按导入ID确认缺图与差异，异常行不能进
   await page.getByRole('button', { name: '导入词汇图包', exact: true }).click()
   const panel = page.locator('.content-materials-panel')
   await panel.getByRole('button', { name: '加载素材分类 / 草稿', exact: true }).click()
+  // 等待分类加载完成后再打开下拉，避免把 Enter 发给禁用控件
+  await expect(panel.getByRole('combobox', { name: '素材目标分类', exact: true })).toBeEnabled()
   await panel.getByRole('combobox', { name: '素材目标分类', exact: true }).press('Enter')
   await page.getByRole('option', { name: '日常英语', exact: true }).click()
   await panel.getByRole('combobox', { name: '素材内容模板', exact: true }).press('Enter')

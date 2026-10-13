@@ -198,6 +198,8 @@ test('独立素材包明确选择草稿、文件角色与稳定词条后绑定',
   await page.getByRole('button', { name: '添加音频或图片', exact: true }).click()
   const panel = page.locator('.content-materials-panel')
   await panel.getByRole('button', { name: '加载素材分类 / 草稿', exact: true }).click()
+  // 分类异步加载时控件禁用，键盘操作前等待可用状态
+  await expect(panel.getByRole('combobox', { name: '素材目标分类', exact: true })).toBeEnabled()
   await panel.getByRole('combobox', { name: '素材目标分类', exact: true }).press('Enter')
   await page.getByRole('option', { name: '日常英语', exact: true }).click()
   await panel.getByRole('combobox', { name: '素材内容模板', exact: true }).press('Enter')
