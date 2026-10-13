@@ -144,7 +144,9 @@ const /**
    * @param title - 本次隔离草稿的新英文标题
    * @returns 保存与刷新完成状态
    */ saveTitle = async (route, pathname, title) => {
-    await page.goto(new URL(route, baseUrl).href)
+    const editorUrl = new URL(route, baseUrl)
+    editorUrl.searchParams.set('stage', 'draft')
+    await page.goto(editorUrl.href)
     const field = page.getByLabel('英文标题', { exact: true })
     await field.fill(title)
     const saved = responseFor('PUT', pathname)
