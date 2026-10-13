@@ -51,7 +51,7 @@ test('未知命令只续办原服务端回执，不重复发起抽样批准', as
   expect(writes).toBe(1)
 })
 
-test('修正冲突保留输入并重新加载身份绑定，不自动重试旧修改', async ({ adminApi, page }) => {
+test('阅读修正冲突保留输入并重读当前候选，不自动重试旧修改', async ({ adminApi, page }) => {
   expect(adminApi.unexpectedRequests).toEqual([])
   const requests = await mockWorkOrder(page)
   let writes = 0
@@ -71,9 +71,10 @@ test('修正冲突保留输入并重新加载身份绑定，不自动重试旧�
   await expect(page.getByLabel('全文中文翻译', { exact: true })).toHaveValue('冲突时保留的本地译文')
   await expect(page.getByRole('button', { name: '保存候选修正', exact: true })).toBeDisabled()
   expect(writes).toBe(1)
-  expect(
-    requests.filter((request) => request.path.endsWith('/entry-bindings')).length
-  ).toBeGreaterThan(1)
+  expect(requests.filter((request) => request.path.endsWith('/items/one')).length).toBeGreaterThan(
+    1
+  )
+  expect(requests.filter((request) => request.path.endsWith('/entry-bindings'))).toHaveLength(0)
 })
 
 test('工作单场景音频使用原有真实保存接口并返回同一批次', async ({ adminApi, page }) => {

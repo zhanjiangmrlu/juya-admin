@@ -126,7 +126,10 @@ const /** 读取不可变输入和当前候选，冲突时保留输入直到管�
         compared.value = false
         resolved.value = []
       }
-      if (item.revision_id) bindings.value = await adapter.bindings(id.value, itemId.value)
+      bindings.value =
+        item.revision_id && item.current?.template !== 'short_reading'
+          ? await adapter.bindings(id.value, itemId.value)
+          : null
       if (!replaceForm) conflictReady.value = true
       void resources()
       await nextTick()

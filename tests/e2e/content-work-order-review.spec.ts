@@ -1,6 +1,47 @@
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 import { item, mockWorkOrder, order, reading, scene } from './fixtures/content-work-orders'
 
+test('阅读修正首载和保存重读均跳过词条绑定并读取固定全文音频', async ({ adminApi, page }) => {
+  expect(adminApi).toBeDefined()
+  const requests = await mockWorkOrder(page, {
+    template: 'short_reading',
+    content: {
+      ...reading,
+      audio: {
+        asset_id: 'reading-audio',
+        target_id: 'full-target',
+        version_id: 'full-version',
+        duration_ms: 8900
+      }
+    }
+  })
+  let bindings = 0
+  let signed = 0
+  await page.route('**/work-orders/order/items/one/entry-bindings*', (route) => {
+    bindings++
+    return route.fulfill({
+      status: 404,
+      json: { code: 'WORK_REVISION_NOT_FOUND', message: '版本不属于此工作单篇目' }
+    })
+  })
+  await page.route('**/media/assets/reading-audio/signed-url', (route) => {
+    signed++
+    return route.fulfill({ json: { url: `/reading-full-${signed}.mp3` } })
+  })
+  await loginAsAdmin(page)
+  await navigateInApp(page, '/content/work-orders/order/items/one')
+  await expect(page.locator('audio[src="/reading-full-1.mp3"]')).toBeVisible()
+  expect(bindings).toBe(0)
+  await expect(page.getByText('版本不属于此工作单篇目', { exact: true })).toHaveCount(0)
+  await page.getByText('编辑元信息', { exact: true }).click()
+  await page.getByLabel('英文标题', { exact: true }).fill('Corrected reading')
+  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await expect(page.locator('audio[src="/reading-full-2.mp3"]')).toBeVisible()
+  await expect(page.getByLabel('英文标题', { exact: true })).toHaveValue('Corrected reading')
+  expect(bindings).toBe(0)
+  expect(requests.filter((request) => request.path.endsWith('/correction'))).toHaveLength(1)
+})
+
 for (const delayed of ['detail', 'audio'] as const) {
   test(`抽样 A 的 ${delayed} 迟到不能覆盖 B 或作为 B 的试听`, async ({ adminApi, page }) => {
     expect(adminApi).toBeDefined()
