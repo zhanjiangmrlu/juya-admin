@@ -16,6 +16,40 @@ const responseBody = {
 }
 
 describe('analytics query adapter', () => {
+  it('keeps zero short-reading counts and content dimensions in the summary response', async () => {
+    const rows = [
+      ...responseBody.rows,
+      { day: '2026-09-28', dimension: 'ALL', metric: 'SHORT_READING_STARTS', value: 0 },
+      { day: '2026-09-28', dimension: 'ALL', metric: 'SHORT_READING_COMPLETIONS', value: 0 },
+      {
+        day: '2026-09-28',
+        dimension: 'short_reading:READING-1',
+        metric: 'SHORT_READING_COMPLETIONS',
+        value: 1
+      }
+    ]
+    const adapter = createAnalyticsAdapter(
+      createApiClient({
+        fetchImplementation: async () => new Response(JSON.stringify({ ...responseBody, rows }))
+      })
+    )
+    const snapshot = await adapter.query('2026-09-01', '2026-09-30', 'week')
+    expect(snapshot.rows).toHaveLength(4)
+    expect(snapshot.rows).toContainEqual({
+      day: '2026-09-28',
+      dimension: 'ALL',
+      metric: 'NEW_USERS',
+      value: 3
+    })
+    expect(snapshot.rows.filter((row) => row.metric === 'SHORT_READING_STARTS')[0]?.value).toBe(0)
+    expect(snapshot.rows).toContainEqual({
+      day: '2026-09-28',
+      dimension: 'short_reading:READING-1',
+      metric: 'SHORT_READING_COMPLETIONS',
+      value: 1
+    })
+  })
+
   it('keeps summary data when contact detail changes are included', async () => {
     const rows = [
       ...responseBody.rows,

@@ -1,5 +1,67 @@
 import { expect, test } from './fixtures/admin-api'
 
+test('短文统计保留汇总卡片、中文趋势和已校验导出', async ({ adminApi, page }) => {
+  void adminApi
+  await page.route('**/api/v1/admin/analytics?*', async (route) => {
+    const url = new URL(route.request().url())
+    const day = url.searchParams.get('end')!
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        start: url.searchParams.get('start'),
+        end: day,
+        period: 'day',
+        timezone: 'Asia/Shanghai',
+        activity_basis: 'DAILY_USERS',
+        rows: [
+          { day, metric: 'NEW_USERS', dimension: 'ALL', value: 13 },
+          { day, metric: 'ACTIVE_USERS', dimension: 'ALL', value: 7 },
+          { day, metric: 'OPEN_SCENE_COMPLETIONS', dimension: 'ALL', value: 0 },
+          { day, metric: 'FEEDBACK_STATES', dimension: 'PENDING', value: 0 },
+          { day, metric: 'SHORT_READING_STARTS', dimension: 'ALL', value: 0 },
+          { day, metric: 'SHORT_READING_COMPLETIONS', dimension: 'ALL', value: 0 },
+          {
+            day,
+            metric: 'SHORT_READING_COMPLETIONS',
+            dimension: 'short_reading:READING-1',
+            value: 1
+          }
+        ],
+        ratios: []
+      })
+    })
+  })
+  await page.goto('/analytics')
+  await expect(page.locator('.summary-metrics strong')).toHaveText(['13', '7', '0', '0'])
+  await expect(page.getByText('统计响应包含未知指标')).toHaveCount(0)
+  await expect(page.getByText('统计响应包含个人标识维度')).toHaveCount(0)
+  const chart = page.getByLabel('匿名汇总指标趋势图')
+  await expect(chart).toBeVisible()
+  await expect(chart.locator('canvas').first()).toBeVisible()
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: '导出已校验数据' }).click()
+  const download = await downloadPromise
+  const stream = await download.createReadStream()
+  let exported = ''
+  for await (const chunk of stream!) exported += String(chunk)
+  const snapshot = JSON.parse(exported)
+  expect(snapshot.rows).toHaveLength(7)
+  expect(snapshot.rows).toContainEqual(
+    expect.objectContaining({
+      metric: 'SHORT_READING_STARTS',
+      dimension: 'ALL',
+      value: 0
+    })
+  )
+  expect(snapshot.rows).toContainEqual(
+    expect.objectContaining({
+      metric: 'SHORT_READING_COMPLETIONS',
+      dimension: 'short_reading:READING-1',
+      value: 1
+    })
+  )
+})
+
 test('联系资料修改与去重转化率不会阻断汇总展示和导出', async ({ adminApi, page }) => {
   void adminApi
   await page.route('**/api/v1/admin/analytics?*', async (route) => {

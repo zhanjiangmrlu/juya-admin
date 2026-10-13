@@ -2,6 +2,8 @@ import dayjs from 'dayjs'
 
 export const ANALYTICS_METRICS = [
   'ACTIVE_USERS',
+  'WEEK_ACTIVE_USERS',
+  'MONTH_ACTIVE_USERS',
   'CONTACT_FUNNEL',
   'DELETIONS',
   'FAVORITES',
@@ -12,6 +14,8 @@ export const ANALYTICS_METRICS = [
   'NEW_USERS',
   'REVIEWS',
   'SCENE_COMPLETIONS',
+  'SHORT_READING_STARTS',
+  'SHORT_READING_COMPLETIONS',
   'CONTACT_STATE_CHANGES',
   'FORMAL_STATE_CHANGES',
   'LIMITED_STATE_CHANGES',
@@ -186,6 +190,10 @@ export const METRIC_LABELS: Readonly<Record<string, string>> = {
   DELETION_REQUESTS: '注销申请',
   DELETION_WITHDRAWALS: '注销撤回',
   ACTIVE_USERS: '活跃用户',
+  WEEK_ACTIVE_USERS: '自然周活跃用户',
+  MONTH_ACTIVE_USERS: '自然月活跃用户',
+  SHORT_READING_STARTS: '短文开始学习',
+  SHORT_READING_COMPLETIONS: '短文学习完成',
   CONTACT_FUNNEL: '联系资料漏斗',
   DELETIONS: '注销生效',
   FAVORITES: '收藏',
@@ -198,42 +206,43 @@ export const METRIC_LABELS: Readonly<Record<string, string>> = {
   SCENE_COMPLETIONS: '场景完成'
 }
 
-/**
- * 拒绝未知指标、非法数值和个人标识维度
- *
- * @param rows - 服务端统计行
- * @returns 匿名汇总数据校验结果
- */
-export function validateAnalyticsRows(rows: readonly AnalyticsRow[]): {
-  message: string
-  valid: boolean
-} {
-  const allowed = new Set<string>(ANALYTICS_METRICS)
-  const personalPattern =
-    /user|wechat|openid|phone|mobile|email|nickname|juya|screenshot|trajectory|wx[_-]?id/i
-  if (rows.some((row) => !allowed.has(row.metric)))
-    return { message: '统计响应包含未知指标', valid: false }
-  if (
-    rows.some(
-      (row) =>
-        !anonymousDimensions.has(row.dimension.toUpperCase()) &&
-        (!/^(scene|series|package|campaign):[\w-]{1,64}$/.test(row.dimension) ||
-          personalPattern.test(row.dimension))
+export const /**
+   * 拒绝未知指标、非法数值和个人标识维度
+   *
+   * @param rows - 服务端统计行
+   * @returns 匿名汇总数据校验结果
+   */ validateAnalyticsRows = (
+    rows: readonly AnalyticsRow[]
+  ): {
+    message: string
+    valid: boolean
+  } => {
+    const allowed = new Set<string>(ANALYTICS_METRICS)
+    const personalPattern =
+      /user|wechat|openid|phone|mobile|email|nickname|juya|screenshot|trajectory|wx[_-]?id/i
+    if (rows.some((row) => !allowed.has(row.metric)))
+      return { message: '统计响应包含未知指标', valid: false }
+    if (
+      rows.some(
+        (row) =>
+          !anonymousDimensions.has(row.dimension.toUpperCase()) &&
+          (!/^(scene|short_reading|series|package|campaign):[\w-]{1,64}$/.test(row.dimension) ||
+            personalPattern.test(row.dimension))
+      )
     )
-  )
-    return { message: '统计响应包含个人标识维度', valid: false }
-  if (
-    rows.some(
-      (row) =>
-        !Number.isSafeInteger(row.value) ||
-        row.value < 0 ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(row.day) ||
-        dayjs(row.day).format('YYYY-MM-DD') !== row.day
+      return { message: '统计响应包含个人标识维度', valid: false }
+    if (
+      rows.some(
+        (row) =>
+          !Number.isSafeInteger(row.value) ||
+          row.value < 0 ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(row.day) ||
+          dayjs(row.day).format('YYYY-MM-DD') !== row.day
+      )
     )
-  )
-    return { message: '统计响应包含非法数值', valid: false }
-  return { message: '校验通过', valid: true }
-}
+      return { message: '统计响应包含非法数值', valid: false }
+    return { message: '校验通过', valid: true }
+  }
 
 /**
  * 按日、周或月汇总统计行
