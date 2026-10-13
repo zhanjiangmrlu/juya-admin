@@ -193,6 +193,7 @@ test('A 工作单成员分页迟到不能替换 B 的发布选择', async ({ adm
           {
             ...item,
             item_id: name,
+            work_order_id: name,
             title_en: `Publish ${name}`,
             publishable: true,
             current_draft: true

@@ -20,6 +20,7 @@ import WorkOrderImport from '@/features/content-production/work-order-import.vue
 import { issueAction, productionLabels } from '@/features/content-production/work-order-model'
 import WorkOrderOverview from '@/features/content-production/work-order-overview.vue'
 import WorkOrderPublication from '@/features/content-production/work-order-publication.vue'
+import { publicationItemIds } from '@/features/content-production/work-order-publication-scope'
 import {
   sampleIdentity,
   sampleResources
@@ -52,6 +53,7 @@ const groups = ref<CandidateGroup[]>([])
 const candidateDetails = ref<WorkItemDetail[]>([])
 const usage = shallowRef<S['WorkOrderUsage'] | null>(null)
 const allItems = ref<WorkItem[]>([])
+const membersReady = ref(false)
 const sampleDetail = shallowRef<WorkItemDetail | null>(null)
 const sampleMedia = ref<SampleResource[]>([])
 const selected = ref<string[]>([])
@@ -85,16 +87,28 @@ const /** 读取当前工作单全部成员，仅用于完整抽样和发布选�
    * @param current - 本次读取是否仍有效
    */
   loadMembers = async (orderId: string, current: () => boolean): Promise<void> => {
+    membersReady.value = false
+    allItems.value = []
     const result = await adapter.items(orderId, 1, 100)
     if (!current()) return
     const rows = [...result.items]
     for (let next = 2; rows.length < result.total; next++) {
       const more = await adapter.items(orderId, next, 100)
       if (!current()) return
-      if (!more.items.length) break
+      if (!more.items.length || more.total !== result.total)
+        throw new Error('成员范围读取不完整，请刷新权威状态并重新预览')
       rows.push(...more.items)
     }
-    if (current()) allItems.value = rows
+    if (
+      rows.length !== result.total ||
+      new Set(rows.map((row) => row.item_id)).size !== result.total ||
+      rows.some((row) => row.work_order_id !== orderId)
+    )
+      throw new Error('成员范围读取不完整，请刷新权威状态并重新预览')
+    if (current()) {
+      allItems.value = rows
+      membersReady.value = true
+    }
   }
 const /** 按地址读取工作单，每个异步分区均绑定本次路由与读取代次 */
   load = async (): Promise<void> => {
@@ -108,6 +122,7 @@ const /** 按地址读取工作单，每个异步分区均绑定本次路由与�
        */ current = (): boolean =>
         token === generation && orderId === id.value && view === tab.value
     error.value = ''
+    membersReady.value = false
     try {
       if (!orderId) {
         if (range) {
@@ -335,13 +350,26 @@ const /** 发布精确预览范围或仅重试原失败项
    * @param retry - 是否重试失败子集
    */
   publish = async (retry: boolean): Promise<void> => {
-    if (!publication.value) return
-    await run(retry ? 'publication-retry' : 'publication-confirm', {
-      publication_token: publication.value.token,
-      range_version: publication.value.version,
-      collection_hash: publication.value.collection_hash,
-      manual_confirmed: true
-    })
+    if (!publication.value || !order.value) return
+    try {
+      if (!membersReady.value) throw new Error('成员范围读取不完整，请刷新权威状态并重新预览')
+      const selectedItemIds = publicationItemIds(
+        order.value,
+        publication.value,
+        allItems.value,
+        retry
+      )
+      await run(retry ? 'publication-retry' : 'publication-confirm', {
+        scope: 'selected',
+        selected_item_ids: selectedItemIds,
+        publication_token: publication.value.token,
+        range_version: publication.value.version,
+        collection_hash: publication.value.collection_hash,
+        manual_confirmed: true
+      })
+    } catch (failure) {
+      error.value = failure instanceof Error ? failure.message : '请刷新权威状态并重新预览'
+    }
   }
 const /** 重试真正失败且可重试的原阶段
    * @param item - 失败阶段所属篇目
@@ -387,6 +415,7 @@ watch(
     groups.value = []
     candidateDetails.value = []
     allItems.value = []
+    membersReady.value = false
     usage.value = null
     selected.value = []
     legacyRange.value = false
@@ -547,7 +576,7 @@ watch(
           v-if="publication"
           :state="publication"
           :items="allItems"
-          :busy="busy"
+          :busy="busy || !membersReady"
           :held="
             Math.max(
               0,
