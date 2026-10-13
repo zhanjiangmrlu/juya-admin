@@ -5,6 +5,7 @@ import { URL } from 'node:url'
 
 import { chromium, expect } from '@playwright/test'
 
+import { editableTitle, settleResponseReads } from './real-admin-browser-actions.mjs'
 import { classifyExpectedRejection } from './real-admin-browser-rejections.mjs'
 
 const baseUrl = process.env.JUYA_QA_BASE_URL || 'http://127.0.0.1:18183'
@@ -56,6 +57,10 @@ page.on('response', (response) => {
     status: response.status(),
     request_id: response.headers()['x-request-id'] || null
   }
+  if (url.pathname.endsWith('/candidates/latest')) {
+    const kind = url.searchParams.get('kind')
+    record.candidate_kind = ['ASR_BOUNDARY', 'AI_LEXICON'].includes(kind) ? kind : 'UNCLASSIFIED'
+  }
   results.responses.push(record)
   if (record.status >= 400) {
     responseReads.push(
@@ -85,6 +90,11 @@ page.on('requestfailed', (request) => {
     type: request.failure()?.errorText === 'net::ERR_ABORTED' ? 'ABORTED' : 'NETWORK_FAILURE'
   })
 })
+
+const /**
+   * 读取完当前页面响应后再刷新或继续下一项验收
+   * @returns 浏览器与安全响应记录的完成状态
+   */ settleResponses = () => settleResponseReads(page, responseReads)
 
 const /**
    * 记录恢复阶段的安全身份与状态，不保存完整响应或正文
@@ -137,7 +147,7 @@ const /**
       return
     }
     await action()
-    await page.waitForLoadState('networkidle')
+    await settleResponses()
     results.cases.push({ name, status: 'PASSED' })
     await page.screenshot({ path: path.join(output, `${name}.png`), fullPage: true })
   }
@@ -152,11 +162,15 @@ const /**
     const editorUrl = new URL(route, baseUrl)
     editorUrl.searchParams.set('stage', 'draft')
     await page.goto(editorUrl.href)
-    const field = page.getByLabel('英文标题', { exact: true })
+    const field = await editableTitle(
+      page,
+      editorUrl.pathname.startsWith('/content/short-readings/')
+    )
     await field.fill(title)
     const saved = responseFor('PUT', pathname)
     await page.getByRole('button', { name: '保存草稿', exact: true }).click()
     expect((await saved).status()).toBe(200)
+    await settleResponses()
     await page.reload()
     await expect(field).toHaveValue(title)
   }
@@ -171,6 +185,7 @@ try {
   expect((await login).status()).toBe(200)
   await page.waitForURL('**/dashboard')
   await run('login', async () => {
+    await settleResponses()
     const restored = responseFor('GET', '/api/v1/admin/session')
     await page.reload()
     expect((await restored).status()).toBe(200)
@@ -223,6 +238,7 @@ try {
       await page.getByRole('button', { name: '保存全局顺序', exact: true }).click()
       expect((await saved).status()).toBe(200)
       await expect(page.getByText('短文全局顺序已保存', { exact: true })).toBeVisible()
+      await settleResponses()
       await page.reload()
       await expect(order).toHaveValue('73')
     },
@@ -240,6 +256,7 @@ try {
     await page.getByRole('button', { name: '保存场景学习', exact: true }).click()
     expect((await saved).status()).toBe(200)
     await expect(page.getByRole('button', { name: '保存场景学习', exact: true })).toBeEnabled()
+    await settleResponses()
     await page.reload()
     await expect(name).toHaveValue('联调场景学习')
     await expect(order).toHaveValue('17')
@@ -344,6 +361,7 @@ try {
           .getByRole('button', { name: '试听独立文件', exact: true })
           .first()
       ).toBeEnabled()
+      await settleResponses()
       const restored = responseFor('GET', endpoint)
       await page.reload()
       const after = await (await restored).json()
@@ -406,6 +424,7 @@ try {
     await expect(
       page.getByRole('button', { name: '保存学习与资料入口', exact: true })
     ).toBeEnabled()
+    await settleResponses()
     await page.reload()
     await expect(recording).toHaveAttribute('aria-checked', initial === 'true' ? 'false' : 'true')
     await expect(profile).toHaveAttribute('aria-checked', initialProfile)
@@ -423,6 +442,7 @@ try {
     await expect(
       page.getByRole('button', { name: '保存学习与资料入口', exact: true })
     ).toBeEnabled()
+    await settleResponses()
     await page.reload()
     await expect(profile).toHaveAttribute(
       'aria-checked',
@@ -446,7 +466,7 @@ try {
       await page.goto(new URL(route, baseUrl).href)
       expect((await loaded).status()).toBe(200)
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-      await page.waitForLoadState('networkidle')
+      await settleResponses()
     }
   })
   activeCase = 'layouts'
@@ -460,7 +480,7 @@ try {
     for (const route of ['/content/discovery-config', '/content/proofreading']) {
       await page.goto(new URL(route, baseUrl).href)
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-      await page.waitForLoadState('networkidle')
+      await settleResponses()
       expect(
         await page.evaluate(
           () => globalThis.document.documentElement.scrollWidth - globalThis.innerWidth

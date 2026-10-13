@@ -5,22 +5,33 @@ export const /**
    * @returns 精确命中的门禁原因，其它响应返回 null
    */ classifyExpectedRejection = (response, entities) => {
     if (response.method !== 'GET') return null
-    const revisionId =
-      /^\/api\/v1\/admin\/content\/revisions\/([0-9A-HJKMNP-TV-Z]{26})\/audio-production$/.exec(
+    const match =
+      /^\/api\/v1\/admin\/content\/revisions\/([0-9A-HJKMNP-TV-Z]{26})\/(audio-production|candidates\/latest)$/.exec(
         response.path
-      )?.[1]
-    if (!revisionId) return null
+      )
+    if (!match) return null
+    const [, revisionId, endpoint] = match
     if (
+      endpoint === 'audio-production' &&
       revisionId === entities.revision_id &&
       response.status === 409 &&
       response.error_code === 'CANDIDATE_TEXT_REQUIRED'
     )
       return 'EMPTY_DRAFT_TEXT_REQUIRED'
     if (
+      endpoint === 'audio-production' &&
       revisionId === entities.slice_revision_id &&
       response.status === 404 &&
       response.error_code === 'AUTO_AUDIO_NOT_FOUND'
     )
       return 'AUTO_AUDIO_TASK_NOT_CREATED'
+    if (
+      endpoint === 'candidates/latest' &&
+      revisionId === entities.slice_revision_id &&
+      response.candidate_kind === 'ASR_BOUNDARY' &&
+      response.status === 404 &&
+      response.error_code === 'CANDIDATE_NOT_FOUND'
+    )
+      return 'ASR_CANDIDATE_NOT_CREATED'
     return null
   }

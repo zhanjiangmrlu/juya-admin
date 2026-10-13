@@ -19,6 +19,13 @@ const audioDraft = {
   status: 404,
   error_code: 'AUTO_AUDIO_NOT_FOUND'
 }
+const candidateDraft = {
+  method: 'GET',
+  path: `/api/v1/admin/content/revisions/${entities.slice_revision_id}/candidates/latest`,
+  candidate_kind: 'ASR_BOUNDARY',
+  status: 404,
+  error_code: 'CANDIDATE_NOT_FOUND'
+}
 
 describe('真实管理浏览器验收的音频门禁契约', () => {
   it('记录本次明确空草稿的正文前置门禁', () => {
@@ -27,6 +34,10 @@ describe('真实管理浏览器验收的音频门禁契约', () => {
 
   it('记录本次明确尚无自动任务的音频草稿门禁', () => {
     assert.equal(classifyExpectedRejection(audioDraft, entities), 'AUTO_AUDIO_TASK_NOT_CREATED')
+  })
+
+  it('记录本次音频草稿尚无ASR候选的门禁', () => {
+    assert.equal(classifyExpectedRejection(candidateDraft, entities), 'ASR_CANDIDATE_NOT_CREATED')
   })
 
   for (const [name, response, scope] of [
@@ -50,7 +61,20 @@ describe('真实管理浏览器验收的音频门禁契约', () => {
       entities
     ],
     ['缺少本次明确种子', emptyDraft, {}],
-    ['未识别错误', { ...audioDraft, error_code: 'UNCLASSIFIED' }, entities]
+    ['未识别错误', { ...audioDraft, error_code: 'UNCLASSIFIED' }, entities],
+    ['其它候选类型', { ...candidateDraft, candidate_kind: 'AI_LEXICON' }, entities],
+    ['缺少候选类型', { ...candidateDraft, candidate_kind: undefined }, entities],
+    [
+      '其它候选对象',
+      {
+        ...candidateDraft,
+        path: candidateDraft.path.replace(entities.slice_revision_id, entities.revision_id)
+      },
+      entities
+    ],
+    ['候选错误状态', { ...candidateDraft, status: 409 }, entities],
+    ['候选错误码', { ...candidateDraft, error_code: 'UNCLASSIFIED' }, entities],
+    ['候选错误请求方法', { ...candidateDraft, method: 'POST' }, entities]
   ]) {
     it(`不豁免${name}`, () => {
       assert.equal(classifyExpectedRejection(response, scope), null)
