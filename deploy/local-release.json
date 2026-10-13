@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "kind": "web",
+  "project": "juya-admin",
+  "repository": "juya-admin",
+  "site_output": "dist",
+  "checks": [
+    ["pnpm", "install", "--frozen-lockfile"],
+    ["pnpm", "check"],
+    ["pnpm", "test", "--maxWorkers=2"]
+  ],
+  "build": {
+    "test": {
+      "command": ["pnpm", "build:test"],
+      "env": {
+        "VITE_API_BASE_URL": "https://test-admin-api.juyayingyu.com"
+      }
+    },
+    "production": {
+      "command": ["pnpm", "build"],
+      "env": {
+        "VITE_API_BASE_URL": "https://admin-api.juyayingyu.com"
+      }
+    }
+  }
+}
