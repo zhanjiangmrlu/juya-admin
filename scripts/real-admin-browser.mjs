@@ -299,7 +299,8 @@ try {
   await run(
     'stage-retry',
     async () => {
-      await page.goto(new URL('/content/import', baseUrl).href)
+      await page.goto(new URL('/content/import?source=zip', baseUrl).href)
+      await page.locator('.recovery-tools > summary').click()
       await page
         .getByRole('textbox', { name: '失败阶段编号', exact: true })
         .fill(entities.retry_stage_id)
