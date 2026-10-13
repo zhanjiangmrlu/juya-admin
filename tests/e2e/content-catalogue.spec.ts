@@ -1,7 +1,18 @@
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
+import { item, mockWorkOrder, reading, scene } from './fixtures/content-work-orders'
 
-test('同一目录搜索双语标题并按类型过滤，短文进入独立编辑器', async ({ adminApi, page }) => {
+test('同一目录搜索双语标题并按类型过滤，短文进入所属工作单修正', async ({ adminApi, page }) => {
   expect(adminApi).toBeDefined()
+  const requests = await mockWorkOrder(page)
+  await page.route('**/work-orders/order/items/one', (route) =>
+    route.fulfill({
+      json: {
+        ...item,
+        content_id: 'READING-1',
+        current: { template: 'short_reading', content: reading }
+      }
+    })
+  )
   const rows = [
     {
       id: 'SCENE-1',
@@ -50,10 +61,30 @@ test('同一目录搜索双语标题并按类型过滤，短文进入独立编�
   expect(new URLSearchParams(query).get('query')).toBe('城市')
   expect(new URLSearchParams(query).get('page')).toBe('1')
   await page.getByRole('button', { name: '继续校对', exact: true }).click()
-  await expect(page).toHaveURL(/content\/short-readings\/READING-1\/edit/)
+  await expect(page).toHaveURL(/content\/work-orders\/order\/items\/one/)
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Current reading', exact: true })
+  ).toBeVisible()
+  const contexts = requests.filter((request) => request.path.endsWith('/contexts'))
+  expect(
+    contexts.some(
+      (request) =>
+        request.body.content_type === 'dialogue' &&
+        JSON.stringify(request.body.content_ids) === '["SCENE-1"]'
+    )
+  ).toBe(true)
+  expect(
+    contexts.some(
+      (request) =>
+        request.body.content_type === 'short_reading' &&
+        JSON.stringify(request.body.content_ids) === '["READING-1"]'
+    )
+  ).toBe(true)
+  expect(adminApi.unexpectedRequests).toEqual([])
 })
 
 test('生成候选的迟到响应不会把已经离页的管理员导航回编辑器', async ({ adminApi, page }) => {
+  const requests = await mockWorkOrder(page, { template: 'dialogue', content: scene })
   let release = (): void => {}
   let requested = false
   const pending = new Promise<void>((resolve) => {
@@ -119,4 +150,13 @@ test('生成候选的迟到响应不会把已经离页的管理员导航回编�
   await expect(page.getByRole('heading', { level: 1, name: '工作台' })).toBeVisible()
   await expect(page).toHaveURL(/\/dashboard$/)
   expect(adminApi.unexpectedRequests).toEqual([])
+  expect(
+    requests
+      .filter((request) => request.path.endsWith('/contexts'))
+      .every(
+        (request) =>
+          request.body.content_type === 'dialogue' &&
+          JSON.stringify(request.body.content_ids) === '["SCENE-1"]'
+      )
+  ).toBe(true)
 })
