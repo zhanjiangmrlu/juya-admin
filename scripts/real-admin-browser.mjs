@@ -5,6 +5,8 @@ import { URL } from 'node:url'
 
 import { chromium, expect } from '@playwright/test'
 
+import { classifyExpectedRejection } from './real-admin-browser-rejections.mjs'
+
 const baseUrl = process.env.JUYA_QA_BASE_URL || 'http://127.0.0.1:18183'
 const username = process.env.JUYA_HTTP_TEST_USERNAME
 const password = process.env.JUYA_HTTP_TEST_PASSWORD
@@ -35,6 +37,7 @@ const results = {
   baseUrl,
   cases: [],
   responses: [],
+  expectedRejections: [],
   stageRecovery: [],
   errors: [],
   networkFailures: []
@@ -63,6 +66,8 @@ page.on('response', (response) => {
             typeof body?.code === 'string' && /^[A-Z][A-Z0-9_]{0,99}$/.test(body.code)
               ? body.code
               : 'UNCLASSIFIED'
+          const reason = classifyExpectedRejection(record, entities)
+          if (reason) results.expectedRejections.push({ ...record, reason })
         })
         .catch(() => {
           record.error_code = 'UNCLASSIFIED'
@@ -471,6 +476,7 @@ try {
   const unexpected = results.responses.filter(
     (response) =>
       response.status >= 400 &&
+      !classifyExpectedRejection(response, entities) &&
       !(
         response.path === '/api/v1/admin/session' &&
         response.method === 'GET' &&
