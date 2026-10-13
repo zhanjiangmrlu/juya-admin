@@ -175,6 +175,8 @@ test('词汇图包四阶段按稳定词条确认，并等实际绑定结果后�
   await panel.getByRole('button', { name: '恢复 / 刷新素材结果', exact: true }).click()
   await expect(page.getByRole('heading', { name: '图包校验', exact: true, level: 1 })).toBeVisible()
   await panel.getByRole('button', { name: '加载本页目标草稿', exact: true }).click()
+  // 草稿列表异步加载时选择器禁用，键盘操作前等待加载完成
+  await expect(panel.getByRole('combobox', { name: '素材目标草稿', exact: true })).toBeEnabled()
   await expect(panel.getByText(/本页 1 篇内容尚无可编辑草稿/)).toBeVisible()
   expect(targetQueries.at(-1)?.searchParams.get('series_id')).toBe('SERIES-1')
   expect(targetQueries.at(-1)?.searchParams.get('content_type')).toBe('word_card')
@@ -317,6 +319,8 @@ test('正式词汇表预览按导入ID确认缺图与差异，异常行不能进
   await panel.getByLabel('素材批次编号').fill('VOCAB-1')
   await panel.getByRole('button', { name: '恢复 / 刷新素材结果', exact: true }).click()
   await panel.getByRole('button', { name: '加载本页目标草稿', exact: true }).click()
+  // press 不等待禁用控件恢复，先确认目标草稿选择器可操作
+  await expect(panel.getByRole('combobox', { name: '素材目标草稿', exact: true })).toBeEnabled()
   await panel.getByRole('combobox', { name: '素材目标草稿', exact: true }).press('Enter')
   await page.getByRole('option', { name: /词汇图包来源/ }).click()
   await panel.getByRole('button', { name: '读取固定草稿', exact: true }).click()

@@ -207,6 +207,8 @@ test('独立素材包明确选择草稿、文件角色与稳定词条后绑定',
   await panel.getByLabel('素材批次编号').fill('MATERIAL-1')
   await panel.getByRole('button', { name: '恢复 / 刷新素材结果', exact: true }).click()
   await panel.getByRole('button', { name: '加载本页目标草稿', exact: true }).click()
+  // 等待草稿加载解除禁用后再打开选项，避免遗漏键盘输入
+  await expect(panel.getByRole('combobox', { name: '素材目标草稿', exact: true })).toBeEnabled()
   await panel.getByRole('combobox', { name: '素材目标草稿', exact: true }).press('Enter')
   await page.getByRole('option', { name: /Ordering coffee · REV-DRAFT-1/ }).click()
   await panel.getByRole('button', { name: '读取固定草稿', exact: true }).click()
