@@ -12,6 +12,53 @@ const order = {
   pending_commands: [{ command_id: 'pending', action: 'organize' }]
 }
 describe('可恢复工作单状态', () => {
+  it('离开页面后恢复命令和读取不再写回，当前刷新不遗留忙碌状态', async () => {
+    let finish!: () => void
+    const pending = new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    const request = vi.fn(async ({ method, path }: { method: string; path: string }) => {
+      if (method === 'POST') {
+        await pending
+        return {}
+      }
+      return path.endsWith('/items') ? { items: [] } : order
+    })
+    const model = useWorkOrder(createWorkOrderAdapter({ request: request as ApiClient['request'] }))
+    await model.load('order')
+    const running = model.run('organize', {})
+    await model.load('order')
+    finish()
+    await running
+    expect(model.busy.value).toBe(false)
+    const resume = model.resume('pending')
+    model.invalidate()
+    await resume
+    expect(model.order.value).toBeNull()
+    expect(model.busy.value).toBe(false)
+  })
+  it('A 命令延迟完成不能覆盖新 B 工作单', async () => {
+    let finish!: () => void
+    const pending = new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    const request = vi.fn(async ({ method, path }: { method: string; path: string }) => {
+      if (method === 'POST') {
+        await pending
+        return {}
+      }
+      return path.endsWith('/items')
+        ? { items: [] }
+        : { ...order, work_order_id: path.endsWith('/B') ? 'B' : 'A' }
+    })
+    const model = useWorkOrder(createWorkOrderAdapter({ request: request as ApiClient['request'] }))
+    await model.load('A')
+    const running = model.run('organize', {})
+    await model.load('B')
+    finish()
+    await running
+    expect(model.order.value?.work_order_id).toBe('B')
+  })
   it('切换工作单清除上一批抽样和发布范围', async () => {
     const request = vi.fn(async ({ path }: { path: string }) =>
       path.endsWith('/sampling')

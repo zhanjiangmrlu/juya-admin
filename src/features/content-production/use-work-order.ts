@@ -1,12 +1,12 @@
 import { ref, shallowRef } from 'vue'
 
-import type { createWorkOrderAdapter } from './work-order-adapter'
+import type {
+  createWorkOrderAdapter,
+  WorkCommand,
+  WorkCommandFields,
+  WorkCommandRequests
+} from './work-order-adapter'
 import type { ProductionSchema as S } from './work-order-model'
-
-type ActionFields = Omit<
-  Parameters<ReturnType<typeof createWorkOrderAdapter>['command']>[2],
-  'expected_version'
-> & { [key: string]: unknown }
 
 export const /** 管理工作单权威范围与恢复
    * @param adapter - 工作单接口
@@ -23,11 +23,27 @@ export const /** 管理工作单权威范围与恢复
     const pageSize = ref(20)
     const status = ref('')
     let sequence = 0
+    let context = 0
+    let activeId = ''
+    const /** 使离开页面后的读取和命令失效 */ invalidate = (): void => {
+        context++
+        sequence++
+        activeId = ''
+        busy.value = false
+        order.value = null
+        items.value = null
+        sampling.value = null
+        publication.value = null
+      }
     const /** 从服务端恢复工作单及当前页
        * @param id - 地址中持久化的工作单
        * @returns 加载是否成功
        */
       load = async (id: string): Promise<boolean> => {
+        if (activeId !== id) {
+          invalidate()
+          activeId = id
+        }
         const generation = ++sequence
         if (order.value?.work_order_id !== id) {
           order.value = null
@@ -62,24 +78,51 @@ export const /** 管理工作单权威范围与恢复
        * @param fields - 明确的范围和人工确认
        * @returns 命令是否被服务接受
        */
-      run = async (action: string, fields: ActionFields = {}): Promise<boolean> => {
+      run = async <K extends WorkCommand>(
+        action: K,
+        fields: WorkCommandFields<K>
+      ): Promise<boolean> => {
         if (!order.value || busy.value) return false
         busy.value = true
         error.value = ''
         const id = order.value.work_order_id
+        const token = context
+        let readSequence = sequence
+        const /** 判断异步操作仍属于当前页面身份
+           * @returns 当前操作是否有效
+           */ current = (): boolean =>
+            token === context && activeId === id && readSequence === sequence
         try {
-          await adapter.command(id, action, { ...fields, expected_version: order.value.version })
-          await load(id)
-          if (action === 'sampling' || action === 'sample-actions')
-            sampling.value = await adapter.sampling(id)
-          if (action.startsWith('publication-')) publication.value = await adapter.publication(id)
+          await adapter.command(id, action, {
+            ...fields,
+            expected_version: order.value.version
+          } as WorkCommandRequests[K])
+          if (!current()) return false
+          const refresh = load(id)
+          readSequence = sequence
+          await refresh
+          if (!current()) return false
+          if (action === 'sampling' || action === 'sample-actions') {
+            const value = await adapter.sampling(id)
+            if (!current()) return false
+            sampling.value = value
+          }
+          if (action.startsWith('publication-')) {
+            const value = await adapter.publication(id)
+            if (!current()) return false
+            publication.value = value
+          }
           return true
         } catch (failure) {
-          await load(id)
+          if (!current()) return false
+          const refresh = load(id)
+          readSequence = sequence
+          await refresh
+          if (!current()) return false
           error.value = `${failure instanceof Error ? failure.message : '操作结果待核实'}。已刷新当前范围，请重新核对后操作；挂起操作可在任务记录中续办`
           return false
         } finally {
-          busy.value = false
+          if (token === context && activeId === id) busy.value = false
         }
       }
     const /** 恢复服务端挂起回执，不创建第二份范围
@@ -88,13 +131,24 @@ export const /** 管理工作单权威范围与恢复
       resume = async (commandId: string): Promise<void> => {
         if (!order.value || busy.value) return
         busy.value = true
+        const id = order.value.work_order_id
+        const token = context
+        let readSequence = sequence
+        const /** 判断异步操作仍属于当前页面身份
+           * @returns 当前操作是否有效
+           */ current = (): boolean =>
+            token === context && activeId === id && readSequence === sequence
         try {
-          await adapter.resume(order.value.work_order_id, commandId)
-          await load(order.value.work_order_id)
+          await adapter.resume(id, commandId)
+          if (!current()) return
+          const refresh = load(id)
+          readSequence = sequence
+          await refresh
         } catch (failure) {
+          if (!current()) return
           error.value = failure instanceof Error ? failure.message : '暂不能续办，请稍后刷新'
         } finally {
-          busy.value = false
+          if (token === context && activeId === id) busy.value = false
         }
       }
     return {
@@ -108,6 +162,7 @@ export const /** 管理工作单权威范围与恢复
       pageSize,
       status,
       load,
+      invalidate,
       run,
       resume
     }

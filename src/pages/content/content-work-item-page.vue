@@ -65,8 +65,20 @@ const editorRoot = ref<globalThis.HTMLElement | null>(null)
 const entryBusy = reactive({ vocabulary: false, chunks: false })
 const hasMediaWork = computed(() => entryBusy.vocabulary || entryBusy.chunks)
 let resourceGeneration = 0
+let routeGeneration = 0
+let loadGeneration = 0
+const /** 捕获当前页面身份供异步完成时核对
+   * @returns 当前身份验证函数
+   */ capture = (): (() => boolean) => {
+    const token = routeGeneration,
+      orderId = id.value,
+      workItemId = itemId.value
+    return () => token === routeGeneration && orderId === id.value && workItemId === itemId.value
+  }
 onBeforeUnmount(() => {
   resourceGeneration++
+  routeGeneration++
+  loadGeneration++
 })
 const /** 刷新当前版本引用的实际媒体
    */
@@ -99,12 +111,20 @@ const /** 读取不可变输入和当前候选，冲突时保留输入直到管�
    * @returns 是否已读取完整候选与身份绑定
    */
   load = async (replaceForm = true): Promise<boolean> => {
+    const active = capture(),
+      token = ++loadGeneration
+    const orderId = id.value,
+      workItemId = itemId.value
+    const /** 判断异步操作仍属于当前页面身份
+       * @returns 当前操作是否有效
+       */ current = (): boolean => active() && token === loadGeneration
     try {
-      const [current, item] = await Promise.all([
-        adapter.get(id.value),
-        adapter.detail(id.value, itemId.value)
+      const [currentOrder, item] = await Promise.all([
+        adapter.get(orderId),
+        adapter.detail(orderId, workItemId)
       ])
-      order.value = current
+      if (!active() || token !== loadGeneration) return false
+      order.value = currentOrder
       detail.value = item
       if (section.value === 'audio' && item.current?.template === 'dialogue' && item.content_id) {
         await router.replace({
@@ -126,13 +146,16 @@ const /** 读取不可变输入和当前候选，冲突时保留输入直到管�
         compared.value = false
         resolved.value = []
       }
-      bindings.value =
+      const loadedBindings =
         item.revision_id && item.current?.template !== 'short_reading'
-          ? await adapter.bindings(id.value, itemId.value)
+          ? await adapter.bindings(orderId, workItemId)
           : null
+      if (!current()) return false
+      bindings.value = loadedBindings
       if (!replaceForm) conflictReady.value = true
       void resources()
       await nextTick()
+      if (!current()) return false
       if (focusedIssue.value) {
         const label = issueFieldLabel(focusedIssue.value.location || [])
         const input = Array.from(
@@ -146,6 +169,7 @@ const /** 读取不可变输入和当前候选，冲突时保留输入直到管�
       }
       return true
     } catch (failure) {
+      if (!current()) return false
       conflictReady.value = false
       error.value = failure instanceof Error ? failure.message : '内容加载失败'
       return false
@@ -164,6 +188,7 @@ const /** 保存精确候选和原文问题确认，冲突不自动重试
       conflict.value
     )
       return false
+    const active = capture()
     busy.value = true
     error.value = ''
     try {
@@ -192,14 +217,23 @@ const /** 保存精确候选和原文问题确认，冲突不自动重试
         candidate_hash: detail.value.candidate_hash,
         current,
         original_compared: compared.value,
-        resolved_issue_ids: compared.value ? resolved.value : []
+        resolved_issue_ids: compared.value
+          ? resolved.value.filter((issueId) =>
+              detail.value?.issues?.some(
+                (issue) => issue.id === issueId && issue.acknowledgement_eligible
+              )
+            )
+          : []
       })
+      if (!active()) return false
       return await load()
     } catch (failure) {
+      if (!active()) return false
       conflict.value = isCorrectionConflict(failure)
       if (conflict.value) {
         conflictReady.value = false
         await load(false)
+        if (!active()) return false
         error.value = '当前候选已更新。输入已保留，请与刷新后的候选核对后重新编辑'
       } else {
         error.value =
@@ -209,7 +243,7 @@ const /** 保存精确候选和原文问题确认，冲突不自动重试
       }
       return false
     } finally {
-      busy.value = false
+      if (active()) busy.value = false
     }
   }
 const /** 对照新候选后明确保留本地输入，后续保存才发起写入 */ keepLocal = (): void => {
@@ -223,7 +257,8 @@ const /** 保存后只确认管理员点选的词条
    * @param section - 单词或语块区
    * @param index - 本篇被明确核对的行
    */ confirmEntry = async (section: 'vocabulary' | 'chunks', index: number): Promise<void> => {
-    if (!(await save()) || !detail.value?.revision_id) return
+    const active = capture()
+    if (!(await save()) || !active() || !detail.value?.revision_id) return
     const entry = scene.value[section][index]
     if (!entry?.entry_id) {
       error.value = '当前词条身份未生成，请重新核对后保存'
@@ -236,11 +271,13 @@ const /** 保存后只确认管理员点选的词条
         entry.entry_id,
         detail.value.edit_version!
       )
+      if (!active()) return
       await load()
     } catch (failure) {
+      if (!active()) return
       error.value = failure instanceof Error ? failure.message : '本条确认失败，请重新核对'
     } finally {
-      busy.value = false
+      if (active()) busy.value = false
     }
   }
 const /** 上传并关联当前安全图片
@@ -249,39 +286,47 @@ const /** 上传并关联当前安全图片
    */
   uploadImage = async (file: UploadFile, target: 'cover' | 'original' = 'cover'): Promise<void> => {
     if (!file.raw || busy.value) return
+    const active = capture()
     busy.value = true
     try {
       const asset = await media.uploadImage(file.raw)
+      if (!active()) return
       if (isReading.value) reading.value.cover_asset_id = asset.id
       else if (target === 'original') scene.value.original_image_asset_id = asset.id
       else scene.value.cover_asset_id = asset.id
       await resources()
     } catch (failure) {
+      if (!active()) return
       error.value = failure instanceof Error ? failure.message : '上传失败'
     } finally {
-      busy.value = false
+      if (active()) busy.value = false
     }
   }
 const /** 复用短文真实全文音频上传并重读工作单候选
    * @param file - 管理员选择的全文音频
    */
   uploadAudio = async (file: UploadFile): Promise<void> => {
-    if (!file.raw || !detail.value?.content_id || !(await save())) return
+    const active = capture()
+    if (!file.raw || !detail.value?.content_id || !(await save()) || !active()) return
     busy.value = true
     try {
       const snapshot = await readings.load(detail.value.content_id)
+      if (!active()) return
       await readings.uploadAudio(snapshot, file.raw, createIdempotencyKey())
+      if (!active()) return
       await load()
     } catch (failure) {
+      if (!active()) return
       error.value = failure instanceof Error ? failure.message : '音频上传失败'
     } finally {
-      busy.value = false
+      if (active()) busy.value = false
     }
   }
 const /** 保存后前往复用的场景音频工具，并保留本工作单上下文
    */
   audioEditor = async (): Promise<void> => {
-    if (!detail.value?.content_id || !(await save())) return
+    const active = capture()
+    if (!detail.value?.content_id || !(await save()) || !active()) return
     await router.push({
       name: 'content-scene-edit',
       params: { id: detail.value.content_id },
@@ -291,7 +336,8 @@ const /** 保存后前往复用的场景音频工具，并保留本工作单上�
 const /** 明确确认本篇词条与发音目标
    */
   confirmEntries = async (): Promise<void> => {
-    if (!(await save()) || !order.value) return
+    const active = capture()
+    if (!(await save()) || !active() || !order.value) return
     busy.value = true
     try {
       await adapter.command(id.value, 'entry-confirmations', {
@@ -300,12 +346,23 @@ const /** 明确确认本篇词条与发音目标
         selected_item_ids: [itemId.value],
         manual_confirmed: true
       })
+      if (!active()) return
       await load()
     } catch (failure) {
+      if (!active()) return
       error.value = failure instanceof Error ? failure.message : '确认失败，请核对本篇词条'
     } finally {
-      busy.value = false
+      if (active()) busy.value = false
     }
+  }
+const /** 保存当前修正后进入固定候选的正式试听检查 */ listening = async (): Promise<void> => {
+    const active = capture()
+    if (!(await save()) || !active()) return
+    await router.push({
+      name: 'content-work-order',
+      params: { id: id.value },
+      query: { view: 'sampling' }
+    })
   }
 const /** 返回同一工作单的待处理问题
    */
@@ -313,9 +370,24 @@ const /** 返回同一工作单的待处理问题
     void router.push({ name: 'content-work-order', params: { id: id.value } })
   }
 watch(
-  () => [id.value, itemId.value],
-  () => void load(),
-  { immediate: true }
+  () => [id.value, itemId.value, route.fullPath],
+  () => {
+    routeGeneration++
+    loadGeneration++
+    resourceGeneration++
+    order.value = null
+    detail.value = null
+    bindings.value = null
+    scene.value = normalizeSceneContent({})
+    reading.value = normalizeShortReading({})
+    coverUrl.value = audioUrl.value = imageUrl.value = ''
+    busy.value = conflict.value = compared.value = conflictReady.value = false
+    entryBusy.vocabulary = entryBusy.chunks = false
+    resolved.value = []
+    error.value = ''
+    void load()
+  },
+  { immediate: true, flush: 'sync' }
 )
 </script>
 <template>
@@ -359,6 +431,8 @@ watch(
               :cover-url="coverUrl"
               :audio-url="audioUrl"
               :audio-disabled="false"
+              :formal-listening="true"
+              @listening="listening"
               @cover="uploadImage"
               @audio="uploadAudio"
               @refresh="resources"
@@ -419,13 +493,22 @@ watch(
         </fieldset>
       </div>
       <AdminPanel v-if="detail.current && detail.issues?.length" title="本次处理的问题"
-        ><ElCheckbox v-model="compared" :disabled="!detail.source_available"
+        ><p
+          v-for="issue in detail.issues.filter((row) => !row.acknowledgement_eligible)"
+          :key="issue.id"
+        >
+          {{ issue.message }}。
+          {{
+            issue.origin_work_item_id && issue.origin_work_item_id !== detail.item_id
+              ? '此问题来自另一份导入记录，请回到原工作单对照处理'
+              : '修正后保存，系统将按当前内容重新校验'
+          }}
+        </p>
+        <ElCheckbox v-model="compared" :disabled="!detail.source_available"
           >已对照不可变原文，核对本次正文与配对</ElCheckbox
         ><ElCheckboxGroup v-model="resolved"
           ><ElCheckbox
-            v-for="issue in detail.issues.filter((row) =>
-              ['content', 'source'].includes(row.correction_target)
-            )"
+            v-for="issue in detail.issues.filter((row) => row.acknowledgement_eligible)"
             :key="issue.id"
             :value="issue.id"
             :disabled="!compared"

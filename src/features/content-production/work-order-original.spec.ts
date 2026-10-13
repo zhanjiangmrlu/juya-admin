@@ -2,8 +2,19 @@ import { mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import { describe, expect, it } from 'vitest'
 
+import nestedSnapshot from './fixtures/nested-docx-source.json'
 import WorkOrderOriginal from './work-order-original.vue'
 describe('不可变原文面板', () => {
+  it('实际 DOCX 解析快照包含内层表格且等价单元格正文不重复', () => {
+    const wrapper = mount(WorkOrderOriginal, {
+      props: { snapshot: nestedSnapshot },
+      global: { plugins: [ElementPlus] }
+    })
+    const paragraphs = wrapper.findAll('article p').map((row) => row.text())
+    expect(paragraphs.filter((value) => value === 'nested original explanation')).toHaveLength(1)
+    expect(paragraphs.filter((value) => value === '你好')).toHaveLength(1)
+    expect(wrapper.text()).toContain('表 1 · 第 2 行 · 第 2 列 · 内嵌表 2 · 第 1 行 · 第 1 列')
+  })
   it('统一 ZIP 同时呈现多文档、真实工作簿行和冲突两侧，不用候选替代原值', () => {
     const wrapper = mount(WorkOrderOriginal, {
       props: {

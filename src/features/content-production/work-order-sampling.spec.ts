@@ -6,6 +6,46 @@ import type { ProductionSchema as S, WorkItemDetail } from './work-order-model'
 
 import WorkOrderSampling from './work-order-sampling.vue'
 describe('工作单抽样范围', () => {
+  it('异常确认明确包含当前观察篇目，仅提交冻结成员的精确子集', async () => {
+    const wrapper = mount(WorkOrderSampling, {
+      props: {
+        state: {
+          proofreading_set_id: 'set',
+          collection_hash: 'collection',
+          sample_ids: ['a'],
+          candidates: [
+            { revision_id: 'a', candidate_hash: 'hash-a' },
+            { revision_id: 'b', candidate_hash: 'hash-b' }
+          ],
+          confirmed_revision_ids: [],
+          normal_count: 2
+        } as unknown as S['SamplingState'],
+        items: [
+          { item_id: 'one', revision_id: 'a', title_en: 'Observed' },
+          { item_id: 'two', revision_id: 'b', title_en: 'Affected' },
+          { item_id: 'foreign', revision_id: 'c', title_en: 'Outside frozen set' }
+        ],
+        busy: false
+      },
+      global: { plugins: [ElementPlus] }
+    })
+    await wrapper.findAllComponents({ name: 'ElSelect' })[1]!.vm.$emit('update:modelValue', ['two'])
+    await flushPromises()
+    expect(wrapper.text()).toContain('本次明确标记 2 篇：Observed、Affected')
+    await wrapper
+      .findAll('button')
+      .find((row) => row.text() === '标记所选篇目需校对')!
+      .trigger('click')
+    expect(wrapper.emitted('action')?.at(-1)?.[0]).toEqual({
+      operation: 'fail',
+      scope: 'selected',
+      selected_item_ids: ['one', 'two'],
+      observed_item_id: 'one',
+      candidate_hash: 'hash-a',
+      collection_hash: 'collection',
+      error_code: 'MANUAL_REVIEW_REQUIRED'
+    })
+  })
   it.each(['image', 'audio', 'both'])(
     '词汇卡 %s 媒体必须实际核对，独立发音按固定版本逐个试听',
     async (kind) => {

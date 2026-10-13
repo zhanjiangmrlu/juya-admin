@@ -14,12 +14,14 @@ defineProps<{
   coverUrl: string
   audioUrl: string
   audioDisabled: boolean
+  formalListening?: boolean
 }>()
 const emit = defineEmits<{
   cover: [file: UploadFile]
   audio: [file: UploadFile]
   refresh: []
   removeAudio: []
+  listening: []
 }>()
 const /**
    * 保留未修改段落的稳定编号，新段落交由服务端分配
@@ -161,7 +163,12 @@ const metadata: readonly [
         <template v-if="form.audio"
           ><p>实际时长 {{ (form.audio.duration_ms / 1000).toFixed(2) }} 秒</p>
           <AppAudioPlayer v-if="audioUrl" :src="audioUrl" @playing="audioPlayed = true" />
+          <ElButton v-if="formalListening" :disabled="busy || disabled" @click="emit('listening')"
+            >保存后前往抽样试听确认</ElButton
+          >
+          <p v-if="formalListening">试听确认在固定候选抽样中保存；正文或音频改变后需重新检查。</p>
           <ElCheckbox
+            v-else
             :model-value="form.audio.listening_confirmed === true"
             :disabled="disabled || busy || !audioUrl || !audioPlayed"
             @update:model-value="confirmAudio(Boolean($event))"

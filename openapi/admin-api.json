@@ -7134,6 +7134,17 @@
             "title": "Images Checked",
             "type": "boolean"
           },
+          "observed_item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Item Id"
+          },
           "operation": {
             "enum": ["confirm", "fail", "append", "bulk-confirm", "complete"],
             "title": "Operation",
@@ -7178,6 +7189,20 @@
             "enum": ["dialogue", "word_card", "short_reading"],
             "title": "Content Type",
             "type": "string"
+          },
+          "failure": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure"
           },
           "normal": {
             "default": false,
@@ -9103,6 +9128,11 @@
       "WorkIssue": {
         "additionalProperties": false,
         "properties": {
+          "acknowledgement_eligible": {
+            "default": false,
+            "title": "Acknowledgement Eligible",
+            "type": "boolean"
+          },
           "code": {
             "title": "Code",
             "type": "string"
@@ -9133,10 +9163,32 @@
             "title": "Message",
             "type": "string"
           },
+          "origin_work_item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Work Item Id"
+          },
           "resolved": {
             "default": false,
             "title": "Resolved",
             "type": "boolean"
+          },
+          "source_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Hash"
           }
         },
         "required": ["id", "code", "message"],
@@ -9183,6 +9235,11 @@
               }
             ],
             "title": "Content Version"
+          },
+          "current_draft": {
+            "default": false,
+            "title": "Current Draft",
+            "type": "boolean"
           },
           "edit_version": {
             "anyOf": [
@@ -9351,6 +9408,11 @@
               }
             ],
             "title": "Current"
+          },
+          "current_draft": {
+            "default": false,
+            "title": "Current Draft",
+            "type": "boolean"
           },
           "edit_version": {
             "anyOf": [

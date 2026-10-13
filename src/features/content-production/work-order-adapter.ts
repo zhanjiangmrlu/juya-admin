@@ -1,20 +1,58 @@
 import { createIdempotencyKey } from '@/services/api/api-client'
 
-import type { ProductionSchema as S } from './work-order-model'
+import type { CandidateDecision, ProductionSchema as S } from './work-order-model'
 import type { ApiClient, ApiRequestOptions } from '@/services/api/api-client'
 
 const base = '/api/v1/admin/content-production/work-orders'
-type CommandBody = Partial<
-  | S['ScopedRequest']
-  | S['OrganizeRequest']
-  | S['SampleActionRequest']
-  | S['CandidateDecisionRequest']
-  | S['CandidateDismissalRequest']
-  | S['ImportConfirmRequest']
-  | S['PublicationConfirmRequest']
-  | S['EntryConfirmationRequest']
-  | S['juya_admin_api__modules__content_production__schemas__StageRetryRequest']
-> & { expected_version: number }
+type WithDefaults<T> = Omit<
+  T,
+  | 'scope'
+  | 'include_recommendations'
+  | 'text_checked'
+  | 'images_checked'
+  | 'audio_listened'
+  | 'accept_normal_results'
+  | 'allow_abnormal_drafts'
+> &
+  Partial<
+    Pick<
+      T,
+      Extract<
+        keyof T,
+        | 'scope'
+        | 'include_recommendations'
+        | 'text_checked'
+        | 'images_checked'
+        | 'audio_listened'
+        | 'accept_normal_results'
+        | 'allow_abnormal_drafts'
+      >
+    >
+  >
+export type WorkCommandRequests = {
+  sampling: WithDefaults<S['ScopedRequest']>
+  'sample-actions': WithDefaults<S['SampleActionRequest']>
+  organize: WithDefaults<S['OrganizeRequest']>
+  'candidate-decisions': Omit<WithDefaults<S['CandidateDecisionRequest']>, 'decisions'> & {
+    decisions: CandidateDecision[]
+  }
+  'candidate-dismissals': WithDefaults<S['CandidateDismissalRequest']>
+  'entry-confirmations': WithDefaults<S['EntryConfirmationRequest']>
+  'import-confirm': WithDefaults<S['ImportConfirmRequest']>
+  'import-retry': WithDefaults<S['ImportConfirmRequest']>
+  'publication-preview': WithDefaults<S['ScopedRequest']>
+  'publication-confirm': WithDefaults<S['PublicationConfirmRequest']>
+  'publication-retry': WithDefaults<S['PublicationConfirmRequest']>
+  'stage-retry': WithDefaults<
+    S['juya_admin_api__modules__content_production__schemas__StageRetryRequest']
+  >
+  cancel: WithDefaults<S['ScopedRequest']>
+}
+export type WorkCommand = keyof WorkCommandRequests
+export type WorkCommandFields<K extends WorkCommand> = Omit<
+  WorkCommandRequests[K],
+  'expected_version'
+>
 const /** 拼接工作单所属资源路径
    * @param orderId - 当前工作单
    * @param suffix - 所属资源相对路径
@@ -74,8 +112,12 @@ export const /** 建立工作单正式契约适配
       contexts: (body: S['ContextLookupRequest']) =>
         write<S['ContentContexts']>('/api/v1/admin/content-production/contexts', body),
       upload: (body: FormData, key?: string) => write<S['WorkOrder']>(base, body, key),
-      command: (id: string, action: string, body: CommandBody, key?: string) =>
-        write<S['CommandResult']>(path(id, `/${action}`), body, key),
+      command: <K extends WorkCommand>(
+        id: string,
+        action: K,
+        body: WorkCommandRequests[K],
+        key?: string
+      ) => write<S['CommandResult']>(path(id, `/${action}`), body, key),
       correction: (id: string, itemId: string, body: S['CorrectionRequest'], key?: string) =>
         write<S['CommandResult']>(
           path(id, `/items/${encodeURIComponent(itemId)}/correction`),

@@ -42,23 +42,45 @@ export const /** 组合读取不可变文档、工作簿与冲突两侧
           }))
         )
       )
-    const paragraphs = snapshot.blocks ?? snapshot.paragraphs
-    if (Array.isArray(paragraphs) && paragraphs.length)
-      result.push(
-        ...paragraphs.map((value, index) => {
-          const row: Record<string, unknown> =
+    const /** 递归遍历解析器原始段落与嵌套表格，单元格文本由子段落完整承载时不重复
+       * @param values - 原始块或单元格子块
+       * @param prefix - 父级稳定位置
+       */ appendBlocks = (values: unknown[], prefix = ''): void => {
+        values.forEach((value, index) => {
+          const row =
             typeof value === 'object' && value
               ? (value as Record<string, unknown>)
               : { text: value }
-          return {
-            text: String(row.text ?? row.english ?? ''),
-            locator:
-              row.kind === 'table_cell'
-                ? `表 ${row.table_index} · 第 ${row.row_index} 行 · 第 ${row.column_index} 列`
-                : `第 ${row.paragraph_index ?? row.index ?? index + 1} 段`
-          }
+          const /** 拼接完整原文位置
+             * @param label - 当前块位置
+             * @returns 包含父级的稳定位置
+             */ at = (label: string): string => (prefix ? `${prefix} · ${label}` : label)
+          const locator =
+            row.kind === 'table_cell'
+              ? at(
+                  `表 ${row.table_index ?? index + 1} · 第 ${row.row_index ?? 1} 行 · 第 ${row.column_index ?? 1} 列`
+                )
+              : at(`第 ${row.paragraph_index ?? row.index ?? index + 1} 段`)
+          if (row.kind === 'table' && Array.isArray(row.rows)) {
+            row.rows.forEach((cells, rowIndex) => {
+              if (!Array.isArray(cells)) return
+              cells.forEach((cell, columnIndex) => {
+                const value = cell as Record<string, unknown>
+                const cellLocator = at(
+                  `内嵌表 ${index + 1} · 第 ${rowIndex + 1} 行 · 第 ${columnIndex + 1} 列`
+                )
+                if (Array.isArray(value.children) && value.children.length)
+                  appendBlocks(value.children, cellLocator)
+                else result.push({ text: String(value.text ?? ''), locator: cellLocator })
+              })
+            })
+          } else if (Array.isArray(row.children) && row.children.length) {
+            appendBlocks(row.children, locator)
+          } else result.push({ text: String(row.text ?? row.english ?? ''), locator })
         })
-      )
+      }
+    const paragraphs = snapshot.blocks ?? snapshot.paragraphs
+    if (Array.isArray(paragraphs) && paragraphs.length) appendBlocks(paragraphs)
     if (snapshot.document_path) {
       if (!result.length)
         result.push({ text: '未保留文档正文，请补充源文件后核对', locator: '原文缺失' })

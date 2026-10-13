@@ -5975,6 +5975,8 @@ export interface components {
        * @default false
        */
       images_checked: boolean
+      /** Observed Item Id */
+      observed_item_id?: string | null
       /**
        * Operation
        * @enum {string}
@@ -6005,6 +6007,10 @@ export interface components {
        * @enum {string}
        */
       content_type: 'dialogue' | 'word_card' | 'short_reading'
+      /** Failure */
+      failure?: {
+        [key: string]: string
+      } | null
       /**
        * Normal
        * @default false
@@ -6725,6 +6731,11 @@ export interface components {
     }
     /** WorkIssue */
     WorkIssue: {
+      /**
+       * Acknowledgement Eligible
+       * @default false
+       */
+      acknowledgement_eligible: boolean
       /** Code */
       code: string
       /**
@@ -6744,11 +6755,15 @@ export interface components {
       location?: string[]
       /** Message */
       message: string
+      /** Origin Work Item Id */
+      origin_work_item_id?: string | null
       /**
        * Resolved
        * @default false
        */
       resolved: boolean
+      /** Source Hash */
+      source_hash?: string | null
     }
     /** WorkItem */
     WorkItem: {
@@ -6763,6 +6778,11 @@ export interface components {
       content_id?: string | null
       /** Content Version */
       content_version?: number | null
+      /**
+       * Current Draft
+       * @default false
+       */
+      current_draft: boolean
       /** Edit Version */
       edit_version?: number | null
       /** Import Item Id */
@@ -6827,6 +6847,11 @@ export interface components {
       /** Current */
       current?:
         (components['schemas']['SceneCandidate'] | components['schemas']['ReadingCandidate']) | null
+      /**
+       * Current Draft
+       * @default false
+       */
+      current_draft: boolean
       /** Edit Version */
       edit_version?: number | null
       /** Historical Issues */

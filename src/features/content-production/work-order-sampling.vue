@@ -6,6 +6,7 @@ import ScenePreview from '@/features/content-editor/scene-preview.vue'
 import { normalizeShortReading } from '@/features/short-reading/short-reading-model'
 import ShortReadingPreview from '@/features/short-reading/short-reading-preview.vue'
 
+import type { WorkCommandFields } from './work-order-adapter'
 import type { ProductionSchema as S, WorkItemDetail } from './work-order-model'
 import type { SampleResource } from './work-order-sample-media'
 
@@ -19,11 +20,19 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   inspect: [itemId: string]
-  action: [fields: Partial<S['SampleActionRequest']>]
+  action: [fields: WorkCommandFields<'sample-actions'>]
   edit: [itemId: string]
 }>()
 const selected = ref('')
 const affected = ref<string[]>([])
+const affectedIds = computed(() => [
+  ...new Set([...(item.value ? [item.value.item_id] : []), ...affected.value])
+])
+const frozenItems = computed(() =>
+  props.items.filter((row) =>
+    props.state.candidates.some((candidate) => candidate.revision_id === row.revision_id)
+  )
+)
 const checked = reactive({ text: false, images: false, audio: false, played: false, normal: false })
 const played = ref<string[]>([])
 const current = computed(() =>
@@ -142,11 +151,10 @@ const /** 将选定同类问题篇目移出正常集合
     emit('action', {
       operation: 'fail',
       scope: 'selected',
-      selected_item_ids: affected.value.length
-        ? affected.value
-        : item.value
-          ? [item.value.item_id]
-          : [],
+      selected_item_ids: affectedIds.value,
+      observed_item_id: item.value?.item_id,
+      candidate_hash: current.value?.candidate_hash,
+      collection_hash: props.state.collection_hash,
       error_code: 'MANUAL_REVIEW_REQUIRED'
     })
 </script>
@@ -248,13 +256,37 @@ const /** 将选定同类问题篇目移出正常集合
             >追加为样本</ElButton
           >
         </div>
-        <ElSelect v-model="affected" multiple placeholder="选择同类问题受影响篇目"
+        <ElSelect
+          v-model="affected"
+          multiple
+          placeholder="选择同类问题受影响篇目（始终包含当前检查篇目）"
           ><ElOption
-            v-for="row in items"
+            v-for="row in frozenItems"
             :key="row.item_id"
             :value="row.item_id"
-            :label="row.title_en || row.title_zh || '本批篇目'" /></ElSelect
-        ><ElButton :disabled="busy || !item" @click="fail">标记所选篇目需校对</ElButton></AdminPanel
+            :label="row.title_en || row.title_zh || '本批篇目'"
+        /></ElSelect>
+        <p v-if="item">
+          本次明确标记 {{ affectedIds.length }} 篇：{{
+            frozenItems
+              .filter((row) => affectedIds.includes(row.item_id))
+              .map((row) => row.title_en || row.title_zh || '本批篇目')
+              .join('、')
+          }}
+        </p>
+        <p v-if="state.candidates.some((row) => row.failure)">
+          已标记需校对：{{
+            frozenItems
+              .filter((row) =>
+                state.candidates.some(
+                  (candidate) => candidate.revision_id === row.revision_id && candidate.failure
+                )
+              )
+              .map((row) => row.title_en || row.title_zh || '本批篇目')
+              .join('、')
+          }}。请逐项复核；修正后按当前草稿重新建立抽样。
+        </p>
+        <ElButton :disabled="busy || !item" @click="fail">标记所选篇目需校对</ElButton></AdminPanel
       >
     </div>
     <AdminPanel title="确认正常范围"
