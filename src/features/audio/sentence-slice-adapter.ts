@@ -49,6 +49,8 @@ export const /**
                 typeof state.dependency_hash === 'string' ? state.dependency_hash : undefined
             }
             const slice = {
+              editVersion: revision.version,
+              stageId: typeof state?.stage_id === 'string' ? state.stage_id : null,
               sentenceId: row.id,
               sourceVersion: form.audio?.version_id || '',
               startMs: row.start_ms ?? 0,

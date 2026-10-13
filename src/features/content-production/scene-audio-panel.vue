@@ -22,6 +22,7 @@ const props = defineProps<{
   canRecord: boolean
   revisionId: string
   expectedVersion: number
+  dirty?: boolean
   prepare: () => Promise<SceneRevision | null>
 }>()
 const emit = defineEmits<{
@@ -118,6 +119,7 @@ onBeforeUnmount(() => emit('element', null))
       :form="form"
       :revision-id="revisionId"
       :expected-version="expectedVersion"
+      :dirty="dirty"
       :prepare="prepare"
       :disabled="busy"
       @saved="emit('saved', $event)"

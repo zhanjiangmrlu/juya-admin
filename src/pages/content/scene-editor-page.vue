@@ -545,6 +545,7 @@ onBeforeUnmount(() => {
           :versions="audioVersions"
           :revision-id="revision.id"
           :expected-version="currentVersion"
+          :dirty="dirty"
           :selected-version="selectedAudioVersion"
           :prepare="prepareCandidate"
           :pending-file="pendingAudioFile"

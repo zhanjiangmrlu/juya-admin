@@ -68,7 +68,15 @@ const canComplete = computed(
 const current = computed(() =>
   set.value?.candidates.find((item) => item.revision_id === selected.value)
 )
-const needsAudio = computed(() => !!previewContent.value?.audio)
+const needsAudio = computed(
+  () =>
+    current.value?.classification_facts?.has_audio === true ||
+    !!previewContent.value?.audio ||
+    ['vocabulary', 'chunks'].some((field) => {
+      const entries = previewContent.value?.[field]
+      return Array.isArray(entries) && entries.some((entry) => !!entry.audio_version_id)
+    })
+)
 const needsImages = computed(
   () =>
     !!previewContent.value &&
@@ -142,7 +150,14 @@ const /** 保存这篇固定候选的明确人工检查事实
    * @returns 当前操作结果或完成状态
    */ confirm = async (): Promise<void> =>
     run(async () => {
-      if (!set.value || !current.value || !previewReady.value || !checks.text_checked) return
+      if (
+        !set.value ||
+        !current.value ||
+        !previewReady.value ||
+        !checks.text_checked ||
+        (needsAudio.value && !checks.audio_listened)
+      )
+        return
       await adapter.confirm(
         set.value.public_id,
         current.value.revision_id,
@@ -356,7 +371,13 @@ onBeforeUnmount(() => {
           </div>
           <div class="actions">
             <ElButton
-              :disabled="busy || !current || !previewReady || !checks.text_checked"
+              :disabled="
+                busy ||
+                !current ||
+                !previewReady ||
+                !checks.text_checked ||
+                (needsAudio && !checks.audio_listened)
+              "
               @click="confirm"
               >确认这一篇</ElButton
             ><ElSelect v-model="exception" aria-label="校对异常"

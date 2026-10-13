@@ -8,19 +8,41 @@ import ContentProofreadingPage from './content-proofreading-page.vue'
 
 vi.mock('@/features/content/content-adapter', () => ({
   createContentAdapter: () => ({
-    listScenes: async () => ({
-      items: ['zh', 'en', 'empty'].map((id) => ({
-        id: `scene-${id}`,
-        draftRevisionId: `revision-${id}`,
-        title: '',
-        templateType: 'dialogue'
-      }))
+    listScenes: async (filters: { status: string }) => ({
+      items: ['zh', 'en', 'empty', 'published-old', 'offline-old', 'reviewed', 'ready']
+        .filter((id) => !filters.status || id === 'empty')
+        .map((id) => ({
+          id: `scene-${id}`,
+          draftRevisionId: `revision-${id}`,
+          title: '',
+          templateType: 'dialogue',
+          status:
+            id === 'zh' || id === 'published-old'
+              ? 'PUBLISHED'
+              : id === 'en' || id === 'offline-old'
+                ? 'OFFLINE'
+                : 'DRAFT'
+        }))
     }),
     getRevision: async (id: string) => ({
       id,
       version: 1,
+      status: id.endsWith('-old')
+        ? 'PUBLISHED'
+        : id === 'revision-reviewed'
+          ? 'REVIEWED'
+          : id === 'revision-ready'
+            ? 'PUBLISH_READY'
+            : 'DRAFT',
       content: {
-        title_zh: id === 'revision-zh' ? '挑一件值得带回家的纪念品' : '',
+        title_zh:
+          id === 'revision-zh'
+            ? '挑一件值得带回家的纪念品'
+            : id.endsWith('-old')
+              ? '已发布且没有新候选'
+              : id === 'revision-reviewed' || id === 'revision-ready'
+                ? id
+                : '',
         title_en: id === 'revision-en' ? 'A Future from the Past' : ''
       }
     })
@@ -46,12 +68,15 @@ describe('proofreading candidate labels', () => {
         }
       }
     })
-    await vi.waitFor(() => expect(wrapper.findAll('.candidate')).toHaveLength(3))
+    await vi.waitFor(() => expect(wrapper.findAll('.candidate')).toHaveLength(5))
     expect(wrapper.findAll('.el-checkbox__label').map((label) => label.text())).toEqual([
       '挑一件值得带回家的纪念品',
       'A Future from the Past',
-      '未命名场景'
+      '未命名场景',
+      'revision-reviewed',
+      'revision-ready'
     ])
+    expect(wrapper.text()).not.toContain('已发布且没有新候选')
     expect(wrapper.text()).toContain('scene-zh · revision-zh')
     await wrapper.find('input[type="checkbox"]').setValue(true)
     expect(wrapper.text()).toContain('当前明确选中 1 篇')

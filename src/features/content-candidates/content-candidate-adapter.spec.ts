@@ -1,12 +1,20 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  audioProductionFailureLabel,
   candidateBelongsToRevision,
   createContentCandidateAdapter,
   validCandidateSelection
 } from './content-candidate-adapter'
 
 describe('human reviewed production candidates', () => {
+  it.each([
+    ['CANDIDATE_PROVIDER_UNAVAILABLE', '未配置'],
+    ['CLOUD_BUDGET_EXHAUSTED', '已用尽'],
+    ['AUTO_AUDIO_INPUT_CHANGED', '正文或整段音频已变化']
+  ])('explains the real automatic production failure %s', (code, guidance) => {
+    expect(audioProductionFailureLabel(code)).toContain(guidance)
+  })
   it('restores only a verified revision and never overrides a mismatching server origin', () => {
     expect(candidateBelongsToRevision({ revision_id: 'REV' }, 'REV')).toBe(true)
     expect(candidateBelongsToRevision({ revision_id: 'OTHER' }, 'REV', 'REV')).toBe(false)

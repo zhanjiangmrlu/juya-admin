@@ -60,6 +60,9 @@ const form = reactive({
 })
 const confirmVisible = ref(false)
 const confirmationReason = ref('')
+const availableTerms = computed(() =>
+  FORMAL_TERMS.filter((term) => form.operation !== 'EXTEND' || term !== 'permanent')
+)
 const statusLabels: Record<string, string> = {
   ACTIVE: '正常使用',
   PAUSED: '已暂停',
@@ -125,7 +128,8 @@ watch(
     controller.value.setDraft({
       operation: form.operation,
       packageId: detail.value.packageId,
-      term: form.operation === 'RENEW' || form.operation === 'GRANT' ? form.term : null,
+      term: ['RENEW', 'GRANT', 'EXTEND'].includes(form.operation) ? form.term : null,
+      reason: confirmationReason.value.trim(),
       userId: detail.value.userId
     })
   },
@@ -154,6 +158,14 @@ const /**
     commandApiError.value = null
     hadConflict.value = false
     try {
+      if (detail.value)
+        controller.value.setDraft({
+          operation: form.operation,
+          packageId: detail.value.packageId,
+          term: ['RENEW', 'GRANT', 'EXTEND'].includes(form.operation) ? form.term : null,
+          reason: confirmationReason.value.trim(),
+          userId: detail.value.userId
+        })
       await controller.value.preview()
       if (sequence !== requestSequence) return
       confirmVisible.value = true
@@ -220,22 +232,23 @@ const /**
               :label="FORMAL_OPERATION_LABELS[operation]"
               :value="operation" /></ElSelect></ElFormItem
         ><ElFormItem
-          v-if="form.operation === 'RENEW' || form.operation === 'GRANT'"
-          label="续期期限"
+          v-if="['RENEW', 'GRANT', 'EXTEND'].includes(form.operation)"
+          :label="form.operation === 'EXTEND' ? '延期期限 · 从原到期时间顺延' : '续期期限'"
           ><ElSelect v-model="form.term"
             ><ElOption
-              v-for="term in FORMAL_TERMS"
+              v-for="term in availableTerms"
               :key="term"
               :label="FORMAL_TERM_LABELS[term]"
               :value="term" /></ElSelect></ElFormItem
         ><ElFormItem
           :label="
-            ['PAUSE', 'RESUME', 'REVOKE'].includes(form.operation)
+            ['PAUSE', 'RESUME', 'REVOKE', 'EXTEND'].includes(form.operation)
               ? '原因 · 必填，确认时核对'
               : '备注 · 选填'
           "
           ><ElInput
             v-model="confirmationReason"
+            :aria-label="form.operation === 'EXTEND' ? '延期原因' : '操作备注'"
             placeholder="可补充说明"
             maxlength="200" /></ElFormItem
       ></ElForm>
@@ -268,7 +281,11 @@ const /**
         ><ElButton @click="navigate">返回列表</ElButton></RouterLink
       ><ElButton
         type="primary"
-        :disabled="state !== 'ready' || !allowedOperations.includes(form.operation)"
+        :disabled="
+          state !== 'ready' ||
+          !allowedOperations.includes(form.operation) ||
+          (form.operation === 'EXTEND' && (!confirmationReason.trim() || form.term === 'permanent'))
+        "
         :loading="controller.commandState.value === 'submitting'"
         @click="preview"
         >{{

@@ -862,6 +862,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/content/revisions/{revision_id}/audio-production': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** State */
+    get: operations['state_api_v1_admin_content_revisions__revision_id__audio_production_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/content/revisions/{revision_id}/candidates': {
     parameters: {
       query?: never
@@ -873,6 +890,23 @@ export interface paths {
     put?: never
     /** Queue */
     post: operations['queue_api_v1_admin_content_revisions__revision_id__candidates_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content/revisions/{revision_id}/candidates/latest': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Latest */
+    get: operations['get_latest_api_v1_admin_content_revisions__revision_id__candidates_latest_get']
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -3764,7 +3798,7 @@ export interface components {
      * EntitlementOperation
      * @enum {string}
      */
-    EntitlementOperation: 'GRANT' | 'RENEW' | 'PAUSE' | 'RESUME' | 'REVOKE'
+    EntitlementOperation: 'GRANT' | 'RENEW' | 'EXTEND' | 'PAUSE' | 'RESUME' | 'REVOKE'
     /** EntitlementPageResponse */
     EntitlementPageResponse: {
       /** Items */
@@ -7549,6 +7583,41 @@ export interface operations {
       }
     }
   }
+  state_api_v1_admin_content_revisions__revision_id__audio_production_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   queue_api_v1_admin_content_revisions__revision_id__candidates_post: {
     parameters: {
       query?: never
@@ -7576,6 +7645,43 @@ export interface operations {
         content: {
           'application/json': {
             [key: string]: string
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_latest_api_v1_admin_content_revisions__revision_id__candidates_latest_get: {
+    parameters: {
+      query?: {
+        kind?: 'AI_LEXICON' | 'ASR_BOUNDARY'
+      }
+      header?: never
+      path: {
+        revision_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
           }
         }
       }

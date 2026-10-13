@@ -225,6 +225,15 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
   }
   state.requests.push(record)
 
+  if (/\/content\/revisions\/[^/]+\/(audio-production|candidates\/latest)$/.test(url.pathname)) {
+    await replyJson(
+      route,
+      { code: 'CANDIDATE_NOT_FOUND', message: '当前草稿尚无自动音频任务' },
+      404
+    )
+    return
+  }
+
   if (state.unauthorizedPaths.has(url.pathname)) {
     await replyJson(
       route,

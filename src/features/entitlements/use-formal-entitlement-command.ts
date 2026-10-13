@@ -79,6 +79,11 @@ export const /**
         apiError.value = null
         hasConflict.value = false
         try {
+          if (draft.value.operation === 'EXTEND') {
+            if (!draft.value.reason?.trim()) throw new Error('请填写延期原因')
+            if (!draft.value.term || draft.value.term === 'permanent')
+              throw new Error('延期请选择有限自然月期限')
+          }
           const result = await adapter.preview(draft.value.operation, toPayload(draft.value))
           if (generation !== previewGeneration) throw new Error('预览已失效，请重新预览')
           previewResult.value = result
@@ -113,6 +118,8 @@ export const /**
         apiError.value = null
         hasConflict.value = false
         try {
+          if (draft.value.operation === 'EXTEND' && !reason.trim())
+            throw new Error('请填写延期原因')
           return await command.submit({
             ...draft.value,
             reason,
@@ -161,13 +168,13 @@ const /**
     }
   }
 
-/**
- * 将未知异常映射为可展示的安全错误文案
- *
- * @param failure - 捕获的未知异常
- * @param fallback - 非接口异常时使用的兜底文案
- * @returns 可展示的错误文案
- */
-function toErrorMessage(failure: unknown, fallback: string): string {
-  return failure instanceof ApiError ? failure.message : fallback
-}
+const /**
+   * 将操作校验和接口异常映射为可展示的错误文案
+   *
+   * @param failure - 捕获的未知异常
+   * @param fallback - 非接口异常时使用的兜底文案
+   * @returns 可展示的错误文案
+   */
+  toErrorMessage = (failure: unknown, fallback: string): string => {
+    return failure instanceof Error ? failure.message : fallback
+  }

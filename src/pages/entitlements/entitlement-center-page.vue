@@ -243,7 +243,10 @@ void controller.load({ ...filters })
     />
     <aside class="management-note">
       <strong>操作说明</strong>
-      <p>正式包授予与延期选择 1、2、3、6、12 个月或永久，并二次核对新到期时间。</p>
+      <p>
+        正式包授予可选择有限自然月或永久；延期仅适用于未到期的有限权益，选择 1、2、3、6、12
+        个自然月并填写原因，二次核对原到期时间与新到期时间。
+      </p>
     </aside>
   </section>
 </template>

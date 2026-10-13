@@ -9,13 +9,14 @@ import { type ContentStage, createContentStageAdapter } from './content-stage-ad
 import { useContentStage } from './use-content-stage'
 
 const route = useRoute()
-const props = defineProps<{ batchId?: string }>()
+const props = defineProps<{ batchId?: string; stageId?: string; expectedEditVersion?: number }>()
+const emit = defineEmits<{ retried: [] }>()
 const stages = ref<ContentStage[]>([])
 const listingError = ref('')
 const listingBusy = ref(false)
 const anchor = ref<globalThis.HTMLElement | null>(null)
 let listingGeneration = 0
-const identifier = ref(String(route.query.stage_id || ''))
+const identifier = ref(props.stageId ?? String(route.query.stage_id || ''))
 const adapter = createContentStageAdapter(useAdminApiClient())
 const controller = useContentStage(adapter)
 let synchronizing = false
@@ -25,6 +26,7 @@ const /** 恢复后显示服务端返回的新阶段编号 */ retry = async (): 
       synchronizing = true
       identifier.value = controller.stage.value.public_id
       synchronizing = false
+      if (!controller.error.value && controller.stage.value.status !== 'FAILED') emit('retried')
     }
   }
 watch(
@@ -33,6 +35,16 @@ watch(
     if (!synchronizing) controller.invalidate()
   },
   { flush: 'sync' }
+)
+watch(
+  () => [props.stageId, props.expectedEditVersion],
+  () => {
+    if (props.stageId === undefined) return
+    controller.invalidate()
+    identifier.value = props.stageId
+    controller.editVersion.value = props.expectedEditVersion ?? null
+  },
+  { immediate: true }
 )
 const /** 从当前批次实际关联加载阶段选择列表 */ listStages = async (): Promise<void> => {
     const token = ++listingGeneration
@@ -70,6 +82,7 @@ const labels: Record<string, string> = {
   SENTENCE_SLICE: '实际句切片',
   AI_LEXICON: '词条候选',
   ASR_BOUNDARY: '音文对齐',
+  AUTO_AUDIO: '自动音频调度',
   ASR_POLL: '转录结果核对',
   FAILED: '阶段失败',
   QUEUED: '已排队',

@@ -30,7 +30,9 @@ export const /**
     const charged = computed(
       () => !!stage.value && ['AI_LEXICON', 'ASR_BOUNDARY', 'ASR_POLL'].includes(stage.value.stage)
     )
-    const needsVersion = computed(() => charged.value || stage.value?.stage === 'SENTENCE_SLICE')
+    const needsVersion = computed(
+      () => charged.value || ['SENTENCE_SLICE', 'AUTO_AUDIO'].includes(stage.value?.stage ?? '')
+    )
     const canRetry = computed(
       () =>
         !!stage.value &&

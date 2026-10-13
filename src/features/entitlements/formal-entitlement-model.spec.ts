@@ -16,8 +16,13 @@ describe('formal entitlement model', () => {
   })
 
   it('returns only operations allowed by the current status', () => {
-    expect(getFormalOperations('ACTIVE', 'month_3')).toEqual(['RENEW', 'PAUSE', 'REVOKE'])
-    expect(getFormalOperations('PAUSED', 'month_3')).toEqual(['RENEW', 'RESUME', 'REVOKE'])
+    expect(getFormalOperations('ACTIVE', 'month_3')).toEqual(['RENEW', 'EXTEND', 'PAUSE', 'REVOKE'])
+    expect(getFormalOperations('PAUSED', 'month_3')).toEqual([
+      'RENEW',
+      'EXTEND',
+      'RESUME',
+      'REVOKE'
+    ])
     expect(getFormalOperations('REVOKED', 'month_3')).toEqual(['GRANT'])
   })
 })

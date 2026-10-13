@@ -25,6 +25,44 @@ const previewResult: FormalEntitlementPreview = {
 }
 
 describe('formal entitlement command', () => {
+  it('requires an explicit extension reason before previewing', async () => {
+    const controller = useFormalEntitlementCommand({
+      execute: vi.fn(async () => previewResult),
+      preview: vi.fn(async () => previewResult)
+    })
+    controller.setDraft({
+      operation: 'EXTEND',
+      packageId: 'PACKAGE-1',
+      term: 'month_1',
+      userId: 'USER-1',
+      reason: '  '
+    })
+    await expect(controller.preview()).rejects.toThrow('延期原因')
+    expect(controller.canConfirm.value).toBe(false)
+  })
+  it('rejects a permanent extension and a blank confirmation reason', async () => {
+    const controller = useFormalEntitlementCommand({
+      execute: vi.fn(async () => previewResult),
+      preview: vi.fn(async () => ({ ...previewResult, actualOperation: 'EXTEND' }))
+    })
+    controller.setDraft({
+      operation: 'EXTEND',
+      packageId: 'PACKAGE-1',
+      term: 'permanent',
+      userId: 'USER-1',
+      reason: '服务补偿'
+    })
+    await expect(controller.preview()).rejects.toThrow('有限自然月')
+    controller.setDraft({
+      operation: 'EXTEND',
+      packageId: 'PACKAGE-1',
+      term: 'month_1',
+      userId: 'USER-1',
+      reason: '服务补偿'
+    })
+    await controller.preview()
+    await expect(controller.submit('  ')).rejects.toThrow('延期原因')
+  })
   it('allows confirmation only after a successful server preview', async () => {
     const adapter: FormalEntitlementAdapter = {
       execute: vi.fn(async () => previewResult),

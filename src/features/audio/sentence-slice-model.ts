@@ -2,6 +2,8 @@ import type { SceneRevision } from '@/features/content/content-model'
 import type { DialogueRow } from '@/features/content-editor/scene-form'
 
 export interface SentenceSlice {
+  editVersion?: number
+  stageId?: string | null
   sentenceId: string
   sourceVersion: string
   startMs: number

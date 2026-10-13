@@ -75,6 +75,7 @@ const statusLabels: Record<string, string> = {
 const operationLabels: Record<string, string> = {
   GRANT: '开通内容',
   RENEW: '续期',
+  EXTEND: '延期',
   REGRANT: '重新开通内容',
   CONVERT_PERMANENT: '转为永久',
   PAUSE: '暂停',
@@ -85,15 +86,19 @@ const operationLabels: Record<string, string> = {
   RESTORE_START_WINDOW: '恢复启动窗口'
 }
 const actualLabel = computed(() => operationLabels[props.actualOperation] || props.actualOperation)
-const invalid = computed(
-  () => props.reasonRequired && reasonType.value === '其他' && !note.value.trim()
+const invalid = computed(() =>
+  props.actualOperation === 'EXTEND'
+    ? !note.value.trim()
+    : props.reasonRequired && reasonType.value === '其他' && !note.value.trim()
 )
 const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
     if (invalid.value || props.submitting) return
     emit(
       'confirm',
       props.reasonRequired
-        ? `${reasonType.value}${note.value.trim() ? `：${note.value.trim()}` : ''}`
+        ? props.actualOperation === 'EXTEND'
+          ? note.value.trim()
+          : `${reasonType.value}${note.value.trim() ? `：${note.value.trim()}` : ''}`
         : note.value.trim()
     )
   }
@@ -187,9 +192,11 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
         {{
           ['PAUSE', 'REVOKE'].includes(actualOperation)
             ? '暂不能访问内容包完整内容；收藏、学习进度和历史成果继续保留。操作原因与前后状态记录在操作审计中。'
-            : actualOperation === 'RENEW'
-              ? '续期从原到期时间按自然月顺延；确认时状态发生变化，将重新获取预览。'
-              : '确认后可访问该内容包，学习数据按原规则保留。'
+            : actualOperation === 'EXTEND'
+              ? '延期从原到期时间按自然月顺延，暂停状态保持不变；延期原因与前后状态单独记录在操作审计中。'
+              : actualOperation === 'RENEW'
+                ? '续期从原到期时间按自然月顺延；确认时状态发生变化，将重新获取预览。'
+                : '确认后可访问该内容包，学习数据按原规则保留。'
         }}
       </p>
       <ElCollapse
@@ -198,7 +205,7 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
         ></ElCollapse
       >
       <ElForm label-position="top">
-        <ElFormItem v-if="reasonRequired" label="操作原因（必填）"
+        <ElFormItem v-if="reasonRequired && actualOperation !== 'EXTEND'" label="操作原因（必填）"
           ><ElSelect v-model="reasonType" :disabled="submitting"
             ><ElOption label="运营调整" value="运营调整" /><ElOption
               label="用户申请"
@@ -206,11 +213,13 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
         ></ElFormItem>
         <ElFormItem
           :label="
-            reasonRequired
-              ? reasonType === '其他'
-                ? '其他原因说明（必填）'
-                : '补充说明（选填）'
-              : '备注（选填）'
+            actualOperation === 'EXTEND'
+              ? '延期原因（必填）'
+              : reasonRequired
+                ? reasonType === '其他'
+                  ? '其他原因说明（必填）'
+                  : '补充说明（选填）'
+                : '备注（选填）'
           "
           ><ElInput
             v-model="note"

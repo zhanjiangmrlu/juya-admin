@@ -6,6 +6,11 @@ const checkLabels: Readonly<Record<string, string>> = {
   CHUNKS_REQUIRED: '请添加短语，并填写英文和中文',
   COPYRIGHT_SOURCE_REQUIRED: '请填写版权说明和内容来源',
   AUDIO_MISSING: '请上传并确认整段音频',
+  PROOFREADING_CONFIRMATION_REQUIRED: '请进入正常内容抽样，核对样本并完成候选集合确认后重新检查',
+  SENTENCE_SLICE_INVALID:
+    '请进入音频对齐与切片，刷新逐句状态；修正异常边界并重生成实际单句文件后重新检查',
+  CHUNK_IMAGE_INVALID:
+    '请进入结构化编辑，检查语块图片的绑定版本与素材审核状态，重新上传或确认后保存',
   SENTENCE_TIMING_INVALID: '请设置并确认每句对话在整段音频中的起止时间',
   ENTRY_AUDIO_INVALID: '请确认词汇或短语绑定的音频版本',
   ENTRY_REFERENCE_INVALID: '词汇或短语引用的词条版本无效，请重新选择或保存',
