@@ -284,6 +284,9 @@ try {
         .locator('.binding')
         .filter({ hasText: entities.preview_resource_path })
         .first()
+      const item = page.locator('.binding-preview > details').filter({ has: binding })
+      await item.waitFor({ state: 'attached' })
+      if ((await item.getAttribute('open')) === null) await item.locator('summary').click()
       const previewed = responseFor(
         'POST',
         `/api/v1/admin/content-imports/${entities.preview_batch_id}/resources/preview`
