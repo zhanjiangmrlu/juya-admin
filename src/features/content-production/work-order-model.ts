@@ -10,7 +10,21 @@ export type CandidateDecision = Omit<ProductionSchema['CandidateDecision'], 'cen
 }
 export type WorkCandidate = NonNullable<WorkItemDetail['current']>
 
-export const /** 读取不可变文档段落
+const /** 展示快照中的原始值与嵌套记录
+   * @param value - 上传时冻结的原始值
+   * @returns 保留空值与两侧内容的可读文本
+   */ originalValue = (value: unknown): string => {
+    if (value === undefined) return '（原始值未保留）'
+    if (value === null) return '（空）'
+    if (Array.isArray(value))
+      return value.map((row, index) => `第 ${index + 1} 条：\n${originalValue(row)}`).join('\n')
+    if (typeof value === 'object')
+      return Object.entries(value)
+        .map(([key, row]) => `${key}：${originalValue(row)}`)
+        .join('\n')
+    return String(value)
+  }
+export const /** 组合读取不可变文档、工作簿与冲突两侧
    * @param snapshot - 原始上传快照
    * @returns 可对照段落及来源位置
    */
@@ -18,26 +32,38 @@ export const /** 读取不可变文档段落
     snapshot: Record<string, unknown> | null
   ): { text: string; locator: string }[] => {
     if (!snapshot) return []
+    const result: { text: string; locator: string }[] = []
     if (Array.isArray(snapshot.documents) && snapshot.documents.length)
-      return snapshot.documents.flatMap((document, index) =>
-        originalParagraphs(document as Record<string, unknown>).map((row) => ({
-          ...row,
-          locator: `文档 ${index + 1} · ${row.locator}`
-        }))
+      result.push(
+        ...snapshot.documents.flatMap((document, index) =>
+          originalParagraphs(document as Record<string, unknown>).map((row) => ({
+            ...row,
+            locator: `文档 ${index + 1} · ${row.locator}`
+          }))
+        )
       )
     const paragraphs = snapshot.blocks ?? snapshot.paragraphs
     if (Array.isArray(paragraphs) && paragraphs.length)
-      return paragraphs.map((value, index) => {
-        const row: Record<string, unknown> =
-          typeof value === 'object' && value ? (value as Record<string, unknown>) : { text: value }
-        return {
-          text: String(row.text ?? row.english ?? ''),
-          locator:
-            row.kind === 'table_cell'
-              ? `表 ${row.table_index} · 第 ${row.row_index} 行 · 第 ${row.column_index} 列`
-              : `第 ${row.paragraph_index ?? row.index ?? index + 1} 段`
-        }
-      })
+      result.push(
+        ...paragraphs.map((value, index) => {
+          const row: Record<string, unknown> =
+            typeof value === 'object' && value
+              ? (value as Record<string, unknown>)
+              : { text: value }
+          return {
+            text: String(row.text ?? row.english ?? ''),
+            locator:
+              row.kind === 'table_cell'
+                ? `表 ${row.table_index} · 第 ${row.row_index} 行 · 第 ${row.column_index} 列`
+                : `第 ${row.paragraph_index ?? row.index ?? index + 1} 段`
+          }
+        })
+      )
+    if (snapshot.document_path) {
+      if (!result.length)
+        result.push({ text: '未保留文档正文，请补充源文件后核对', locator: '原文缺失' })
+      result.push({ text: String(snapshot.document_path), locator: '源文件' })
+    }
     if (snapshot.workbook && typeof snapshot.workbook === 'object') {
       const workbook = snapshot.workbook as Record<string, unknown>
       const rows = Array.isArray(workbook.content_rows)
@@ -45,14 +71,38 @@ export const /** 读取不可变文档段落
         : workbook.content_row
           ? [workbook.content_row]
           : []
-      return rows.map((row, index) => ({
-        text: Object.entries(row as Record<string, unknown>)
-          .filter(([, value]) => typeof value === 'string' || typeof value === 'number')
-          .map(([key, value]) => `${key}：${value}`)
-          .join('\n'),
-        locator: `原始内容表 · 第 ${index + 1} 行`
-      }))
+      for (const section of [
+        { label: '原始内容表', rows },
+        { label: '原始词条表', rows: Array.isArray(workbook.entry_rows) ? workbook.entry_rows : [] }
+      ]) {
+        for (const [index, value] of section.rows.entries()) {
+          const row = value as Record<string, unknown>
+          result.push({
+            text: originalValue(row.values ?? row),
+            locator: `${section.label} · 第 ${row.row_no ?? index + 1} 行`
+          })
+          if (Array.isArray(row.cells))
+            for (const cell of row.cells as Record<string, unknown>[])
+              result.push({
+                text: `${cell.heading}：${originalValue(cell.value)}`,
+                locator: `${section.label} · 第 ${row.row_no ?? index + 1} 行 · 第 ${cell.column} 列`
+              })
+        }
+      }
     }
+    if (snapshot.conflicts && typeof snapshot.conflicts === 'object')
+      for (const [field, value] of Object.entries(snapshot.conflicts)) {
+        const sides = value as Record<string, unknown>
+        for (const [key, label] of [
+          ['document', '文档侧'],
+          ['workbook', '表格侧']
+        ])
+          result.push({
+            text: originalValue(sides[key!]),
+            locator: `原始差异 · ${field} · ${label}`
+          })
+      }
+    if (result.length) return result
     return Object.entries(snapshot)
       .filter(
         ([key, value]) =>

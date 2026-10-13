@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ElMessageBox } from 'element-plus'
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
+import { createContentAdapter } from '@/features/content/content-adapter'
 import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
 import { useWorkOrder } from '@/features/content-production/use-work-order'
 import { createWorkOrderAdapter } from '@/features/content-production/work-order-adapter'
@@ -15,6 +16,10 @@ import WorkOrderImport from '@/features/content-production/work-order-import.vue
 import { issueAction, productionLabels } from '@/features/content-production/work-order-model'
 import WorkOrderOverview from '@/features/content-production/work-order-overview.vue'
 import WorkOrderPublication from '@/features/content-production/work-order-publication.vue'
+import {
+  sampleIdentity,
+  sampleResources
+} from '@/features/content-production/work-order-sample-media'
 import WorkOrderSampling from '@/features/content-production/work-order-sampling.vue'
 import PublicationRangePanel from '@/features/publishing/publication-range-panel.vue'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
@@ -26,11 +31,13 @@ import type {
   WorkItem,
   WorkItemDetail
 } from '@/features/content-production/work-order-model'
+import type { SampleResource } from '@/features/content-production/work-order-sample-media'
 const route = useRoute(),
   router = useRouter()
 const client = useAdminApiClient(),
   adapter = createWorkOrderAdapter(client),
-  media = createSceneMediaAdapter(client)
+  media = createSceneMediaAdapter(client),
+  contentAdapter = createContentAdapter(client)
 const model = useWorkOrder(adapter)
 const { order, items, sampling, publication, busy, error, page, pageSize, status } = model
 const list = shallowRef<S['OrderPage'] | null>(null)
@@ -42,13 +49,25 @@ const candidateDetails = ref<WorkItemDetail[]>([])
 const usage = shallowRef<S['WorkOrderUsage'] | null>(null)
 const allItems = ref<WorkItem[]>([])
 const sampleDetail = shallowRef<WorkItemDetail | null>(null)
-const audioUrl = ref(''),
-  coverUrl = ref('')
+const sampleMedia = ref<SampleResource[]>([])
 const selected = ref<string[]>([])
 const tab = computed(() => String(route.query.view || 'overview'))
 const id = computed(() => String(route.params.id || route.query.work_order_id || ''))
 const types = { dialogue: '场景对话', word_card: '原词汇卡', short_reading: '短文阅读' }
 let generation = 0
+let sampleGeneration = 0
+watch(
+  () => [id.value, tab.value],
+  () => {
+    sampleGeneration++
+    sampleDetail.value = null
+    sampleMedia.value = []
+  },
+  { flush: 'sync' }
+)
+onBeforeUnmount(() => {
+  sampleGeneration++
+})
 const /** 切换当前工作单视图并保留地址上下文
    * @param view - 当前业务视图
    */
@@ -192,17 +211,51 @@ const /** 读取实际样本及其签名媒体
    * @param itemId - 本批成员编号
    */
   inspect = async (itemId: string): Promise<void> => {
-    audioUrl.value = ''
-    coverUrl.value = ''
+    const request = ++sampleGeneration
+    const orderId = id.value
+    const collectionHash = sampling.value?.collection_hash
+    sampleDetail.value = null
+    sampleMedia.value = []
+    error.value = ''
+    const /** 验证请求仍属于当前工作单和集合
+       * @returns 是否允许写回本次请求
+       */ current = (): boolean =>
+        request === sampleGeneration &&
+        orderId === id.value &&
+        collectionHash === sampling.value?.collection_hash
     try {
-      sampleDetail.value = await adapter.detail(id.value, itemId)
-      const content = sampleDetail.value.current?.content
-      if (content?.audio?.asset_id)
-        audioUrl.value = (await media.signedUrl(content.audio.asset_id)).url
-      if (content?.cover_asset_id)
-        coverUrl.value = (await media.signedUrl(content.cover_asset_id)).url
+      const detail = await adapter.detail(orderId, itemId)
+      if (!current()) return
+      if (
+        detail.item_id !== itemId ||
+        !sampling.value?.candidates.some(
+          (row) =>
+            row.revision_id === detail.revision_id && row.candidate_hash === detail.candidate_hash
+        )
+      )
+        throw new Error('样本候选已变化，请刷新本批范围后重新检查')
+      sampleDetail.value = detail
+      const identity = sampleIdentity(detail)
+      const resources = await Promise.all(
+        sampleResources(detail).map(async (resource) => {
+          try {
+            const signed =
+              detail.current?.template === 'short_reading'
+                ? await media.signedUrl(resource.resourceId)
+                : await contentAdapter.signedResource(detail.revision_id!, resource.resourceId)
+            return { ...resource, url: signed.url }
+          } catch (failure) {
+            return {
+              ...resource,
+              error: failure instanceof Error ? failure.message : '资源签名暂不可用'
+            }
+          }
+        })
+      )
+      if (current() && sampleDetail.value && sampleIdentity(sampleDetail.value) === identity)
+        sampleMedia.value = resources
     } catch (failure) {
-      error.value = failure instanceof Error ? failure.message : '样本资源加载失败'
+      if (current()) error.value = failure instanceof Error ? failure.message : '样本资源加载失败'
     }
   }
 const /** 完成本篇检查后刷新精确样本哈希
@@ -412,8 +465,7 @@ watch(
           :items="allItems"
           :busy="busy"
           :detail="sampleDetail"
-          :audio-url="audioUrl"
-          :cover-url="coverUrl"
+          :resources="sampleMedia"
           @inspect="inspect"
           @action="sampleAction"
           @edit="editById"

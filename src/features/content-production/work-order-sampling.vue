@@ -7,13 +7,15 @@ import { normalizeShortReading } from '@/features/short-reading/short-reading-mo
 import ShortReadingPreview from '@/features/short-reading/short-reading-preview.vue'
 
 import type { ProductionSchema as S, WorkItemDetail } from './work-order-model'
+import type { SampleResource } from './work-order-sample-media'
+
+import { sampleIdentity, sampleResources } from './work-order-sample-media'
 const props = defineProps<{
   state: S['SamplingState']
   items: { item_id: string; revision_id?: string | null; title_en?: string; title_zh?: string }[]
   busy: boolean
   detail?: WorkItemDetail | null
-  audioUrl?: string
-  coverUrl?: string
+  resources?: SampleResource[]
 }>()
 const emit = defineEmits<{
   inspect: [itemId: string]
@@ -23,26 +25,54 @@ const emit = defineEmits<{
 const selected = ref('')
 const affected = ref<string[]>([])
 const checked = reactive({ text: false, images: false, audio: false, played: false, normal: false })
+const played = ref<string[]>([])
 const current = computed(() =>
   props.state.candidates.find((row) => row.revision_id === selected.value)
 )
 const item = computed(() => props.items.find((row) => row.revision_id === selected.value))
-const hasAudio = computed(() => !!props.detail?.current?.content.audio)
-const hasImages = computed(
-  () =>
-    !!props.detail?.current?.content.cover_asset_id ||
-    (props.detail?.current?.template !== 'short_reading' &&
-      !!props.detail?.current?.content.original_image_asset_id)
+const activeDetail = computed(() =>
+  props.detail?.item_id === item.value?.item_id &&
+  props.detail?.revision_id === selected.value &&
+  props.detail?.candidate_hash === current.value?.candidate_hash
+    ? props.detail
+    : null
 )
+const required = computed(() => (activeDetail.value ? sampleResources(activeDetail.value) : []))
+const resources = computed(() =>
+  (props.resources || []).filter(
+    (row) =>
+      activeDetail.value &&
+      row.identity === sampleIdentity(activeDetail.value) &&
+      required.value.some((target) => target.key === row.key)
+  )
+)
+const hasAudio = computed(() => required.value.some((row) => row.kind === 'audio'))
+const hasImages = computed(() => required.value.some((row) => row.kind === 'image'))
+const mediaReady = computed(() =>
+  required.value.every((row) =>
+    resources.value.some((loaded) => loaded.key === row.key && loaded.url && !loaded.error)
+  )
+)
+const allPlayed = computed(() =>
+  required.value
+    .filter((row) => row.kind === 'audio')
+    .every((row) => played.value.includes(row.key))
+)
+const /** 只接收当前固定资源的实际播放事件
+   * @param resource - 触发播放的资源快照
+   */ recordPlay = (resource: SampleResource): void => {
+    if (!resources.value.includes(resource) || !resource.url || resource.error) return
+    played.value = [...new Set([...played.value, resource.key])]
+  }
 const allSamplesChecked = computed(() =>
   props.state.sample_ids.every((id) => props.state.confirmed_revision_ids.includes(id))
 )
 const canConfirm = computed(
   () =>
-    !!props.detail &&
-    props.detail.revision_id === selected.value &&
+    !!activeDetail.value &&
+    mediaReady.value &&
     checked.text &&
-    (!hasAudio.value || (checked.audio && checked.played)) &&
+    (!hasAudio.value || (checked.audio && allPlayed.value)) &&
     (!hasImages.value || checked.images)
 )
 const /** 打开工作单内当前样本并重置本篇检查
@@ -50,23 +80,46 @@ const /** 打开工作单内当前样本并重置本篇检查
    */
   select = (revisionId: string): void => {
     selected.value = revisionId
+    played.value = []
     Object.assign(checked, { text: false, images: false, audio: false, played: false })
   }
 watch(
-  () => props.state.collection_hash,
+  () =>
+    JSON.stringify([
+      props.state.proofreading_set_id,
+      props.state.collection_hash,
+      props.state.sample_ids,
+      props.state.candidates.map((row) => [row.revision_id, row.candidate_hash])
+    ]),
   () => {
+    checked.normal = false
+    affected.value = []
     if (!props.state.candidates.some((row) => row.revision_id === selected.value))
       select(props.state.sample_ids[0] || props.state.candidates[0]?.revision_id || '')
   },
   { immediate: true }
 )
 watch(
-  () => [item.value?.item_id, current.value?.candidate_hash],
+  () => [
+    item.value?.item_id,
+    current.value?.candidate_hash,
+    props.state.collection_hash,
+    props.state.proofreading_set_id
+  ],
   () => {
     Object.assign(checked, { text: false, images: false, audio: false, played: false })
+    played.value = []
     if (item.value) emit('inspect', item.value.item_id)
   },
   { immediate: true }
+)
+watch(
+  () => props.resources,
+  () => {
+    played.value = []
+    checked.audio = false
+    checked.images = false
+  }
 )
 const /** 确认当前实际检查记录
    */
@@ -119,23 +172,46 @@ const /** 将选定同类问题篇目移出正常集合
             :value="row.revision_id"
             :label="`${items.find((item) => item.revision_id === row.revision_id)?.title_en || items.find((item) => item.revision_id === row.revision_id)?.title_zh || '本批篇目'}${state.sample_ids.includes(row.revision_id) ? ' · 样本' : ''}${state.confirmed_revision_ids.includes(row.revision_id) ? ' · 已检查' : ''}`"
         /></ElSelect>
-        <template v-if="detail?.current"
+        <template v-if="activeDetail?.current"
           ><ShortReadingPreview
-            v-if="detail.current.template === 'short_reading'"
-            :content="normalizeShortReading(detail.current.content)"
-            :cover-url="coverUrl"
-            :audio-url="audioUrl"
+            v-if="activeDetail.current.template === 'short_reading'"
+            :content="normalizeShortReading(activeDetail.current.content)"
+            :cover-url="
+              resources.find(
+                (row) => row.resourceId === activeDetail?.current?.content.cover_asset_id
+              )?.url
+            "
           /><ScenePreview
             v-else
-            :content="detail.current.content"
-            :revision-id="detail.revision_id || ''"
-          /><audio
-            v-if="hasAudio && audioUrl"
-            controls
-            :src="audioUrl"
-            @play="checked.played = true"
+            :key="sampleIdentity(activeDetail)"
+            :content="activeDetail.current.content"
+            :revision-id="activeDetail.revision_id || ''"
           />
-          <p v-if="hasAudio && !audioUrl">音频尚未加载成功，请刷新后试听。</p></template
+          <p v-if="hasAudio">抽样必检媒体：请在以下播放器逐个试听，再明确确认。</p>
+          <div
+            v-for="resource in resources"
+            :key="`${resource.identity}:${resource.key}:${resource.url}`"
+            class="sample-resource"
+          >
+            <p>{{ resource.label }}</p>
+            <audio
+              v-if="resource.kind === 'audio' && resource.url"
+              controls
+              :src="resource.url"
+              :aria-label="resource.label"
+              @play="recordPlay(resource)"
+            />
+            <img
+              v-if="resource.kind === 'image' && resource.url"
+              :src="resource.url"
+              :alt="resource.label"
+            />
+            <p v-if="resource.error">{{ resource.error }}</p>
+          </div>
+          <p v-if="!mediaReady">本篇媒体尚未全部加载成功，不能确认检查。</p>
+          <ElButton v-if="required.length && item" @click="emit('inspect', item.item_id)"
+            >重新读取本篇媒体</ElButton
+          ></template
         >
         <ElButton v-if="item" link @click="emit('edit', item.item_id)">打开本篇修正</ElButton>
       </AdminPanel>
@@ -144,9 +220,17 @@ const /** 将选定同类问题篇目移出正常集合
           样本由服务端从本工作单范围选取，可增加样本。发现问题后，将实际受影响篇目保留为待校对草稿。
         </p>
         <ElCheckbox v-model="checked.text">已核对完整中英文、人物与顺序、排版</ElCheckbox
-        ><ElCheckbox v-if="hasImages" v-model="checked.images">已核对本篇图片</ElCheckbox
-        ><ElCheckbox v-if="hasAudio" v-model="checked.audio" :disabled="!checked.played"
-          >已实际试听当前音频与句子边界</ElCheckbox
+        ><ElCheckbox v-if="hasImages" v-model="checked.images" :disabled="!mediaReady"
+          >已核对本篇图片</ElCheckbox
+        ><ElCheckbox
+          v-if="hasAudio"
+          v-model="checked.audio"
+          :disabled="!mediaReady || !allPlayed"
+          >{{
+            activeDetail?.current?.template === 'word_card'
+              ? '已逐个试听本篇固定发音'
+              : '已逐个试听当前音频、独立发音与句子边界'
+          }}</ElCheckbox
         >
         <div class="actions">
           <ElButton type="primary" :disabled="busy || !canConfirm" @click="confirm"
@@ -235,6 +319,12 @@ const /** 将选定同类问题篇目移出正常集合
   audio {
     width: 100%;
     margin-top: 16px;
+  }
+
+  .sample-resource img {
+    max-width: 100%;
+    max-height: 240px;
+    object-fit: contain;
   }
 
   p {

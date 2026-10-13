@@ -8,6 +8,10 @@ import { normalizeSceneContent } from '@/features/content-editor/scene-form'
 import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
 import SceneProofreadPanel from '@/features/content-production/scene-proofread-panel.vue'
 import { createWorkOrderAdapter } from '@/features/content-production/work-order-adapter'
+import {
+  correctionDifferences,
+  isCorrectionConflict
+} from '@/features/content-production/work-order-correction-model'
 import { issueFieldLabel } from '@/features/content-production/work-order-model'
 import WorkOrderOriginal from '@/features/content-production/work-order-original.vue'
 import { createShortReadingAdapter } from '@/features/short-reading/short-reading-adapter'
@@ -15,6 +19,7 @@ import ShortReadingEditorFields from '@/features/short-reading/short-reading-edi
 import { normalizeShortReading } from '@/features/short-reading/short-reading-model'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
+import { ApiError } from '@/shared/errors/api-error'
 
 import type {
   ProductionSchema as S,
@@ -39,6 +44,13 @@ const busy = ref(false),
   error = ref(''),
   compared = ref(false),
   resolved = ref<string[]>([])
+const conflictReady = ref(false)
+const differences = computed(() =>
+  correctionDifferences(
+    isReading.value ? reading.value : scene.value,
+    detail.value?.current?.content
+  )
+)
 const coverUrl = ref(''),
   audioUrl = ref(''),
   imageUrl = ref('')
@@ -84,8 +96,9 @@ const /** 刷新当前版本引用的实际媒体
   }
 const /** 读取不可变输入和当前候选，冲突时保留输入直到管理员主动重载
    * @param replaceForm - 是否替换当前未保存输入
+   * @returns 是否已读取完整候选与身份绑定
    */
-  load = async (replaceForm = true): Promise<void> => {
+  load = async (replaceForm = true): Promise<boolean> => {
     try {
       const [current, item] = await Promise.all([
         adapter.get(id.value),
@@ -99,7 +112,7 @@ const /** 读取不可变输入和当前候选，冲突时保留输入直到管�
           params: { id: item.content_id },
           query: { stage: 'audio', work_order_id: id.value, work_item_id: itemId.value }
         })
-        return
+        return true
       }
       if (replaceForm) {
         scene.value = normalizeSceneContent(
@@ -109,10 +122,12 @@ const /** 读取不可变输入和当前候选，冲突时保留输入直到管�
           item.current?.template === 'short_reading' ? item.current.content : {}
         )
         conflict.value = false
+        conflictReady.value = false
         compared.value = false
         resolved.value = []
       }
       if (item.revision_id) bindings.value = await adapter.bindings(id.value, itemId.value)
+      if (!replaceForm) conflictReady.value = true
       void resources()
       await nextTick()
       if (focusedIssue.value) {
@@ -126,8 +141,11 @@ const /** 读取不可变输入和当前候选，冲突时保留输入直到管�
         if (disclosure) disclosure.open = true
         input?.focus()
       }
+      return true
     } catch (failure) {
+      conflictReady.value = false
       error.value = failure instanceof Error ? failure.message : '内容加载失败'
+      return false
     }
   }
 const /** 保存精确候选和原文问题确认，冲突不自动重试
@@ -173,13 +191,51 @@ const /** 保存精确候选和原文问题确认，冲突不自动重试
         original_compared: compared.value,
         resolved_issue_ids: compared.value ? resolved.value : []
       })
-      await load()
-      return true
+      return await load()
     } catch (failure) {
-      conflict.value = true
-      await load(false)
-      error.value = `${failure instanceof Error ? failure.message : '保存结果待核实'}。输入已保留，请与刷新后的候选核对后重新编辑`
+      conflict.value = isCorrectionConflict(failure)
+      if (conflict.value) {
+        conflictReady.value = false
+        await load(false)
+        error.value = '当前候选已更新。输入已保留，请与刷新后的候选核对后重新编辑'
+      } else {
+        error.value =
+          failure instanceof ApiError && failure.code === 'MEANING_CHANGE_CONFIRMATION_REQUIRED'
+            ? '中文释义已修改，请在对应词条的“释义变化类型”中选择措辞修订或新义项；当前输入已保留'
+            : `${failure instanceof Error ? failure.message : '保存结果待核实'}。当前输入已保留，可修正后再次保存`
+      }
       return false
+    } finally {
+      busy.value = false
+    }
+  }
+const /** 对照新候选后明确保留本地输入，后续保存才发起写入 */ keepLocal = (): void => {
+    if (!conflictReady.value || busy.value) return
+    conflict.value = false
+    compared.value = false
+    resolved.value = []
+    error.value = '已保留本地输入，请完成核对后再次保存；尚未写入服务端'
+  }
+const /** 保存后只确认管理员点选的词条
+   * @param section - 单词或语块区
+   * @param index - 本篇被明确核对的行
+   */ confirmEntry = async (section: 'vocabulary' | 'chunks', index: number): Promise<void> => {
+    if (!(await save()) || !detail.value?.revision_id) return
+    const entry = scene.value[section][index]
+    if (!entry?.entry_id) {
+      error.value = '当前词条身份未生成，请重新核对后保存'
+      return
+    }
+    busy.value = true
+    try {
+      await adapter.confirmEntry(
+        detail.value.revision_id,
+        entry.entry_id,
+        detail.value.edit_version!
+      )
+      await load()
+    } catch (failure) {
+      error.value = failure instanceof Error ? failure.message : '本条确认失败，请重新核对'
     } finally {
       busy.value = false
     }
@@ -265,9 +321,26 @@ watch(
       <h2>{{ detail?.title_en || detail?.title_zh || '本批内容修正' }}</h2>
       <ElButton @click="back">返回本批问题</ElButton>
     </div>
-    <ElAlert v-if="error" :title="error" type="error" :closable="false"
-      ><ElButton @click="load()">重新载入候选</ElButton></ElAlert
-    ><ElAlert v-if="focusedIssue" :title="focusedIssue.message" type="warning" :closable="false" />
+    <ElAlert v-if="error" :title="error" type="error" :closable="false" />
+    <AdminPanel v-if="conflict" title="保存冲突 · 核对双方差异">
+      <p>
+        左侧为保留的本地输入，右侧为服务端当前候选。继续编辑不会自动保存；请明确决定保留哪一侧。
+      </p>
+      <div v-for="difference in differences" :key="difference.field" class="conflict-row">
+        <strong>{{ difference.label }}</strong>
+        <p>{{ difference.local }}</p>
+        <p>{{ difference.remote }}</p>
+      </div>
+      <p v-if="!differences.length">
+        可见正文相同，但候选身份或媒体可能已变化，请重新核对实际素材。
+      </p>
+      <ElButton :disabled="busy" @click="load(false)">重新读取服务端候选</ElButton>
+      <ElButton :disabled="busy || !conflictReady" @click="keepLocal"
+        >已对照差异，保留本地输入继续编辑</ElButton
+      >
+      <ElButton :disabled="busy" @click="load()">放弃本地输入，使用服务端候选</ElButton>
+    </AdminPanel>
+    <ElAlert v-if="focusedIssue" :title="focusedIssue.message" type="warning" :closable="false" />
     <template v-if="detail"
       ><div class="comparison">
         <WorkOrderOriginal
@@ -318,7 +391,7 @@ watch(
                 :form="scene"
                 :mode="section === 'entries' ? 'entries' : 'all'"
                 @busy="(area, value) => (entryBusy[area] = value)"
-                @confirm="confirmEntries"
+                @confirm="confirmEntry"
               /><ElButton
                 v-if="detail.current.template === 'dialogue'"
                 :disabled="busy || conflict || hasMediaWork"
@@ -412,6 +485,18 @@ watch(
     display: grid;
     gap: 16px;
     min-width: 0;
+  }
+
+  .conflict-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) repeat(2, minmax(0, 2fr));
+    gap: 12px;
+    border-bottom: 1px solid var(--juya-color-border);
+
+    p {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
   }
 
   img {

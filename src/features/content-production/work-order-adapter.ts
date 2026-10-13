@@ -83,6 +83,19 @@ export const /** 建立工作单正式契约适配
           key,
           'PUT'
         ),
+      /** 确认保存后重新读取的单条义项及来源
+       * @param revisionId - 当前实际草稿版本
+       * @param entryId - 保存后服务端返回的本篇词条身份
+       * @param expectedVersion - 当前草稿编辑版本
+       * @returns 正式单条人工确认结果
+       */ confirmEntry: (revisionId: string, entryId: string, expectedVersion: number) =>
+        write<unknown>(
+          `/api/v1/admin/content/revisions/${encodeURIComponent(revisionId)}/entries/${encodeURIComponent(entryId)}/confirm`,
+          {
+            expected_version: expectedVersion,
+            manual_checked: true
+          } satisfies S['ManualEntryRequest']
+        ),
       resume: (id: string, commandId: string) =>
         write<S['CommandResult']>(
           path(id, `/commands/${encodeURIComponent(commandId)}/resume`),
