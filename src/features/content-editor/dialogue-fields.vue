@@ -45,7 +45,6 @@ function invalidate(row: DialogueRow): void {
     <div v-for="(row, index) in rows" :key="row.id" class="dialogue-row">
       <div class="row-heading">
         <strong>句子 {{ index + 1 }}</strong
-        ><small>{{ row.id }}</small
         ><ElButton link :disabled="index === 0" @click="move(index, -1)">上移</ElButton
         ><ElButton link :disabled="index === rows.length - 1" @click="move(index, 1)">下移</ElButton
         ><ElButton link type="danger" @click="rows.splice(index, 1)">删除句子</ElButton>

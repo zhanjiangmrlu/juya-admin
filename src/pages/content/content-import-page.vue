@@ -6,14 +6,16 @@ import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import { type ContentSeries, createContentAdapter } from '@/features/content/content-adapter'
 import ContentMaterialsPanel from '@/features/content-import/content-materials-panel.vue'
-import ContentPackageWorkflow from '@/features/content-import/content-package-workflow.vue'
+import { createWorkOrderAdapter } from '@/features/content-production/work-order-adapter'
+import WorkOrderUpload from '@/features/content-production/work-order-upload.vue'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
 import type { ImportContentType } from '@/features/content-import/content-package-model'
 
 const route = useRoute()
 const router = useRouter()
-const content = createContentAdapter(useAdminApiClient())
+const api = useAdminApiClient()
+const content = createContentAdapter(api)
 const series = ref<ContentSeries[]>([])
 const error = ref('')
 const context = reactive({
@@ -26,6 +28,11 @@ const source = computed(() =>
 const /** 加载真实分类，导入来源之间保持管理员选择 */
   load = async (): Promise<void> => {
     try {
+      if (route.query.batch_id && source.value !== 'materials') {
+        const order = await createWorkOrderAdapter(api).fromBatch(String(route.query.batch_id))
+        await router.replace({ name: 'content-work-order', params: { id: order.work_order_id } })
+        return
+      }
       series.value = await content.listSeries()
     } catch (failure) {
       error.value = failure instanceof Error ? failure.message : '分类加载失败'
@@ -120,12 +127,12 @@ onMounted(load)
         :initial-series-id="context.seriesId"
         :initial-content-type="context.contentType"
       />
-      <ContentPackageWorkflow
+      <WorkOrderUpload
         v-else
         :key="source"
-        :initial-kind="source === 'docx' ? 'docx' : 'zip'"
-        :initial-series-id="context.seriesId"
-        :initial-content-type="context.contentType"
+        :kind="source === 'docx' ? 'docx' : 'zip'"
+        :series-id="context.seriesId"
+        :content-type="context.contentType"
       />
     </template>
   </section>

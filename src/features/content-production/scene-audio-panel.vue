@@ -78,14 +78,14 @@ onBeforeUnmount(() => emit('element', null))
           <ElOption
             v-for="version in versions"
             :key="version.id"
-            :label="`v${version.versionNo} · ${version.status} · ${version.assetId}`"
+            :label="`第 ${version.versionNo} 次上传 · ${['READY', 'ACTIVE'].includes(version.status) ? '可使用' : '待检查'}`"
             :value="version.id"
           />
         </ElSelect>
       </details>
       <template v-if="form.audio">
         <p class="audio-version-meta">
-          当前 {{ form.audio.version_id }} · {{ form.audio.duration_ms }} 毫秒
+          当前整段音频 · {{ (form.audio.duration_ms / 1000).toFixed(1) }} 秒
         </p>
         <ElButton class="whole-audio-button" @click="emit('play')"
           ><img :src="playIcon" alt="" />{{ player?.label('scene') ?? '播放' }}整段音频</ElButton

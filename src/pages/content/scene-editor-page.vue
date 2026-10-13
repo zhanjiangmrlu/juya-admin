@@ -22,10 +22,11 @@ import SceneHistory from '@/features/content-editor/scene-history.vue'
 import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
 import ScenePreview from '@/features/content-editor/scene-preview.vue'
 import { parseEditorStage } from '@/features/content-production/content-production-model'
-import ContentProductionNav from '@/features/content-production/content-production-nav.vue'
 import SceneAudioPanel from '@/features/content-production/scene-audio-panel.vue'
 import SceneDraftPanel from '@/features/content-production/scene-draft-panel.vue'
 import SceneProofreadPanel from '@/features/content-production/scene-proofread-panel.vue'
+import { createWorkOrderAdapter } from '@/features/content-production/work-order-adapter'
+import { resolveWorkOrderContext } from '@/features/content-production/work-order-context'
 import { canonical } from '@/features/proofreading/proofreading-adapter'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
@@ -34,7 +35,6 @@ import type { AudioVersion } from '@/features/audio/audio-version-model'
 import type { AudioElement } from '@/features/audio/segment-player'
 import type { SceneRevision, SceneSummary } from '@/features/content/content-model'
 import type { DialogueRow } from '@/features/content-editor/scene-form'
-import type { ProductionStage } from '@/features/content-production/content-production-model'
 import type { UploadFile } from 'element-plus'
 
 const route = useRoute()
@@ -43,6 +43,7 @@ const sceneId = computed(() => String(route.params.id))
 const stage = computed(() => parseEditorStage(route.query.stage))
 const client = useAdminApiClient()
 const adapter = createContentAdapter(client)
+const production = createWorkOrderAdapter(client)
 const media = createSceneMediaAdapter(client)
 const audioAdapter = createAudioAdapter(client)
 const scene = ref<SceneSummary | null>(null)
@@ -92,7 +93,7 @@ let audioGeneration = 0
 let pageGeneration = 0
 let disposed = false
 
-const /** 加载同一场景的当前草稿。 */
+const /** 加载同一场景并恢复工作单上下文 */
   load = async (): Promise<void> => {
     const generation = ++pageGeneration
     const targetId = sceneId.value
@@ -107,6 +108,39 @@ const /** 加载同一场景的当前草稿。 */
     try {
       const loaded = await adapter.getScene(targetId)
       if (disposed || generation !== pageGeneration) return
+      if (!route.query.work_order_id || route.query.stage !== 'audio') {
+        if (!loaded.draftRevisionId)
+          await adapter.createRevision(loaded.id, loaded.publishedRevisionId)
+        const context = await resolveWorkOrderContext(production, {
+          content_id: loaded.id,
+          series_id: loaded.seriesId,
+          content_type:
+            loaded.templateType === 'word_card' || loaded.templateType === 'vocabulary'
+              ? 'word_card'
+              : 'dialogue'
+        })
+        await router.replace(
+          route.query.stage === 'publish'
+            ? {
+                name: 'content-work-order',
+                params: { id: context.orderId },
+                query: { view: 'publication' }
+              }
+            : {
+                name: 'content-work-item',
+                params: { id: context.orderId, itemId: context.itemId },
+                query: {
+                  section:
+                    route.query.stage === 'entries'
+                      ? 'entries'
+                      : route.query.stage === 'audio'
+                        ? 'audio'
+                        : 'content'
+                }
+              }
+        )
+        return
+      }
       scene.value = loaded
       if (!scene.value.draftRevisionId) throw new Error('该场景当前没有可编辑草稿，请先创建草稿')
       const saved = await adapter.getRevision(scene.value.draftRevisionId)
@@ -165,6 +199,19 @@ const /** 保存结构化草稿，冲突时保留全部输入。
     } finally {
       if (generation === pageGeneration) state.value = 'ready'
     }
+  }
+const /**
+   * 保存音频页输入后返回所属工作单
+   * @param single - 是否返回本篇修正
+   */ returnToWorkOrder = async (single: boolean): Promise<void> => {
+    if (workspaceBusy.value || hasConflict.value || (dirty.value && !(await save()))) return
+    await router.push({
+      name: single ? 'content-work-item' : 'content-work-order',
+      params: {
+        id: String(route.query.work_order_id),
+        ...(single ? { itemId: String(route.query.work_item_id) } : {})
+      }
+    })
   }
 const /**
    * 保存实际本篇输入后确认服务端稳定义项和来源
@@ -386,25 +433,6 @@ async function preview(): Promise<void> {
   player.value?.stop()
   if (await save()) showPreview.value = true
 }
-/**
- * 同场景只切换展示步骤；进入列表或发布前保存当前草稿。
- * @param next - 管理员选择的工作区
- */
-async function switchWorkspace(next: ProductionStage): Promise<void> {
-  if (workspaceBusy.value || next === stage.value) return
-  if (next === 'list' || next === 'publish') {
-    if (!(await save()) || !revision.value) return
-    await router.push(
-      next === 'list'
-        ? { name: 'content-scenes' }
-        : { name: 'content-scene-publish', params: { id: revision.value.id } }
-    )
-    return
-  }
-  audioGeneration++
-  player.value?.stop()
-  await router.push({ query: { ...route.query, stage: next } })
-}
 const /**
    * 将校对子组件的素材任务状态纳入全页编辑保护。
    * @param section - 词汇或语块区
@@ -573,12 +601,9 @@ onBeforeUnmount(() => {
       />
     </ElDialog>
     <AppPageActions>
-      <ContentProductionNav
-        :active="stage"
-        :busy="workspaceBusy"
-        :hide-audio="wordCard"
-        @select="switchWorkspace"
-      />
+      <ElButton :disabled="workspaceBusy || hasConflict" @click="returnToWorkOrder(true)"
+        >返回本篇修正</ElButton
+      >
       <ElButton :disabled="workspaceBusy || hasConflict" @click="preview">手机 / 平板预览</ElButton>
       <ElButton
         :disabled="workspaceBusy || hasConflict"
@@ -592,8 +617,8 @@ onBeforeUnmount(() => {
       <ElButton
         v-if="revision"
         :disabled="workspaceBusy || hasConflict"
-        @click="switchWorkspace('publish')"
-        >检查发布</ElButton
+        @click="returnToWorkOrder(false)"
+        >返回本批校对</ElButton
       >
     </AppPageActions>
     <details class="history-management">

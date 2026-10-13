@@ -106,9 +106,6 @@ async function saveEntry(index: number): Promise<void> {
     <div v-for="(row, index) in rows" :key="rowKey(row)" class="entry-row">
       <div class="row-heading">
         <strong>{{ entryType === 'chunk' ? '语块' : '词汇' }} {{ index + 1 }}</strong
-        ><small
-          >{{ row.entry_id || (modern ? '保存草稿时登记本篇词条' : '保存草稿时自动登记词库') }} ·
-          v{{ row.entry_version }}</small
         ><ElButton link type="danger" :disabled="mediaRows.has(row)" @click="rows.splice(index, 1)"
           >删除条目</ElButton
         >
@@ -169,9 +166,6 @@ async function saveEntry(index: number): Promise<void> {
                 :label="`${sentenceIndex + 1}. ${sentence.english || '空白句子'}`"
                 :value="sentence.id" /></ElSelect
           ></ElFormItem>
-          <ElFormItem v-if="entryType === 'vocabulary'" label="单词图片素材编号（可空）"
-            ><ElInput v-model="row.icon_asset_id" clearable
-          /></ElFormItem>
           <ElFormItem label="本篇来源原句" class="full-width">
             <ElInput
               v-model="row.source_sentence"
@@ -191,8 +185,8 @@ async function saveEntry(index: number): Promise<void> {
           /></ElFormItem>
           <ElFormItem label="释义变化类型"
             ><ElSelect v-model="row.meaning_change" clearable
-              ><ElOption label="原义项文字修正" value="wording" /><ElOption
-                label="新义项（保留原义项）"
+              ><ElOption label="修改同一含义的措辞" value="wording" /><ElOption
+                label="使用新的含义"
                 value="new_sense" /></ElSelect
           ></ElFormItem>
           <ElFormItem label="本篇词义人工确认"
@@ -204,19 +198,8 @@ async function saveEntry(index: number): Promise<void> {
               >保存并确认这篇义项与来源</ElButton
             ></ElFormItem
           >
-          <ElFormItem v-if="!modern" label="独立发音目标编号（可空）"
-            ><ElInput v-model="row.audio_target_id" clearable
-          /></ElFormItem>
-          <ElFormItem v-if="!modern" label="独立发音版本编号（可空）"
-            ><ElInput v-model="row.audio_version_id" clearable
-          /></ElFormItem>
         </ElForm>
       </details>
-      <p v-if="modern">
-        固定发音目标：{{
-          row.pronunciation_target_id || '服务端准备后返回'
-        }}；人工音频可通过独立素材包明确绑定
-      </p>
       <PronunciationStatusPanel
         v-if="modern && row.pronunciation_target_id"
         :target-id="row.pronunciation_target_id"

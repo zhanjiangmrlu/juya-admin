@@ -43,9 +43,9 @@ function resolveAdminPageComponent(
     'content-ocr': () => import('@/pages/content/retired-content-page.vue'),
     'content-scene-audio': () => import('@/pages/content/audio-version-page.vue'),
     'content-scene-edit': () => import('@/pages/content/scene-editor-page.vue'),
-    'content-scene-publish': () => import('@/pages/content/publish-check-page.vue'),
+    'content-scene-publish': () => import('@/pages/content/legacy-publish-page.vue'),
     'content-discovery-config': () => import('@/pages/content/discovery-config-page.vue'),
-    'content-jobs': () => import('@/pages/content/batch-jobs-page.vue'),
+    'content-jobs': () => import('@/pages/content/content-work-order-page.vue'),
     dashboard: () => import('@/pages/dashboard/dashboard-page.vue'),
     entitlements: () => import('@/pages/entitlements/entitlement-center-page.vue'),
     feedback: () => import('@/pages/feedback/feedback-list-page.vue'),
@@ -80,6 +80,26 @@ export const router = createRouter({
       children: [
         ...adminPageRoutes,
         {
+          name: 'content-work-order',
+          path: 'content/work-orders/:id',
+          component: () => import('@/pages/content/content-work-order-page.vue'),
+          meta: {
+            title: '内容生产工作单',
+            capability: 'content.edit',
+            navigationPath: '/content/scenes'
+          }
+        },
+        {
+          name: 'content-work-item',
+          path: 'content/work-orders/:id/items/:itemId',
+          component: () => import('@/pages/content/content-work-item-page.vue'),
+          meta: {
+            title: '正文对照与修正',
+            capability: 'content.edit',
+            navigationPath: '/content/scenes'
+          }
+        },
+        {
           name: 'learning-modules',
           path: 'settings/learning-modules',
           component: () => import('@/pages/settings/learning-modules-page.vue'),
@@ -92,7 +112,7 @@ export const router = createRouter({
         {
           name: 'content-proofreading',
           path: 'content/proofreading',
-          component: () => import('@/pages/content/content-proofreading-page.vue'),
+          component: () => import('@/pages/content/content-work-order-page.vue'),
           meta: {
             title: '内容抽样校对',
             capability: 'content.edit',

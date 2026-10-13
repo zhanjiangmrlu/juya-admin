@@ -7,6 +7,7 @@ import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import { createContentAdapter } from '@/features/content/content-adapter'
 import { createCatalogueAdapter } from '@/features/content-catalogue/content-catalogue-adapter'
 import { normalizeSceneContent } from '@/features/content-editor/scene-form'
+import { createWorkOrderAdapter } from '@/features/content-production/work-order-adapter'
 import { createShortReadingAdapter } from '@/features/short-reading/short-reading-adapter'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
@@ -484,6 +485,14 @@ const /** 返回批量导入的来源选择入口
    */ returnToImport = (): void => {
     void router.push({ name: 'content-import' })
   }
+const /** 素材实际绑定后桥接工作单，保留对应正文范围 */
+  continueWorkOrder = async (): Promise<void> => {
+    if (!bindingCompleted.value || !batch.value) return
+    await run(async () => {
+      const order = await createWorkOrderAdapter(client).fromBatch(batch.value!.batch_id)
+      await router.push({ name: 'content-work-order', params: { id: order.work_order_id } })
+    })
+  }
 onMounted(() => {
   if (route.name !== 'content-import' || route.query.source !== 'materials') return
   // URL 的阶段只用于展示；恢复结果必须读取实际批次与任务记录。
@@ -548,13 +557,16 @@ onMounted(() => {
             v-model="context.seriesId"
             aria-label="素材目标分类"
             placeholder="目标分类"
-            :disabled="busy"
+            :disabled="busy || !!initialSeriesId"
             ><ElOption
               v-for="row in series"
               :key="row.id"
               :value="row.id"
               :label="row.title" /></ElSelect
-          ><ElSelect v-model="context.type" aria-label="素材内容模板" :disabled="busy"
+          ><ElSelect
+            v-model="context.type"
+            aria-label="素材内容模板"
+            :disabled="busy || !!initialContentType"
             ><ElOption label="原词汇卡" value="word_card" /><ElOption
               label="场景对话"
               value="dialogue" /><ElOption label="独立短文" value="short_reading"
@@ -599,18 +611,12 @@ onMounted(() => {
       >
     </template>
     <AdminPanel
-      v-if="phase === 'upload' || phase === 'validation'"
+      v-if="phase === 'validation' || (phase === 'upload' && recoveryId)"
       class="material-card"
-      :title="phase === 'upload' ? '恢复已有素材批次' : '图包校验'"
+      title="图包校验与恢复"
     >
       <div class="actions">
-        <ElInput
-          v-model="recoveryId"
-          aria-label="素材批次编号"
-          placeholder="恢复素材批次编号"
-        /><ElButton
-          :disabled="busy || !recoveryId.trim()"
-          @click="run(() => read(recoveryId.trim()))"
+        <ElButton :disabled="busy || !recoveryId.trim()" @click="run(() => read(recoveryId.trim()))"
           >恢复 / 刷新素材结果</ElButton
         >
       </div>
@@ -849,9 +855,7 @@ onMounted(() => {
           ></ElTable
         >
         <p class="caption">
-          当前来源编辑版本：{{
-            bindingResult?.edit_version ?? '—'
-          }}；任务提交回执不代表已保存或发布。
+          实际素材绑定完成后可继续本批校对，任务提交回执不代表已保存或发布。
         </p></AdminPanel
       >
     </template>
@@ -888,7 +892,9 @@ onMounted(() => {
         type="primary"
         @click="bind"
         >确认导入</ElButton
-      ><ElButton v-else :disabled="busy" type="primary" @click="startNew"
+      ><ElButton v-if="bindingCompleted" :disabled="busy" type="primary" @click="continueWorkOrder"
+        >继续本批校对</ElButton
+      ><ElButton v-if="phase === 'result'" :disabled="busy" @click="startNew"
         >导入新图包</ElButton
       ></AppPageActions
     >

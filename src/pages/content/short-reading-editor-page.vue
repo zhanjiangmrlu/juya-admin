@@ -5,6 +5,8 @@ import { useRoute, useRouter } from 'vue-router'
 
 import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
+import { createWorkOrderAdapter } from '@/features/content-production/work-order-adapter'
+import { resolveWorkOrderContext } from '@/features/content-production/work-order-context'
 import ProofreadingSetPanel from '@/features/proofreading/proofreading-set-panel.vue'
 import { createShortReadingAdapter } from '@/features/short-reading/short-reading-adapter'
 import ShortReadingEditorFields from '@/features/short-reading/short-reading-editor-fields.vue'
@@ -117,6 +119,19 @@ const /** 加载独立短文当前草稿
     try {
       const result = await adapter.load(id.value)
       if (disposed || current !== generation) return
+      if (!route.query.history) {
+        if (result.status !== 'DRAFT') await adapter.createRevision(result, createIdempotencyKey())
+        const context = await resolveWorkOrderContext(createWorkOrderAdapter(client), {
+          content_id: result.id,
+          content_type: 'short_reading',
+          series_id: result.seriesId
+        })
+        await router.replace({
+          name: 'content-work-item',
+          params: { id: context.orderId, itemId: context.itemId }
+        })
+        return
+      }
       snapshot.value = result
       form.value = normalizeShortReading({ ...result.content })
       trialEnabled.value = result.trialEnabled

@@ -4,6 +4,8 @@ import { createPinia } from 'pinia'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
+import { useAuthStore } from '@/features/auth/auth-store'
+
 import ContentListPage from './content-list-page.vue'
 
 describe('content list page', () => {
@@ -37,14 +39,25 @@ describe('content list page', () => {
         { headers: { 'Content-Type': 'application/json' }, status: 200 }
       )
     )
+    const firstResponse = await fetchSpy()
+    fetchSpy
+      .mockReset()
+      .mockResolvedValueOnce(firstResponse)
+      .mockResolvedValue(
+        new Response(JSON.stringify({ items: [] }), {
+          headers: { 'Content-Type': 'application/json' }
+        })
+      )
     vi.stubGlobal('fetch', fetchSpy)
+    const pinia = createPinia()
+    useAuthStore(pinia).csrfToken = 'test-csrf'
     const router = createRouter({
       history: createMemoryHistory(),
       routes: [{ component: { template: '<div />' }, name: 'content-scenes', path: '/' }]
     })
     const wrapper = mount(ContentListPage, {
       global: {
-        plugins: [createPinia(), router, ElementPlus],
+        plugins: [pinia, router, ElementPlus],
         stubs: { RouterLink: { template: '<a><slot :navigate="() => {}" /></a>' } }
       }
     })
@@ -59,7 +72,7 @@ describe('content list page', () => {
     expect(wrapper.findAll('[role="tab"]')).toHaveLength(0)
     expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/content/catalogue')
     expect(wrapper.text()).not.toContain('内容列表接口待接入')
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
   })
 
   it('restores persisted catalogue filters before the first request', async () => {

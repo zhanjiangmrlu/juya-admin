@@ -431,6 +431,501 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/content-production/contexts': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Contexts */
+    post: operations['contexts_api_v1_admin_content_production_contexts_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Orders */
+    get: operations['orders_api_v1_admin_content_production_work_orders_get']
+    put?: never
+    /** Upload */
+    post: operations['upload_api_v1_admin_content_production_work_orders_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/from-batch': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** From Batch */
+    post: operations['from_batch_api_v1_admin_content_production_work_orders_from_batch_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/manual': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Manual */
+    post: operations['manual_api_v1_admin_content_production_work_orders_manual_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get */
+    get: operations['get_api_v1_admin_content_production_work_orders__work_order_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/cancel': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Cancel */
+    post: operations['cancel_api_v1_admin_content_production_work_orders__work_order_id__cancel_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/candidate-decisions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Decide Candidates */
+    post: operations['decide_candidates_api_v1_admin_content_production_work_orders__work_order_id__candidate_decisions_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/candidate-dismissals': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Dismiss Candidates */
+    post: operations['dismiss_candidates_api_v1_admin_content_production_work_orders__work_order_id__candidate_dismissals_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/candidates': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Candidate Groups */
+    get: operations['candidate_groups_api_v1_admin_content_production_work_orders__work_order_id__candidates_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/commands/{command_id}/resume': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Resume */
+    post: operations['resume_api_v1_admin_content_production_work_orders__work_order_id__commands__command_id__resume_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/entry-confirmations': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Confirm Entries */
+    post: operations['confirm_entries_api_v1_admin_content_production_work_orders__work_order_id__entry_confirmations_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/import-confirm': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Import Confirm */
+    post: operations['import_confirm_api_v1_admin_content_production_work_orders__work_order_id__import_confirm_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/import-preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Import Preview */
+    get: operations['import_preview_api_v1_admin_content_production_work_orders__work_order_id__import_preview_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/import-retry': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Import Retry */
+    post: operations['import_retry_api_v1_admin_content_production_work_orders__work_order_id__import_retry_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/items': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Items */
+    get: operations['items_api_v1_admin_content_production_work_orders__work_order_id__items_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/items/{item_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Item */
+    get: operations['item_api_v1_admin_content_production_work_orders__work_order_id__items__item_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/items/{item_id}/correction': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Correct */
+    put: operations['correct_api_v1_admin_content_production_work_orders__work_order_id__items__item_id__correction_put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/items/{item_id}/entry-bindings': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Entry Bindings */
+    get: operations['entry_bindings_api_v1_admin_content_production_work_orders__work_order_id__items__item_id__entry_bindings_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/items/{item_id}/original': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Original */
+    get: operations['original_api_v1_admin_content_production_work_orders__work_order_id__items__item_id__original_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/organize': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Organize */
+    post: operations['organize_api_v1_admin_content_production_work_orders__work_order_id__organize_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/original-file': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Original File */
+    get: operations['original_file_api_v1_admin_content_production_work_orders__work_order_id__original_file_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/publication': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Publication */
+    get: operations['publication_api_v1_admin_content_production_work_orders__work_order_id__publication_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/publication-confirm': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Publication Confirm */
+    post: operations['publication_confirm_api_v1_admin_content_production_work_orders__work_order_id__publication_confirm_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/publication-preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Publication Preview */
+    post: operations['publication_preview_api_v1_admin_content_production_work_orders__work_order_id__publication_preview_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/publication-retry': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Publication Retry */
+    post: operations['publication_retry_api_v1_admin_content_production_work_orders__work_order_id__publication_retry_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/sample-actions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Sample Action */
+    post: operations['sample_action_api_v1_admin_content_production_work_orders__work_order_id__sample_actions_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/sampling': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Sampling */
+    get: operations['sampling_api_v1_admin_content_production_work_orders__work_order_id__sampling_get']
+    put?: never
+    /** Create Sampling */
+    post: operations['create_sampling_api_v1_admin_content_production_work_orders__work_order_id__sampling_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/stage-retry': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Stage Retry */
+    post: operations['stage_retry_api_v1_admin_content_production_work_orders__work_order_id__stage_retry_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/usage': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Work Usage */
+    get: operations['work_usage_api_v1_admin_content_production_work_orders__work_order_id__usage_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/content-stages/{stage_id}': {
     parameters: {
       query?: never
@@ -3124,6 +3619,23 @@ export interface components {
       /** Series Id */
       series_id: string
     }
+    /** Body_upload_api_v1_admin_content_production_work_orders_post */
+    Body_upload_api_v1_admin_content_production_work_orders_post: {
+      /**
+       * Content Type
+       * @enum {string}
+       */
+      content_type: 'dialogue' | 'word_card' | 'short_reading'
+      /** File */
+      file: string
+      /**
+       * Mode
+       * @enum {string}
+       */
+      mode: 'ZIP' | 'DOCX'
+      /** Series Id */
+      series_id: string
+    }
     /** BulkConfirmRequest */
     BulkConfirmRequest: {
       /** Accept Normal Results */
@@ -3250,6 +3762,115 @@ export interface components {
       /** Version No */
       version_no: number
     }
+    /** CandidateDecision */
+    CandidateDecision: {
+      /**
+       * Central Action
+       * @default none
+       * @enum {string}
+       */
+      central_action: 'none' | 'new_sense' | 'wording'
+      /** Chinese */
+      chinese?: string | null
+      /**
+       * Decision
+       * @enum {string}
+       */
+      decision: 'ADOPTED' | 'REJECTED' | 'KEEP_PROVIDED' | 'USE_CENTRAL'
+      /** Definition Version */
+      definition_version?: number | null
+      /** End */
+      end?: number | null
+      /** Entry Type */
+      entry_type?: ('VOCABULARY' | 'PHRASE') | null
+      /** Lexicon Entry Id */
+      lexicon_entry_id?: string | null
+      /** Meaning Change */
+      meaning_change?: ('wording' | 'new_sense') | null
+      /** Result Id */
+      result_id: string
+      /** Source Id */
+      source_id?: string | null
+      /** Start */
+      start?: number | null
+    }
+    /** CandidateDecisionRequest */
+    CandidateDecisionRequest: {
+      /** Candidate Id */
+      candidate_id: string
+      /** Decisions */
+      decisions: components['schemas']['CandidateDecision'][]
+      /** Expected Edit Version */
+      expected_edit_version: number
+      /** Expected Version */
+      expected_version: number
+      /**
+       * Scope
+       * @default all
+       * @enum {string}
+       */
+      scope: 'all' | 'normal' | 'confirmed' | 'publishable' | 'failed' | 'selected'
+      /** Selected Item Ids */
+      selected_item_ids?: string[]
+    }
+    /** CandidateDismissalRequest */
+    CandidateDismissalRequest: {
+      /** Candidate Id */
+      candidate_id: string
+      /** Expected Edit Version */
+      expected_edit_version: number
+      /** Expected Version */
+      expected_version: number
+      /**
+       * Reason
+       * @default
+       */
+      reason: string
+      /**
+       * Scope
+       * @default all
+       * @enum {string}
+       */
+      scope: 'all' | 'normal' | 'confirmed' | 'publishable' | 'failed' | 'selected'
+      /** Selected Item Ids */
+      selected_item_ids?: string[]
+    }
+    /** CandidateGroup */
+    CandidateGroup: {
+      /** Candidate Id */
+      candidate_id: string
+      /** Dismissal Reason */
+      dismissal_reason?: string | null
+      /**
+       * Dismissed
+       * @default false
+       */
+      dismissed: boolean
+      /** Expected Edit Version */
+      expected_edit_version: number
+      /** Item Id */
+      item_id: string
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: 'PROVIDED_LEXICON' | 'AI_LEXICON'
+      /** Results */
+      results: components['schemas']['CandidateResult'][]
+      /** Revision Id */
+      revision_id: string
+      /** Stale */
+      stale: boolean
+      /** Status */
+      status: string
+    }
+    /** CandidateGroups */
+    CandidateGroups: {
+      /** Groups */
+      groups: components['schemas']['CandidateGroup'][]
+      /** Work Order Id */
+      work_order_id: string
+    }
     /** CandidateRequest */
     CandidateRequest: {
       /** Candidate Hash */
@@ -3263,6 +3884,42 @@ export interface components {
       content_type: 'dialogue' | 'word_card' | 'short_reading'
       /** Revision Id */
       revision_id: string
+    }
+    /** CandidateResult */
+    CandidateResult: {
+      /** Central Options */
+      central_options?: components['schemas']['CentralOption'][]
+      /**
+       * Chinese
+       * @default
+       */
+      chinese: string
+      /** End */
+      end?: number | null
+      /**
+       * English
+       * @default
+       */
+      english: string
+      /** Entry Id */
+      entry_id?: string | null
+      provided?: components['schemas']['SceneEntry'] | null
+      /**
+       * Requires Manual Correction
+       * @default false
+       */
+      requires_manual_correction: boolean
+      /** Result Id */
+      result_id: string
+      /** Source Id */
+      source_id?: string | null
+      /** Start */
+      start?: number | null
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'PENDING' | 'ADOPTED' | 'REJECTED'
     }
     /** CatalogueItem */
     CatalogueItem: {
@@ -3304,6 +3961,23 @@ export interface components {
       /** Total */
       total: number
     }
+    /** CentralOption */
+    CentralOption: {
+      content: components['schemas']['SceneEntry']
+      /** Definition Version */
+      definition_version: number
+      /** Lexicon Entry Id */
+      lexicon_entry_id: string
+      /**
+       * Match
+       * @enum {string}
+       */
+      match: 'exact' | 'variant'
+      /** Meaning Differs */
+      meaning_differs: boolean
+      /** Sense Key */
+      sense_key: string
+    }
     /** ClickableSpan */
     ClickableSpan: {
       /** End */
@@ -3326,6 +4000,35 @@ export interface components {
     CommandRequest: {
       /** Expected Version */
       expected_version: number
+    }
+    /** CommandResult */
+    CommandResult: {
+      /** Action */
+      action: string
+      /** Candidate Hash */
+      candidate_hash?: string | null
+      /** Command Id */
+      command_id: string
+      /** Edit Version */
+      edit_version?: number | null
+      /** Entry Results */
+      entry_results?: components['schemas']['EntryConfirmationResult'][]
+      /** Proofreading Set Id */
+      proofreading_set_id?: string | null
+      /** Publication Token */
+      publication_token?: string | null
+      /** Revision Id */
+      revision_id?: string | null
+      /** Selected Item Ids */
+      selected_item_ids?: string[]
+      /** Stage Id */
+      stage_id?: string | null
+      /** Status */
+      status: string
+      /** Version */
+      version: number
+      /** Work Order Id */
+      work_order_id: string
     }
     /** CompleteRequest */
     CompleteRequest: {
@@ -3570,6 +4273,38 @@ export interface components {
       /** Status */
       status: string
     }
+    /** ContentContext */
+    ContentContext: {
+      /** Content Id */
+      content_id: string
+      /** Issue Count */
+      issue_count: number
+      /**
+       * Production Status
+       * @enum {string}
+       */
+      production_status:
+        'processing' | 'normal' | 'review_required' | 'failed' | 'published' | 'cancelled'
+      /** Work Item Id */
+      work_item_id: string
+      /** Work Order Id */
+      work_order_id: string
+    }
+    /** ContentContexts */
+    ContentContexts: {
+      /** Items */
+      items: components['schemas']['ContentContext'][]
+    }
+    /** ContextLookupRequest */
+    ContextLookupRequest: {
+      /** Content Ids */
+      content_ids: string[]
+      /**
+       * Content Type
+       * @enum {string}
+       */
+      content_type: 'dialogue' | 'word_card' | 'short_reading'
+    }
     /** CorrectionDecisionResponse */
     CorrectionDecisionResponse: {
       /** Id */
@@ -3584,6 +4319,76 @@ export interface components {
        * @enum {string}
        */
       status: 'APPROVED' | 'REJECTED'
+    }
+    /** CorrectionRequest */
+    CorrectionRequest: {
+      /** Candidate Hash */
+      candidate_hash: string
+      /** Current */
+      current: components['schemas']['SceneCandidate'] | components['schemas']['ReadingCandidate']
+      /** Expected Content Version */
+      expected_content_version: number
+      /** Expected Edit Version */
+      expected_edit_version: number
+      /** Expected Revision Id */
+      expected_revision_id: string
+      /** Expected Version */
+      expected_version: number
+      /**
+       * Original Compared
+       * @default false
+       */
+      original_compared: boolean
+      /** Resolved Issue Ids */
+      resolved_issue_ids?: string[]
+    }
+    /** Counts */
+    Counts: {
+      /**
+       * Cancelled
+       * @default 0
+       */
+      cancelled: number
+      /**
+       * Confirmed
+       * @default 0
+       */
+      confirmed: number
+      /**
+       * Failed
+       * @default 0
+       */
+      failed: number
+      /**
+       * Normal
+       * @default 0
+       */
+      normal: number
+      /**
+       * Processing
+       * @default 0
+       */
+      processing: number
+      /**
+       * Publishable
+       * @default 0
+       */
+      publishable: number
+      /**
+       * Published
+       * @default 0
+       */
+      published: number
+      /**
+       * Review Required
+       * @default 0
+       */
+      review_required: number
+      /**
+       * Total
+       * @default 0
+       */
+      total: number
     }
     /** CreateAudioTargetRequest */
     CreateAudioTargetRequest: {
@@ -3830,6 +4635,76 @@ export interface components {
       candidates: components['schemas']['EntryBatchCandidate'][]
       /** Manual Checked */
       manual_checked: boolean
+    }
+    /** EntryBinding */
+    EntryBinding: {
+      /** Content Id */
+      content_id: string
+      /**
+       * Content Type
+       * @enum {string}
+       */
+      content_type: 'dialogue' | 'word_card' | 'short_reading'
+      /** Definition Version */
+      definition_version: number | null
+      /** Entry Id */
+      entry_id: string
+      /** Entry Version */
+      entry_version: number
+      /** Identity Provenance */
+      identity_provenance: string
+      /** Import Entry Id */
+      import_entry_id: string | null
+      /** Lexicon Entry Id */
+      lexicon_entry_id: string | null
+      /** Namespace */
+      namespace: string | null
+      /** Revision Id */
+      revision_id: string
+      /** Sense Id */
+      sense_id: string
+      /** Source Id */
+      source_id: string
+    }
+    /** EntryBindings */
+    EntryBindings: {
+      /** Bindings */
+      bindings: components['schemas']['EntryBinding'][]
+      /** Item Id */
+      item_id: string
+      /** Revision Id */
+      revision_id: string
+      /** Work Order Id */
+      work_order_id: string
+    }
+    /** EntryConfirmationRequest */
+    EntryConfirmationRequest: {
+      /** Expected Version */
+      expected_version: number
+      /** Manual Confirmed */
+      manual_confirmed: boolean
+      /**
+       * Scope
+       * @default all
+       * @enum {string}
+       */
+      scope: 'all' | 'normal' | 'confirmed' | 'publishable' | 'failed' | 'selected'
+      /** Selected Item Ids */
+      selected_item_ids?: string[]
+    }
+    /** EntryConfirmationResult */
+    EntryConfirmationResult: {
+      /** Edit Version */
+      edit_version?: number | null
+      /** Error Code */
+      error_code?: string | null
+      /** Revision Id */
+      revision_id: string
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'SUCCESS' | 'FAILED'
     }
     /** EntryQuery */
     EntryQuery: {
@@ -4223,6 +5098,11 @@ export interface components {
       /** Version */
       version: number
     }
+    /** FromBatchRequest */
+    FromBatchRequest: {
+      /** Batch Id */
+      batch_id: string
+    }
     /** GenerateAudioRequest */
     GenerateAudioRequest: {
       /** Stable Key */
@@ -4246,6 +5126,27 @@ export interface components {
       /** Detail */
       detail?: components['schemas']['ValidationError'][]
     }
+    /** ImportConfirmRequest */
+    ImportConfirmRequest: {
+      /** Acknowledged Defaults */
+      acknowledged_defaults?: string[]
+      /** Confirmed Conflicts */
+      confirmed_conflicts?: string[]
+      /** Expected Version */
+      expected_version: number
+      /** Preview Hash */
+      preview_hash: string
+      /** Preview Version */
+      preview_version: number
+      /**
+       * Scope
+       * @default all
+       * @enum {string}
+       */
+      scope: 'all' | 'normal' | 'confirmed' | 'publishable' | 'failed' | 'selected'
+      /** Selected Item Ids */
+      selected_item_ids?: string[]
+    }
     /** ImportImagesRequest */
     ImportImagesRequest: {
       /** Asset Ids */
@@ -4266,11 +5167,76 @@ export interface components {
       /** Reused Scene Ids */
       reused_scene_ids: string[]
     }
+    /** ImportPreview */
+    ImportPreview: {
+      /** Batch Id */
+      batch_id: string
+      /** Batch Issues */
+      batch_issues: components['schemas']['WorkIssue'][]
+      /** Items */
+      items: components['schemas']['ImportPreviewItem'][]
+      /** Preview Hash */
+      preview_hash: string
+      /** Preview Version */
+      preview_version: number
+      /** Status */
+      status: string
+      /** Work Order Id */
+      work_order_id: string
+    }
+    /** ImportPreviewItem */
+    ImportPreviewItem: {
+      /** Candidate */
+      candidate: {
+        [key: string]: components['schemas']['JsonValue']
+      }
+      /** Defaults */
+      defaults: string[]
+      /** Entries */
+      entries: {
+        [key: string]: components['schemas']['JsonValue']
+      }[]
+      /** Import Content Id */
+      import_content_id: string
+      /** Import Item Id */
+      import_item_id: string
+      /** Issues */
+      issues: components['schemas']['WorkIssue'][]
+      /** Item Id */
+      item_id: string
+      /** Operation */
+      operation: string
+      /** Resources */
+      resources: {
+        [key: string]: components['schemas']['JsonValue']
+      }
+      /** Row No */
+      row_no: number
+      /** Source Snapshot */
+      source_snapshot: {
+        [key: string]: components['schemas']['JsonValue']
+      } | null
+      /** Status */
+      status: string
+    }
     /** InternalNoteRequest */
     InternalNoteRequest: {
       /** Content */
       content: string
     }
+    /** ItemPage */
+    ItemPage: {
+      counts: components['schemas']['Counts']
+      /** Items */
+      items: components['schemas']['WorkItem'][]
+      /** Page */
+      page: number
+      /** Page Size */
+      page_size: number
+      /** Total */
+      total: number
+    }
+    JsonValue: unknown
     /** LexiconWriteRequest */
     LexiconWriteRequest: {
       entry: components['schemas']['SceneEntry']
@@ -4347,6 +5313,21 @@ export interface components {
       expected_version: number
       /** Manual Checked */
       manual_checked: boolean
+    }
+    /** ManualRequest */
+    ManualRequest: {
+      /** Content Id */
+      content_id?: string | null
+      /**
+       * Content Type
+       * @enum {string}
+       */
+      content_type: 'dialogue' | 'word_card' | 'short_reading'
+      /** Current */
+      current?:
+        (components['schemas']['SceneCandidate'] | components['schemas']['ReadingCandidate']) | null
+      /** Series Id */
+      series_id: string
     }
     /** ManualSliceRequest */
     ManualSliceRequest: {
@@ -4427,6 +5408,35 @@ export interface components {
       /** Scene Ids */
       scene_ids: string[]
     }
+    /** OrderPage */
+    OrderPage: {
+      /** Items */
+      items: components['schemas']['WorkOrder'][]
+      /** Page */
+      page: number
+      /** Page Size */
+      page_size: number
+      /** Total */
+      total: number
+    }
+    /** OrganizeRequest */
+    OrganizeRequest: {
+      /** Expected Version */
+      expected_version: number
+      /**
+       * Include Recommendations
+       * @default false
+       */
+      include_recommendations: boolean
+      /**
+       * Scope
+       * @default all
+       * @enum {string}
+       */
+      scope: 'all' | 'normal' | 'confirmed' | 'publishable' | 'failed' | 'selected'
+      /** Selected Item Ids */
+      selected_item_ids?: string[]
+    }
     /** PackagePageResponse */
     PackagePageResponse: {
       /** Items */
@@ -4456,10 +5466,27 @@ export interface components {
       /** Username */
       username: string
     }
+    /** PendingCommand */
+    PendingCommand: {
+      /** Action */
+      action: string
+      /** Command Id */
+      command_id: string
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /**
+       * Retry At
+       * Format: date-time
+       */
+      retry_at: string
+    }
     /** PreviewRange */
     PreviewRange: {
       /** Candidates */
-      candidates: components['schemas']['PublicationCandidate'][]
+      candidates: components['schemas']['PublicationCandidate-Input'][]
     }
     /** PreviewSceneResponse */
     PreviewSceneResponse: {
@@ -4571,7 +5598,7 @@ export interface components {
       target_id: string
     }
     /** PublicationCandidate */
-    PublicationCandidate: {
+    'PublicationCandidate-Input': {
       /** Candidate Hash */
       candidate_hash: string
       /** Content Id */
@@ -4589,6 +5616,80 @@ export interface components {
       revision_id: string
       /** Warning Codes */
       warning_codes?: string[]
+    }
+    /** PublicationCandidate */
+    'PublicationCandidate-Output': {
+      /** Candidate Hash */
+      candidate_hash: string
+      /** Content Id */
+      content_id: string
+      /**
+       * Content Type
+       * @enum {string}
+       */
+      content_type: 'dialogue' | 'word_card' | 'short_reading'
+      /** Expected Edit Version */
+      expected_edit_version?: number | null
+      /** Expected Version */
+      expected_version: number
+      /** Revision Id */
+      revision_id: string
+      /** Warning Codes */
+      warning_codes: string[]
+    }
+    /** PublicationConfirmRequest */
+    PublicationConfirmRequest: {
+      /** Collection Hash */
+      collection_hash: string
+      /** Expected Version */
+      expected_version: number
+      /** Manual Confirmed */
+      manual_confirmed: boolean
+      /** Publication Token */
+      publication_token: string
+      /** Range Version */
+      range_version: number
+      /**
+       * Scope
+       * @default all
+       * @enum {string}
+       */
+      scope: 'all' | 'normal' | 'confirmed' | 'publishable' | 'failed' | 'selected'
+      /** Selected Item Ids */
+      selected_item_ids?: string[]
+    }
+    /** PublicationItemResult */
+    PublicationItemResult: {
+      /** Error Code */
+      error_code?: string | null
+      /** Revision Id */
+      revision_id: string
+      /** Status */
+      status: string
+    }
+    /** PublicationState */
+    PublicationState: {
+      /** Candidates */
+      candidates: components['schemas']['PublicationCandidate-Output'][]
+      /** Collection Hash */
+      collection_hash: string
+      /**
+       * Expires At
+       * Format: date-time
+       */
+      expires_at: string
+      /** Results */
+      results: components['schemas']['PublicationItemResult'][]
+      /** Stage Id */
+      stage_id: string | null
+      /** Status */
+      status: string
+      /** Token */
+      token: string
+      /** Version */
+      version: number
+      /** Work Order Id */
+      work_order_id: string
     }
     /** PublishCheckRequest */
     PublishCheckRequest: {
@@ -4672,6 +5773,15 @@ export interface components {
       target_id: string
       /** Version Id */
       version_id: string
+    }
+    /** ReadingCandidate */
+    ReadingCandidate: {
+      content: components['schemas']['ReadingContent']
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      template: 'short_reading'
     }
     /** ReadingContent */
     ReadingContent: {
@@ -4835,6 +5945,93 @@ export interface components {
       /** Version Id */
       version_id: string
     }
+    /** SampleActionRequest */
+    SampleActionRequest: {
+      /**
+       * Accept Normal Results
+       * @default false
+       */
+      accept_normal_results: boolean
+      /**
+       * Allow Abnormal Drafts
+       * @default false
+       */
+      allow_abnormal_drafts: boolean
+      /**
+       * Audio Listened
+       * @default false
+       */
+      audio_listened: boolean
+      /** Candidate Hash */
+      candidate_hash?: string | null
+      /** Collection Hash */
+      collection_hash?: string | null
+      /** Error Code */
+      error_code?: string | null
+      /** Expected Version */
+      expected_version: number
+      /**
+       * Images Checked
+       * @default false
+       */
+      images_checked: boolean
+      /**
+       * Operation
+       * @enum {string}
+       */
+      operation: 'confirm' | 'fail' | 'append' | 'bulk-confirm' | 'complete'
+      /**
+       * Scope
+       * @default all
+       * @enum {string}
+       */
+      scope: 'all' | 'normal' | 'confirmed' | 'publishable' | 'failed' | 'selected'
+      /** Selected Item Ids */
+      selected_item_ids?: string[]
+      /**
+       * Text Checked
+       * @default false
+       */
+      text_checked: boolean
+    }
+    /** SamplingCandidate */
+    SamplingCandidate: {
+      /** Candidate Hash */
+      candidate_hash: string
+      /** Content Id */
+      content_id: string
+      /**
+       * Content Type
+       * @enum {string}
+       */
+      content_type: 'dialogue' | 'word_card' | 'short_reading'
+      /**
+       * Normal
+       * @default false
+       */
+      normal: boolean
+      /** Revision Id */
+      revision_id: string
+    }
+    /** SamplingState */
+    SamplingState: {
+      /** Candidates */
+      candidates: components['schemas']['SamplingCandidate'][]
+      /** Collection Hash */
+      collection_hash: string
+      /** Confirmed Revision Ids */
+      confirmed_revision_ids: string[]
+      /** Normal Count */
+      normal_count: number
+      /** Proofreading Set Id */
+      proofreading_set_id: string
+      /** Sample Ids */
+      sample_ids: string[]
+      /** Status */
+      status: string
+      /** Work Order Id */
+      work_order_id: string
+    }
     /** SaveDiscoveryConfigRequest */
     SaveDiscoveryConfigRequest: {
       /** Expected Version */
@@ -4863,6 +6060,15 @@ export interface components {
       content: components['schemas']['SceneContent']
       /** Expected Version */
       expected_version: number
+    }
+    /** SceneCandidate */
+    SceneCandidate: {
+      content: components['schemas']['SceneContent']
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      template: 'dialogue' | 'word_card'
     }
     /** SceneContent */
     SceneContent: {
@@ -5103,6 +6309,19 @@ export interface components {
       /** Updated At */
       updated_at: string | null
     }
+    /** ScopedRequest */
+    ScopedRequest: {
+      /** Expected Version */
+      expected_version: number
+      /**
+       * Scope
+       * @default all
+       * @enum {string}
+       */
+      scope: 'all' | 'normal' | 'confirmed' | 'publishable' | 'failed' | 'selected'
+      /** Selected Item Ids */
+      selected_item_ids?: string[]
+    }
     /** ShortReadingDetail */
     ShortReadingDetail: {
       /** Category */
@@ -5213,24 +6432,6 @@ export interface components {
       /** Target Content Version */
       target_content_version: number | null
     }
-    /** StageRetryRequest */
-    StageRetryRequest: {
-      /**
-       * Acknowledged Charged Retry
-       * @default false
-       */
-      acknowledged_charged_retry: boolean
-      /** Config Version */
-      config_version: string
-      /** Expected Edit Version */
-      expected_edit_version?: number | null
-      /** Expected Fence */
-      expected_fence: number
-      /** Input Hash */
-      input_hash: string
-      /** Manual Confirmed */
-      manual_confirmed: boolean
-    }
     /** SupplementCommand */
     SupplementCommand: {
       /** Request Text */
@@ -5314,6 +6515,39 @@ export interface components {
       target_type: string
       /** Version */
       version: number
+    }
+    /** UsageAttempt */
+    UsageAttempt: {
+      /** Actual Units */
+      actual_units: number | null
+      /** Attempt Id */
+      attempt_id: string
+      /** Attempt Number */
+      attempt_number: number
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /** Input Tokens */
+      input_tokens: number | null
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: 'AI_TOKENS' | 'ASR_MILLISECONDS'
+      /** Measured Audio Ms */
+      measured_audio_ms: number | null
+      /** Model */
+      model: string | null
+      /** Output Tokens */
+      output_tokens: number | null
+      /** Reserved Units */
+      reserved_units: number
+      /** Stage Id */
+      stage_id: string
+      /** Status */
+      status: string
     }
     /** UserContactResponse */
     UserContactResponse: {
@@ -5489,12 +6723,313 @@ export interface components {
       /** Wechat Id */
       wechat_id: string
     }
+    /** WorkIssue */
+    WorkIssue: {
+      /** Code */
+      code: string
+      /**
+       * Correction Target
+       * @default content
+       * @enum {string}
+       */
+      correction_target: 'content' | 'source' | 'audio' | 'entries' | 'publication'
+      /**
+       * Historical
+       * @default false
+       */
+      historical: boolean
+      /** Id */
+      id: string
+      /** Location */
+      location?: string[]
+      /** Message */
+      message: string
+      /**
+       * Resolved
+       * @default false
+       */
+      resolved: boolean
+    }
+    /** WorkItem */
+    WorkItem: {
+      /** Candidate Hash */
+      candidate_hash?: string | null
+      /**
+       * Confirmed
+       * @default false
+       */
+      confirmed: boolean
+      /** Content Id */
+      content_id?: string | null
+      /** Content Version */
+      content_version?: number | null
+      /** Edit Version */
+      edit_version?: number | null
+      /** Import Item Id */
+      import_item_id?: string | null
+      /** Issues */
+      issues?: components['schemas']['WorkIssue'][]
+      /** Item Id */
+      item_id: string
+      /**
+       * Lifecycle Status
+       * @default DRAFT
+       */
+      lifecycle_status: string
+      /** Original Revision Id */
+      original_revision_id?: string | null
+      /**
+       * Production Status
+       * @enum {string}
+       */
+      production_status:
+        'processing' | 'normal' | 'review_required' | 'failed' | 'published' | 'cancelled'
+      /**
+       * Publishable
+       * @default false
+       */
+      publishable: boolean
+      /**
+       * Published
+       * @default false
+       */
+      published: boolean
+      /** Revision Id */
+      revision_id?: string | null
+      /** Tasks */
+      tasks?: components['schemas']['WorkTask'][]
+      /**
+       * Title En
+       * @default
+       */
+      title_en: string
+      /**
+       * Title Zh
+       * @default
+       */
+      title_zh: string
+      /** Work Order Id */
+      work_order_id: string
+    }
+    /** WorkItemDetail */
+    WorkItemDetail: {
+      /** Candidate Hash */
+      candidate_hash?: string | null
+      /**
+       * Confirmed
+       * @default false
+       */
+      confirmed: boolean
+      /** Content Id */
+      content_id?: string | null
+      /** Content Version */
+      content_version?: number | null
+      /** Current */
+      current?:
+        (components['schemas']['SceneCandidate'] | components['schemas']['ReadingCandidate']) | null
+      /** Edit Version */
+      edit_version?: number | null
+      /** Historical Issues */
+      historical_issues?: components['schemas']['WorkIssue'][]
+      /** Import Item Id */
+      import_item_id?: string | null
+      /** Issues */
+      issues?: components['schemas']['WorkIssue'][]
+      /** Item Id */
+      item_id: string
+      /**
+       * Lifecycle Status
+       * @default DRAFT
+       */
+      lifecycle_status: string
+      /** Original Revision Id */
+      original_revision_id?: string | null
+      /**
+       * Production Status
+       * @enum {string}
+       */
+      production_status:
+        'processing' | 'normal' | 'review_required' | 'failed' | 'published' | 'cancelled'
+      /**
+       * Publishable
+       * @default false
+       */
+      publishable: boolean
+      /**
+       * Published
+       * @default false
+       */
+      published: boolean
+      /** Revision Id */
+      revision_id?: string | null
+      /** Source Available */
+      source_available: boolean
+      /** Source Snapshot */
+      source_snapshot?: {
+        [key: string]: components['schemas']['JsonValue']
+      } | null
+      /** Tasks */
+      tasks?: components['schemas']['WorkTask'][]
+      /**
+       * Title En
+       * @default
+       */
+      title_en: string
+      /**
+       * Title Zh
+       * @default
+       */
+      title_zh: string
+      /** Work Order Id */
+      work_order_id: string
+    }
+    /** WorkOrder */
+    WorkOrder: {
+      /** Available Actions */
+      available_actions: string[]
+      /**
+       * Content Type
+       * @enum {string}
+       */
+      content_type: 'dialogue' | 'word_card' | 'short_reading'
+      counts: components['schemas']['Counts']
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /** Import Batch Id */
+      import_batch_id: string | null
+      /** Pending Commands */
+      pending_commands?: components['schemas']['PendingCommand'][]
+      /** Proofreading Set Id */
+      proofreading_set_id?: string | null
+      /** Publication Token */
+      publication_token?: string | null
+      /** Series Id */
+      series_id: string
+      /** Series Title */
+      series_title: string
+      /** Source Mode */
+      source_mode: string
+      /** Status */
+      status: string
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string
+      /** Version */
+      version: number
+      /** Work Order Id */
+      work_order_id: string
+    }
+    /** WorkOrderUsage */
+    WorkOrderUsage: {
+      /** Attempts */
+      attempts: components['schemas']['UsageAttempt'][]
+      /** Cost */
+      cost?: null
+      /**
+       * Provenance
+       * @default associated_stage_records
+       * @constant
+       */
+      provenance: 'associated_stage_records'
+      /** Retry Count */
+      retry_count: number
+      /** Unknown Count */
+      unknown_count: number
+      /** Work Order Id */
+      work_order_id: string
+    }
+    /** WorkTask */
+    WorkTask: {
+      /** Attempt */
+      attempt: number
+      /** Config Version */
+      config_version: string
+      /**
+       * Current
+       * @default true
+       */
+      current: boolean
+      /** Error Code */
+      error_code?: string | null
+      /** Fencing Version */
+      fencing_version: number
+      /** Input Hash */
+      input_hash: string
+      /**
+       * Retryable
+       * @default false
+       */
+      retryable: boolean
+      /** Revision Id */
+      revision_id?: string | null
+      /** Sentence Id */
+      sentence_id?: string | null
+      /** Stage */
+      stage: string
+      /** Stage Id */
+      stage_id: string
+      /** Status */
+      status: string
+    }
     /** ResourceQuery */
     juya_admin_api__modules__access_policy__router__ResourceQuery: {
       /** Revision Id */
       revision_id: string
       /** User Id */
       user_id: string
+    }
+    /** StageRetryRequest */
+    juya_admin_api__modules__content_import__operations_router__StageRetryRequest: {
+      /**
+       * Acknowledged Charged Retry
+       * @default false
+       */
+      acknowledged_charged_retry: boolean
+      /** Config Version */
+      config_version: string
+      /** Expected Edit Version */
+      expected_edit_version?: number | null
+      /** Expected Fence */
+      expected_fence: number
+      /** Input Hash */
+      input_hash: string
+      /** Manual Confirmed */
+      manual_confirmed: boolean
+    }
+    /** StageRetryRequest */
+    juya_admin_api__modules__content_production__schemas__StageRetryRequest: {
+      /**
+       * Acknowledged Charged Retry
+       * @default false
+       */
+      acknowledged_charged_retry: boolean
+      /** Config Version */
+      config_version: string
+      /** Expected Edit Version */
+      expected_edit_version: number
+      /** Expected Fence */
+      expected_fence: number
+      /** Expected Version */
+      expected_version: number
+      /** Input Hash */
+      input_hash: string
+      /** Manual Confirmed */
+      manual_confirmed: boolean
+      /**
+       * Scope
+       * @default all
+       * @enum {string}
+       */
+      scope: 'all' | 'normal' | 'confirmed' | 'publishable' | 'failed' | 'selected'
+      /** Selected Item Ids */
+      selected_item_ids?: string[]
+      /** Stage Id */
+      stage_id: string
     }
     /** ResourceQuery */
     juya_admin_api__modules__v15_access__router__ResourceQuery: {
@@ -6511,6 +8046,1161 @@ export interface operations {
       }
     }
   }
+  contexts_api_v1_admin_content_production_contexts_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ContextLookupRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ContentContexts']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  orders_api_v1_admin_content_production_work_orders_get: {
+    parameters: {
+      query?: {
+        page?: number
+        page_size?: number
+        series_id?: string | null
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['OrderPage']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  upload_api_v1_admin_content_production_work_orders_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_upload_api_v1_admin_content_production_work_orders_post']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['WorkOrder']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  from_batch_api_v1_admin_content_production_work_orders_from_batch_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FromBatchRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['WorkOrder']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  manual_api_v1_admin_content_production_work_orders_manual_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ManualRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['WorkOrder']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_api_v1_admin_content_production_work_orders__work_order_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['WorkOrder']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  cancel_api_v1_admin_content_production_work_orders__work_order_id__cancel_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ScopedRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  decide_candidates_api_v1_admin_content_production_work_orders__work_order_id__candidate_decisions_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CandidateDecisionRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  dismiss_candidates_api_v1_admin_content_production_work_orders__work_order_id__candidate_dismissals_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CandidateDismissalRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  candidate_groups_api_v1_admin_content_production_work_orders__work_order_id__candidates_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CandidateGroups']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  resume_api_v1_admin_content_production_work_orders__work_order_id__commands__command_id__resume_post: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+        command_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  confirm_entries_api_v1_admin_content_production_work_orders__work_order_id__entry_confirmations_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EntryConfirmationRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  import_confirm_api_v1_admin_content_production_work_orders__work_order_id__import_confirm_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ImportConfirmRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  import_preview_api_v1_admin_content_production_work_orders__work_order_id__import_preview_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ImportPreview']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  import_retry_api_v1_admin_content_production_work_orders__work_order_id__import_retry_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ImportConfirmRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  items_api_v1_admin_content_production_work_orders__work_order_id__items_get: {
+    parameters: {
+      query?: {
+        page?: number
+        page_size?: number
+        status?:
+          | ('processing' | 'normal' | 'review_required' | 'failed' | 'published' | 'cancelled')
+          | null
+      }
+      header?: never
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ItemPage']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  item_api_v1_admin_content_production_work_orders__work_order_id__items__item_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        work_order_id: string
+        item_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['WorkItemDetail']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  correct_api_v1_admin_content_production_work_orders__work_order_id__items__item_id__correction_put: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+        item_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CorrectionRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  entry_bindings_api_v1_admin_content_production_work_orders__work_order_id__items__item_id__entry_bindings_get: {
+    parameters: {
+      query?: {
+        revision_id?: string | null
+      }
+      header?: never
+      path: {
+        work_order_id: string
+        item_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['EntryBindings']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  original_api_v1_admin_content_production_work_orders__work_order_id__items__item_id__original_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        work_order_id: string
+        item_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['WorkItemDetail']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  organize_api_v1_admin_content_production_work_orders__work_order_id__organize_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OrganizeRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  original_file_api_v1_admin_content_production_work_orders__work_order_id__original_file_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  publication_api_v1_admin_content_production_work_orders__work_order_id__publication_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['PublicationState']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  publication_confirm_api_v1_admin_content_production_work_orders__work_order_id__publication_confirm_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PublicationConfirmRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  publication_preview_api_v1_admin_content_production_work_orders__work_order_id__publication_preview_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ScopedRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  publication_retry_api_v1_admin_content_production_work_orders__work_order_id__publication_retry_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PublicationConfirmRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  sample_action_api_v1_admin_content_production_work_orders__work_order_id__sample_actions_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SampleActionRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  sampling_api_v1_admin_content_production_work_orders__work_order_id__sampling_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SamplingState']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_sampling_api_v1_admin_content_production_work_orders__work_order_id__sampling_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ScopedRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  stage_retry_api_v1_admin_content_production_work_orders__work_order_id__stage_retry_post: {
+    parameters: {
+      query?: never
+      header: {
+        'Idempotency-Key': string
+        'X-CSRF-Token'?: string | null
+      }
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['juya_admin_api__modules__content_production__schemas__StageRetryRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CommandResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  work_usage_api_v1_admin_content_production_work_orders__work_order_id__usage_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['WorkOrderUsage']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   stage_api_v1_admin_content_stages__stage_id__get: {
     parameters: {
       query?: never
@@ -6562,7 +9252,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['StageRetryRequest']
+        'application/json': components['schemas']['juya_admin_api__modules__content_import__operations_router__StageRetryRequest']
       }
     }
     responses: {

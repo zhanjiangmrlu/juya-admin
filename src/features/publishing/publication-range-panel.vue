@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
@@ -15,7 +15,7 @@ import {
 import { publishCheckLabel } from './publish-check-labels'
 import { usePublicationRange } from './use-publication-range'
 
-const props = defineProps<{ candidates: ProofreadingCandidate[] }>()
+const props = defineProps<{ candidates: ProofreadingCandidate[]; contextual?: boolean }>()
 const route = useRoute()
 const router = useRouter()
 const adapter = createPublicationRangeAdapter(useAdminApiClient())
@@ -25,6 +25,9 @@ const warnings = ref<string[]>([])
 const preparationBusy = ref(false)
 const error = ref('')
 const recoveryToken = ref(String(route.query.range_token || ''))
+onMounted(() => {
+  if (props.contextual && recoveryToken.value) void controller.restore(recoveryToken.value)
+})
 let generation = 0
 const labels: Record<string, string> = {
   PREVIEW: '已冻结，待明确发布',
@@ -155,13 +158,17 @@ onBeforeUnmount(() => {
       />
       <div class="actions">
         <ElButton
+          v-if="!contextual"
           :disabled="!adapter.available || !candidates.length || controller.busy.value"
           :loading="preparationBusy"
           @click="prepare"
           >读取已批准候选并检查范围</ElButton
         >
-        <ElButton :disabled="!canFreeze" @click="freeze">冻结已核对范围</ElButton>
+        <ElButton v-if="!contextual" :disabled="!canFreeze" @click="freeze"
+          >冻结已核对范围</ElButton
+        >
         <ElInput
+          v-if="!contextual"
           v-model="recoveryToken"
           aria-label="发布范围恢复编号"
           placeholder="已保存的范围编号"
@@ -192,9 +199,8 @@ onBeforeUnmount(() => {
       </div>
       <template v-if="controller.range.value">
         <p>
-          范围 {{ controller.range.value.token }} ·
-          {{ labels[controller.range.value.status] || controller.range.value.status }} · 版本
-          {{ controller.range.value.version }}
+          <template v-if="!contextual">范围 {{ controller.range.value.token }} ·</template>
+          {{ labels[controller.range.value.status] || controller.range.value.status }}
         </p>
         <ElCheckboxGroup v-model="controller.selected.value">
           <div

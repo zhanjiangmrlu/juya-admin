@@ -1,17 +1,85 @@
-import type { Page } from '@playwright/test'
-
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
+import { mockWorkOrder, scene } from './fixtures/content-work-orders'
 
-/** 切换同一草稿的内容工作区
- * @param page - 当前管理页面
- * @param label - 工作区名称
- */
-const switchArea = async (page: Page, label: string): Promise<void> => {
-  await page.getByRole('combobox', { name: '切换内容工作区', exact: true }).press('Enter')
-  await page.getByRole('option', { name: label, exact: true }).click()
-}
+test('保存响应待返回时锁定修正表单和子组件，完成后恢复编辑', async ({ adminApi, page }) => {
+  expect(adminApi).toBeDefined()
+  await mockWorkOrder(page, { template: 'dialogue', content: scene })
+  let release!: () => void
+  let entered = false
+  const pending = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route('**/work-orders/order/items/one/correction', async (route) => {
+    entered = true
+    await pending
+    await route.fallback()
+  })
+  await loginAsAdmin(page)
+  await navigateInApp(page, '/content/work-orders/order/items/one')
+  const title = page.getByLabel('英文标题', { exact: true })
+  await title.fill('Pending save title')
+  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await expect.poll(() => entered).toBe(true)
+  try {
+    await expect(title).toBeDisabled()
+    await expect(page.getByLabel('英文句子 1', { exact: true })).toBeDisabled()
+  } finally {
+    release()
+  }
+  await expect(title).toBeEnabled()
+  await expect(title).toHaveValue('Pending save title')
+})
+
+test('结构化修正保存稳定句子身份与双语词汇语块并重读绑定', async ({ adminApi, page }) => {
+  expect(adminApi).toBeDefined()
+  const requests = await mockWorkOrder(page, { template: 'dialogue', content: scene })
+  await loginAsAdmin(page)
+  await navigateInApp(page, '/content/work-orders/order/items/one')
+  await page.getByLabel('英文句子 1', { exact: true }).fill('A latte, please.')
+  await page.getByLabel('中文翻译 1', { exact: true }).fill('请来一杯拿铁。')
+  await page.getByRole('button', { name: '添加句子', exact: true }).click()
+  await page.getByLabel('英文句子 2', { exact: true }).fill('Here you go.')
+  await page.getByLabel('中文翻译 2', { exact: true }).fill('给您。')
+  await page.getByRole('button', { name: '添加语块', exact: true }).click()
+  await page.getByLabel('chunk 英文 1', { exact: true }).fill('here you go')
+  await page.getByLabel('chunk 中文 1', { exact: true }).fill('给您')
+  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await expect.poll(() => requests.filter((row) => row.path.endsWith('/correction')).length).toBe(1)
+  expect(requests.find((row) => row.path.endsWith('/correction'))?.body).toMatchObject({
+    expected_edit_version: 1,
+    current: {
+      content: {
+        cover_asset_id: null,
+        dialogue: [
+          { id: 'SENTENCE-1', english: 'A latte, please.', chinese: '请来一杯拿铁。' },
+          { english: 'Here you go.' }
+        ],
+        vocabulary: [{ entry_id: 'local-latte' }],
+        chunks: [{ english: 'here you go' }]
+      }
+    }
+  })
+  await expect
+    .poll(() => requests.filter((row) => row.path.endsWith('/entry-bindings')).length)
+    .toBeGreaterThan(1)
+})
+
+test('工作单场景设备预览不触发发布且支持手机和平板', async ({ adminApi, page }) => {
+  await loginAsAdmin(page)
+  await navigateInApp(
+    page,
+    '/content/scenes/SCENE-1/edit?stage=audio&work_order_id=order&work_item_id=one'
+  )
+  await page.getByRole('button', { name: '手机 / 平板预览', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: '场景设备预览' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ordering coffee', exact: true })).toBeVisible()
+  await page.getByText('平板预览', { exact: true }).click()
+  await expect(page.locator('.device-frame')).toHaveClass(/tablet/)
+  expect(adminApi.requests.some((row) => row.pathname.endsWith('/commands/publish'))).toBe(false)
+})
 
 test('新建系列与场景网络失败重试复用各自幂等键，关闭后使用新键', async ({ adminApi, page }) => {
+  await mockWorkOrder(page, { template: 'dialogue', content: scene })
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/scenes')
   const seriesKeys: string[] = []
@@ -25,9 +93,9 @@ test('新建系列与场景网络失败重试复用各自幂等键，关闭后�
     }
     await route.fallback()
   })
-  await page.route('**/api/v1/admin/content/scenes', async (route) => {
+  await page.route('**/api/v1/admin/content-production/work-orders/manual', async (route) => {
     if (route.request().method() === 'POST') {
-      sceneKeys.push(route.request().headers()['x-idempotency-key'] ?? '')
+      sceneKeys.push(route.request().headers()['idempotency-key'] ?? '')
       if (sceneKeys.length === 1) return route.abort('failed')
     }
     await route.fallback()
@@ -70,113 +138,15 @@ test('新建系列与场景网络失败重试复用各自幂等键，关闭后�
   await expect.poll(() => sceneKeys.length).toBe(1)
   await expect(createScene).toBeEnabled()
   await createScene.click()
-  await expect(page).toHaveURL(/\/content\/scenes\/[^/]+\/edit\?stage=draft$/)
+  await expect(page).toHaveURL(/\/content\/work-orders\/order\/items\/one$/)
   expect(sceneKeys[0]).toBeTruthy()
   expect(sceneKeys[1]).toBe(sceneKeys[0])
   expect(sceneKeys[0]).not.toBe(seriesKeys[3])
   expect(adminApi.unexpectedRequests).toEqual([])
 })
 
-test('保存响应待返回时锁定基础表单和子组件，完成后恢复编辑', async ({ adminApi, page }) => {
-  await loginAsAdmin(page)
-  await navigateInApp(page, '/content/scenes/SCENE-1/edit?stage=draft')
-  let releaseSave!: () => void
-  let enteredSave!: () => void
-  const pendingSave = new Promise<void>((resolve) => {
-    releaseSave = resolve
-  })
-  const saveEntered = new Promise<void>((resolve) => {
-    enteredSave = resolve
-  })
-  await page.route('**/api/v1/admin/content/revisions/REV-DRAFT-1', async (route) => {
-    if (route.request().method() === 'PUT') {
-      enteredSave()
-      await pendingSave
-    }
-    await route.fallback()
-  })
-  const title = page.getByLabel('英文标题', { exact: true })
-  await title.fill('Pending save title')
-  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
-  await saveEntered
-  try {
-    await expect(title).toBeDisabled()
-    await expect(page.getByRole('combobox', { name: '切换内容工作区', exact: true })).toBeDisabled()
-  } finally {
-    releaseSave()
-  }
-  await expect(page.getByText('草稿已保存')).toBeVisible()
-  await expect(title).toBeEnabled()
-  await switchArea(page, '正文对照与配对校对')
-  await expect(page.getByLabel('英文句子 1', { exact: true })).toBeEnabled()
-  await switchArea(page, '本篇词汇与语块')
-  await page.locator('.entries-grid').getByText('编辑文字资料', { exact: true }).first().click()
-  await expect(page.getByLabel('vocabulary 英文 1', { exact: true })).toBeEnabled()
-  await switchArea(page, '场景结构化编辑')
-  await expect(title).toHaveValue('Pending save title')
-  await title.fill('Continue editing')
-  await expect(title).toHaveValue('Continue editing')
-  expect(adminApi.unexpectedRequests).toEqual([])
-})
-
-test('结构化表单保留稳定编号并保存词汇语块和双语字段', async ({ adminApi, page }, testInfo) => {
-  await loginAsAdmin(page)
-  await navigateInApp(page, '/content/scenes/SCENE-1/edit?stage=draft')
-  await page.getByLabel('封面素材编号', { exact: true }).fill('old-cover')
-  await page.getByLabel('封面素材编号', { exact: true }).fill('')
-  await switchArea(page, '正文对照与配对校对')
-  await page.getByLabel('英文句子 1', { exact: true }).fill('A latte, please.')
-  await page.getByLabel('中文翻译 1', { exact: true }).fill('请来一杯拿铁。')
-  await page.getByRole('button', { name: '添加句子', exact: true }).click()
-  await page.getByLabel('英文句子 2', { exact: true }).fill('Here you go.')
-  await page.getByLabel('中文翻译 2', { exact: true }).fill('给您。')
-  await switchArea(page, '本篇词汇与语块')
-  await page.getByRole('button', { name: '添加语块', exact: true }).click()
-  await page.locator('.entries-grid').getByText('编辑文字资料', { exact: true }).last().click()
-  await page.getByLabel('chunk 英文 1', { exact: true }).fill('here you go')
-  await page.getByLabel('chunk 中文 1', { exact: true }).fill('给您')
-  await page.getByRole('button', { name: '保存候选资料', exact: true }).click()
-  await expect(page.getByText('草稿已保存')).toBeVisible()
-  const request = adminApi.findRequest('PUT', '/api/v1/admin/content/revisions/REV-DRAFT-1')
-  expect(request?.body).toMatchObject({
-    expected_version: 3,
-    content: {
-      title_en: 'Ordering coffee',
-      title_zh: '点一杯咖啡',
-      cover_asset_id: null,
-      dialogue: [
-        {
-          id: 'SENTENCE-1',
-          english: 'A latte, please.',
-          chinese: '请来一杯拿铁。',
-          timing_confirmed: false
-        },
-        { english: 'Here you go.' }
-      ],
-      chunks: [{ english: 'here you go' }]
-    }
-  })
-  await page.setViewportSize({ width: 1440, height: 900 })
-  await page.screenshot({ fullPage: true, path: testInfo.outputPath('scene-editor-1440x900.png') })
-  await page.getByRole('button', { name: '手机 / 平板预览', exact: true }).click()
-  await expect(page.getByRole('dialog', { name: '场景设备预览' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Ordering coffee', exact: true })).toBeVisible()
-  await page.screenshot({
-    animations: 'disabled',
-    fullPage: true,
-    path: testInfo.outputPath('scene-phone-preview.png')
-  })
-  await page.getByText('平板预览', { exact: true }).click()
-  await expect(page.locator('.device-frame')).toHaveClass(/tablet/)
-  await page.screenshot({
-    animations: 'disabled',
-    fullPage: true,
-    path: testInfo.outputPath('scene-tablet-preview.png')
-  })
-  expect(adminApi.unexpectedRequests).toEqual([])
-})
-
 test('内容目录加载真实分页，并在两个目标视口保持可操作', async ({ adminApi, page }, testInfo) => {
+  await mockWorkOrder(page)
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/scenes')
 
@@ -188,25 +158,6 @@ test('内容目录加载真实分页，并在两个目标视口保持可操作',
   await page.screenshot({ fullPage: true, path: testInfo.outputPath('content-list-1280x800.png') })
 
   expect(adminApi.findRequest('GET', '/api/v1/admin/content/catalogue')).toBeTruthy()
-  expect(adminApi.unexpectedRequests).toEqual([])
-})
-
-test('草稿保存冲突保留本地输入，并明确展示远端版本', async ({ adminApi, page }) => {
-  await loginAsAdmin(page)
-  adminApi.conflictOnNextRevisionSave()
-  await navigateInApp(page, '/content/scenes/SCENE-1/edit?stage=draft')
-
-  const title = page.getByLabel('英文标题', { exact: true })
-  await expect(title).toHaveValue('Ordering coffee')
-  await title.fill('本地仍需保留的标题')
-  await page.getByRole('button', { name: '保存草稿' }).click()
-
-  await expect(page.getByText(/远端已更新到 v4/)).toBeVisible()
-  await expect(title).toBeEnabled()
-  await expect(title).toHaveValue('本地仍需保留的标题')
-  const request = adminApi.findRequest('PUT', '/api/v1/admin/content/revisions/REV-DRAFT-1')
-  expect(request?.body).toMatchObject({ expected_version: 3 })
-  expect(request?.headers['x-csrf-token']).toBe('csrf-e2e')
   expect(adminApi.unexpectedRequests).toEqual([])
 })
 
@@ -260,20 +211,5 @@ test('发现页配置恢复真实快照，冲突时不覆盖本地表单', async
       open_scene_ids: ['SCENE-7', 'SCENE-2', 'SCENE-3']
     }
   )
-  expect(adminApi.unexpectedRequests).toEqual([])
-})
-
-test('管理员预览直接展示草稿内容且不触发发布副作用', async ({ adminApi, page }) => {
-  await loginAsAdmin(page)
-  await navigateInApp(page, '/content/scenes/REV-DRAFT-1/publish')
-
-  await expect(page.getByRole('heading', { name: 'Ordering coffee' })).toBeVisible()
-  await expect(page.getByText('咖啡店点单练习', { exact: true })).toBeVisible()
-  expect(
-    adminApi.findRequest('GET', '/api/v1/admin/content/revisions/REV-DRAFT-1/preview')
-  ).toBeTruthy()
-  expect(
-    adminApi.findRequest('POST', '/api/v1/admin/content/revisions/REV-DRAFT-1/commands/publish')
-  ).toBeUndefined()
   expect(adminApi.unexpectedRequests).toEqual([])
 })

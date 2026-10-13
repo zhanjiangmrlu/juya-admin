@@ -14,20 +14,26 @@ import {
   createCatalogueAdapter
 } from '@/features/content-catalogue/content-catalogue-adapter'
 import SceneHistory from '@/features/content-editor/scene-history.vue'
+import { createWorkOrderAdapter } from '@/features/content-production/work-order-adapter'
+import { resolveWorkOrderContext } from '@/features/content-production/work-order-context'
+import { productionLabels } from '@/features/content-production/work-order-model'
 import { createShortReadingAdapter } from '@/features/short-reading/short-reading-adapter'
-import { normalizeShortReading } from '@/features/short-reading/short-reading-model'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
+
+import type { ProductionSchema } from '@/features/content-production/work-order-model'
 
 const router = useRouter()
 const route = useRoute()
 const client = useAdminApiClient()
 const content = createContentAdapter(client)
 const catalogue = createCatalogueAdapter(client)
+const production = createWorkOrderAdapter(client)
+const contexts = ref<ProductionSchema['ContentContext'][]>([])
 const readings = createShortReadingAdapter(client)
 const storageKey = 'juya.content-list.filters.v1'
 const types = { dialogue: '场景对话', word_card: '原词汇卡', short_reading: '短文阅读' }
-const statuses = { DRAFT: '草稿 · 需校对', PUBLISHED: '已发布', OFFLINE: '已下线' }
+const statuses = { DRAFT: '草稿', PUBLISHED: '已发布', OFFLINE: '已下线' }
 const /** 恢复目录条件，校验类型与页码，避免旧条件变成隐藏的筛选
    * @returns 已校验的目录筛选
    */
@@ -88,7 +94,13 @@ let sequence = 0
 let disposed = false
 let abort: InstanceType<typeof globalThis.AbortController> | null = null
 let pendingSeriesKey = createIdempotencyKey()
-let pendingSceneKey = createIdempotencyKey()
+let pendingManualKey = createIdempotencyKey()
+watch(
+  () => [newScene.seriesId, newScene.templateType],
+  () => {
+    pendingManualKey = createIdempotencyKey()
+  }
+)
 watch(
   filters,
   () => {
@@ -100,12 +112,7 @@ watch(
   },
   { deep: true }
 )
-watch(
-  () => [newScene.seriesId, newScene.templateType],
-  () => {
-    pendingSceneKey = createIdempotencyKey()
-  }
-)
+
 watch(
   () => newScene.seriesTitle,
   () => {
@@ -124,6 +131,17 @@ const /** 读取服务端统一分页，取消旧查询并阻止迟到结果回�
       if (disposed || token !== sequence) return
       items.value = result.items
       total.value = result.total
+      const groups = await Promise.all(
+        (['dialogue', 'word_card', 'short_reading'] as const).map(async (contentType) => {
+          const ids = result.items
+            .filter((row) => row.content_type === contentType)
+            .map((row) => row.id)
+          return ids.length
+            ? (await production.contexts({ content_type: contentType, content_ids: ids })).items
+            : []
+        })
+      )
+      if (!disposed && token === sequence) contexts.value = groups.flat()
     } catch (failure) {
       if (!disposed && token === sequence)
         error.value = failure instanceof Error ? failure.message : '内容列表加载失败'
@@ -176,27 +194,19 @@ const /** 按所选模板创建草稿，纯阅读使用独立版本链路 */
     if (creatingScene.value || !newScene.seriesId) return
     creatingScene.value = true
     try {
-      if (newScene.templateType === 'short_reading') {
-        const value = await readings.create(
-          newScene.seriesId,
-          normalizeShortReading({}),
-          pendingSceneKey
-        )
-        if (disposed) return
-        await router.push({ name: 'content-short-reading-edit', params: { id: value.id } })
-      } else {
-        const value = await content.createScene(
-          newScene.seriesId,
-          newScene.templateType as 'dialogue' | 'word_card',
-          pendingSceneKey
-        )
-        if (disposed) return
+      const context = await resolveWorkOrderContext(
+        production,
+        {
+          series_id: newScene.seriesId,
+          content_type: newScene.templateType as 'dialogue' | 'word_card' | 'short_reading'
+        },
+        pendingManualKey
+      )
+      if (!disposed)
         await router.push({
-          name: 'content-scene-edit',
-          params: { id: value.id },
-          query: { stage: 'draft' }
+          name: 'content-work-item',
+          params: { id: context.orderId, itemId: context.itemId }
         })
-      }
     } catch (failure) {
       if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '内容创建失败')
     } finally {
@@ -210,16 +220,20 @@ const /**
   edit = async (row: CatalogueItem): Promise<void> => {
     try {
       if (row.content_type === 'short_reading') {
-        await router.push({ name: 'content-short-reading-edit', params: { id: row.id } })
-        return
-      }
-      if (!row.draft_revision_id) await content.createRevision(row.id, row.published_revision_id)
-      if (disposed) return
-      await router.push({
-        name: 'content-scene-edit',
-        params: { id: row.id },
-        query: { stage: 'proofread' }
+        if (!row.draft_revision_id)
+          await readings.createRevision(await readings.load(row.id), createIdempotencyKey())
+      } else if (!row.draft_revision_id)
+        await content.createRevision(row.id, row.published_revision_id)
+      const context = await resolveWorkOrderContext(production, {
+        content_type: row.content_type,
+        content_id: row.id,
+        series_id: row.series_id
       })
+      if (!disposed)
+        await router.push({
+          name: 'content-work-item',
+          params: { id: context.orderId, itemId: context.itemId }
+        })
     } catch (failure) {
       if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '内容打开失败')
     }
@@ -230,7 +244,11 @@ const /**
    */
   openHistory = (row: CatalogueItem): void => {
     if (row.content_type === 'short_reading') {
-      void edit(row)
+      void router.push({
+        name: 'content-short-reading-edit',
+        params: { id: row.id },
+        query: { history: '1' }
+      })
       return
     }
     historySceneId.value = row.id
@@ -319,6 +337,16 @@ onBeforeUnmount(() => {
             ></template
           ></ElTableColumn
         >
+        <ElTableColumn label="生产进度" min-width="150"
+          ><template #default="{ row }"
+            ><span v-if="contexts.some((context) => context.content_id === row.id)">{{
+              productionLabels[
+                contexts.find((context) => context.content_id === row.id)!.production_status
+              ]
+            }}</span
+            ><span v-else>尚未加入工作单</span></template
+          ></ElTableColumn
+        >
         <ElTableColumn label="操作" min-width="260"
           ><template #default="{ row }">
             <ElButton link type="primary" @click="edit(row)">{{
@@ -328,12 +356,7 @@ onBeforeUnmount(() => {
               v-if="row.draft_revision_id && row.content_type !== 'short_reading'"
               link
               type="primary"
-              @click="
-                router.push({
-                  name: 'content-scene-publish',
-                  params: { id: row.draft_revision_id }
-                })
-              "
+              @click="edit(row)"
               >预览 · 发布</ElButton
             >
             <ElButton link @click="openHistory(row)">查看历史</ElButton
