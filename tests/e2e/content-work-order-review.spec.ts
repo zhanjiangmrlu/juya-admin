@@ -35,7 +35,7 @@ test('阅读修正首载和保存重读均跳过词条绑定并读取固定全�
   await expect(page.getByText('版本不属于此工作单篇目', { exact: true })).toHaveCount(0)
   await page.getByText('编辑元信息', { exact: true }).click()
   await page.getByLabel('英文标题', { exact: true }).fill('Corrected reading')
-  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await expect(page.locator('audio[src="/reading-full-2.mp3"]')).toBeVisible()
   await expect(page.getByLabel('英文标题', { exact: true })).toHaveValue('Corrected reading')
   expect(bindings).toBe(0)
@@ -221,7 +221,7 @@ test('中文缺少含义选择时保留可编辑输入，补选后提交原中�
   await navigateInApp(page, '/content/work-orders/order/items/one?section=entries')
   await page.getByText('编辑文字资料', { exact: true }).first().click()
   await page.getByLabel('vocabulary 中文 1', { exact: true }).fill('拿铁咖啡饮品')
-  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await page.getByRole('button', { name: '保存候选资料', exact: true }).click()
   await expect.poll(() => attempts).toBe(1)
   await expect(page.getByLabel('vocabulary 中文 1', { exact: true })).toBeEnabled()
   await expect(page.getByLabel('vocabulary 中文 1', { exact: true })).toHaveValue('拿铁咖啡饮品')
@@ -231,7 +231,7 @@ test('中文缺少含义选择时保留可编辑输入，补选后提交原中�
     .getByRole('combobox')
     .press('Enter')
   await page.getByRole('option', { name: '修改同一含义的措辞', exact: true }).click()
-  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await page.getByRole('button', { name: '保存候选资料', exact: true }).click()
   await expect
     .poll(() => requests.find((row) => row.path.endsWith('/correction'))?.body)
     .toMatchObject({
@@ -272,17 +272,17 @@ test('真正版本冲突展示双方内容，明确重新应用后才可按新�
   await navigateInApp(page, '/content/work-orders/order/items/one')
   await page.getByText('编辑正文与译文', { exact: true }).click()
   await page.getByLabel('全文中文翻译', { exact: true }).fill('需要保留的本地译文')
-  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await expect(page.getByText('远端新的完整译文', { exact: true })).toBeVisible()
   await expect(
     page.locator('.conflict-row').getByText('需要保留的本地译文', { exact: true })
   ).toBeVisible()
-  await expect(page.getByRole('button', { name: '保存候选修正', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '保存草稿', exact: true })).toBeDisabled()
   expect(attempts).toBe(1)
   await page.getByRole('button', { name: '已对照差异，保留本地输入继续编辑', exact: true }).click()
   expect(attempts).toBe(1)
   await expect(page.getByLabel('全文中文翻译', { exact: true })).toHaveValue('需要保留的本地译文')
-  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await expect
     .poll(() => requests.find((row) => row.path.endsWith('/correction'))?.body)
     .toMatchObject({

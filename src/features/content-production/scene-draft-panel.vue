@@ -10,9 +10,14 @@ const props = defineProps<{
   form: SceneContent
   seriesTitle: string
   imageUrl: string
+  coverUrl?: string
   mediaBusy: boolean
 }>()
-const emit = defineEmits<{ upload: [file: UploadFile]; refreshImage: [] }>()
+const emit = defineEmits<{
+  upload: [file: UploadFile]
+  cover: [file: UploadFile]
+  refreshImage: []
+}>()
 const form = computed(() => props.form)
 </script>
 <template>
@@ -55,6 +60,18 @@ const form = computed(() => props.form)
       <ElFormItem label="封面素材编号">
         <ElInput v-model="form.cover_asset_id" clearable />
       </ElFormItem>
+      <div class="cover-media">
+        <img v-if="coverUrl" :src="coverUrl" alt="当前安全封面" />
+        <ElUpload
+          :auto-upload="false"
+          :show-file-list="false"
+          accept="image/jpeg,image/png,image/webp"
+          :disabled="mediaBusy"
+          @change="emit('cover', $event)"
+        >
+          <ElButton :disabled="mediaBusy">上传 / 替换封面</ElButton>
+        </ElUpload>
+      </div>
       <ElFormItem label="版权声明">
         <ElInput v-model="form.copyright" type="textarea" />
       </ElFormItem>
@@ -73,6 +90,20 @@ h3 {
 .scene-draft-panel {
   min-width: 0;
   background: var(--juya-color-surface);
+
+  .cover-media {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+
+    img {
+      max-width: 160px;
+      max-height: 120px;
+      object-fit: contain;
+    }
+  }
 }
 
 .scene-draft-panel :deep(.el-card__header) {

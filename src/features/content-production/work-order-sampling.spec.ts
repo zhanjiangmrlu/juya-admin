@@ -6,6 +6,87 @@ import type { ProductionSchema as S, WorkItemDetail } from './work-order-model'
 
 import WorkOrderSampling from './work-order-sampling.vue'
 describe('工作单抽样范围', () => {
+  it('短文替换全文音频后旧固定版本不能解锁新候选确认，播放不代替人工确认', async () => {
+    const detail = {
+      item_id: 'one',
+      revision_id: 'revision',
+      candidate_hash: 'hash-a',
+      current: {
+        template: 'short_reading',
+        content: { audio: { asset_id: 'asset-a', version_id: 'version-a' } }
+      }
+    } as unknown as WorkItemDetail
+    const state = {
+      sample_ids: ['revision'],
+      candidates: [{ revision_id: 'revision', candidate_hash: 'hash-a' }],
+      normal_count: 1,
+      confirmed_revision_ids: [],
+      collection_hash: 'collection-a'
+    } as unknown as S['SamplingState']
+    const wrapper = mount(WorkOrderSampling, {
+      props: {
+        detail,
+        state,
+        items: [{ item_id: 'one', revision_id: 'revision' }],
+        busy: false,
+        resources: [
+          {
+            key: 'version-a',
+            resourceId: 'asset-a',
+            kind: 'audio',
+            identity: 'one:revision:hash-a',
+            label: '旧全文音频',
+            url: '/old-audio'
+          }
+        ]
+      },
+      global: { plugins: [ElementPlus], stubs: { ShortReadingPreview: true } }
+    })
+    const oldPlayer = wrapper.get('audio')
+    await oldPlayer.trigger('play')
+    const audioCheck = () =>
+      wrapper
+        .findAllComponents({ name: 'ElCheckbox' })
+        .find((row) => row.text().includes('已逐个试听'))!
+    await audioCheck().setValue(true)
+    await wrapper.setProps({
+      detail: {
+        ...detail,
+        candidate_hash: 'hash-b',
+        current: {
+          template: 'short_reading',
+          content: { audio: { asset_id: 'asset-b', version_id: 'version-b' } }
+        }
+      } as unknown as WorkItemDetail,
+      state: {
+        ...state,
+        candidates: [{ revision_id: 'revision', candidate_hash: 'hash-b' }],
+        collection_hash: 'collection-b'
+      } as S['SamplingState']
+    })
+    await oldPlayer.trigger('play')
+    expect(audioCheck().props('disabled')).toBe(true)
+    expect(audioCheck().props('modelValue')).toBe(false)
+    await wrapper.setProps({
+      resources: [
+        {
+          key: 'version-b',
+          resourceId: 'asset-b',
+          kind: 'audio',
+          identity: 'one:revision:hash-b',
+          label: '新全文音频',
+          url: '/new-audio'
+        }
+      ]
+    })
+    await oldPlayer.trigger('play')
+    expect(audioCheck().props('disabled')).toBe(true)
+    await wrapper.get('audio').trigger('play')
+    expect(audioCheck().props('disabled')).toBe(false)
+    expect(audioCheck().props('modelValue')).toBe(false)
+    expect(wrapper.emitted('action')).toBeUndefined()
+    wrapper.unmount()
+  })
   it('异常确认明确包含当前观察篇目，仅提交冻结成员的精确子集', async () => {
     const wrapper = mount(WorkOrderSampling, {
       props: {

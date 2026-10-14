@@ -79,6 +79,15 @@ const pageTitle = computed(() => {
   if (route.name === 'learning-modules') return '学习模块配置'
   if (route.name === 'content-proofreading') return '正常内容抽样'
   if (route.name === 'content-short-reading-edit') return '短文结构化编辑'
+  if (route.name === 'content-work-item') {
+    if (route.query.editor === 'word-card')
+      return route.query.section === 'source' ? '原词汇卡原文校对' : '原词汇卡资料'
+    if (route.query.editor === 'reading' && route.query.section !== 'source')
+      return '短文结构化编辑'
+    if (route.query.section === 'entries') return '场景词汇与语块资料'
+    if (route.query.section === 'draft') return '场景结构化编辑'
+    return '正文对照与配对校对'
+  }
   if (route.name === 'formal-entitlement-action') {
     const titles: Record<string, string> = {
       RENEW: '正式权益续期',
@@ -128,6 +137,12 @@ const pageDescription = computed(() => {
   if (route.name === 'learning-modules') return '按中文名称配置入口，保存后小程序读取最新配置'
   if (route.name === 'content-short-reading-edit')
     return '纯阅读模式 · 完整英文与全文中文 · 封面和全文音频选填'
+  if (route.name === 'content-work-item')
+    return route.query.editor === 'reading' && route.query.section !== 'source'
+      ? '独立短文模板 · 完整中英文 · 全文音频选填'
+      : route.query.section === 'entries'
+        ? '保存本篇候选资料 · 词汇可选图片 · 语块采用无图列表'
+        : '原文保留 · 人工校对当前候选 · 保存不会发布'
   if (route.name === 'content-import' && route.query.source === 'zip')
     return '正文、译文、封面、词汇图片与音频，按 ID 一次绑定'
   if (route.name === 'content-import' && route.query.source === 'materials')

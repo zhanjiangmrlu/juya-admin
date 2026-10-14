@@ -64,10 +64,10 @@ for (const delay of ['detail', 'binding', 'save', 'upload'] as const) {
       completed = true
     })
     await loginAsAdmin(page)
-    await navigateInApp(page, '/content/work-orders/A/items/a')
+    await navigateInApp(page, '/content/work-orders/A/items/a?section=draft')
     if (delay === 'save') {
       await expect(page.getByRole('heading', { name: 'Content A', exact: true })).toBeVisible()
-      await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+      await page.getByRole('button', { name: '保存草稿', exact: true }).click()
     }
     if (delay === 'upload') {
       await expect(page.getByRole('heading', { name: 'Content A', exact: true })).toBeVisible()
@@ -81,7 +81,7 @@ for (const delay of ['detail', 'binding', 'save', 'upload'] as const) {
         })
     }
     await expect.poll(() => held).toBe(true)
-    await navigateInApp(page, '/content/work-orders/B/items/b')
+    await navigateInApp(page, '/content/work-orders/B/items/b?section=draft')
     await expect(page.getByRole('heading', { name: 'Content B', exact: true })).toBeVisible()
     if (template === 'short_reading') await page.getByText('编辑元信息', { exact: true }).click()
     await page.getByLabel('英文标题', { exact: true }).fill('Unsaved B')
@@ -95,7 +95,7 @@ for (const delay of ['detail', 'binding', 'save', 'upload'] as const) {
     )
     await expect.poll(() => seen.some((path) => path.includes('/B/items/b'))).toBe(true)
     await expect(page.getByLabel('英文标题', { exact: true })).toHaveValue('Unsaved B')
-    await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+    await page.getByRole('button', { name: '保存草稿', exact: true }).click()
     await expect
       .poll(() =>
         seen.some(
@@ -107,7 +107,7 @@ for (const delay of ['detail', 'binding', 'save', 'upload'] as const) {
       (bodies.at(-1)?.current as { content: { cover_asset_id: string | null } }).content
         .cover_asset_id
     ).toBeNull()
-    await expect(page).toHaveURL(/\/B\/items\/b$/)
+    await expect(page).toHaveURL(/\/B\/items\/b\?section=draft&editor=/)
   })
 }
 
@@ -156,8 +156,9 @@ test('动态问题无历史确认框，阅读试听进入正式抽样且可重�
   ).toHaveCount(0)
   await expect(page.getByText('已处理：请核对完整译文', { exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: '保存后前往抽样试听确认' }).click()
+  await expect(page).toHaveURL(/view=overview/)
+  await page.getByRole('button', { name: '开始校对', exact: true }).click()
   await expect(page).toHaveURL(/view=sampling/)
-  await page.getByRole('button', { name: '建立本批抽样', exact: true }).click()
   await expect(page.getByRole('button', { name: '按当前草稿重新建立抽样' })).toBeVisible()
   await page.getByRole('button', { name: '按当前草稿重新建立抽样' }).click()
   await expect

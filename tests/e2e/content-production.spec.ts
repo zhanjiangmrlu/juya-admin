@@ -5,7 +5,7 @@ test('修改正文后进入场景音频前保存当前工作单候选', async ({
   expect(adminApi).toBeDefined()
   const requests = await mockWorkOrder(page, { template: 'dialogue', content: scene })
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/work-orders/order/items/one')
+  await navigateInApp(page, '/content/work-orders/order/items/one?section=draft')
   await page.getByLabel('英文标题', { exact: true }).fill('Local metadata survives cutting')
   await page.getByLabel('英文句子 1', { exact: true }).fill('Keep this current sentence.')
   await page.getByRole('button', { name: '整段音频、句子边界与切片', exact: true }).click()
@@ -66,10 +66,10 @@ test('阅读修正冲突保留输入并重读当前候选，不自动重试旧�
   await navigateInApp(page, '/content/work-orders/order/items/one')
   await page.getByText('编辑正文与译文', { exact: true }).click()
   await page.getByLabel('全文中文翻译', { exact: true }).fill('冲突时保留的本地译文')
-  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await expect(page.getByText(/输入已保留，请与刷新后的候选核对后重新编辑/)).toBeVisible()
   await expect(page.getByLabel('全文中文翻译', { exact: true })).toHaveValue('冲突时保留的本地译文')
-  await expect(page.getByRole('button', { name: '保存候选修正', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '保存草稿', exact: true })).toBeDisabled()
   expect(writes).toBe(1)
   expect(requests.filter((request) => request.path.endsWith('/items/one')).length).toBeGreaterThan(
     1

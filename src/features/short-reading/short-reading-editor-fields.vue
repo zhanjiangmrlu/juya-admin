@@ -15,6 +15,7 @@ defineProps<{
   audioUrl: string
   audioDisabled: boolean
   formalListening?: boolean
+  bodyOnly?: boolean
 }>()
 const emit = defineEmits<{
   cover: [file: UploadFile]
@@ -80,7 +81,7 @@ const metadata: readonly [
 </script>
 <template>
   <div class="short-reading-fields">
-    <AdminPanel title="元信息">
+    <AdminPanel v-if="!bodyOnly" title="元信息">
       <div class="metadata-summary">
         <ElTag effect="plain">{{ form.category || '类别待填写' }}</ElTag>
         <ElTag effect="plain">{{ form.topic || '题材待填写' }}</ElTag>
@@ -123,7 +124,7 @@ const metadata: readonly [
         >
       </div>
     </AdminPanel>
-    <div class="reading-grid">
+    <div class="reading-grid" :class="{ 'body-only': bodyOnly }">
       <AdminPanel title="英文正文与全文译文">
         <div class="body-preview">
           <p v-for="(paragraph, index) in form.paragraphs_en" :key="index">{{ paragraph }}</p>
@@ -147,7 +148,7 @@ const metadata: readonly [
           ></ElForm>
         </details>
       </AdminPanel>
-      <AdminPanel title="全文朗读音频 · 选填"
+      <AdminPanel v-if="!bodyOnly" title="全文朗读音频 · 选填"
         ><p>短文可以不配音频。上传后核对实际时长、正文与声音；替换形成新候选版本。</p>
         <ElUpload
           :auto-upload="false"
@@ -247,6 +248,10 @@ const metadata: readonly [
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
     gap: 18px;
+
+    &.body-only {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   .cover,

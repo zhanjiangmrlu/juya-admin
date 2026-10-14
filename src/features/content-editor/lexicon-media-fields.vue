@@ -41,9 +41,25 @@ let confirmKey = ''
 let confirmedVersion = ''
 let pendingIconAsset: string | null = null
 let listenGeneration = 0
+let operationGeneration = 0
+let disposed = false
 let player: ReturnType<typeof createSegmentPlayer> | null = null
 const playback = shallowRef<ReturnType<typeof createSegmentPlayer> | null>(null)
 const audioElement = ref<globalThis.HTMLAudioElement | null>(null)
+const /** 捕获素材操作所属的稳定条目与角色，迟到完成不得更新另一条
+   * @returns 当前操作仍属于原条目的判断
+   */ capture = (): (() => boolean) => {
+    const generation = operationGeneration,
+      entry = props.entry,
+      id = entry.entry_id,
+      role = props.entryType
+    return () =>
+      !disposed &&
+      generation === operationGeneration &&
+      entry === props.entry &&
+      (!id || id === props.entry.entry_id) &&
+      role === props.entryType
+  }
 
 /**
  * 保留可读素材错误，供人工重试。
@@ -124,110 +140,162 @@ async function prepareCrop(): Promise<void> {
     busy.value = false
   }
 }
-/** 为已登记词条创建稳定独立发音目标。
- * @returns 词条稳定发音目标编号
- */
-async function ensureTarget(): Promise<string> {
-  let entry = props.entry
-  if (!entry.entry_id) {
-    entry = await content.saveLexicon(entry, props.entryType)
-    emit('update', entry)
-  }
-  const target = await media.createEntryAudioTarget(entry.entry_id, props.entryType)
-  return target.id
-}
-/** 读取词条发音候选与历史版本。 */
-async function loadVersions(): Promise<void> {
-  busy.value = true
-  error.value = ''
-  try {
-    const targetId = await ensureTarget()
-    versions.value = await audio.listVersions(targetId)
-    selectedVersion.value = props.entry.audio_version_id ?? ''
-  } catch (failure) {
-    fail(failure)
-  } finally {
-    busy.value = false
-  }
-}
-/**
- * 上传人工发音候选且复用失败命令键。
- * @param file - 管理员选定的本地素材
- */
-async function uploadAudio(file: UploadFile): Promise<void> {
-  if (!file.raw || busy.value) return
-  if (pendingFile !== file.raw) {
-    pendingFile = file.raw
-    uploadKey = createIdempotencyKey()
-  }
-  busy.value = true
-  error.value = ''
-  try {
-    const targetId = await ensureTarget()
-    const version = await audio.uploadFile(
-      targetId,
-      file.raw,
-      uploadKey,
-      () => undefined,
-      new globalThis.AbortController().signal
-    )
-    versions.value = await audio.listVersions(targetId)
-    selectedVersion.value = version.id
-    pendingFile = null
-  } catch (failure) {
-    fail(failure)
-  } finally {
-    busy.value = false
-  }
-}
-/** 确认所选候选并绑定固定发音版本。 */
-async function bindVersion(): Promise<void> {
-  const version = versions.value.find((item) => item.id === selectedVersion.value)
-  if (!version || busy.value) return
-  busy.value = true
-  error.value = ''
-  try {
-    if (version.status === 'CANDIDATE') {
-      if (confirmedVersion !== version.id) {
-        confirmedVersion = version.id
-        confirmKey = createIdempotencyKey()
-      }
-      await audio.confirmVersion(version.id, confirmKey)
+const /** 为当前本篇稳定条目创建发音目标，现代未保存条目不能写全局词库
+   * @param active - 仍属于发起操作的条目与角色
+   * @returns 词条稳定发音目标编号
+   */
+  ensureTarget = async (active: () => boolean): Promise<string | null> => {
+    let entry = props.entry
+    const role = props.entryType
+    if (props.modern && !entry.entry_id) throw new Error('请先保存本篇候选资料，再上传独立发音')
+    if (!entry.entry_id) {
+      entry = await content.saveLexicon(entry, role)
+      if (!active()) return null
+      emit('update', entry)
     }
+    const target = await media.createEntryAudioTarget(entry.entry_id, role)
+    return active() ? target.id : null
+  }
+const /** 读取当前稳定条目的发音候选与历史版本 */ loadVersions = async (): Promise<void> => {
+    if (busy.value) return
+    const active = capture()
+    busy.value = true
+    error.value = ''
+    try {
+      const targetId = await ensureTarget(active)
+      if (!targetId || !active()) return
+      const result = await audio.listVersions(targetId)
+      if (!active()) return
+      versions.value = result
+      selectedVersion.value = props.entry.audio_version_id ?? ''
+    } catch (failure) {
+      if (active()) fail(failure)
+    } finally {
+      if (active()) busy.value = false
+    }
+  }
+const /**
+   * 上传当前条目的人工发音候选，失败重试复用原文件及命令键
+   * @param file - 管理员选定的本地素材
+   */
+  uploadAudio = async (file: UploadFile): Promise<void> => {
+    if (!file.raw || busy.value) return
+    const active = capture()
+    if (pendingFile !== file.raw) {
+      pendingFile = file.raw
+      uploadKey = createIdempotencyKey()
+    }
+    busy.value = true
+    error.value = ''
+    try {
+      const targetId = await ensureTarget(active)
+      if (!targetId || !active()) return
+      const version = await audio.uploadFile(
+        targetId,
+        file.raw,
+        uploadKey,
+        () => undefined,
+        new globalThis.AbortController().signal
+      )
+      if (!active()) return
+      const result = await audio.listVersions(targetId)
+      if (!active()) return
+      versions.value = result
+      selectedVersion.value = version.id
+      pendingFile = null
+    } catch (failure) {
+      if (active()) fail(failure)
+    } finally {
+      if (active()) busy.value = false
+    }
+  }
+const /** 明确绑定当前条目的固定上传版本，变更后须重新核对本篇发音 */ bindVersion =
+    async (): Promise<void> => {
+      const version = versions.value.find((item) => item.id === selectedVersion.value)
+      if (!version || busy.value) return
+      const active = capture()
+      busy.value = true
+      error.value = ''
+      try {
+        if (version.status === 'CANDIDATE') {
+          if (confirmedVersion !== version.id) {
+            confirmedVersion = version.id
+            confirmKey = createIdempotencyKey()
+          }
+          await audio.confirmVersion(version.id, confirmKey)
+        }
+        if (!active()) return
+        emit('update', {
+          ...props.entry,
+          audio_target_id: version.targetId,
+          audio_version_id: version.id,
+          ...(props.modern &&
+          (props.entry.audio_target_id !== version.targetId ||
+            props.entry.audio_version_id !== version.id)
+            ? { confirmed: false, pronunciation_target_id: null }
+            : {})
+        })
+        const result = await audio.listVersions(version.targetId)
+        if (active()) versions.value = result
+      } catch (failure) {
+        if (active()) fail(failure)
+      } finally {
+        if (active()) busy.value = false
+      }
+    }
+const /** 试听当前条目所选固定文件，不写人工确认或触发合成 */ listen = async (): Promise<void> => {
+    const version = versions.value.find((item) => item.id === selectedVersion.value)
+    if (!version || !audioElement.value) return
+    const active = capture()
+    player ??= createSegmentPlayer(audioElement.value)
+    playback.value = player
+    const current = ++listenGeneration
+    try {
+      const same = player.activeId.value === version.id && player.status.value !== 'error'
+      const url = same
+        ? (audioElement.value.getAttribute('src') ?? '')
+        : (await media.signedUrl(version.assetId)).url
+      if (active() && current === listenGeneration) await player.play(version.id, url)
+    } catch (failure) {
+      if (active() && current === listenGeneration) fail(failure)
+    }
+  }
+const /** 移除当前上传引用，现代条目的旧固定发音确认不沿用 */ removeAudio = (): void => {
     emit('update', {
       ...props.entry,
-      audio_target_id: version.targetId,
-      audio_version_id: version.id
+      audio_target_id: null,
+      audio_version_id: null,
+      ...(props.modern ? { confirmed: false, pronunciation_target_id: null } : {})
     })
-    versions.value = await audio.listVersions(version.targetId)
-  } catch (failure) {
-    fail(failure)
-  } finally {
+  }
+const /** 切换条目或角色时隔离素材状态，不把原请求重试键转交新条目 */ invalidate = (): void => {
+    operationGeneration++
+    listenGeneration++
+    player?.load('')
+    versions.value = []
+    selectedVersion.value = ''
+    pendingFile = null
+    uploadKey = confirmKey = confirmedVersion = ''
     busy.value = false
+    error.value = ''
   }
-}
-/** 使用统一播放器试听所选发音。 */
-async function listen(): Promise<void> {
-  const version = versions.value.find((item) => item.id === selectedVersion.value)
-  if (!version || !audioElement.value) return
-  player ??= createSegmentPlayer(audioElement.value)
-  playback.value = player
-  const current = ++listenGeneration
-  try {
-    const same = player.activeId.value === version.id && player.status.value !== 'error'
-    const url = same
-      ? (audioElement.value.getAttribute('src') ?? '')
-      : (await media.signedUrl(version.assetId)).url
-    if (current === listenGeneration) await player.play(version.id, url)
-  } catch (failure) {
-    fail(failure)
-  }
-}
+watch(() => [props.entry, props.entryType], invalidate, { flush: 'sync' })
+watch(
+  () => props.entry.entry_id,
+  (next, prior) => {
+    // 旧词库登记在同一行首次分配 ID；这是原操作的确权，不是跨条目切换
+    if (!props.modern && !prior && next) return
+    invalidate()
+  },
+  { flush: 'sync' }
+)
 watch(selectedVersion, () => {
   listenGeneration++
   player?.stop()
 })
 onBeforeUnmount(() => {
+  disposed = true
+  operationGeneration++
   listenGeneration++
   player?.dispose()
   cancelIcon()
@@ -259,17 +327,22 @@ onBeforeUnmount(() => {
         >移除图标引用</ElButton
       >
     </template>
-    <template v-if="!modern">
-      <ElButton :disabled="!entry.english.trim()" @click="loadVersions"
+    <div class="entry-audio-fields">
+      <p v-if="modern && !entry.entry_id">请先保存本篇候选资料，再上传独立发音</p>
+      <ElButton
+        :disabled="!entry.english.trim() || (modern && !entry.entry_id)"
+        @click="loadVersions"
         >创建／加载独立发音目标</ElButton
       >
       <ElUpload
         :auto-upload="false"
         :show-file-list="false"
-        :disabled="!entry.english.trim()"
+        :disabled="!entry.english.trim() || (modern && !entry.entry_id)"
         accept=".mp3,.m4a,.wav,.aac"
         @change="uploadAudio"
-        ><ElButton :disabled="!entry.english.trim()">上传可选独立发音</ElButton></ElUpload
+        ><ElButton :disabled="!entry.english.trim() || (modern && !entry.entry_id)"
+          >上传可选独立发音</ElButton
+        ></ElUpload
       >
       <ElSelect v-model="selectedVersion" placeholder="选择候选或历史发音"
         ><ElOption
@@ -281,14 +354,12 @@ onBeforeUnmount(() => {
       <ElButton :disabled="!selectedVersion" @click="listen"
         >{{ playback?.label(selectedVersion) ?? '试听' }}发音</ElButton
       ><ElButton :disabled="!selectedVersion" @click="bindVersion">确认并绑定所选发音</ElButton>
-      <ElButton
-        v-if="entry.audio_version_id || entry.audio_target_id"
-        @click="emit('update', { ...entry, audio_target_id: null, audio_version_id: null })"
+      <ElButton v-if="entry.audio_version_id || entry.audio_target_id" @click="removeAudio"
         >移除发音引用</ElButton
       >
       <p aria-live="polite">{{ playback?.statusText.value }} {{ playback?.error.value }}</p>
       <audio ref="audioElement" preload="metadata" />
-    </template>
+    </div>
   </fieldset>
   <ElDialog v-model="cropOpened" title="人工核对图标裁切建议" width="min(640px, 90vw)"
     ><p>中心方形仅为初始建议，请修改像素范围并预览；不会自动识别图标。</p>

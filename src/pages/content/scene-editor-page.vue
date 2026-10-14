@@ -130,12 +130,14 @@ const /** 加载同一场景并恢复工作单上下文 */
                 name: 'content-work-item',
                 params: { id: context.orderId, itemId: context.itemId },
                 query: {
-                  section:
-                    route.query.stage === 'entries'
+                  section: ['entries', 'draft'].includes(String(route.query.stage))
+                    ? String(route.query.stage)
+                    : loaded.templateType === 'word_card' || loaded.templateType === 'vocabulary'
                       ? 'entries'
                       : route.query.stage === 'audio'
                         ? 'audio'
-                        : 'content'
+                        : 'content',
+                  editor: 'scene'
                 }
               }
         )
@@ -204,13 +206,21 @@ const /**
    * 保存音频页输入后返回所属工作单
    * @param single - 是否返回本篇修正
    */ returnToWorkOrder = async (single: boolean): Promise<void> => {
+    const generation = pageGeneration
     if (workspaceBusy.value || hasConflict.value || (dirty.value && !(await save()))) return
+    if (disposed || generation !== pageGeneration) return
     await router.push({
       name: single ? 'content-work-item' : 'content-work-order',
       params: {
         id: String(route.query.work_order_id),
         ...(single ? { itemId: String(route.query.work_item_id) } : {})
-      }
+      },
+      query: single
+        ? {
+            section: String(route.query.return_section || 'content'),
+            issue: route.query.return_issue
+          }
+        : {}
     })
   }
 const /**
@@ -448,7 +458,11 @@ const /**
 function message(failure: unknown): string {
   return failure instanceof Error ? failure.message : '操作失败'
 }
-watch(sceneId, () => void load(), { immediate: true })
+watch(
+  () => [sceneId.value, route.fullPath],
+  () => void load(),
+  { immediate: true }
+)
 onBeforeUnmount(() => {
   disposed = true
   pageGeneration++

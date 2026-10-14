@@ -16,7 +16,7 @@ test('短文修正保留未修改段落身份且不自动核验版权', async ({
   await page
     .getByLabel('完整英文', { exact: true })
     .fill('The unchanged first paragraph.\n\nThe changed second paragraph.')
-  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await expect.poll(() => requests.filter((row) => row.path.endsWith('/correction')).length).toBe(1)
   const saved = (
     requests.find((row) => row.path.endsWith('/correction'))!.body.current as {
@@ -99,7 +99,7 @@ test('单篇新建短文进入工作单后可以继续编辑并保存', async ({
   await expect(page).toHaveURL(/work-orders\/order\/items\/one/)
   await page.getByText('编辑元信息', { exact: true }).click()
   await page.getByLabel('英文标题', { exact: true }).fill('Second save after creating')
-  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await expect.poll(() => requests.filter((row) => row.path.endsWith('/correction')).length).toBe(1)
   expect(requests.find((row) => row.path.endsWith('/manual'))?.body.content_type).toBe(
     'short_reading'
@@ -322,7 +322,18 @@ test('短文替换音频后迟到的旧签名不能覆盖新文件或解锁旧�
   await expect(player).toHaveAttribute('src', /__audio-B.wav$/)
   await expect(
     page.getByRole('checkbox', { name: '已实际试听完整音频，确认与本篇正文一致' })
-  ).toBeDisabled()
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: '保存后前往抽样试听确认', exact: true })
+  ).toBeEnabled()
+  expect(
+    adminApi.requests.some(
+      (request) =>
+        request.method !== 'GET' &&
+        request.body &&
+        JSON.stringify(request.body).includes('"audio_listened":true')
+    )
+  ).toBe(false)
   expect(adminApi.unexpectedRequests).toEqual([])
 })
 

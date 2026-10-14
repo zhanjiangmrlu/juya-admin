@@ -58,6 +58,44 @@ const phases = shallowRef<S['WorkOrderPhases'] | null>(null)
 const tasksView = ref<InstanceType<typeof WorkOrderTasks> | null>(null)
 const allItems = ref<WorkItem[]>([])
 const membersReady = ref(false)
+const preparationItems = computed(() =>
+  allItems.value.filter(
+    (item) =>
+      item.current_draft &&
+      !item.published &&
+      item.issues?.some((issue) => issue.code === 'CONTENT_PREPARATION_REQUIRED')
+  )
+)
+const preparationBlocked = computed(
+  () =>
+    !!order.value?.pending_commands?.length ||
+    preparationItems.value.some(
+      (item) =>
+        !Array.isArray(item.tasks) ||
+        item.tasks.some(
+          (task) =>
+            task.current &&
+            (['PENDING', 'QUEUED', 'RUNNING', 'RETRY', 'UNKNOWN', 'FAILED'].includes(task.status) ||
+              task.error_code === 'PROVIDER_OUTCOME_UNKNOWN')
+        )
+    )
+)
+const canPrepare = computed(
+  () =>
+    membersReady.value &&
+    !preparationBlocked.value &&
+    !!order.value?.available_actions.includes('organize') &&
+    !!preparationItems.value.length
+)
+const canStartSampling = computed(
+  () =>
+    !busy.value &&
+    membersReady.value &&
+    !preparationBlocked.value &&
+    (preparationItems.value.length
+      ? canPrepare.value
+      : !!order.value?.counts.normal && !!order.value.available_actions.includes('sampling'))
+)
 const sampleDetail = shallowRef<WorkItemDetail | null>(null)
 const sampleMedia = ref<SampleResource[]>([])
 const selected = ref<string[]>([])
@@ -384,9 +422,22 @@ const /** 完成本篇检查后刷新精确样本哈希
       if (sampleDetail.value) await inspect(sampleDetail.value.item_id)
     }
   }
-const /** 创建服务端抽样集合
+const /** 续办真实待准备成员，或从已准备正常集合建立服务端抽样
    */
   startSampling = async (): Promise<void> => {
+    if (!canStartSampling.value) return
+    if (preparationItems.value.length) {
+      if (!canPrepare.value) return
+      const prepared = await run('organize', {
+        scope: 'selected',
+        selected_item_ids: preparationItems.value.map((item) => item.item_id),
+        include_recommendations: false
+      })
+      if (prepared)
+        error.value =
+          '已提交当前候选的必要准备。请查看实际进度，准备完成后再点击开始校对；尚未创建抽样集合'
+      return
+    }
     sampleGeneration++
     sampleDetail.value = null
     sampleMedia.value = []
@@ -668,7 +719,7 @@ watch(
           <p>
             原集合固定保留。正文、词义或音频变化后，请按当前草稿重新建立抽样；旧检查和试听不沿用。
           </p>
-          <ElButton :disabled="busy" @click="startSampling"
+          <ElButton :disabled="!canStartSampling" @click="startSampling"
             >按当前草稿重新建立抽样</ElButton
           > </AdminPanel
         ><WorkOrderSampling
@@ -684,7 +735,7 @@ watch(
           @edit="editById"
         /><AdminPanel v-else title="开始本批正常抽样"
           ><p>当前正常 {{ order.counts.normal }} 篇。服务端按当前正常集合选取所需样本。</p>
-          <ElButton :disabled="busy || !order.counts.normal" type="primary" @click="startSampling"
+          <ElButton :disabled="!canStartSampling" type="primary" @click="startSampling"
             >建立本批抽样</ElButton
           ></AdminPanel
         ></template
@@ -728,10 +779,7 @@ watch(
       <AppPageActions v-if="!(tab === 'import' && importPhase === 'preview')">
         <template v-if="tab === 'overview'"
           ><ElButton v-if="order.import_batch_id" @click="downloadOriginal">查看原文件</ElButton
-          ><ElButton
-            :disabled="busy || !membersReady || !order.counts.normal"
-            type="primary"
-            @click="startSampling"
+          ><ElButton :disabled="!canStartSampling" type="primary" @click="startSampling"
             >开始校对</ElButton
           ></template
         >

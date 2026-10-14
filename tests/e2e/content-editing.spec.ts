@@ -15,10 +15,10 @@ test('保存响应待返回时锁定修正表单和子组件，完成后恢复�
     await route.fallback()
   })
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/work-orders/order/items/one')
+  await navigateInApp(page, '/content/work-orders/order/items/one?section=draft')
   const title = page.getByLabel('英文标题', { exact: true })
   await title.fill('Pending save title')
-  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await expect.poll(() => entered).toBe(true)
   try {
     await expect(title).toBeDisabled()
@@ -34,19 +34,23 @@ test('结构化修正保存稳定句子身份与双语词汇语块并重读绑�
   expect(adminApi).toBeDefined()
   const requests = await mockWorkOrder(page, { template: 'dialogue', content: scene })
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/work-orders/order/items/one')
+  await navigateInApp(page, '/content/work-orders/order/items/one?section=draft')
   await page.getByLabel('英文句子 1', { exact: true }).fill('A latte, please.')
   await page.getByLabel('中文翻译 1', { exact: true }).fill('请来一杯拿铁。')
   await page.getByRole('button', { name: '添加句子', exact: true }).click()
   await page.getByLabel('英文句子 2', { exact: true }).fill('Here you go.')
   await page.getByLabel('中文翻译 2', { exact: true }).fill('给您。')
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
+  await expect.poll(() => requests.filter((row) => row.path.endsWith('/correction')).length).toBe(1)
+  await page.getByRole('button', { name: '场景词汇与语块资料', exact: true }).click()
   await page.getByRole('button', { name: '添加语块', exact: true }).click()
+  await page.locator('.lexicon-fields').last().getByText('编辑文字资料', { exact: true }).click()
   await page.getByLabel('chunk 英文 1', { exact: true }).fill('here you go')
   await page.getByLabel('chunk 中文 1', { exact: true }).fill('给您')
-  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
-  await expect.poll(() => requests.filter((row) => row.path.endsWith('/correction')).length).toBe(1)
-  expect(requests.find((row) => row.path.endsWith('/correction'))?.body).toMatchObject({
-    expected_edit_version: 1,
+  await page.getByRole('button', { name: '保存候选资料', exact: true }).click()
+  await expect.poll(() => requests.filter((row) => row.path.endsWith('/correction')).length).toBe(2)
+  expect(requests.filter((row) => row.path.endsWith('/correction')).at(-1)?.body).toMatchObject({
+    expected_edit_version: 2,
     current: {
       content: {
         cover_asset_id: null,
@@ -138,7 +142,7 @@ test('新建系列与场景网络失败重试复用各自幂等键，关闭后�
   await expect.poll(() => sceneKeys.length).toBe(1)
   await expect(createScene).toBeEnabled()
   await createScene.click()
-  await expect(page).toHaveURL(/\/content\/work-orders\/order\/items\/one$/)
+  await expect(page).toHaveURL(/\/content\/work-orders\/order\/items\/one\?editor=scene$/)
   expect(sceneKeys[0]).toBeTruthy()
   expect(sceneKeys[1]).toBe(sceneKeys[0])
   expect(sceneKeys[0]).not.toBe(seriesKeys[3])

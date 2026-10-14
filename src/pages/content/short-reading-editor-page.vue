@@ -128,7 +128,8 @@ const /** 加载独立短文当前草稿
         })
         await router.replace({
           name: 'content-work-item',
-          params: { id: context.orderId, itemId: context.itemId }
+          params: { id: context.orderId, itemId: context.itemId },
+          query: { editor: 'reading' }
         })
         return
       }

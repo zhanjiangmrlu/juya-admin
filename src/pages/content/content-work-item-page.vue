@@ -6,6 +6,9 @@ import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import { normalizeSceneContent } from '@/features/content-editor/scene-form'
 import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
+import ScenePreview from '@/features/content-editor/scene-preview.vue'
+import SceneDraftPanel from '@/features/content-production/scene-draft-panel.vue'
+import ScenePairingPanel from '@/features/content-production/scene-pairing-panel.vue'
 import SceneProofreadPanel from '@/features/content-production/scene-proofread-panel.vue'
 import { createWorkOrderAdapter } from '@/features/content-production/work-order-adapter'
 import {
@@ -17,6 +20,7 @@ import WorkOrderOriginal from '@/features/content-production/work-order-original
 import { createShortReadingAdapter } from '@/features/short-reading/short-reading-adapter'
 import ShortReadingEditorFields from '@/features/short-reading/short-reading-editor-fields.vue'
 import { normalizeShortReading } from '@/features/short-reading/short-reading-model'
+import ShortReadingPreview from '@/features/short-reading/short-reading-preview.vue'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 import { ApiError } from '@/shared/errors/api-error'
@@ -57,9 +61,34 @@ const coverUrl = ref(''),
 const id = computed(() => String(route.params.id)),
   itemId = computed(() => String(route.params.itemId))
 const isReading = computed(() => detail.value?.current?.template === 'short_reading')
+const wordCard = computed(() => detail.value?.current?.template === 'word_card')
 const section = computed(() => String(route.query.section || 'content'))
+const pairing = computed(
+  () =>
+    section.value === 'source' ||
+    (!isReading.value && !['entries', 'draft'].includes(section.value))
+)
+const previewOpened = ref(false)
+const saveLabel = computed(() =>
+  wordCard.value && section.value !== 'draft'
+    ? '保存候选资料'
+    : pairing.value
+      ? '保存配对结果'
+      : isReading.value || section.value === 'draft'
+        ? '保存草稿'
+        : '保存候选资料'
+)
 const focusedIssue = computed(() =>
   detail.value?.issues?.find((issue) => issue.id === route.query.issue)
+)
+const dirty = computed(
+  () =>
+    JSON.stringify(isReading.value ? reading.value : scene.value) !==
+    JSON.stringify(
+      isReading.value
+        ? normalizeShortReading(detail.value?.current?.content || {})
+        : normalizeSceneContent(detail.value?.current?.content || {})
+    )
 )
 const editorRoot = ref<globalThis.HTMLElement | null>(null)
 const entryBusy = reactive({ vocabulary: false, chunks: false })
@@ -67,6 +96,7 @@ const hasMediaWork = computed(() => entryBusy.vocabulary || entryBusy.chunks)
 let resourceGeneration = 0
 let routeGeneration = 0
 let loadGeneration = 0
+let originalAbort: globalThis.AbortController | null = null
 const /** 捕获当前页面身份供异步完成时核对
    * @returns 当前身份验证函数
    */ capture = (): (() => boolean) => {
@@ -76,6 +106,7 @@ const /** 捕获当前页面身份供异步完成时核对
     return () => token === routeGeneration && orderId === id.value && workItemId === itemId.value
   }
 onBeforeUnmount(() => {
+  originalAbort?.abort()
   resourceGeneration++
   routeGeneration++
   loadGeneration++
@@ -124,13 +155,38 @@ const /** 读取不可变输入和当前候选，冲突时保留输入直到管�
         adapter.detail(orderId, workItemId)
       ])
       if (!active() || token !== loadGeneration) return false
+      const editor =
+        item.current?.template === 'short_reading'
+          ? 'reading'
+          : item.current?.template === 'word_card'
+            ? 'word-card'
+            : 'scene'
+      const targetSection =
+        item.current?.template === 'word_card' && !route.query.section
+          ? 'entries'
+          : route.query.section
+      if (
+        item.current &&
+        (route.query.editor !== editor || targetSection !== route.query.section)
+      ) {
+        await router.replace({
+          query: { ...route.query, editor, ...(targetSection ? { section: targetSection } : {}) }
+        })
+        return true
+      }
       order.value = currentOrder
       detail.value = item
       if (section.value === 'audio' && item.current?.template === 'dialogue' && item.content_id) {
         await router.replace({
           name: 'content-scene-edit',
           params: { id: item.content_id },
-          query: { stage: 'audio', work_order_id: id.value, work_item_id: itemId.value }
+          query: {
+            stage: 'audio',
+            work_order_id: id.value,
+            work_item_id: itemId.value,
+            return_section: 'content',
+            return_issue: route.query.issue
+          }
         })
         return true
       }
@@ -330,7 +386,13 @@ const /** 保存后前往复用的场景音频工具，并保留本工作单上�
     await router.push({
       name: 'content-scene-edit',
       params: { id: detail.value.content_id },
-      query: { stage: 'audio', work_order_id: id.value, work_item_id: itemId.value }
+      query: {
+        stage: 'audio',
+        work_order_id: id.value,
+        work_item_id: itemId.value,
+        return_section: section.value,
+        return_issue: route.query.issue
+      }
     })
   }
 const /** 明确确认本篇词条与发音目标
@@ -355,20 +417,62 @@ const /** 明确确认本篇词条与发音目标
       if (active()) busy.value = false
     }
   }
-const /** 保存当前修正后进入固定候选的正式试听检查 */ listening = async (): Promise<void> => {
-    const active = capture()
-    if (!(await save()) || !active()) return
-    await router.push({
-      name: 'content-work-order',
-      params: { id: id.value },
-      query: { view: 'sampling' }
-    })
-  }
+const /** 保存当前修正后回到同单实际准备结果，由管理员继续开始校对 */ listening =
+    async (): Promise<void> => {
+      const active = capture()
+      if (!(await save()) || !active()) return
+      await router.push({
+        name: 'content-work-order',
+        params: { id: id.value },
+        query: { view: 'overview' }
+      })
+    }
 const /** 返回同一工作单的待处理问题
    */
   back = (): void => {
     void router.push({ name: 'content-work-order', params: { id: id.value } })
   }
+const /** 保存当前候选后切换同一工作单成员的职责页面
+   * @param target - 正文配对、元信息或本篇词条分区
+   */ editSection = async (target: string): Promise<void> => {
+    const active = capture()
+    if (
+      ((dirty.value || (compared.value && resolved.value.length)) && !(await save())) ||
+      !active()
+    )
+      return
+    await router.push({
+      name: 'content-work-item',
+      params: { id: id.value, itemId: itemId.value },
+      query: { ...route.query, section: target }
+    })
+  }
+const /** 下载实际保留的原始上传文件，迟到响应不在另一篇触发下载 */ downloadOriginal =
+    async (): Promise<void> => {
+      const active = capture()
+      try {
+        originalAbort?.abort()
+        originalAbort = new globalThis.AbortController()
+        const blob = await adapter.originalFile(id.value, originalAbort.signal)
+        if (!active()) return
+        const url = globalThis.URL.createObjectURL(blob),
+          link = globalThis.document.createElement('a')
+        link.href = url
+        link.download = order.value?.source_mode === 'DOCX' ? 'original.docx' : 'original.zip'
+        link.click()
+        globalThis.URL.revokeObjectURL(url)
+      } catch (failure) {
+        if (active()) error.value = failure instanceof Error ? failure.message : '原文件下载失败'
+      }
+    }
+watch(
+  () => JSON.stringify([scene.value, reading.value]),
+  () => {
+    compared.value = false
+    resolved.value = []
+  },
+  { flush: 'sync' }
+)
 watch(
   () => [id.value, itemId.value, route.fullPath],
   () => {
@@ -376,6 +480,8 @@ watch(
     loadGeneration++
     resourceGeneration++
     order.value = null
+    originalAbort?.abort()
+    previewOpened.value = false
     detail.value = null
     bindings.value = null
     scene.value = normalizeSceneContent({})
@@ -394,7 +500,34 @@ watch(
   <section ref="editorRoot" class="work-item-page">
     <div class="heading">
       <h2>{{ detail?.title_en || detail?.title_zh || '本批内容修正' }}</h2>
-      <ElButton @click="back">返回本批问题</ElButton>
+      <div v-if="detail?.current" class="editor-navigation">
+        <ElButton
+          v-if="!pairing"
+          :disabled="busy || conflict || hasMediaWork"
+          @click="editSection('source')"
+          >正文对照与配对校对</ElButton
+        >
+        <ElButton
+          v-if="isReading && pairing"
+          :disabled="busy || conflict"
+          @click="editSection('content')"
+          >返回短文编辑</ElButton
+        >
+        <template v-if="!isReading">
+          <ElButton
+            v-if="section !== 'draft'"
+            :disabled="busy || conflict || hasMediaWork"
+            @click="editSection('draft')"
+            >内容基本信息</ElButton
+          >
+          <ElButton
+            v-if="section !== 'entries'"
+            :disabled="busy || conflict || hasMediaWork"
+            @click="editSection('entries')"
+            >{{ wordCard ? '本篇词条资料' : '场景词汇与语块资料' }}</ElButton
+          >
+        </template>
+      </div>
     </div>
     <ElAlert v-if="error" :title="error" type="error" :closable="false" />
     <AdminPanel v-if="conflict" title="保存冲突 · 核对双方差异">
@@ -417,8 +550,9 @@ watch(
     </AdminPanel>
     <ElAlert v-if="focusedIssue" :title="focusedIssue.message" type="warning" :closable="false" />
     <template v-if="detail"
-      ><div class="comparison">
+      ><div :class="{ comparison: pairing }">
         <WorkOrderOriginal
+          v-if="pairing"
           :snapshot="detail.source_available ? detail.source_snapshot || null : null"
         />
         <fieldset class="candidate" :disabled="busy || conflict">
@@ -432,49 +566,58 @@ watch(
               :audio-url="audioUrl"
               :audio-disabled="false"
               :formal-listening="true"
+              :body-only="pairing"
               @listening="listening"
               @cover="uploadImage"
               @audio="uploadAudio"
               @refresh="resources"
               @remove-audio="reading.audio = null"
-            /><template v-else
-              ><AdminPanel title="本篇元信息"
-                ><ElForm label-position="top"
-                  ><ElFormItem label="英文标题"
-                    ><ElInput v-model="scene.title_en" aria-label="英文标题" /></ElFormItem
-                  ><ElFormItem label="中文标题"
-                    ><ElInput v-model="scene.title_zh" aria-label="中文标题" /></ElFormItem
-                  ><ElFormItem label="简介"
-                    ><ElInput v-model="scene.summary" type="textarea" /></ElFormItem
-                  ><ElFormItem label="来源"><ElInput v-model="scene.source" /></ElFormItem
-                  ><ElFormItem label="版权说明"
-                    ><ElInput v-model="scene.copyright" type="textarea" /></ElFormItem></ElForm
-                ><ElUpload
-                  :auto-upload="false"
-                  :show-file-list="false"
-                  accept="image/*"
-                  :disabled="busy"
-                  @change="uploadImage"
-                  ><ElButton>上传 / 替换封面</ElButton></ElUpload
-                ><img v-if="coverUrl" :src="coverUrl" alt="本篇封面" /><ElUpload
-                  :auto-upload="false"
-                  :show-file-list="false"
-                  accept="image/*"
-                  :disabled="busy"
-                  @change="uploadImage($event, 'original')"
-                  ><ElButton>上传 / 替换学习图片</ElButton></ElUpload
-                ><img v-if="imageUrl" :src="imageUrl" alt="学习图片" /></AdminPanel
-              ><SceneProofreadPanel
+            /><template v-else>
+              <ScenePairingPanel
+                v-if="pairing && !wordCard"
+                :key="`${detail.item_id}:${detail.revision_id}:${detail.candidate_hash}`"
+                v-model="scene.dialogue"
+                :snapshot="detail.source_available ? detail.source_snapshot || null : null"
+              />
+              <SceneDraftPanel
+                v-if="section === 'draft'"
                 :form="scene"
-                :mode="section === 'entries' ? 'entries' : 'all'"
+                :series-title="order?.series_title || ''"
+                :image-url="imageUrl"
+                :cover-url="coverUrl"
+                :media-busy="busy"
+                @upload="uploadImage($event, 'original')"
+                @cover="uploadImage"
+                @refresh-image="resources"
+              />
+              <AdminPanel
+                v-if="section === 'entries'"
+                :title="`${scene.title_zh || scene.title_en} · ${detail.content_id || ''} · 候选版本 ${detail.edit_version}`"
+              >
+                <p>稳定条目与来源位置由系统维护；本篇资料保存后校对，已发布快照不会修改。</p>
+              </AdminPanel>
+              <SceneProofreadPanel
+                v-if="!pairing || wordCard"
+                :form="scene"
+                :mode="section === 'entries' || wordCard ? 'entries' : 'dialogue'"
                 @busy="(area, value) => (entryBusy[area] = value)"
                 @confirm="confirmEntry"
-              /><ElButton
-                v-if="detail.current.template === 'dialogue'"
+              />
+              <AdminPanel v-if="section === 'entries'" title="发音资源 · 词汇与语块共用规则">
+                <p>
+                  优先使用已上传的可用音频；无文件时使用后台确认的合成目标。语块保持完整单位并使用无图列表，适用音标与解释完整保存。
+                </p>
+                <p>无可用文件且不可合成时，用户端隐藏发音按钮。</p>
+              </AdminPanel>
+              <ElButton
+                v-if="!pairing && detail.current.template === 'dialogue'"
                 :disabled="busy || conflict || hasMediaWork"
                 @click="audioEditor"
                 >整段音频、句子边界与切片</ElButton
-              ><ElButton :disabled="busy || conflict || hasMediaWork" @click="confirmEntries"
+              ><ElButton
+                v-if="section === 'entries'"
+                :disabled="busy || conflict || hasMediaWork"
+                @click="confirmEntries"
                 >已逐条核对本篇词义、来源与发音</ElButton
               ></template
             ></template
@@ -492,6 +635,9 @@ watch(
           >
         </fieldset>
       </div>
+      <ElAlert v-if="pairing" title="校对提示" type="success" :closable="false"
+        >系统整理和配对已提交的正文。需要改动文字时由管理员手动编辑并确认，不静默改写或整篇重译。</ElAlert
+      >
       <AdminPanel v-if="detail.current && detail.issues?.length" title="本次处理的问题"
         ><p
           v-for="issue in detail.issues.filter((row) => !row.acknowledgement_eligible)"
@@ -504,9 +650,10 @@ watch(
               : '修正后保存，系统将按当前内容重新校验'
           }}
         </p>
-        <ElCheckbox v-model="compared" :disabled="!detail.source_available"
-          >已对照不可变原文，核对本次正文与配对</ElCheckbox
-        ><ElCheckboxGroup v-model="resolved"
+        <ElCheckbox v-if="pairing" v-model="compared" :disabled="!detail.source_available">{{
+          wordCard ? '已对照不可变原文，核对本篇词条与来源' : '已对照不可变原文，核对本次正文与配对'
+        }}</ElCheckbox
+        ><ElCheckboxGroup v-if="pairing" v-model="resolved"
           ><ElCheckbox
             v-for="issue in detail.issues.filter((row) => row.acknowledgement_eligible)"
             :key="issue.id"
@@ -517,15 +664,35 @@ watch(
         ></AdminPanel
       ><AppPageActions
         ><ElButton @click="back">保留待校对</ElButton
+        ><ElButton v-if="pairing && order?.import_batch_id" @click="downloadOriginal"
+          >查看原文件</ElButton
+        ><ElButton :disabled="busy || conflict || hasMediaWork" @click="previewOpened = true"
+          >手机 / 平板预览</ElButton
         ><ElButton
           v-if="detail.current"
           type="primary"
           :disabled="busy || conflict || hasMediaWork"
           @click="save"
-          >保存候选修正</ElButton
+          >{{ saveLabel }}</ElButton
+        ><ElButton v-if="isReading && !pairing" :disabled="busy || conflict" @click="listening"
+          >预览与发布检查</ElButton
         ></AppPageActions
       ></template
     >
+    <ElDialog v-model="previewOpened" title="当前候选设备预览" width="min(960px, 94vw)">
+      <ShortReadingPreview
+        v-if="previewOpened && isReading"
+        device-preview
+        :content="reading"
+        :cover-url="coverUrl"
+        :audio-url="audioUrl"
+      />
+      <ScenePreview
+        v-else-if="previewOpened && detail?.revision_id"
+        :content="scene"
+        :revision-id="detail.revision_id"
+      />
+    </ElDialog>
   </section>
 </template>
 <style scoped lang="scss">
@@ -537,6 +704,8 @@ watch(
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
 
     h2 {
       font-size: 20px;
@@ -545,9 +714,15 @@ watch(
     }
   }
 
+  .editor-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
   .comparison {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
     align-items: start;
 

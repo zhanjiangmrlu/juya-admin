@@ -22,11 +22,12 @@ test('工作单保持整单统计，旧批次恢复，阅读修正始终保留�
   await expect(page.getByText(/本批总计 1000 篇/)).toBeVisible()
   await expect(page.getByText('900', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '修正正文与译文', exact: true }).click()
+  await page.getByRole('button', { name: '正文对照与配对校对', exact: true }).click()
   await expect(page.getByText('The immutable original paragraph.', { exact: true })).toBeVisible()
   if (!(await page.getByLabel('全文中文翻译', { exact: true }).isVisible()))
     await page.getByText('编辑正文与译文', { exact: true }).click()
   await page.getByLabel('全文中文翻译', { exact: true }).fill('修改后的完整译文。')
-  await page.getByRole('button', { name: '保存候选修正', exact: true }).click()
+  await page.getByRole('button', { name: '保存配对结果', exact: true }).click()
   await expect.poll(() => requests.filter((req) => req.path.endsWith('/correction')).length).toBe(1)
   const saved = requests.find((req) => req.path.endsWith('/correction'))!
   expect(saved.headers['idempotency-key']).toBeTruthy()
