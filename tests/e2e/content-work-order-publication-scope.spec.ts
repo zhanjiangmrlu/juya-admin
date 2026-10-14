@@ -1,6 +1,192 @@
 import { expect, loginAsAdmin, navigateInApp, test } from './fixtures/admin-api'
 import { item, mockWorkOrder, order } from './fixtures/content-work-orders'
 
+test('发布前、空排队、部分结果与原回执刷新保持不同统计及冻结失败子集', async ({
+  adminApi,
+  page
+}) => {
+  expect(adminApi).toBeDefined()
+  await mockWorkOrder(page)
+  let phase: 'PREVIEW' | 'QUEUED' | 'PARTIAL' = 'PREVIEW'
+  let retrying = false
+  const rows = [
+    'Weekend Plans',
+    'A Quick Lunch',
+    'A Rainy Day',
+    'Retained new draft',
+    'Organize failure',
+    'Unselected qualified',
+    'Old published'
+  ].map((title, index) => ({
+    ...item,
+    item_id: `item-${index}`,
+    content_id: `content-${index}`,
+    revision_id: `revision-${index}`,
+    title_en: title,
+    current_draft: index !== 6,
+    publishable: index < 3 || index === 5,
+    published: index === 3 || index === 6,
+    production_status:
+      index === 4
+        ? 'failed'
+        : index === 3
+          ? 'review_required'
+          : index === 6
+            ? 'published'
+            : 'normal',
+    issues: []
+  }))
+  const writes: { path: string; body: Record<string, unknown> }[] = []
+  const frozen = rows.slice(0, 3).map((row) => ({
+    content_type: 'short_reading',
+    content_id: row.content_id,
+    revision_id: row.revision_id,
+    candidate_hash: row.candidate_hash,
+    expected_version: 1,
+    expected_edit_version: 1,
+    warning_codes: []
+  }))
+  await page.route('**/api/v1/admin/content-production/work-orders/order**', async (route) => {
+    const request = route.request(),
+      path = new URL(request.url()).pathname
+    if (request.method() === 'POST') {
+      writes.push({ path, body: request.postDataJSON() as Record<string, unknown> })
+      phase = 'QUEUED'
+      retrying = path.endsWith('/publication-retry')
+      return route.fulfill({
+        json: {
+          command_id: 'original-command',
+          work_order_id: 'order',
+          status: 'QUEUED',
+          action: retrying ? 'publication-retry' : 'publication-confirm',
+          version: 2,
+          stage_id: 'original-stage'
+        }
+      })
+    }
+    if (path.endsWith('/publication'))
+      return route.fulfill({
+        json: {
+          work_order_id: 'order',
+          token: 'frozen-original',
+          version: phase === 'PREVIEW' ? 1 : 2,
+          collection_hash: 'd'.repeat(64),
+          status: phase,
+          expires_at: '2030-01-01T00:00:00Z',
+          stage_id: phase === 'PREVIEW' ? null : 'original-stage',
+          candidates: frozen,
+          results:
+            phase === 'PARTIAL' || retrying
+              ? [
+                  { revision_id: 'revision-0', status: 'SUCCEEDED' },
+                  {
+                    revision_id: 'revision-1',
+                    status: 'FAILED',
+                    error_code: 'PUBLICATION_PREVIEW_STALE'
+                  },
+                  {
+                    revision_id: 'revision-2',
+                    status: 'UNKNOWN',
+                    error_code: 'PUBLICATION_ITEM_RESULT_UNKNOWN'
+                  }
+                ]
+              : []
+        }
+      })
+    if (path.endsWith('/items'))
+      return route.fulfill({
+        json: {
+          items: rows,
+          total: rows.length,
+          page: 1,
+          page_size: 100,
+          version: 1,
+          collection_hash: 'members',
+          counts: { ...order.counts, total: rows.length, publishable: 4 }
+        }
+      })
+    return route.fulfill({
+      json: {
+        ...order,
+        publication_token: 'frozen-original',
+        counts: { ...order.counts, total: rows.length, publishable: 4 }
+      }
+    })
+  })
+  const evidence =
+    'D:/个人/juya/juya-admin-api/.superpowers/sdd/2026-10-14-v15-confirmed-deviation-remediation/task-7-visual'
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await loginAsAdmin(page)
+  await navigateInApp(page, '/content/work-orders/order?view=publication')
+  await expect(page.locator('.metrics article')).toHaveText([
+    '3本次可发布',
+    '1仍需校对',
+    '1处理失败',
+    '3本次保留草稿'
+  ])
+  await page.screenshot({ path: `${evidence}/pre-1440.png`, animations: 'disabled' })
+  await page.getByText('已核对本次发布范围与来源 / 版权备注', { exact: true }).click()
+  await page.getByRole('button', { name: '确认发布 3 篇', exact: true }).click()
+  await expect(page.getByText('本次发布已提交，等待逐篇结果', { exact: true })).toBeVisible()
+  expect(writes[0]!.body).toMatchObject({
+    scope: 'selected',
+    selected_item_ids: ['item-0', 'item-1', 'item-2'],
+    publication_token: 'frozen-original',
+    range_version: 1,
+    collection_hash: 'd'.repeat(64),
+    manual_confirmed: true
+  })
+  await expect(page.locator('.metrics article')).toHaveText([
+    '0已发布',
+    '0发布失败',
+    '1仍需校对',
+    '1处理失败'
+  ])
+  await page.screenshot({ path: `${evidence}/queued-empty-1440.png`, animations: 'disabled' })
+  phase = 'PARTIAL'
+  await page.getByRole('button', { name: '刷新发布结果', exact: true }).click()
+  await expect(page.getByText('成功已保留', { exact: true })).toBeVisible()
+  await expect(page.locator('.metrics article')).toHaveText([
+    '1已发布',
+    '1发布失败',
+    '1仍需校对',
+    '1处理失败'
+  ])
+  await expect(page.getByText('PUBLICATION_PREVIEW_STALE', { exact: false })).toBeVisible()
+  await expect(page.getByText('原发布任务：original-stage')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '选择当前合格子集', exact: true })).toHaveCount(0)
+  await page.locator('.page-scrollbar-wrap').evaluate((element) => element.scrollTo(0, 0))
+  await page.screenshot({
+    path: `${evidence}/partial-failed-unknown-1440.png`,
+    animations: 'disabled'
+  })
+  for (const [width, height] of [
+    [390, 844],
+    [768, 1024]
+  ]) {
+    await page.setViewportSize({ width: width!, height: height! })
+    await page.locator('.page-scrollbar-wrap').evaluate((element) => element.scrollTo(0, 0))
+    await page.screenshot({
+      path: `${evidence}/result-viewport-${width}.png`,
+      animations: 'disabled'
+    })
+  }
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.getByRole('button', { name: '仅重试 1 篇发布失败', exact: true }).click()
+  await expect.poll(() => writes.length).toBe(2)
+  expect(writes[1]!.path).toContain('/publication-retry')
+  expect(writes[1]!.body).toMatchObject({
+    selected_item_ids: ['item-1'],
+    publication_token: 'frozen-original',
+    range_version: 2,
+    collection_hash: 'd'.repeat(64)
+  })
+  await expect(
+    page.getByRole('button', { name: '仅重试 1 篇发布失败', exact: true })
+  ).toBeDisabled()
+  await expect(page.getByText('成功已保留', { exact: true })).toBeVisible()
+})
+
 test('混合工作单按冻结合格 A 确认发布，异常 B 保留草稿', async ({ adminApi, page }) => {
   expect(adminApi).toBeDefined()
   await mockWorkOrder(page)
@@ -97,7 +283,10 @@ test('混合工作单按冻结合格 A 确认发布，异常 B 保留草稿', as
     collection_hash: 'd'.repeat(64)
   })
   await expect(page.getByText('成功已保留', { exact: true })).toBeVisible()
-  await expect(page.locator('.metrics')).toContainText('继续保留草稿 1')
+  await expect(page.getByText(/当前批次未纳入本次范围的草稿：1 篇/)).toBeVisible()
+  await expect(page.locator('.metrics article').filter({ hasText: '仍需校对' })).toHaveText(
+    '1仍需校对'
+  )
 })
 
 for (const scenario of ['subset', 'paged', 'retry', 'stale', 'missing', 'incomplete'] as const) {
@@ -187,7 +376,7 @@ for (const scenario of ['subset', 'paged', 'retry', 'stale', 'missing', 'incompl
             token: 'original-token',
             version: 7,
             collection_hash: 'd'.repeat(64),
-            status: finished ? 'COMPLETED' : 'PREVIEW',
+            status: finished ? 'SUCCEEDED' : scenario === 'retry' ? 'PARTIAL' : 'PREVIEW',
             stage_id: null,
             expires_at: '2026-10-15T00:00:00Z',
             candidates: frozen,
@@ -226,10 +415,11 @@ for (const scenario of ['subset', 'paged', 'retry', 'stale', 'missing', 'incompl
       expect(submitted).toEqual([])
       return
     }
-    await page.getByText('已核对本次发布范围与来源 / 版权备注', { exact: true }).click()
+    if (scenario !== 'retry')
+      await page.getByText('已核对本次发布范围与来源 / 版权备注', { exact: true }).click()
     await page
       .getByRole('button', {
-        name: scenario === 'retry' ? '仅重试 1 篇发布失败 / 待核实结果' : '确认发布 1 篇',
+        name: scenario === 'retry' ? '仅重试 1 篇发布失败' : '确认发布 1 篇',
         exact: true
       })
       .click()
@@ -251,5 +441,74 @@ for (const scenario of ['subset', 'paged', 'retry', 'stale', 'missing', 'incompl
       scenario === 'retry' ? 2 : 1
     )
     if (scenario === 'paged') expect(memberPages).toContain(2)
+  })
+}
+
+for (const status of ['QUEUED', 'RUNNING', 'PARTIAL'] as const) {
+  test(`已提交 ${status} 原发布范围不再允许重新选择`, async ({ adminApi, page }) => {
+    expect(adminApi).toBeDefined()
+    await mockWorkOrder(page)
+    await page.route('**/api/v1/admin/content-production/work-orders/order**', async (route) => {
+      const path = new URL(route.request().url()).pathname
+      if (path.endsWith('/publication'))
+        return route.fulfill({
+          json: {
+            work_order_id: 'order',
+            token: 'original',
+            version: 3,
+            collection_hash: 'a'.repeat(64),
+            status,
+            stage_id: 'original-stage',
+            expires_at: '2026-10-15T00:00:00Z',
+            candidates: [
+              {
+                content_type: 'short_reading',
+                content_id: item.content_id,
+                revision_id: item.revision_id,
+                candidate_hash: item.candidate_hash,
+                expected_version: 1,
+                expected_edit_version: 1,
+                warning_codes: []
+              }
+            ],
+            results:
+              status === 'PARTIAL'
+                ? [
+                    {
+                      revision_id: item.revision_id,
+                      status: 'UNKNOWN',
+                      error_code: 'PUBLICATION_ITEM_RESULT_UNKNOWN'
+                    }
+                  ]
+                : []
+          }
+        })
+      if (path.endsWith('/items'))
+        return route.fulfill({
+          json: {
+            items: [{ ...item, current_draft: true, publishable: true }],
+            total: 1,
+            page: 1,
+            page_size: 100,
+            version: 1,
+            collection_hash: 'members',
+            counts: { ...order.counts, total: 1, publishable: 1 }
+          }
+        })
+      return route.fulfill({
+        json: {
+          ...order,
+          publication_token: 'original',
+          counts: { ...order.counts, total: 1, publishable: 1 }
+        }
+      })
+    })
+    await loginAsAdmin(page)
+    await navigateInApp(page, '/content/work-orders/order?view=publication')
+    await expect(page.getByRole('heading', { name: '逐篇发布结果', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '选择当前合格子集', exact: true })).toHaveCount(
+      0
+    )
+    await expect(page.getByRole('button', { name: /确认发布|预览全部合格|仅重试/ })).toHaveCount(0)
   })
 }

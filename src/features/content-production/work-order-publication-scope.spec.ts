@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ProductionSchema as S, WorkItem, WorkOrder } from './work-order-model'
 
-import { publicationItemIds } from './work-order-publication-scope'
+import { publicationDraftCounts, publicationItemIds } from './work-order-publication-scope'
 
 const order = {
   work_order_id: 'order',
@@ -31,11 +31,60 @@ const candidate = {
 const state = {
   work_order_id: 'order',
   token: 'token',
+  status: 'PREVIEW',
   candidates: [candidate],
   results: []
 } as unknown as S['PublicationState']
 
 describe('冻结发布候选映射', () => {
+  it('剩余草稿使用全量当前成员，旧已发布内容的新草稿仍计入，冻结失败不重复算处理失败', () => {
+    const members = [
+      { ...member, current_draft: true, production_status: 'failed' },
+      {
+        ...member,
+        item_id: 'old',
+        revision_id: 'old-published',
+        current_draft: false,
+        production_status: 'published',
+        published: true
+      },
+      {
+        ...member,
+        item_id: 'new',
+        revision_id: 'new-draft',
+        current_draft: true,
+        production_status: 'review_required',
+        published: true
+      },
+      ...Array.from({ length: 21 }, (_, index) => ({
+        ...member,
+        item_id: `failed-${index}`,
+        revision_id: `failed-${index}`,
+        current_draft: true,
+        production_status: 'failed'
+      })),
+      {
+        ...member,
+        item_id: 'normal',
+        revision_id: 'normal',
+        current_draft: true,
+        production_status: 'normal'
+      },
+      {
+        ...member,
+        item_id: 'cancelled',
+        revision_id: 'cancelled',
+        current_draft: true,
+        production_status: 'cancelled'
+      }
+    ] as WorkItem[]
+    expect(publicationDraftCounts(state, members, true)).toEqual({
+      held: 24,
+      review: 1,
+      failed: 21
+    })
+    expect(publicationDraftCounts(state, members.slice(0, 20), false)).toBeNull()
+  })
   it('不依赖动态 publishable 状态或额外成员，精确映射原预览', () => {
     expect(
       publicationItemIds(
@@ -45,6 +94,21 @@ describe('冻结发布候选映射', () => {
         false
       )
     ).toEqual(['A'])
+  })
+  it('已提交无结果的范围不能重新确认，正在运行也不能重试旧失败项', () => {
+    for (const status of ['QUEUED', 'RUNNING', 'PARTIAL', 'FAILED', 'SUCCEEDED'])
+      expect(() => publicationItemIds(order, { ...state, status }, [member], false)).toThrow(
+        '重新预览'
+      )
+    for (const status of ['QUEUED', 'RUNNING', 'PREVIEW'])
+      expect(() =>
+        publicationItemIds(
+          order,
+          { ...state, status, results: [{ revision_id: 'r-a', status: 'FAILED' }] },
+          [member],
+          true
+        )
+      ).toThrow('重新预览')
   })
   it.each([
     { content_id: 'other' },
@@ -79,9 +143,10 @@ describe('冻结发布候选映射', () => {
     ])
       expect(() => publicationItemIds(order, changed, [member], false)).toThrow('重新预览')
   })
-  it('仅重试原 token FAILED/UNKNOWN，不因成功成员后来有新草稿而重发成功项', () => {
+  it('仅重试原 token FAILED，UNKNOWN 与成功成员后来新草稿都不重发', () => {
     const retry = {
       ...state,
+      status: 'PARTIAL',
       candidates: [
         candidate,
         { ...candidate, content_id: 'b', revision_id: 'r-b' },
@@ -104,7 +169,7 @@ describe('冻结发布候选映射', () => {
         ],
         true
       )
-    ).toEqual(['B', 'C'])
+    ).toEqual(['B'])
     expect(() =>
       publicationItemIds(
         order,

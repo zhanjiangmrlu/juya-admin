@@ -198,9 +198,7 @@ export const /** 只选择可重试的发布失败记录
    * @returns 失败版本集合
    */
   publicationRetryIds = (results: ProductionSchema['PublicationItemResult'][]): string[] =>
-    results
-      .filter((row) => ['FAILED', 'UNKNOWN'].includes(row.status))
-      .map((row) => row.revision_id)
+    results.filter((row) => row.status === 'FAILED').map((row) => row.revision_id)
 
 export const productionLabels: Record<string, string> = {
   processing: '处理中',

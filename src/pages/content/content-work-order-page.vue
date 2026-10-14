@@ -650,6 +650,13 @@ watch(
     <template v-else-if="order"
       ><div class="context">
         <div>
+          <h2 v-if="tab === 'publication'">
+            {{
+              publication && (publication.status !== 'PREVIEW' || publication.results.length)
+                ? '发布结果'
+                : '确认发布范围'
+            }}
+          </h2>
           <p>
             {{ order.series_title }} · {{ types[order.content_type] }} · 本次
             {{ order.counts.total }} 篇
@@ -746,21 +753,21 @@ watch(
           :state="publication"
           :items="allItems"
           :busy="busy || !membersReady"
-          :held="
-            Math.max(
-              0,
-              order.counts.total -
-                allItems.filter(
-                  (item) =>
-                    item.published ||
-                    publication?.candidates.some(
-                      (candidate) => candidate.revision_id === item.revision_id
-                    )
-                ).length
-            )
-          "
+          :members-ready="membersReady"
+          :pending-commands="order.pending_commands"
           @confirm="publish"
-        /><AdminPanel title="选择当前合格子集"
+          @refresh="load"
+          @resume="resume"
+          @tasks="go('jobs')"
+          @back="go('sampling')"
+          @published="
+            router.push({
+              name: 'content-scenes'
+            })
+          "
+        /><AdminPanel
+          v-if="!publication || (publication.status === 'PREVIEW' && !publication.results.length)"
+          title="选择当前合格子集"
           ><p>
             已合格 {{ order.counts.publishable || 0 }} 篇；其他内容继续保留草稿。可选择更小范围。
           </p>
@@ -776,7 +783,12 @@ watch(
           }}</ElButton></AdminPanel
         ></template
       >
-      <AppPageActions v-if="!(tab === 'import' && importPhase === 'preview')">
+      <AppPageActions
+        v-if="
+          !(tab === 'import' && importPhase === 'preview') &&
+          !(tab === 'publication' && publication)
+        "
+      >
         <template v-if="tab === 'overview'"
           ><ElButton v-if="order.import_batch_id" @click="downloadOriginal">查看原文件</ElButton
           ><ElButton :disabled="!canStartSampling" type="primary" @click="startSampling"

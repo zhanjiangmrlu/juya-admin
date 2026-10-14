@@ -95,7 +95,8 @@ describe('工作单契约与业务范围', () => {
     expect(
       publicationRetryIds([
         { revision_id: 'ok', status: 'SUCCEEDED' },
-        { revision_id: 'bad', status: 'FAILED' }
+        { revision_id: 'bad', status: 'FAILED' },
+        { revision_id: 'unknown', status: 'UNKNOWN' }
       ])
     ).toEqual(['bad'])
   })
