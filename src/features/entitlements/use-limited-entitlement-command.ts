@@ -81,24 +81,29 @@ export const /**
         if (!sameOperation || command.state.value !== 'error') command.reset(nextDraft)
       }
 
-    const /** 执行已准备请求并只接收当前对象的结果
+    const /** 执行已准备请求并只接收当前对象和原请求身份的结果
        * @param execute - 提交当前准备请求或原请求重试的执行入口
        * @returns 服务端真实的持久化回执
        */ executePrepared = async (
         execute: () => Promise<LimitedEntitlement>
       ): Promise<LimitedEntitlement> => {
         const generation = draftGeneration
+        let requestKey = command.idempotencyKey.value
         errorMessage.value = null
         apiError.value = null
         disabledReason.value = null
         canRetry.value = false
         try {
-          const nextResult = await execute()
-          if (generation !== draftGeneration) throw new Error('操作对象已变化，请核对当前选择')
+          const pending = execute()
+          requestKey = command.idempotencyKey.value
+          const nextResult = await pending
+          if (generation !== draftGeneration || requestKey !== command.idempotencyKey.value)
+            throw new Error('操作对象已变化，请核对当前选择')
           result.value = nextResult
           return nextResult
         } catch (failure) {
-          if (generation !== draftGeneration) throw failure
+          if (generation !== draftGeneration || requestKey !== command.idempotencyKey.value)
+            throw failure
           apiError.value = failure instanceof ApiError ? failure : null
           errorMessage.value =
             failure instanceof ApiError ? failure.message : '限时权益操作失败，请稍后重试'

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '@/shared/errors/api-error'
 
-import type { LimitedEntitlementAdapter } from './limited-entitlement-adapter'
+import type { LimitedEntitlement, LimitedEntitlementAdapter } from './limited-entitlement-adapter'
 
 import { useLimitedEntitlementCommand } from './use-limited-entitlement-command'
 
@@ -26,6 +26,102 @@ const previewGrant = async () => ({
 })
 
 describe('limited entitlement command', () => {
+  it.each(['success', 'error'] as const)(
+    'does not restore old %s after a source refresh resets the pending command',
+    async (outcome) => {
+      let resolve!: (value: LimitedEntitlement) => void
+      let reject!: (reason: unknown) => void
+      const execute = vi.fn(
+        () =>
+          new Promise<LimitedEntitlement>((done, fail) => {
+            resolve = done
+            reject = fail
+          })
+      )
+      const controller = useLimitedEntitlementCommand({ execute, preview: previewGrant })
+      const draft = {
+        campaignVersionId: 'VERSION-B',
+        entitlementId: null,
+        operation: 'GRANT' as const,
+        userId: 'A',
+        expectedVersion: 1
+      }
+      controller.setDraft(draft)
+      await controller.preview()
+      const old = controller.submit('').catch((failure) => failure)
+      controller.setDraft({ ...draft, expectedVersion: 2 })
+      if (outcome === 'success') resolve({ ...(await previewGrant()).after, id: 'OLD-RECEIPT' })
+      else reject(new TypeError('old command failed'))
+      await old
+      expect(controller.commandState.value).toBe('idle')
+      expect(controller.result.value).toBeNull()
+      expect(controller.errorMessage.value).toBeNull()
+      expect(controller.canRetry.value).toBe(false)
+    }
+  )
+  it.each([
+    ['success', 'success'],
+    ['error', 'success'],
+    ['success', 'error'],
+    ['error', 'error']
+  ] as const)(
+    'isolates late A %s while B remains submitting until its own %s',
+    async (aOutcome, bOutcome) => {
+      let resolveA!: (value: unknown) => void
+      let rejectA!: (reason: unknown) => void
+      let resolveB!: (value: unknown) => void
+      let rejectB!: (reason: unknown) => void
+      const execute = vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve, reject) => {
+              resolveA = resolve
+              rejectA = reject
+            })
+        )
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve, reject) => {
+              resolveB = resolve
+              rejectB = reject
+            })
+        )
+      const controller = useLimitedEntitlementCommand({ execute, preview: previewGrant })
+      const draft = {
+        campaignVersionId: 'VERSION-B',
+        entitlementId: null,
+        operation: 'GRANT' as const,
+        userId: 'A'
+      }
+      controller.setDraft(draft)
+      await controller.preview()
+      const a = controller.submit('').catch((failure) => failure)
+      controller.setDraft({ ...draft, userId: 'B' })
+      await controller.preview()
+      const b = controller.submit('').catch((failure) => failure)
+      expect(controller.commandState.value).toBe('submitting')
+      if (aOutcome === 'success') resolveA({ id: 'A-RECEIPT' })
+      else rejectA(new TypeError('A failed late'))
+      await a
+      expect(controller.commandState.value).toBe('submitting')
+      expect(controller.result.value).toBeNull()
+      expect(controller.errorMessage.value).toBeNull()
+      expect(controller.apiError.value).toBeNull()
+      expect(controller.canRetry.value).toBe(false)
+      await expect(controller.submit('')).rejects.toThrow('操作正在提交')
+      expect(execute).toHaveBeenCalledTimes(2)
+      if (bOutcome === 'success') resolveB({ id: 'B-RECEIPT' })
+      else
+        rejectB(
+          new ApiError({ code: 'B_CONFLICT', message: 'B真实冲突', requestId: 'b', status: 409 })
+        )
+      await b
+      expect(controller.commandState.value).toBe(bOutcome === 'success' ? 'success' : 'error')
+      expect(controller.result.value).toEqual(bOutcome === 'success' ? { id: 'B-RECEIPT' } : null)
+      expect(controller.errorMessage.value).toBe(bOutcome === 'success' ? null : 'B真实冲突')
+    }
+  )
   it.each(['user', 'campaign'] as const)(
     'requires a fresh preview and a new request identity after changing the %s',
     async (field) => {
