@@ -532,6 +532,23 @@ for (const scenario of ['subset', 'paged', 'retry', 'stale', 'missing', 'incompl
     }
     if (scenario !== 'retry')
       await page.getByText('已核对本次发布范围与来源 / 版权备注', { exact: true }).click()
+    else {
+      await expect(page.locator('.metrics article').filter({ hasText: '已发布' })).toHaveText(
+        '1已发布'
+      )
+      await expect(
+        page.locator('.publication-failed-table').getByRole('cell', {
+          name: 'Eligible 1 content-1 · revision-1',
+          exact: true
+        })
+      ).toBeVisible()
+      await expect(
+        page.locator('.publication-failed-table').getByRole('cell', {
+          name: 'Eligible 0 content-0 · revision-0',
+          exact: true
+        })
+      ).toHaveCount(0)
+    }
     await page
       .getByRole('button', {
         name: scenario === 'retry' ? '仅重试 1 篇发布失败' : '确认发布 1 篇',
@@ -552,9 +569,17 @@ for (const scenario of ['subset', 'paged', 'retry', 'stale', 'missing', 'incompl
       publication_token: 'original-token',
       range_version: 7
     })
-    await expect(page.getByText('成功已保留', { exact: true })).toHaveCount(
-      scenario === 'retry' ? 2 : 1
+    await expect(page.getByText('成功已保留', { exact: true })).toBeVisible()
+    await expect(page.locator('.metrics article').filter({ hasText: '已发布' })).toHaveText(
+      `${scenario === 'retry' ? 2 : 1}已发布`
     )
+    if (scenario === 'retry') {
+      await expect(page.locator('.metrics article').filter({ hasText: '发布失败' })).toHaveText(
+        '0发布失败'
+      )
+      await expect(page.locator('.publication-failed-table .el-table__row')).toHaveCount(0)
+      await expect(page.getByRole('button', { name: /仅重试.*篇发布失败/ })).toHaveCount(0)
+    }
     if (scenario === 'paged') expect(memberPages).toContain(2)
   })
 }
