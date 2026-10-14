@@ -22,6 +22,8 @@ export interface LimitedEntitlementCommandController {
   result: DeepReadonly<Ref<LimitedEntitlement | null>>
   setDraft(draft: LimitedEntitlementCommandInput): void
   submit(reason: string): Promise<LimitedEntitlement>
+  retry(): Promise<LimitedEntitlement>
+  canRetry: Readonly<Ref<boolean>>
 }
 
 export const /**
@@ -40,6 +42,9 @@ export const /**
     const disabledReason = ref<string | null>(null)
     const previewResult = shallowRef<LimitedEntitlementPreview | null>(null)
     let previewGeneration = 0
+    let draftGeneration = 0
+    const canRetry = ref(false)
+    let submittedPreviewGeneration = -1
     const command = useIdempotentCommand<LimitedEntitlementCommandInput, LimitedEntitlement>(
       adapter.execute
     )
@@ -61,6 +66,10 @@ export const /**
           previous.reason === nextDraft.reason
         )
         if (sameOperation && previous?.expectedVersion === nextDraft.expectedVersion) return
+        if (!sameOperation) {
+          draftGeneration++
+          canRetry.value = false
+        }
         draft.value = { ...nextDraft }
         previewGeneration++
         previewResult.value = null
@@ -72,36 +81,68 @@ export const /**
         if (!sameOperation || command.state.value !== 'error') command.reset(nextDraft)
       }
 
-    const /**
-       * 使用管理员原因提交当前限时权益命令
-       *
-       * @param reason - 二次确认中填写的审计原因
-       * @returns 服务端持久化后的限时权益
-       */
-      submit = async (reason: string): Promise<LimitedEntitlement> => {
-        if (draft.value === null) throw new Error('请先填写限时权益操作信息')
-        if (command.state.value === 'submitting') throw new Error('操作正在提交')
-        if (!previewResult.value) throw new Error('请先获取服务端预览')
+    const /** 执行已准备请求并只接收当前对象的结果
+       * @param execute - 提交当前准备请求或原请求重试的执行入口
+       * @returns 服务端真实的持久化回执
+       */ executePrepared = async (
+        execute: () => Promise<LimitedEntitlement>
+      ): Promise<LimitedEntitlement> => {
+        const generation = draftGeneration
         errorMessage.value = null
         apiError.value = null
         disabledReason.value = null
+        canRetry.value = false
         try {
-          const nextResult = await command.submit({
-            ...draft.value,
-            reason: draft.value.operation !== 'GRANT' ? reason : reason.trim() || undefined,
-            expectedVersion: previewResult.value?.expectedVersion,
-            expectedFingerprint: previewResult.value?.expectedFingerprint
-          })
+          const nextResult = await execute()
+          if (generation !== draftGeneration) throw new Error('操作对象已变化，请核对当前选择')
           result.value = nextResult
           return nextResult
         } catch (failure) {
+          if (generation !== draftGeneration) throw failure
           apiError.value = failure instanceof ApiError ? failure : null
           errorMessage.value =
             failure instanceof ApiError ? failure.message : '限时权益操作失败，请稍后重试'
           disabledReason.value = mapDisabledReason(failure)
+          canRetry.value =
+            !(failure instanceof ApiError) || failure.status >= 500 || failure.status === 408
           if (failure instanceof ApiError && failure.status === 409) previewResult.value = null
           throw failure
         }
+      }
+
+    const /** 使用确认原因提交当前真实预览
+       * @param reason - 确认中填写的审计原因或选填备注
+       * @returns 服务端持久化后的限时权益
+       */ submit = async (reason: string): Promise<LimitedEntitlement> => {
+        if (draft.value === null) throw new Error('请先填写限时权益操作信息')
+        if (command.state.value === 'submitting') throw new Error('操作正在提交')
+        if (!previewResult.value) throw new Error('请先获取服务端预览')
+        const auditReason = draft.value.operation !== 'GRANT' ? reason : reason.trim() || undefined
+        if (
+          canRetry.value &&
+          auditReason !== command.input.value?.reason &&
+          submittedPreviewGeneration === previewGeneration
+        ) {
+          previewResult.value = null
+          throw new Error('备注已变化，请重新获取服务端预览')
+        }
+        submittedPreviewGeneration = previewGeneration
+        return executePrepared(() =>
+          command.submit({
+            ...draft.value!,
+            reason: auditReason,
+            expectedVersion: previewResult.value?.expectedVersion,
+            expectedFingerprint: previewResult.value?.expectedFingerprint
+          })
+        )
+      }
+
+    const /** 不重新预览或改写备注,按原请求和幂等键获取不确定操作的回执
+       * @returns 服务端原请求回执,不能依据已存在推测成功
+       */ retry = async (): Promise<LimitedEntitlement> => {
+        if (!canRetry.value || command.state.value === 'submitting')
+          throw new Error('没有可重试的原请求')
+        return executePrepared(() => command.retry())
       }
 
     const /** 请求服务端前后预览并屏蔽过期返回
@@ -126,6 +167,8 @@ export const /**
 
     return {
       preview,
+      retry,
+      canRetry: readonly(canRetry),
       previewResult: readonly(previewResult),
       commandState: command.state,
       disabledReason: readonly(disabledReason),

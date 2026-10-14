@@ -9,6 +9,73 @@ const viewports = [
   { width: 1280, height: 800 }
 ]
 
+test('A07 committed response loss replays the original request and shows its receipt', async ({
+  adminApi,
+  page
+}) => {
+  let writes = 0
+  let previewCalls = 0
+  const attempts: { body: unknown; key: string | undefined }[] = []
+  await loginAsAdmin(page)
+  await page.route('**/api/v1/admin/limited-entitlements/preview-grant', async (route) => {
+    previewCalls++
+    if (writes === 0) return route.fallback()
+    return route.fulfill({
+      status: 409,
+      json: {
+        code: 'LIMITED_ENTITLEMENT_EXISTS',
+        message: '用户已开通过该活动',
+        request_id: 'exists'
+      }
+    })
+  })
+  await page.route('**/api/v1/admin/limited-entitlements/commands/grant', async (route) => {
+    const request = route.request()
+    attempts.push({ body: request.postDataJSON(), key: request.headers()['x-idempotency-key'] })
+    if (writes === 0) {
+      writes++
+      return route.abort('failed')
+    }
+    expect(attempts[1]).toEqual(attempts[0])
+    return route.fulfill({
+      status: 201,
+      json: {
+        id: 'LIMITED-COMMITTED',
+        user_id: 'USER-1',
+        campaign_version_id: 'VERSION-1',
+        status: 'PENDING',
+        granted_at: '2026-10-14T10:00:00Z',
+        start_deadline: '2026-10-21T10:00:00Z',
+        activated_at: null,
+        expires_at: null,
+        remedy_count: 0,
+        version: 1
+      }
+    })
+  })
+  await navigateInApp(page, '/entitlements/limited/grant')
+  await page.getByPlaceholder('输入用户编号').fill('USER-1')
+  await page.getByRole('button', { name: '学习者 · 句芽号：JY000000000001', exact: true }).click()
+  await page.getByRole('combobox', { name: /开放中的活动/ }).click()
+  await page.getByRole('option', { name: /秋季限时学习/ }).click()
+  await page.getByRole('button', { name: '预览并开通' }).click()
+  const dialog = page.getByRole('dialog', { name: '确认开通限时权益' })
+  await dialog.getByLabel('操作备注').fill('运营试学')
+  await dialog.getByRole('button', { name: '确认开通限时权益', exact: true }).click()
+  await expect.poll(() => attempts.length).toBe(1)
+  await expect(page.locator('main')).not.toContainText('LIMITED-COMMITTED')
+  await page.getByRole('button', { name: '重试原开通请求', exact: true }).click()
+  await expect(page.locator('main')).toContainText('LIMITED-COMMITTED')
+  expect(previewCalls).toBe(1)
+  expect(writes).toBe(1)
+  expect(attempts).toHaveLength(2)
+  expect(attempts[0]?.body).toMatchObject({
+    reason: '运营试学',
+    expected_fingerprint: 'a'.repeat(64)
+  })
+  expect(adminApi.unexpectedRequests).toEqual([])
+})
+
 test('A09 timeout retry keeps the same fixed preview body and command key', async ({
   adminApi,
   page

@@ -84,8 +84,9 @@ const eligible = computed(
     detail.value?.id === form.campaignId &&
     detail.value?.status === 'OPEN' &&
     Boolean(detail.value.currentVersion) &&
-    (detail.value.currentVersion?.grantedUserCount ?? 0) <
-      (detail.value.currentVersion?.capacity ?? 0)
+    (detail.value.currentVersion?.capacity === null ||
+      (detail.value.currentVersion?.grantedUserCount ?? 0) <
+        (detail.value.currentVersion?.capacity ?? 0))
 )
 const /** 加载开放活动分页
    * @param page - 活动列表目标页码
@@ -141,12 +142,12 @@ watch(
 watch(
   [() => form.userId, detail],
   () => {
-    if (!detail.value || detail.value.id !== form.campaignId) return
+    const selected = detail.value?.id === form.campaignId ? detail.value : null
     controller.setDraft({
-      campaignVersionId: detail.value?.currentVersion?.id ?? null,
+      campaignVersionId: selected?.currentVersion?.id ?? null,
       entitlementId: null,
       operation: 'GRANT',
-      expectedVersion: detail.value.version,
+      expectedVersion: selected?.version,
       userId: form.userId.trim() || null
     })
   },
@@ -154,18 +155,26 @@ watch(
 )
 const /** 确认预览后的限时授予并保存选填说明
    * @param reason - 管理员在确认弹窗填写的选填备注
+   * @param retryOriginal - 是否按原请求及原备注取得不确定操作回执
    * @returns 授予完成的异步结果
-   */ confirm = async (reason: string): Promise<void> => {
-    if (!eligible.value) return
+   */ confirm = async (reason: string, retryOriginal = false): Promise<void> => {
+    if (retryOriginal ? !controller.canRetry.value : !eligible.value) return
+    const sequence = detailSequence
+    const userId = form.userId
+    const campaignId = form.campaignId
     try {
       commandError.value = null
       commandApiError.value = null
       hadConflict.value = false
-      await controller.submit(reason)
+      await (retryOriginal ? controller.retry() : controller.submit(reason))
+      if (sequence !== detailSequence || userId !== form.userId || campaignId !== form.campaignId)
+        return
       confirmVisible.value = false
       ElMessage.success('限时权益已开通')
       await selectCampaign(form.campaignId)
     } catch (failure) {
+      if (sequence !== detailSequence || userId !== form.userId || campaignId !== form.campaignId)
+        return
       confirmVisible.value = false
       hadConflict.value = failure instanceof ApiError && failure.status === 409
       commandError.value = controller.disabledReason.value ?? controller.errorMessage.value
@@ -233,7 +242,9 @@ void loadCampaigns()
           ><ElDescriptionsItem label="活动">{{ detail.name }}</ElDescriptionsItem
           ><ElDescriptionsItem label="容量"
             >{{ detail.currentVersion.grantedUserCount }} /
-            {{ detail.currentVersion.capacity }}</ElDescriptionsItem
+            {{
+              detail.currentVersion.capacity === null ? '不限' : detail.currentVersion.capacity
+            }}</ElDescriptionsItem
           ><ElDescriptionsItem label="启动窗口"
             >{{ detail.currentVersion.activationWindowDays }} 天</ElDescriptionsItem
           ><ElDescriptionsItem label="学习时长"
@@ -298,7 +309,11 @@ void loadCampaigns()
               <strong>容量</strong
               ><span>{{
                 detail?.currentVersion
-                  ? detail.currentVersion.grantedUserCount + ' / ' + detail.currentVersion.capacity
+                  ? detail.currentVersion.grantedUserCount +
+                    ' / ' +
+                    (detail.currentVersion.capacity === null
+                      ? '不限'
+                      : detail.currentVersion.capacity)
                   : '请选择活动后核对容量'
               }}</span>
             </div>
@@ -317,6 +332,12 @@ void loadCampaigns()
           <p>超过启动窗口仍未开始时按活动规则处理，可恢复或关闭。</p>
         </aside>
         <div class="submit-row">
+          <ElButton
+            v-if="controller.canRetry.value"
+            :loading="controller.commandState.value === 'submitting'"
+            @click="confirm('', true)"
+            >重试原开通请求</ElButton
+          >
           <ElButton
             type="primary"
             class="submit"

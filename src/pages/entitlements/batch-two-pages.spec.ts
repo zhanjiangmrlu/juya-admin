@@ -112,6 +112,115 @@ async function setup(component: Component, path = '/test') {
 describe('batch two page regressions', () => {
   afterEach(() => vi.unstubAllGlobals())
 
+  it('replays the prepared grant after committed response loss without re-previewing or duplicating the write', async () => {
+    let committed = false
+    let writes = 0
+    let previewCalls = 0
+    const requests: { body: unknown; key: string | null }[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init: RequestInit) => {
+        if (url.includes('/users/')) return json(user)
+        if (url.endsWith('/preview-grant')) {
+          previewCalls++
+          return committed
+            ? json(
+                {
+                  code: 'LIMITED_ENTITLEMENT_EXISTS',
+                  message: '用户已开通过该活动',
+                  request_id: 'exists'
+                },
+                409
+              )
+            : json(grantPreview('VERSION-A'))
+        }
+        if (url.endsWith('/commands/grant')) {
+          const request = {
+            body: JSON.parse(String(init.body)),
+            key: new Headers(init.headers).get('X-Idempotency-Key')
+          }
+          requests.push(request)
+          if (!committed) {
+            committed = true
+            writes++
+            throw new TypeError('committed response lost')
+          }
+          expect(request).toEqual(requests[0])
+          return json({ ...grantPreview('VERSION-A').after, id: 'LIMITED-COMMITTED' }, 201)
+        }
+        if (url.endsWith('/A')) return json(campaign('A'))
+        return json({ items: [campaign('A')], page: 1, page_size: 20, total: 1 })
+      })
+    )
+    const wrapper = await setup(LimitedGrantPage)
+    await flushPromises()
+    wrapper.findComponent(EntitlementUserSelector).vm.$emit('update:modelValue', 'USER-1')
+    wrapper.findComponent(ElSelect).vm.$emit('update:modelValue', 'A')
+    await flushPromises()
+    await wrapper.find('.submit').trigger('click')
+    await flushPromises()
+    wrapper.findComponent(EntitlementPreviewDialog).vm.$emit('confirm', '运营试学')
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('LIMITED-COMMITTED')
+    const retryButton = wrapper
+      .findAll('button')
+      .find((button) => button.text() === '重试原开通请求')
+    await (retryButton ?? wrapper.find('.submit')).trigger('click')
+    await flushPromises()
+    expect(previewCalls).toBe(1)
+    expect(requests).toHaveLength(2)
+    expect(requests[1]).toEqual(requests[0])
+    expect(requests[0]?.body).toMatchObject({
+      reason: '运营试学',
+      expected_fingerprint: 'a'.repeat(64)
+    })
+    expect(writes).toBe(1)
+    expect(wrapper.text()).toContain('LIMITED-COMMITTED')
+    expect(retryButton).toBeDefined()
+    wrapper.unmount()
+  })
+
+  it.each([null, 2])(
+    'treats null capacity as unlimited and finite full capacity as unavailable (%s)',
+    async (capacity) => {
+      let previewCalls = 0
+      const selected = {
+        ...campaign('A'),
+        current_version: { ...campaign('A').current_version, capacity, granted_user_count: 2 }
+      }
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string) => {
+          if (url.includes('/users/')) return json(user)
+          if (url.endsWith('/preview-grant')) {
+            previewCalls++
+            return json(grantPreview('VERSION-A'))
+          }
+          if (url.endsWith('/A')) return json(selected)
+          return json({ items: [selected], page: 1, page_size: 20, total: 1 })
+        })
+      )
+      const wrapper = await setup(LimitedGrantPage)
+      await flushPromises()
+      wrapper.findComponent(EntitlementUserSelector).vm.$emit('update:modelValue', 'USER-1')
+      wrapper.findComponent(ElSelect).vm.$emit('update:modelValue', 'A')
+      await flushPromises()
+      const button = wrapper.find('.submit')
+      expect(button.attributes('disabled') !== undefined).toBe(capacity !== null)
+      if (capacity === null) {
+        expect(wrapper.text()).toMatch(/2\s*\/\s*不限/)
+        await button.trigger('click')
+        await flushPromises()
+        expect(previewCalls).toBe(1)
+        expect(wrapper.findComponent(EntitlementPreviewDialog).props('modelValue')).toBe(true)
+      } else {
+        await button.trigger('click')
+        expect(previewCalls).toBe(0)
+      }
+      wrapper.unmount()
+    }
+  )
+
   it('does not promote cached campaign details after a list-only retry following grant conflict', async () => {
     let detailRequests = 0
     let listRequests = 0
