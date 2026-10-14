@@ -26,10 +26,16 @@ const failed = computed(() =>
           row.stage_id === reference.stage_id &&
           row.current &&
           row.status === 'FAILED' &&
+          row.error_code !== 'PROVIDER_OUTCOME_UNKNOWN' &&
           row.retryable
       )
       return item && task ? [{ item, task }] : []
     })
+)
+const paidUnknown = computed(() =>
+  props.items.some((item) =>
+    item.tasks?.some((task) => task.current && task.error_code === 'PROVIDER_OUTCOME_UNKNOWN')
+  )
 )
 const plans = computed(() => [...(props.usage?.planned || []), ...(props.usage?.potential || [])])
 const phaseLabels: Record<string, string> = {
@@ -81,7 +87,7 @@ defineExpose({ failedOpened })
               : row.counts.failed
                 ? '可查看失败阶段'
                 : row.counts.unknown
-                  ? '缺少完整证据'
+                  ? '待人工核实'
                   : row.counts.review_required
                     ? '待人工核对'
                     : '已有明确结果'
@@ -89,6 +95,12 @@ defineExpose({ failedOpened })
         >
       </ElTable></AdminPanel
     >
+    <ElAlert
+      v-if="paidUnknown"
+      title="付费调用结果待人工核实，不可重新提交"
+      type="info"
+      :closable="false"
+    />
     <AdminPanel v-if="usage" title="本批用量记录">
       <p>
         正文范围：{{ usage.source_text_count }} 篇可读取，{{

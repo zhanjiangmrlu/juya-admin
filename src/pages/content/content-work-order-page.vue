@@ -230,6 +230,40 @@ const /** 执行命令并更新当前步骤
     if (ok) await load()
     return ok && generation === refreshedGeneration && orderId === id.value && view === tab.value
   }
+const /** 续办原服务端回执后重读当前视图的完整分区
+   * @param commandId - 当前工作单实际挂起的原命令编号
+   */ resume = async (commandId: string): Promise<void> => {
+    if (
+      busy.value ||
+      !order.value ||
+      order.value.work_order_id !== id.value ||
+      !order.value.pending_commands?.some((pending) => pending.command_id === commandId)
+    )
+      return
+    const orderId = id.value,
+      path = route.fullPath,
+      token = generation
+    error.value = ''
+    await model.resume(commandId)
+    if (token !== generation || orderId !== id.value || path !== route.fullPath) return
+    const receiptError = error.value
+    const refreshedGeneration = generation + 1
+    busy.value = true
+    try {
+      await load()
+      if (
+        generation === refreshedGeneration &&
+        orderId === id.value &&
+        path === route.fullPath &&
+        receiptError &&
+        !error.value
+      )
+        error.value = receiptError
+    } finally {
+      if (generation === refreshedGeneration && orderId === id.value && path === route.fullPath)
+        busy.value = false
+    }
+  }
 const /** 自动整理本批，推荐由管理员独立选择
    * @param recommendations - 是否包含可选推荐
    * @returns 是否已接受当前整理操作
@@ -401,7 +435,14 @@ const /** 重试真正失败且可重试的原阶段
    * @param task - 服务端当前阶段事实
    */
   retry = async (item: WorkItem, task: S['WorkTask']): Promise<void> => {
-    if (busy.value || !task.current || task.status !== 'FAILED' || !task.retryable) return
+    if (
+      busy.value ||
+      !task.current ||
+      task.status !== 'FAILED' ||
+      task.error_code === 'PROVIDER_OUTCOME_UNKNOWN' ||
+      !task.retryable
+    )
+      return
     if (task.stage.startsWith('PUBLICATION_RANGE_')) {
       go('publication')
       return
@@ -576,7 +617,7 @@ watch(
           :items="allItems"
           :busy="busy || !membersReady"
           @edit="edit"
-          @resume="model.resume"
+          @resume="resume"
         />
       </template>
       <WorkOrderTasks
@@ -588,7 +629,7 @@ watch(
         :items="allItems"
         :busy="busy || !membersReady"
         @retry="retry"
-        @resume="model.resume"
+        @resume="resume"
       />
       <WorkOrderImport
         v-else-if="tab === 'import' && preview"
@@ -608,7 +649,7 @@ watch(
           v-for="pending in order.pending_commands"
           :key="pending.command_id"
           :disabled="busy || Date.parse(pending.retry_at) > Date.now()"
-          @click="model.resume(pending.command_id)"
+          @click="resume(pending.command_id)"
           >继续核实结果</ElButton
         ></AdminPanel
       >
