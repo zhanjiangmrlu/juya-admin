@@ -599,7 +599,11 @@ test('正式词汇表四阶段上传按导入ID确认缺图与差异，异常行
   completed = true
   await page.getByRole('button', { name: '刷新导入结果', exact: true }).click()
   await expect(
-    page.getByRole('heading', { name: '词汇图包已导入', exact: true, level: 1 })
+    page.getByRole('heading', { name: '词汇图包导入结果', exact: true, level: 1 })
+  ).toBeVisible()
+  await expect(panel.getByText('已完成', { exact: true })).toBeVisible()
+  await expect(
+    panel.getByRole('heading', { name: '2 条词汇资料已保存', exact: true })
   ).toBeVisible()
   await page.locator('.page-scrollbar-wrap').evaluate((node) => {
     node.scrollTop = 0

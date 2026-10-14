@@ -35,12 +35,16 @@ test('两种入口保持一次分类选择且短文不显示词汇图包模块',
 })
 
 for (const selection of [
-  { stage: 'SUCCESS', key: 'failed-key', conflict: true },
-  { stage: 'FAILED', key: 'success-key', conflict: true },
-  { stage: 'SUCCESS', key: 'success-key', conflict: false },
-  { stage: 'FAILED', key: 'failed-key', conflict: false }
+  { source: 'materials', stage: 'SUCCESS', key: 'failed-key', conflict: true },
+  { source: 'materials', stage: 'FAILED', key: 'success-key', conflict: true },
+  { source: 'materials', stage: 'SUCCESS', key: 'success-key', conflict: false },
+  { source: 'materials', stage: 'FAILED', key: 'failed-key', conflict: false },
+  { source: 'vocabulary', stage: 'SUCCESS', key: 'failed-key', conflict: true },
+  { source: 'vocabulary', stage: 'FAILED', key: 'success-key', conflict: true },
+  { source: 'vocabulary', stage: 'SUCCESS', key: 'success-key', conflict: false },
+  { source: 'vocabulary', stage: 'FAILED', key: 'failed-key', conflict: false }
 ]) {
-  test(`I2 双身份恢复 ${selection.stage}/${selection.key} ${selection.conflict ? '冲突保持未知' : '一致精确恢复'}`, async ({
+  test(`I2 双身份恢复 ${selection.source} ${selection.stage}/${selection.key} ${selection.conflict ? '冲突保持未知' : '一致精确恢复'}`, async ({
     adminApi,
     page
   }) => {
@@ -58,8 +62,21 @@ for (const selection of [
           series_id: 'SERIES-1',
           content_type: 'word_card',
           manifest: {
-            has_vocabulary_table: false,
-            vocabulary_rows: [],
+            has_vocabulary_table: selection.source === 'vocabulary',
+            vocabulary_rows:
+              selection.source === 'vocabulary'
+                ? ['SUCCESS-ENTRY', 'FAILED-ENTRY'].map((id, index) => ({
+                    row_no: index + 2,
+                    import_entry_id: id,
+                    entry_type: 'word',
+                    english: index ? 'coffee' : 'bank',
+                    meaning_zh: index ? '咖啡' : '河岸',
+                    image_path: 'word.png',
+                    pronunciation_path: '',
+                    operation: 'CREATE',
+                    issues: []
+                  }))
+                : [],
             resources: [
               {
                 path: 'word.png',
@@ -75,7 +92,22 @@ for (const selection of [
                 request: {
                   revision_id: 'SUCCESS-REV',
                   expected_version: 3,
-                  bindings: [{ path: 'word.png', role: 'WORD_IMAGE', entry_id: 'SUCCESS-ENTRY' }]
+                  bindings:
+                    selection.source === 'vocabulary'
+                      ? []
+                      : [{ path: 'word.png', role: 'WORD_IMAGE', entry_id: 'SUCCESS-ENTRY' }],
+                  ...(selection.source === 'vocabulary'
+                    ? {
+                        vocabulary_preview_hash: 'e'.repeat(64),
+                        vocabulary_selections: [
+                          {
+                            import_entry_id: 'SUCCESS-ENTRY',
+                            no_image_confirmed: false,
+                            difference_confirmed: false
+                          }
+                        ]
+                      }
+                    : {})
                 }
               },
               FAILED: {
@@ -83,12 +115,42 @@ for (const selection of [
                 request: {
                   revision_id: 'FAILED-REV',
                   expected_version: 7,
-                  bindings: [{ path: 'word.png', role: 'WORD_IMAGE', entry_id: 'FAILED-ENTRY' }]
+                  bindings:
+                    selection.source === 'vocabulary'
+                      ? []
+                      : [{ path: 'word.png', role: 'WORD_IMAGE', entry_id: 'FAILED-ENTRY' }],
+                  ...(selection.source === 'vocabulary'
+                    ? {
+                        vocabulary_preview_hash: 'e'.repeat(64),
+                        vocabulary_selections: [
+                          {
+                            import_entry_id: 'FAILED-ENTRY',
+                            no_image_confirmed: false,
+                            difference_confirmed: false
+                          }
+                        ]
+                      }
+                    : {})
                 }
               }
             },
             binding_results: {
-              SUCCESS: { status: 'BOUND', revision_id: 'SUCCESS-REV', edit_version: 4 }
+              SUCCESS: {
+                status: 'BOUND',
+                revision_id: 'SUCCESS-REV',
+                edit_version: 4,
+                ...(selection.source === 'vocabulary'
+                  ? {
+                      vocabulary_results: [
+                        {
+                          import_entry_id: 'SUCCESS-ENTRY',
+                          entry_id: 'WORD-SAVED',
+                          status: 'CREATED'
+                        }
+                      ]
+                    }
+                  : {})
+              }
             },
             binding_errors: { FAILED: { error_code: 'MATERIAL_IMAGE_INVALID' } }
           }
@@ -96,7 +158,7 @@ for (const selection of [
       })
     })
     await loginAsAdmin(page)
-    const path = `/content/import?source=materials&series_id=SERIES-1&content_type=word_card&material_batch_id=DUAL-RECEIPTS&material_stage_id=${selection.stage}&material_bind_key=${selection.key}&material_phase=result`
+    const path = `/content/import?source=${selection.source}&series_id=SERIES-1&content_type=word_card&material_batch_id=DUAL-RECEIPTS&material_stage_id=${selection.stage}&material_bind_key=${selection.key}&material_phase=result`
     await navigateInApp(page, path)
     if (selection.conflict) {
       await expect(page.getByText('已完成', { exact: true })).toHaveCount(0)
@@ -118,6 +180,10 @@ for (const selection of [
     } else if (selection.stage === 'SUCCESS') {
       await expect(page.getByText('已完成', { exact: true })).toBeVisible()
       await expect(page.getByText('SUCCESS-ENTRY', { exact: true })).toBeVisible()
+      if (selection.source === 'vocabulary')
+        await expect(
+          page.getByRole('heading', { name: '1 条词汇资料已保存', exact: true })
+        ).toBeVisible()
       await expect(page.getByRole('button', { name: '重试本次失败绑定', exact: true })).toHaveCount(
         0
       )
@@ -129,10 +195,108 @@ for (const selection of [
         page.getByRole('button', { name: '重试本次失败绑定', exact: true })
       ).toBeEnabled()
     }
+    if (selection.source === 'vocabulary') {
+      await expect(
+        page.getByRole('heading', { name: '词汇图包已导入', exact: true, level: 1 })
+      ).toHaveCount(0)
+      await expect(
+        page.getByRole('heading', {
+          name: '词汇图包导入结果',
+          exact: true,
+          level: 1
+        })
+      ).toBeVisible()
+      await expect(page.getByText(/该包未包含词汇表.xlsx/)).toHaveCount(0)
+      if (selection.stage === 'SUCCESS') {
+        await page.setViewportSize({ width: 1440, height: 900 })
+        await page.locator('.page-scrollbar-wrap').evaluate((node) => {
+          node.scrollTop = 0
+        })
+        await page.screenshot({
+          animations: 'disabled',
+          path: `D:/个人/juya/juya-admin-api/.superpowers/sdd/2026-10-14-v15-confirmed-deviation-remediation/product-screenshots/task5-fix2-vocabulary-${selection.conflict ? 'conflict' : 'success'}.png`
+        })
+      }
+    }
     expect(posts).toBe(0)
     expect(adminApi.unexpectedRequests).toEqual([])
   })
 }
+
+test('B1 词汇待处理回执不由导航阶段声称执行或完成', async ({ adminApi, page }) => {
+  let posts = 0
+  await page.route('**/api/v1/admin/content-materials/VOCAB-PENDING**', (route) => {
+    if (route.request().method() === 'POST') {
+      posts++
+      return route.abort()
+    }
+    return route.fulfill({
+      json: {
+        batch_id: 'VOCAB-PENDING',
+        status: 'PENDING',
+        input_hash: 'c'.repeat(64),
+        series_id: 'SERIES-1',
+        content_type: 'word_card',
+        manifest: {
+          has_vocabulary_table: true,
+          vocabulary_rows: [
+            {
+              row_no: 2,
+              import_entry_id: 'PENDING-WORD',
+              entry_type: 'word',
+              english: 'bank',
+              meaning_zh: '河岸',
+              image_path: '',
+              pronunciation_path: '',
+              operation: 'CREATE',
+              issues: []
+            }
+          ],
+          resources: [],
+          binding_requests: {
+            PENDING: {
+              key: 'pending-key',
+              request: {
+                revision_id: 'PENDING-REV',
+                expected_version: 3,
+                bindings: [],
+                vocabulary_preview_hash: 'e'.repeat(64),
+                vocabulary_selections: [
+                  {
+                    import_entry_id: 'PENDING-WORD',
+                    no_image_confirmed: true,
+                    difference_confirmed: false
+                  }
+                ]
+              }
+            }
+          },
+          binding_results: {},
+          binding_errors: {}
+        }
+      }
+    })
+  })
+  await loginAsAdmin(page)
+  await navigateInApp(
+    page,
+    '/content/import?source=vocabulary&material_batch_id=VOCAB-PENDING&material_stage_id=PENDING&material_bind_key=pending-key&material_phase=result'
+  )
+  await expect(page.getByText('等待处理结果', { exact: true })).toBeVisible()
+  await expect(page.getByText('PENDING-WORD', { exact: true })).toBeVisible()
+  await expect(page.getByText('已完成', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: /已导入|处理中/, level: 1 })).toHaveCount(0)
+  await expect(
+    page.getByRole('heading', { name: '词汇图包导入结果', exact: true, level: 1 })
+  ).toBeVisible()
+  await expect(page).toHaveURL(/material_phase=processing/)
+  await expect(page).toHaveURL(/material_stage_id=PENDING/)
+  await expect(page).toHaveURL(/material_bind_key=pending-key/)
+  await expect(page.getByRole('button', { name: '重试本次失败绑定', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '续办原绑定', exact: true })).toHaveCount(0)
+  expect(posts).toBe(0)
+  expect(adminApi.unexpectedRequests).toEqual([])
+})
 
 test('丢失回执按原幂等键恢复，旧成功阶段不被其他失败或最新阶段替代', async ({ adminApi, page }) => {
   let posts = 0

@@ -96,8 +96,9 @@ const pageTitle = computed(() => {
       upload: '上传词汇图包',
       validation: '图包校验',
       preview: '图文对应预览',
-      processing: '词汇图包导入处理中',
-      result: '词汇图包已导入'
+      // 导航阶段不证明执行或完成状态，由面板的实际绑定回执呈现
+      processing: '词汇图包导入结果',
+      result: '词汇图包导入结果'
     }
     return titles[String(route.query.material_phase || 'upload')] || titles.upload
   }
