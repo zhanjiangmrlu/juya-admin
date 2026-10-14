@@ -62,7 +62,7 @@ const preparationItems = computed(() =>
   allItems.value.filter(
     (item) =>
       item.current_draft &&
-      !item.published &&
+      item.production_status !== 'published' &&
       item.issues?.some((issue) => issue.code === 'CONTENT_PREPARATION_REQUIRED')
   )
 )

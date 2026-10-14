@@ -151,6 +151,113 @@ test('关键编辑后开始校对只准备真实待准备成员，接受整理�
   expect(adminApi.unexpectedRequests).toEqual([])
 })
 
+for (const normalCount of [0, 1]) {
+  test(`已发布内容的新草稿必要准备不被生命周期排除，混合正常成员${normalCount}仍先准备`, async ({
+    adminApi,
+    page
+  }) => {
+    const requests = await mockWorkOrder(page)
+    const counts = {
+      ...order.counts,
+      total: 2 + normalCount,
+      normal: normalCount,
+      review_required: 1,
+      published: 2,
+      failed: 0
+    }
+    const preparationIssue = {
+      id: 'prepare-new-draft',
+      code: 'CONTENT_PREPARATION_REQUIRED',
+      message: '新草稿正文或素材尚未准备完成'
+    }
+    await page.route('**/work-orders/order', (route) =>
+      route.fulfill({ json: { ...order, counts } })
+    )
+    await page.route('**/work-orders/order/items?**', (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            {
+              ...item,
+              lifecycle_status: 'PUBLISHED',
+              published: true,
+              current_draft: true,
+              production_status: 'review_required',
+              issues: [preparationIssue],
+              tasks: [{ stage: 'AUTO_AUDIO', current: false, status: 'SUCCEEDED' }]
+            },
+            {
+              ...item,
+              item_id: 'unchanged-published',
+              lifecycle_status: 'PUBLISHED',
+              published: true,
+              current_draft: true,
+              production_status: 'published',
+              issues: [preparationIssue]
+            },
+            ...(normalCount
+              ? [
+                  {
+                    ...item,
+                    item_id: 'normal-other',
+                    current_draft: true,
+                    production_status: 'normal',
+                    issues: []
+                  }
+                ]
+              : [])
+          ],
+          total: counts.total,
+          counts,
+          page: 1,
+          page_size: 100,
+          version: 1,
+          collection_hash: 'published-lifecycle-new-draft'
+        }
+      })
+    )
+    await page.route('**/work-orders/order/organize', (route) => {
+      requests.push({
+        path: '/organize',
+        method: 'POST',
+        body: route.request().postDataJSON(),
+        headers: route.request().headers()
+      })
+      return route.fulfill({
+        json: {
+          command_id: 'prepare-new-draft',
+          status: 'RUNNING',
+          work_order_id: 'order',
+          version: 1
+        }
+      })
+    })
+    await loginAsAdmin(page)
+    await navigateInApp(page, '/content/work-orders/order')
+    const start = page.getByRole('button', { name: '开始校对', exact: true })
+    await expect(start).toBeEnabled()
+    await start.click()
+    await expect.poll(() => requests.filter((row) => row.path.endsWith('/organize')).length).toBe(1)
+    expect(
+      requests
+        .filter((row) => row.method === 'POST')
+        .map((row) => ({ path: row.path, body: row.body }))
+    ).toEqual([
+      {
+        path: '/organize',
+        body: {
+          expected_version: 1,
+          scope: 'selected',
+          selected_item_ids: ['one'],
+          include_recommendations: false
+        }
+      }
+    ])
+    await expect(page).not.toHaveURL(/view=sampling/)
+    expect(adminApi.unexpectedRequests).toEqual([])
+  })
+}
+
 test('场景词汇资料入口只编辑本篇稳定词条且不自动确认原文', async ({ adminApi, page }) => {
   const content = {
     ...structuredClone(scene),
