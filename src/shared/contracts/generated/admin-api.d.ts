@@ -2112,23 +2112,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/admin/limited-entitlements/preview-grant': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Preview Grant */
-    post: operations['preview_grant_api_v1_admin_limited_entitlements_preview_grant_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/api/v1/admin/limited-entitlements/{entitlement_id}': {
     parameters: {
       query?: never
@@ -3199,6 +3182,40 @@ export interface paths {
     put?: never
     /** Cleanup User */
     post: operations['cleanup_user_internal_v1_users__user_id__deletion_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/limited-entitlements/preview-grant': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Preview Grant */
+    post: operations['preview_grant_api_v1_admin_limited_entitlements_preview_grant_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/admin/content-production/work-orders/{work_order_id}/phases': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Phases */
+    get: operations['phases_api_v1_admin_content_production_work_orders__work_order_id__phases_get']
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -5131,87 +5148,16 @@ export interface components {
       /** Voice */
       voice: string
     }
-    /** GrantPreviewRequest */
-    GrantPreviewRequest: {
-      /** Campaign Version Id */
-      campaign_version_id: string
-      /** User Id */
-      user_id: string
-    }
-    /** GrantPreviewResponse */
-    GrantPreviewResponse: {
-      /** Activation Window Days */
-      activation_window_days: number
-      /**
-       * Actual Operation
-       * @constant
-       */
-      actual_operation: 'GRANT'
-      after: components['schemas']['GrantPreviewState']
-      /** Before */
-      before?: null
-      /** Campaign Name */
-      campaign_name: string | null
-      /** Capacity */
-      capacity: number | null
-      /** Duration Days */
-      duration_days: number
-      /** Expected Fingerprint */
-      expected_fingerprint: string
-      /** Expected Version */
-      expected_version: number
-      /** Granted User Count */
-      granted_user_count: number
-      /**
-       * Previewed At
-       * Format: date-time
-       */
-      previewed_at: string
-      /** Scene Ids */
-      scene_ids: string[]
-    }
-    /** GrantPreviewState */
-    GrantPreviewState: {
-      /** Activated At */
-      activated_at?: null
-      /** Campaign Version Id */
-      campaign_version_id: string
-      /** Expires At */
-      expires_at?: null
-      /**
-       * Granted At
-       * Format: date-time
-       */
-      granted_at: string
-      /** Id */
-      id?: null
-      /** Remedy Count */
-      remedy_count: number
-      /**
-       * Start Deadline
-       * Format: date-time
-       */
-      start_deadline: string
-      /**
-       * Status
-       * @constant
-       */
-      status: 'PENDING'
-      /** User Id */
-      user_id: string
-      /** Version */
-      version: number
-    }
     /** GrantRequest */
     GrantRequest: {
       /** Campaign Version Id */
       campaign_version_id: string
+      /** User Id */
+      user_id: string
       /** Expected Fingerprint */
       expected_fingerprint?: string | null
       /** Reason */
       reason?: string | null
-      /** User Id */
-      user_id: string
     }
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -5275,6 +5221,8 @@ export interface components {
       status: string
       /** Work Order Id */
       work_order_id: string
+      /** Unreferenced Files */
+      unreferenced_files?: string[]
     }
     /** ImportPreviewItem */
     ImportPreviewItem: {
@@ -5310,6 +5258,7 @@ export interface components {
       } | null
       /** Status */
       status: string
+      result?: components['schemas']['ImportItemResult'] | null
     }
     /** InternalNoteRequest */
     InternalNoteRequest: {
@@ -5327,6 +5276,13 @@ export interface components {
       page_size: number
       /** Total */
       total: number
+      /** Collection Hash */
+      collection_hash?: string | null
+      /**
+       * Version
+       * @default 1
+       */
+      version: number
     }
     JsonValue: unknown
     /** LexiconWriteRequest */
@@ -6646,6 +6602,9 @@ export interface components {
       stage_id: string
       /** Status */
       status: string
+      list_price_estimate?: components['schemas']['ListPriceEstimate'] | null
+      /** Provider Region */
+      provider_region?: string | null
     }
     /** UserContactResponse */
     UserContactResponse: {
@@ -6856,6 +6815,8 @@ export interface components {
       resolved: boolean
       /** Source Hash */
       source_hash?: string | null
+      /** Severity */
+      severity?: string | null
     }
     /** WorkItem */
     WorkItem: {
@@ -6999,6 +6960,10 @@ export interface components {
       title_zh: string
       /** Work Order Id */
       work_order_id: string
+      /** Phase Checks */
+      phase_checks?: {
+        [key: string]: boolean | null
+      }
     }
     /** WorkOrder */
     WorkOrder: {
@@ -7059,6 +7024,46 @@ export interface components {
       unknown_count: number
       /** Work Order Id */
       work_order_id: string
+      /**
+       * Audio Reference Count
+       * @default 0
+       */
+      audio_reference_count: number
+      /**
+       * Audio Unknown Count
+       * @default 0
+       */
+      audio_unknown_count: number
+      /**
+       * Estimation Scope
+       * @default associated_attempts_and_current_planned_candidates
+       */
+      estimation_scope: string
+      /** Known List Price Subtotal Cny */
+      known_list_price_subtotal_cny?: string | null
+      /** Measured Audio Ms */
+      measured_audio_ms?: number | null
+      /** Planned */
+      planned?: components['schemas']['PlannedUsage'][]
+      /** Potential */
+      potential?: components['schemas']['PlannedUsage'][]
+      /**
+       * Source Text Count
+       * @default 0
+       */
+      source_text_count: number
+      /** Source Text Utf8 Bytes */
+      source_text_utf8_bytes?: number | null
+      /**
+       * Source Unknown Count
+       * @default 0
+       */
+      source_unknown_count: number
+      /**
+       * Unpriced Attempt Count
+       * @default 0
+       */
+      unpriced_attempt_count: number
     }
     /** WorkTask */
     WorkTask: {
@@ -7154,6 +7159,224 @@ export interface components {
       resource_version?: string | null
       /** User Id */
       user_id: string
+    }
+    /** GrantPreviewRequest */
+    GrantPreviewRequest: {
+      /** Campaign Version Id */
+      campaign_version_id: string
+      /** User Id */
+      user_id: string
+    }
+    /** GrantPreviewResponse */
+    GrantPreviewResponse: {
+      /** Activation Window Days */
+      activation_window_days: number
+      /**
+       * Actual Operation
+       * @constant
+       */
+      actual_operation: 'GRANT'
+      after: components['schemas']['GrantPreviewState']
+      /** Before */
+      before?: null
+      /** Campaign Name */
+      campaign_name: string | null
+      /** Capacity */
+      capacity: number | null
+      /** Duration Days */
+      duration_days: number
+      /** Expected Fingerprint */
+      expected_fingerprint: string
+      /** Expected Version */
+      expected_version: number
+      /** Granted User Count */
+      granted_user_count: number
+      /**
+       * Previewed At
+       * Format: date-time
+       */
+      previewed_at: string
+      /** Scene Ids */
+      scene_ids: string[]
+    }
+    /** GrantPreviewState */
+    GrantPreviewState: {
+      /** Activated At */
+      activated_at?: null
+      /** Campaign Version Id */
+      campaign_version_id: string
+      /** Expires At */
+      expires_at?: null
+      /**
+       * Granted At
+       * Format: date-time
+       */
+      granted_at: string
+      /** Id */
+      id?: null
+      /** Remedy Count */
+      remedy_count: number
+      /**
+       * Start Deadline
+       * Format: date-time
+       */
+      start_deadline: string
+      /**
+       * Status
+       * @constant
+       */
+      status: 'PENDING'
+      /** User Id */
+      user_id: string
+      /** Version */
+      version: number
+    }
+    /** ImportItemResult */
+    ImportItemResult: {
+      /** Content Id */
+      content_id?: string | null
+      /** Error Code */
+      error_code?: string | null
+      /** Item Id */
+      item_id: string
+      /** Operation */
+      operation?: string | null
+      /** Revision Id */
+      revision_id?: string | null
+      /** Status */
+      status: string
+    }
+    /** ListPriceEstimate */
+    ListPriceEstimate: {
+      /** Amount Cny */
+      amount_cny?: string | null
+      /** Assumptions */
+      assumptions?: string[]
+      /**
+       * Basis
+       * @default official_list_price
+       * @constant
+       */
+      basis: 'official_list_price'
+      /**
+       * Currency
+       * @default CNY
+       * @constant
+       */
+      currency: 'CNY'
+      /**
+       * Price Version
+       * @default aliyun-list-cn-beijing-2026-10-14
+       */
+      price_version: string
+      /** Sources */
+      sources?: string[]
+      /** Unknown Reason */
+      unknown_reason?: string | null
+    }
+    /** PhaseCounts */
+    PhaseCounts: {
+      /**
+       * Cancelled
+       * @default 0
+       */
+      cancelled: number
+      /**
+       * Failed
+       * @default 0
+       */
+      failed: number
+      /**
+       * Not Applicable
+       * @default 0
+       */
+      not_applicable: number
+      /**
+       * Processing
+       * @default 0
+       */
+      processing: number
+      /**
+       * Review Required
+       * @default 0
+       */
+      review_required: number
+      /**
+       * Succeeded
+       * @default 0
+       */
+      succeeded: number
+      /**
+       * Total
+       * @default 0
+       */
+      total: number
+      /**
+       * Unknown
+       * @default 0
+       */
+      unknown: number
+    }
+    /** PhaseRetry */
+    PhaseRetry: {
+      /** Item Id */
+      item_id: string
+      /** Stage Id */
+      stage_id: string
+    }
+    /** PlannedUsage */
+    PlannedUsage: {
+      /** Candidate Id */
+      candidate_id: string | null
+      /** Input Tokens Upper Bound */
+      input_tokens_upper_bound?: number | null
+      /** Item Id */
+      item_id: string
+      /** Kind */
+      kind: string
+      list_price_estimate: components['schemas']['ListPriceEstimate']
+      /** Measured Audio Ms */
+      measured_audio_ms?: number | null
+      /** Model */
+      model: string | null
+      /** Output Tokens Upper Bound */
+      output_tokens_upper_bound?: number | null
+      /**
+       * Planning Status
+       * @default planned
+       * @enum {string}
+       */
+      planning_status: 'planned' | 'potential'
+      /** Provider Region */
+      provider_region: string | null
+    }
+    /** WorkOrderPhases */
+    WorkOrderPhases: {
+      counts: components['schemas']['Counts']
+      /** Phases */
+      phases: components['schemas']['WorkPhase'][]
+      /** Version */
+      version: number
+      /** Work Order Id */
+      work_order_id: string
+    }
+    /** WorkPhase */
+    WorkPhase: {
+      counts: components['schemas']['PhaseCounts']
+      /**
+       * Key
+       * @enum {string}
+       */
+      key: 'parsing' | 'matching' | 'audio' | 'publication'
+      /** Label */
+      label: string
+      /**
+       * Provenance
+       * @default current_hash_bound_preparation_and_persisted_stage_results
+       */
+      provenance: string
+      /** Retryable */
+      retryable?: components['schemas']['PhaseRetry'][]
     }
   }
   responses: never
@@ -12346,41 +12569,6 @@ export interface operations {
       }
     }
   }
-  preview_grant_api_v1_admin_limited_entitlements_preview_grant_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: {
-        juya_admin_session?: string | null
-      }
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['GrantPreviewRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['GrantPreviewResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
   get_entitlement_api_v1_admin_limited_entitlements__entitlement_id__get: {
     parameters: {
       query?: never
@@ -14814,6 +15002,74 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_grant_api_v1_admin_limited_entitlements_preview_grant_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GrantPreviewRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['GrantPreviewResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  phases_api_v1_admin_content_production_work_orders__work_order_id__phases_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        work_order_id: string
+      }
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['WorkOrderPhases']
         }
       }
       /** @description Validation Error */

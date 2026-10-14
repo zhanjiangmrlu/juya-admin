@@ -5059,6 +5059,13 @@
           "work_order_id": {
             "title": "Work Order Id",
             "type": "string"
+          },
+          "unreferenced_files": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unreferenced Files",
+            "type": "array"
           }
         },
         "required": [
@@ -5151,6 +5158,16 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImportItemResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -5207,6 +5224,23 @@
           },
           "total": {
             "title": "Total",
+            "type": "integer"
+          },
+          "collection_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collection Hash"
+          },
+          "version": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Version",
             "type": "integer"
           }
         },
@@ -8573,6 +8607,27 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "list_price_estimate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListPriceEstimate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider_region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Region"
           }
         },
         "required": [
@@ -9214,6 +9269,17 @@
               }
             ],
             "title": "Source Hash"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Severity"
           }
         },
         "required": ["id", "code", "message"],
@@ -9559,6 +9625,20 @@
           "work_order_id": {
             "title": "Work Order Id",
             "type": "string"
+          },
+          "phase_checks": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Phase Checks",
+            "type": "object"
           }
         },
         "required": ["item_id", "work_order_id", "production_status", "source_available"],
@@ -9706,6 +9786,83 @@
           "work_order_id": {
             "title": "Work Order Id",
             "type": "string"
+          },
+          "audio_reference_count": {
+            "default": 0,
+            "title": "Audio Reference Count",
+            "type": "integer"
+          },
+          "audio_unknown_count": {
+            "default": 0,
+            "title": "Audio Unknown Count",
+            "type": "integer"
+          },
+          "estimation_scope": {
+            "default": "associated_attempts_and_current_planned_candidates",
+            "title": "Estimation Scope",
+            "type": "string"
+          },
+          "known_list_price_subtotal_cny": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Known List Price Subtotal Cny"
+          },
+          "measured_audio_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured Audio Ms"
+          },
+          "planned": {
+            "items": {
+              "$ref": "#/components/schemas/PlannedUsage"
+            },
+            "title": "Planned",
+            "type": "array"
+          },
+          "potential": {
+            "items": {
+              "$ref": "#/components/schemas/PlannedUsage"
+            },
+            "title": "Potential",
+            "type": "array"
+          },
+          "source_text_count": {
+            "default": 0,
+            "title": "Source Text Count",
+            "type": "integer"
+          },
+          "source_text_utf8_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Text Utf8 Bytes"
+          },
+          "source_unknown_count": {
+            "default": 0,
+            "title": "Source Unknown Count",
+            "type": "integer"
+          },
+          "unpriced_attempt_count": {
+            "default": 0,
+            "title": "Unpriced Attempt Count",
+            "type": "integer"
           }
         },
         "required": ["work_order_id", "attempts", "unknown_count", "retry_count"],
@@ -10119,6 +10276,345 @@
           "version"
         ],
         "title": "GrantPreviewState",
+        "type": "object"
+      },
+      "ImportItemResult": {
+        "additionalProperties": false,
+        "properties": {
+          "content_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Id"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "item_id": {
+            "title": "Item Id",
+            "type": "string"
+          },
+          "operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operation"
+          },
+          "revision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": ["item_id", "status"],
+        "title": "ImportItemResult",
+        "type": "object"
+      },
+      "ListPriceEstimate": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_cny": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Cny"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "basis": {
+            "const": "official_list_price",
+            "default": "official_list_price",
+            "title": "Basis",
+            "type": "string"
+          },
+          "currency": {
+            "const": "CNY",
+            "default": "CNY",
+            "title": "Currency",
+            "type": "string"
+          },
+          "price_version": {
+            "default": "aliyun-list-cn-beijing-2026-10-14",
+            "title": "Price Version",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "unknown_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unknown Reason"
+          }
+        },
+        "title": "ListPriceEstimate",
+        "type": "object"
+      },
+      "PhaseCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "cancelled": {
+            "default": 0,
+            "title": "Cancelled",
+            "type": "integer"
+          },
+          "failed": {
+            "default": 0,
+            "title": "Failed",
+            "type": "integer"
+          },
+          "not_applicable": {
+            "default": 0,
+            "title": "Not Applicable",
+            "type": "integer"
+          },
+          "processing": {
+            "default": 0,
+            "title": "Processing",
+            "type": "integer"
+          },
+          "review_required": {
+            "default": 0,
+            "title": "Review Required",
+            "type": "integer"
+          },
+          "succeeded": {
+            "default": 0,
+            "title": "Succeeded",
+            "type": "integer"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "unknown": {
+            "default": 0,
+            "title": "Unknown",
+            "type": "integer"
+          }
+        },
+        "title": "PhaseCounts",
+        "type": "object"
+      },
+      "PhaseRetry": {
+        "additionalProperties": false,
+        "properties": {
+          "item_id": {
+            "title": "Item Id",
+            "type": "string"
+          },
+          "stage_id": {
+            "title": "Stage Id",
+            "type": "string"
+          }
+        },
+        "required": ["item_id", "stage_id"],
+        "title": "PhaseRetry",
+        "type": "object"
+      },
+      "PlannedUsage": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Id"
+          },
+          "input_tokens_upper_bound": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens Upper Bound"
+          },
+          "item_id": {
+            "title": "Item Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "list_price_estimate": {
+            "$ref": "#/components/schemas/ListPriceEstimate"
+          },
+          "measured_audio_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured Audio Ms"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "output_tokens_upper_bound": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens Upper Bound"
+          },
+          "planning_status": {
+            "default": "planned",
+            "enum": ["planned", "potential"],
+            "title": "Planning Status",
+            "type": "string"
+          },
+          "provider_region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Region"
+          }
+        },
+        "required": [
+          "candidate_id",
+          "item_id",
+          "kind",
+          "model",
+          "provider_region",
+          "list_price_estimate"
+        ],
+        "title": "PlannedUsage",
+        "type": "object"
+      },
+      "WorkOrderPhases": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/Counts"
+          },
+          "phases": {
+            "items": {
+              "$ref": "#/components/schemas/WorkPhase"
+            },
+            "title": "Phases",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "work_order_id": {
+            "title": "Work Order Id",
+            "type": "string"
+          }
+        },
+        "required": ["work_order_id", "version", "counts", "phases"],
+        "title": "WorkOrderPhases",
+        "type": "object"
+      },
+      "WorkPhase": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/PhaseCounts"
+          },
+          "key": {
+            "enum": ["parsing", "matching", "audio", "publication"],
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "provenance": {
+            "default": "current_hash_bound_preparation_and_persisted_stage_results",
+            "title": "Provenance",
+            "type": "string"
+          },
+          "retryable": {
+            "items": {
+              "$ref": "#/components/schemas/PhaseRetry"
+            },
+            "title": "Retryable",
+            "type": "array"
+          }
+        },
+        "required": ["key", "label", "counts"],
+        "title": "WorkPhase",
         "type": "object"
       }
     }
@@ -25476,6 +25972,62 @@
         },
         "summary": "Preview Grant",
         "tags": ["limited-entitlements"]
+      }
+    },
+    "/api/v1/admin/content-production/work-orders/{work_order_id}/phases": {
+      "get": {
+        "operationId": "phases_api_v1_admin_content_production_work_orders__work_order_id__phases_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "juya_admin_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Juya Admin Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderPhases"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Phases",
+        "tags": ["content-production"]
       }
     }
   }

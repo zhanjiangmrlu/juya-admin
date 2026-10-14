@@ -2,15 +2,30 @@
 import { computed, ref, watch } from 'vue'
 
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import ImportResourcePreview from '@/features/content-import/import-resource-preview.vue'
 
 import type { ProductionSchema as S } from './work-order-model'
 
+import WorkOrderImportResult from './work-order-import-result.vue'
+import WorkOrderImportValidation from './work-order-import-validation.vue'
 import { originalParagraphs } from './work-order-model'
-const props = defineProps<{ preview: S['ImportPreview']; busy: boolean }>()
+const props = withDefaults(
+  defineProps<{
+    preview: S['ImportPreview']
+    busy: boolean
+    phase?: string
+    contentType?: string
+  }>(),
+  { phase: 'preview', contentType: 'dialogue' }
+)
 const emit = defineEmits<{
   confirm: [fields: Omit<S['ImportConfirmRequest'], 'expected_version'>]
   retry: [fields: Omit<S['ImportConfirmRequest'], 'expected_version'>]
+  exclude: [id: string]
+  edit: [id: string]
+  previewFailed: []
+  previous: []
 }>()
 const selected = ref<string[]>([])
 const defaults = ref<string[]>([])
@@ -60,9 +75,16 @@ const ready = computed(
     rows.value.every(
       (row) =>
         row.defaults.every((value) => defaults.value.includes(value)) &&
+        !row.issues.some((issue) => issue.severity === 'ERROR') &&
         (!row.issues.length || compared.value.includes(row.item_id))
     )
 )
+const /** 统计导入资料中已提供的词汇或语块
+   * @param entries - 此篇真实词表记录
+   * @param kind - 需要统计的词汇或语块类型
+   * @returns 本次词表记录数
+   */ entryCount = (entries: S['ImportPreviewItem']['entries'], kind: string): number =>
+    entries.filter((entry) => entry.entry_type === kind).length
 const resourceLabels: Record<string, string> = {
   cover_path: '封面',
   audio_path: '整段音频',
@@ -71,9 +93,22 @@ const resourceLabels: Record<string, string> = {
 }
 </script>
 <template>
-  <div class="import-preview">
+  <WorkOrderImportValidation
+    v-if="phase === 'validation'"
+    :preview="preview"
+    :busy="busy"
+    @exclude="emit('exclude', $event)"
+  />
+  <WorkOrderImportResult
+    v-else-if="phase === 'result'"
+    :preview="preview"
+    :busy="busy"
+    @edit="emit('edit', $event)"
+    @retry="emit('previewFailed')"
+  />
+  <div v-else class="import-preview">
     <ElAlert
-      title="校验与对应预览"
+      title="核对本次图文音频对应范围"
       description="逐篇核对完整双语正文、上传原文与素材对应。确认仅保存选中草稿，未选中项目仍保留在本批。"
       type="info"
       :closable="false"
@@ -87,95 +122,163 @@ const resourceLabels: Record<string, string> = {
     />
     <ElEmpty v-if="!preview.items.length" description="文件正在解析，请刷新查看校验结果" />
     <ElCheckboxGroup v-model="selected">
-      <AdminPanel
-        v-for="row in preview.items"
-        :key="row.item_id"
-        :title="String(row.candidate.title_en || row.candidate.title_zh || row.import_content_id)"
+      <AdminPanel title="本次正文与素材对应"
+        ><ElTable :data="preview.items"
+          ><ElTableColumn label="内容 / 导入 ID" min-width="240"
+            ><template #default="{ row }"
+              ><ElCheckbox
+                :value="row.item_id"
+                :disabled="
+                  busy ||
+                  ['SUCCESS', 'CANCELLED'].includes(row.status) ||
+                  row.issues.some((issue: S['WorkIssue']) => issue.severity === 'ERROR')
+                "
+                >{{
+                  row.candidate.title_zh || row.candidate.title_en || row.import_content_id
+                }}</ElCheckbox
+              ><small>{{ row.import_content_id }}</small></template
+            ></ElTableColumn
+          ><ElTableColumn label="正文与译文" min-width="200"
+            ><template #default="{ row }"
+              >{{
+                row.issues.some(
+                  (issue: S['WorkIssue']) =>
+                    issue.correction_target === 'content' || issue.correction_target === 'source'
+                )
+                  ? '有待核对问题'
+                  : '查看下方完整正文'
+              }}<small v-if="contentType !== 'short_reading'"
+                >词汇 {{ entryCount(row.entries, 'word') }} · 语块
+                {{ entryCount(row.entries, 'chunk') }}</small
+              ></template
+            ></ElTableColumn
+          ><ElTableColumn label="封面" min-width="170"
+            ><template #default="{ row }">{{
+              resourcePath(row.resources.cover_path) || '默认安全封面（需确认）'
+            }}</template></ElTableColumn
+          ><ElTableColumn label="音频" min-width="180"
+            ><template #default="{ row }">{{
+              resourcePath(row.resources.audio_path) || '未提供，按模板检查'
+            }}</template></ElTableColumn
+          ><ElTableColumn label="本次操作" min-width="150"
+            ><template #default="{ row }">{{
+              row.operation === 'CREATE'
+                ? '新增草稿'
+                : row.operation === 'UPDATE_DRAFT'
+                  ? '候选版本更新'
+                  : row.operation === 'SKIP'
+                    ? '相同资料跳过'
+                    : '待核实'
+            }}</template></ElTableColumn
+          ></ElTable
+        ></AdminPanel
       >
-        <ElCheckbox
-          :value="row.item_id"
-          :disabled="busy || ['SUCCESS', 'SKIPPED', 'CANCELLED'].includes(row.status)"
-          >选中此篇 · 文件标识 {{ row.import_content_id }} · 表格第 {{ row.row_no }} 行</ElCheckbox
+      <details v-for="row in preview.items" :key="row.item_id" class="content-detail">
+        <summary>
+          查看正文、译文、图片角色与音频 ·
+          {{ row.candidate.title_zh || row.candidate.title_en || row.import_content_id }}
+        </summary>
+        <AdminPanel
+          :title="String(row.candidate.title_en || row.candidate.title_zh || row.import_content_id)"
         >
-        <ElAlert
-          v-for="issue in row.issues"
-          :key="issue.id"
-          :title="issue.message"
-          type="warning"
-          :closable="false"
-        />
-        <div class="comparison">
-          <div>
-            <h4>原始文档 · 只读</h4>
-            <p v-if="!row.source_snapshot">未保留可验证的原始正文，请补充源文件后核对。</p>
-            <div v-for="(paragraph, index) in originalParagraphs(row.source_snapshot)" :key="index">
-              <small>{{ paragraph.locator }}</small>
-              <p>{{ paragraph.text }}</p>
+          <ElCheckbox
+            :value="row.item_id"
+            :disabled="
+              busy ||
+              ['SUCCESS', 'SKIPPED', 'CANCELLED'].includes(row.status) ||
+              row.issues.some((issue) => issue.severity === 'ERROR')
+            "
+            >选中此篇 · 文件标识 {{ row.import_content_id }} · 表格第
+            {{ row.row_no }} 行</ElCheckbox
+          >
+          <ElAlert
+            v-for="issue in row.issues"
+            :key="issue.id"
+            :title="issue.message"
+            type="warning"
+            :closable="false"
+          />
+          <div class="comparison">
+            <div>
+              <h4>原始文档 · 只读</h4>
+              <p v-if="!row.source_snapshot">未保留可验证的原始正文，请补充源文件后核对。</p>
+              <div
+                v-for="(paragraph, index) in originalParagraphs(row.source_snapshot)"
+                :key="index"
+              >
+                <small>{{ paragraph.locator }}</small>
+                <p>{{ paragraph.text }}</p>
+              </div>
+            </div>
+            <div>
+              <h4>将保存的正文与译文</h4>
+              <template v-if="Array.isArray(row.candidate.dialogue)"
+                ><p
+                  v-for="(sentence, index) in row.candidate.dialogue as Record<string, unknown>[]"
+                  :key="index"
+                >
+                  {{ sentence.speaker }}: {{ sentence.english }}<br />{{ sentence.chinese }}
+                </p></template
+              ><template v-else
+                ><p
+                  v-for="(paragraph, index) in (row.candidate.paragraphs_en as string[]) || []"
+                  :key="index"
+                >
+                  {{ paragraph }}
+                </p>
+                <p>{{ row.candidate.translation_zh }}</p></template
+              >
+              <p>
+                {{ row.candidate.source || row.candidate.copyright_source }}
+                {{ row.candidate.copyright }}
+              </p>
             </div>
           </div>
-          <div>
-            <h4>将保存的正文与译文</h4>
-            <template v-if="Array.isArray(row.candidate.dialogue)"
-              ><p
-                v-for="(sentence, index) in row.candidate.dialogue as Record<string, unknown>[]"
-                :key="index"
-              >
-                {{ sentence.speaker }}: {{ sentence.english }}<br />{{ sentence.chinese }}
-              </p></template
-            ><template v-else
-              ><p
-                v-for="(paragraph, index) in (row.candidate.paragraphs_en as string[]) || []"
-                :key="index"
-              >
-                {{ paragraph }}
-              </p>
-              <p>{{ row.candidate.translation_zh }}</p></template
-            >
-            <p>
-              {{ row.candidate.source || row.candidate.copyright_source }}
-              {{ row.candidate.copyright }}
-            </p>
+          <h4>{{ contentType === 'short_reading' ? '素材对应' : '素材与词表对应' }}</h4>
+          <div v-for="(value, key) in row.resources" :key="key">
+            <template v-if="resourcePath(value)"
+              ><span>{{ resourceLabels[key] || '资料' }} · {{ resourcePath(value) }}</span
+              ><ImportResourcePreview
+                :batch-id="preview.batch_id"
+                :path="resourcePath(value)"
+                :disabled="busy"
+            /></template>
           </div>
-        </div>
-        <h4>素材与词表对应</h4>
-        <div v-for="(value, key) in row.resources" :key="key">
-          <template v-if="resourcePath(value)"
-            ><span>{{ resourceLabels[key] || '资料' }} · {{ resourcePath(value) }}</span
-            ><ImportResourcePreview
+          <div
+            v-for="(entry, index) in contentType === 'short_reading' ? [] : row.entries"
+            :key="index"
+            class="entry"
+          >
+            <strong>{{ entry.english }}</strong> · {{ entry.meaning_zh || entry.chinese }}
+            <p>{{ entry.source_sentence }}</p>
+            <ImportResourcePreview
+              v-if="
+                entry.image_path && !['PHRASE', 'CHUNK', 'chunk'].includes(String(entry.entry_type))
+              "
               :batch-id="preview.batch_id"
-              :path="resourcePath(value)"
+              :path="String(entry.image_path)"
               :disabled="busy"
-          /></template>
-        </div>
-        <div v-for="(entry, index) in row.entries" :key="index" class="entry">
-          <strong>{{ entry.english }}</strong> · {{ entry.meaning_zh || entry.chinese }}
-          <p>{{ entry.source_sentence }}</p>
-          <ImportResourcePreview
-            v-if="
-              entry.image_path && !['PHRASE', 'CHUNK', 'chunk'].includes(String(entry.entry_type))
-            "
-            :batch-id="preview.batch_id"
-            :path="String(entry.image_path)"
-            :disabled="busy"
-          />
-        </div>
-        <ElCheckboxGroup v-model="defaults"
-          ><ElCheckbox v-for="value in row.defaults" :key="value" :value="value">{{
-            value.includes('cover')
-              ? '确认使用默认封面'
-              : value.includes('audio')
-                ? '确认不配全文音频'
-                : '确认此单词无图片'
-          }}</ElCheckbox></ElCheckboxGroup
-        >
-        <ElCheckboxGroup v-model="compared"
-          ><ElCheckbox v-if="row.issues.length" :value="row.item_id"
-            >已核对原文与表格的差异，按预览值保存；阻断问题仍需补充源文件</ElCheckbox
-          ></ElCheckboxGroup
-        >
-      </AdminPanel>
+            />
+          </div>
+          <ElCheckboxGroup v-model="defaults"
+            ><ElCheckbox v-for="value in row.defaults" :key="value" :value="value">{{
+              value.includes('cover')
+                ? '确认使用默认封面'
+                : value.includes('audio')
+                  ? '确认不配全文音频'
+                  : '确认此单词无图片'
+            }}</ElCheckbox></ElCheckboxGroup
+          >
+          <ElCheckboxGroup v-model="compared"
+            ><ElCheckbox v-if="row.issues.length" :value="row.item_id"
+              >已核对原文与表格的差异，按预览值保存；阻断问题仍需补充源文件</ElCheckbox
+            ></ElCheckboxGroup
+          >
+        </AdminPanel>
+      </details>
     </ElCheckboxGroup>
-    <div class="actions">
+    <AppPageActions>
+      <ElButton :disabled="busy" @click="emit('previous')">上一步</ElButton>
       <ElButton :disabled="busy || !ready" type="primary" @click="confirm()"
         >确认保存选中 {{ selected.length }} 篇草稿</ElButton
       ><ElButton
@@ -184,13 +287,32 @@ const resourceLabels: Record<string, string> = {
         @click="confirm(true)"
         >仅重试选中失败篇目</ElButton
       >
-    </div>
+    </AppPageActions>
   </div>
 </template>
 <style scoped lang="scss">
 .import-preview {
   display: grid;
   gap: 20px;
+
+  small {
+    display: block;
+    color: var(--juya-color-text-secondary);
+  }
+
+  .content-detail {
+    font-size: 14px;
+    line-height: 22px;
+    margin-top: 12px;
+
+    summary {
+      cursor: pointer;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: var(--juya-color-surface);
+      line-height: 22px;
+    }
+  }
 
   .comparison {
     display: grid;

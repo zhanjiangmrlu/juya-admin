@@ -24,14 +24,14 @@ const itemPresentation: Readonly<Record<string, WorkItemViewModel>> = {
     tone: 'info'
   },
   CAMPAIGN_START_EXPIRED: {
-    actionLabel: '处理',
+    actionLabel: '恢复或关闭',
     description: '限时权益未在启动截止时间前开始',
     destination: '/entitlements?type=LIMITED&status=START_EXPIRED',
     title: '未开始权益已失效',
     tone: 'warning'
   },
   CAMPAIGN_STARTING: {
-    actionLabel: '查看',
+    actionLabel: '查看权益',
     description: '待开始权益不足24小时失效',
     destination: '/entitlements?type=LIMITED&status=PENDING',
     title: '待开始权益即将失效',

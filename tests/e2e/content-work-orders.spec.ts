@@ -15,11 +15,11 @@ test('工作单保持整单统计，旧批次恢复，阅读修正始终保留�
       }
     }
     await app.__vue_app__?.config.globalProperties.$router.push(
-      '/content/jobs?batch_id=legacy-batch'
+      '/content/jobs?batch_id=legacy-batch&view=overview'
     )
   })
   await expect(page).toHaveURL(/content\/work-orders\/order/)
-  await expect(page.getByText('1000', { exact: true })).toBeVisible()
+  await expect(page.getByText(/本批总计 1000 篇/)).toBeVisible()
   await expect(page.getByText('900', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '修正正文与译文', exact: true }).click()
   await expect(page.getByText('The immutable original paragraph.', { exact: true })).toBeVisible()
@@ -131,7 +131,7 @@ test('本批抽样要求实际人工检查并刷新哈希后确认发布范围',
   const requests = await mockWorkOrder(page)
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/work-orders/order')
-  await page.getByRole('button', { name: '开始正常抽样', exact: true }).click()
+  await page.getByRole('button', { name: '开始校对', exact: true }).click()
   await expect(page.getByRole('button', { name: '确认已检查本篇', exact: true })).toBeDisabled()
   await page.getByText('已核对完整中英文、人物与顺序、排版', { exact: true }).click()
   await page.getByRole('button', { name: '确认已检查本篇', exact: true }).click()

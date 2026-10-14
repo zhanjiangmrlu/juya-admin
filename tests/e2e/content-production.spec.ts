@@ -41,8 +41,8 @@ test('未知命令只续办原服务端回执，不重复发起抽样批准', as
     await route.fulfill({ status: 503, json: { code: 'UNKNOWN', message: '结果待核实' } })
   })
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/work-orders/order')
-  await page.getByRole('button', { name: '自动整理本批', exact: true }).click()
+  await navigateInApp(page, '/content/work-orders/order?view=import&import_phase=result')
+  await page.getByRole('button', { name: '进入校对发布', exact: true }).click()
   await expect(page.getByRole('button', { name: '继续核实结果', exact: true })).toBeVisible()
   await page.getByRole('button', { name: '继续核实结果', exact: true }).click()
   await expect

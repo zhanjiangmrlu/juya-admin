@@ -199,7 +199,10 @@ test('A 工作单成员分页迟到不能替换 B 的发布选择', async ({ adm
             current_draft: true
           }
         ],
-        total: 1
+        total: 1,
+        version: 1,
+        collection_hash: `scope-${name}`,
+        counts: { ...order.counts, total: 1, publishable: 1 }
       }
     })
   })
@@ -208,7 +211,7 @@ test('A 工作单成员分页迟到不能替换 B 的发布选择', async ({ adm
       json: {
         ...order,
         work_order_id: new URL(route.request().url()).pathname.split('/').at(-1)!,
-        counts: { ...order.counts, publishable: 1 }
+        counts: { ...order.counts, total: 1, publishable: 1 }
       }
     })
   )

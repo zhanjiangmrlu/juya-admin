@@ -18,6 +18,38 @@ const jsonResponse = (body: unknown, status = 200): Response =>
   })
 
 describe('api client', () => {
+  it('reads original binary bytes through the authenticated cancellable shared request layer', async () => {
+    const bytes = new Uint8Array([80, 75, 0, 255, 128, 1])
+    const fetchImplementation = vi.fn<typeof fetch>().mockResolvedValue(new Response(bytes))
+    const signal = new globalThis.AbortController().signal
+    const client = createApiClient({ fetchImplementation })
+    const value = await client.request<Blob>({
+      method: 'GET',
+      path: '/original-file',
+      responseType: 'blob',
+      signal
+    })
+    expect(Object.prototype.toString.call(value)).toBe('[object Blob]')
+    expect([...new Uint8Array(await value.arrayBuffer())]).toEqual([...bytes])
+    expect(fetchImplementation.mock.calls[0]?.[1]?.credentials).toBe('include')
+    expect(fetchImplementation.mock.calls[0]?.[1]?.signal).toBe(signal)
+  })
+
+  it('binary requests retain unified unauthorized errors', async () => {
+    const onUnauthorized = vi.fn()
+    const client = createApiClient({
+      onUnauthorized,
+      fetchImplementation: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          jsonResponse({ code: 'SESSION_EXPIRED', request_id: 'binary-expired' }, 401)
+        )
+    })
+    await expect(
+      client.request({ method: 'GET', path: '/original-file', responseType: 'blob' })
+    ).rejects.toMatchObject({ code: 'SESSION_EXPIRED', status: 401 })
+    expect(onUnauthorized).toHaveBeenCalledOnce()
+  })
   it('preserves Retry-After with rate-limit metadata', async () => {
     const client = createApiClient({
       fetchImplementation: vi

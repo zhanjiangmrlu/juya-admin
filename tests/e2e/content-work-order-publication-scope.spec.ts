@@ -27,7 +27,9 @@ test('混合工作单按冻结合格 A 确认发布，异常 B 保留草稿', as
           total: 2,
           page: 1,
           page_size: 100,
-          counts: order.counts
+          version: 1,
+          collection_hash: 'fixed-two',
+          counts: { ...order.counts, total: 2, publishable: 1, published: published ? 1 : 0 }
         }
       })
     if (path.endsWith('/publication-preview')) {
@@ -147,7 +149,9 @@ for (const scenario of ['subset', 'paged', 'retry', 'stale', 'missing', 'incompl
             total: rows.length,
             page: pageNo,
             page_size: size,
-            counts: order.counts
+            version: 1,
+            collection_hash: 'fixed-scope',
+            counts: { ...order.counts, total: rows.length, publishable: rows.length }
           }
         })
       }

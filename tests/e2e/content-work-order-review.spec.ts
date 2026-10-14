@@ -47,7 +47,9 @@ for (const delayed of ['detail', 'audio'] as const) {
     expect(adminApi).toBeDefined()
     await mockWorkOrder(page)
     await page.route('**/work-orders/order', (route) =>
-      route.fulfill({ json: { ...order, proofreading_set_id: 'set' } })
+      route.fulfill({
+        json: { ...order, counts: { ...order.counts, total: 2 }, proofreading_set_id: 'set' }
+      })
     )
     let release!: () => void
     const gate = new Promise<void>((resolve) => {
@@ -70,7 +72,15 @@ for (const delayed of ['detail', 'audio'] as const) {
       }
     }))
     await page.route('**/work-orders/order/items?*', (route) =>
-      route.fulfill({ json: { items: members, total: 2 } })
+      route.fulfill({
+        json: {
+          items: members,
+          total: 2,
+          version: 1,
+          collection_hash: 'sample-scope',
+          counts: { ...order.counts, total: 2 }
+        }
+      })
     )
     await page.route('**/work-orders/order/sampling', (route) =>
       route.fulfill({

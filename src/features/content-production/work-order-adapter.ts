@@ -101,6 +101,18 @@ export const /** 建立工作单正式契约适配
       sampling: (id: string) => read<S['SamplingState']>(path(id, '/sampling')),
       publication: (id: string) => read<S['PublicationState']>(path(id, '/publication')),
       usage: (id: string) => read<S['WorkOrderUsage']>(path(id, '/usage')),
+      phases: (id: string) => read<S['WorkOrderPhases']>(path(id, '/phases')),
+      /** 通过共用认证层获取原上传文件字节
+       * @param id - 文件所属工作单
+       * @param signal - 离开当前页面时的取消信号
+       * @returns 完整原始文件
+       */ originalFile: (id: string, signal?: AbortSignal) =>
+        client.request<Blob>({
+          method: 'GET',
+          path: path(id, '/original-file'),
+          responseType: 'blob',
+          signal
+        }),
       bindings: (id: string, itemId: string, revisionId?: string) =>
         read<S['EntryBindings']>(path(id, `/items/${encodeURIComponent(itemId)}/entry-bindings`), {
           revision_id: revisionId

@@ -198,8 +198,39 @@ export const /** 装配当前工作单的确定性接口，不访问真实服务
         return
       }
       if (path.endsWith('/items')) {
+        const query = new URL(req.url()).searchParams,
+          requestedPage = Number(query.get('page') || 1),
+          requestedSize = Number(query.get('page_size') || 20)
+        const members = Array.from({ length: 1000 }, (_, index) =>
+          index === 0
+            ? current
+            : {
+                ...current,
+                item_id: `member-${index}`,
+                content_id: `content-${index}`,
+                revision_id: `revision-${index}`,
+                title_en: `Content ${index}`,
+                issues: [],
+                tasks: [],
+                production_status:
+                  index < 60 ? 'review_required' : index >= 960 ? 'failed' : 'normal',
+                current_draft: false,
+                publishable: false
+              }
+        )
         await route.fulfill({
-          json: { items: [current], page: 1, page_size: 20, total: 1, counts: liveOrder.counts }
+          json: {
+            items: members.slice(
+              (requestedPage - 1) * requestedSize,
+              requestedPage * requestedSize
+            ),
+            page: requestedPage,
+            page_size: requestedSize,
+            total: 1000,
+            counts: liveOrder.counts,
+            version,
+            collection_hash: `${version}-${current.candidate_hash}-${confirmed}-${published}`
+          }
         })
         return
       }
@@ -211,6 +242,20 @@ export const /** 装配当前工作单的确定性接口，不访问真实服务
             retry_count: 0,
             unknown_count: 0,
             cost: null
+          }
+        })
+        return
+      }
+      if (path.endsWith('/import-preview')) {
+        await route.fulfill({
+          json: {
+            work_order_id: 'order',
+            batch_id: 'batch',
+            status: 'CONFIRMED',
+            preview_hash: 'a'.repeat(64),
+            preview_version: 1,
+            items: [],
+            batch_issues: []
           }
         })
         return

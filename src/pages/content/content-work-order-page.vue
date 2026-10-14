@@ -17,15 +17,17 @@ import {
 import WorkOrderCandidates from '@/features/content-production/work-order-candidates.vue'
 import { findWorkOrderRange } from '@/features/content-production/work-order-context'
 import WorkOrderImport from '@/features/content-production/work-order-import.vue'
-import { issueAction, productionLabels } from '@/features/content-production/work-order-model'
+import { issueAction } from '@/features/content-production/work-order-model'
 import WorkOrderOverview from '@/features/content-production/work-order-overview.vue'
 import WorkOrderPublication from '@/features/content-production/work-order-publication.vue'
 import { publicationItemIds } from '@/features/content-production/work-order-publication-scope'
+import { readWorkOrderMembers } from '@/features/content-production/work-order-range'
 import {
   sampleIdentity,
   sampleResources
 } from '@/features/content-production/work-order-sample-media'
 import WorkOrderSampling from '@/features/content-production/work-order-sampling.vue'
+import WorkOrderTasks from '@/features/content-production/work-order-tasks.vue'
 import PublicationRangePanel from '@/features/publishing/publication-range-panel.vue'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
 
@@ -44,7 +46,7 @@ const client = useAdminApiClient(),
   media = createSceneMediaAdapter(client),
   contentAdapter = createContentAdapter(client)
 const model = useWorkOrder(adapter)
-const { order, items, sampling, publication, busy, error, page, pageSize, status } = model
+const { order, items, sampling, publication, busy, error } = model
 const list = shallowRef<S['OrderPage'] | null>(null)
 const listPage = ref(1)
 const legacyRange = ref(false)
@@ -52,16 +54,29 @@ const preview = shallowRef<S['ImportPreview'] | null>(null)
 const groups = ref<CandidateGroup[]>([])
 const candidateDetails = ref<WorkItemDetail[]>([])
 const usage = shallowRef<S['WorkOrderUsage'] | null>(null)
+const phases = shallowRef<S['WorkOrderPhases'] | null>(null)
+const tasksView = ref<InstanceType<typeof WorkOrderTasks> | null>(null)
 const allItems = ref<WorkItem[]>([])
 const membersReady = ref(false)
 const sampleDetail = shallowRef<WorkItemDetail | null>(null)
 const sampleMedia = ref<SampleResource[]>([])
 const selected = ref<string[]>([])
-const tab = computed(() => String(route.query.view || 'overview'))
+const tab = computed(() =>
+  String(
+    route.query.view ||
+      (route.name === 'content-jobs'
+        ? 'jobs'
+        : route.name === 'content-proofreading'
+          ? 'sampling'
+          : 'overview')
+  )
+)
+const importPhase = computed(() => String(route.query.import_phase || 'validation'))
 const id = computed(() => String(route.params.id || route.query.work_order_id || ''))
 const types = { dialogue: '场景对话', word_card: '原词汇卡', short_reading: '短文阅读' }
 let generation = 0
 let sampleGeneration = 0
+let originalAbort: globalThis.AbortController | null = null
 watch(
   () => [id.value, tab.value, route.fullPath],
   () => {
@@ -72,15 +87,21 @@ watch(
   { flush: 'sync' }
 )
 onBeforeUnmount(() => {
+  originalAbort?.abort()
   sampleGeneration++
   generation++
   model.invalidate()
 })
 const /** 切换当前工作单视图并保留地址上下文
    * @param view - 当前业务视图
+   * @param phase - 导入校验、对应预览或结果阶段
    */
-  go = (view: string): void => {
-    void router.replace({ name: 'content-work-order', params: { id: id.value }, query: { view } })
+  go = (view: string, phase?: string): void => {
+    void router.replace({
+      name: 'content-work-order',
+      params: { id: id.value },
+      query: { view, ...(phase ? { import_phase: phase } : {}) }
+    })
   }
 const /** 读取当前工作单全部成员，仅用于完整抽样和发布选择
    * @param orderId - 本次读取的工作单
@@ -89,23 +110,9 @@ const /** 读取当前工作单全部成员，仅用于完整抽样和发布选�
   loadMembers = async (orderId: string, current: () => boolean): Promise<void> => {
     membersReady.value = false
     allItems.value = []
-    const result = await adapter.items(orderId, 1, 100)
-    if (!current()) return
-    const rows = [...result.items]
-    for (let next = 2; rows.length < result.total; next++) {
-      const more = await adapter.items(orderId, next, 100)
-      if (!current()) return
-      if (!more.items.length || more.total !== result.total)
-        throw new Error('成员范围读取不完整，请刷新权威状态并重新预览')
-      rows.push(...more.items)
-    }
-    if (
-      rows.length !== result.total ||
-      new Set(rows.map((row) => row.item_id)).size !== result.total ||
-      rows.some((row) => row.work_order_id !== orderId)
-    )
-      throw new Error('成员范围读取不完整，请刷新权威状态并重新预览')
-    if (current()) {
+    if (!order.value || order.value.work_order_id !== orderId) return
+    const rows = await readWorkOrderMembers(adapter, order.value, current)
+    if (current() && rows) {
       allItems.value = rows
       membersReady.value = true
     }
@@ -142,7 +149,8 @@ const /** 按地址读取工作单，每个异步分区均绑定本次路由与�
           if (!current()) return
           await router.replace({
             name: 'content-work-order',
-            params: { id: restored.work_order_id }
+            params: { id: restored.work_order_id },
+            query: { view }
           })
           return
         }
@@ -168,10 +176,17 @@ const /** 按地址读取工作单，每个异步分区均绑定本次路由与�
         groups.value = result.groups
         candidateDetails.value = details
       }
-      if (view === 'sampling' || view === 'publication') await loadMembers(orderId, current)
-      if (view === 'overview') {
-        const result = await adapter.usage(orderId)
-        if (current()) usage.value = result
+      if (['sampling', 'publication', 'overview', 'jobs'].includes(view))
+        await loadMembers(orderId, current)
+      if (view === 'jobs') {
+        const [result, stages] = await Promise.all([
+          adapter.usage(orderId),
+          adapter.phases(orderId)
+        ])
+        if (current()) {
+          usage.value = result
+          phases.value = stages
+        }
       }
     } catch (failure) {
       if (current()) error.value = failure instanceof Error ? failure.message : '加载失败，请刷新'
@@ -217,8 +232,9 @@ const /** 执行命令并更新当前步骤
   }
 const /** 自动整理本批，推荐由管理员独立选择
    * @param recommendations - 是否包含可选推荐
+   * @returns 是否已接受当前整理操作
    */
-  organize = async (recommendations = false): Promise<void> => {
+  organize = async (recommendations = false): Promise<boolean> => {
     const token = generation
     if (recommendations)
       try {
@@ -228,11 +244,20 @@ const /** 自动整理本批，推荐由管理员独立选择
           { confirmButtonText: '生成推荐', cancelButtonText: '返回' }
         )
       } catch {
-        return
+        return false
       }
-    if (token !== generation) return
-    await run('organize', { include_recommendations: recommendations })
+    if (token !== generation) return false
+    return run('organize', { include_recommendations: recommendations })
   }
+const /** 从已保存草稿的设计入口继续必要整理，失败时保留原范围 */ enterProofreading =
+    async (): Promise<void> => {
+      if (
+        order.value?.pending_commands?.length ||
+        !order.value?.available_actions.includes('organize')
+      )
+        return
+      if (await organize()) go('overview')
+    }
 const /** 决定单个候选组，保存后重读版本和完整绑定
    * @param group - 当前篇目的候选组
    * @param decisions - 明确的逐结果选择
@@ -376,6 +401,15 @@ const /** 重试真正失败且可重试的原阶段
    * @param task - 服务端当前阶段事实
    */
   retry = async (item: WorkItem, task: S['WorkTask']): Promise<void> => {
+    if (busy.value || !task.current || task.status !== 'FAILED' || !task.retryable) return
+    if (task.stage.startsWith('PUBLICATION_RANGE_')) {
+      go('publication')
+      return
+    }
+    if (!item.revision_id || !item.edit_version) {
+      go('import', 'validation')
+      return
+    }
     const token = generation
     try {
       await ElMessageBox.confirm(
@@ -399,16 +433,55 @@ const /** 重试真正失败且可重试的原阶段
       acknowledged_charged_retry: true
     })
   }
-const /** 切换服务端过滤条件
-   */
-  filter = (): void => {
-    page.value = 1
-    void load()
+const /** 确认草稿写入后进入持久导入结果
+   * @param fields - 明确选择、缺省确认和固定预览版本
+   * @param retryOnly - 是否只重试失败行
+   */ confirmImport = async (
+    fields: WorkCommandFields<'import-confirm'>,
+    retryOnly = false
+  ): Promise<void> => {
+    if (await run(retryOnly ? 'import-retry' : 'import-confirm', fields)) go('import', 'result')
   }
+const /** 明确排除尚未保存的导入行
+   * @param itemId - 当前批次真实成员身份
+   */ excludeImport = async (itemId: string): Promise<void> => {
+    const token = generation
+    try {
+      await ElMessageBox.confirm('此行将明确排除，成功草稿保持原样。', '排除本批导入行', {
+        confirmButtonText: '确认排除',
+        cancelButtonText: '返回'
+      })
+    } catch {
+      return
+    }
+    if (token === generation)
+      await run('cancel', { scope: 'selected', selected_item_ids: [itemId] })
+  }
+const /** 下载当前工作单真实上传字节，离开后不产生下载 */ downloadOriginal =
+    async (): Promise<void> => {
+      const token = generation,
+        orderId = id.value
+      try {
+        originalAbort?.abort()
+        originalAbort = new globalThis.AbortController()
+        const blob = await adapter.originalFile(orderId, originalAbort.signal)
+        if (token !== generation || orderId !== id.value) return
+        const url = globalThis.URL.createObjectURL(blob),
+          link = globalThis.document.createElement('a')
+        link.href = url
+        link.download = order.value?.source_mode === 'DOCX' ? 'original.docx' : 'original.zip'
+        link.click()
+        globalThis.URL.revokeObjectURL(url)
+      } catch (failure) {
+        if (token === generation)
+          error.value = failure instanceof Error ? failure.message : '原文件下载失败'
+      }
+    }
 watch(
   () => [id.value, tab.value, route.fullPath],
   () => {
     generation++
+    originalAbort?.abort()
     model.invalidate()
     list.value = null
     preview.value = null
@@ -417,6 +490,7 @@ watch(
     allItems.value = []
     membersReady.value = false
     usage.value = null
+    phases.value = null
     selected.value = []
     legacyRange.value = false
     void load()
@@ -437,10 +511,11 @@ watch(
         :closable="false" /><PublicationRangePanel :candidates="[]" contextual
     /></template>
     <template v-else-if="!id"
-      ><AdminPanel title="内容生产工作单"
-        ><p>选择本次工作单，继续查看导入、校对与发布结果。</p>
+      ><AdminPanel :title="tab === 'jobs' ? '导入批次' : '选择内容批次'"
+        ><p>选择真实批次，恢复原范围的处理与结果。</p>
         <ElTable :data="list?.items || []"
-          ><ElTableColumn label="分类 / 类型" min-width="240"
+          ><ElTableColumn prop="import_batch_id" label="批次 ID" min-width="220" />
+          <ElTableColumn label="分类 / 类型" min-width="240"
             ><template #default="{ row }"
               >{{ row.series_title }} ·
               {{ types[row.content_type as keyof typeof types] }}</template
@@ -458,7 +533,11 @@ watch(
                 link
                 type="primary"
                 @click="
-                  router.push({ name: 'content-work-order', params: { id: row.work_order_id } })
+                  router.push({
+                    name: 'content-work-order',
+                    params: { id: row.work_order_id },
+                    query: { view: tab }
+                  })
                 "
                 >继续处理</ElButton
               ></template
@@ -479,62 +558,60 @@ watch(
     <template v-else-if="order"
       ><div class="context">
         <div>
-          <h2>{{ order.series_title }} · {{ types[order.content_type] }}</h2>
-          <p>本次 {{ order.counts.total }} 篇 · 离开后可从工作单继续处理</p>
+          <p>
+            {{ order.series_title }} · {{ types[order.content_type] }} · 本次
+            {{ order.counts.total }} 篇
+          </p>
         </div>
         <ElButton :loading="busy" @click="load">刷新进度</ElButton>
       </div>
-      <nav class="tabs">
-        <ElButton
-          v-for="(label, view) in {
-            overview: '整理结果',
-            ...(order.import_batch_id && order.source_mode !== 'MATERIAL_ZIP'
-              ? { import: '原文件与对应预览' }
-              : {}),
-            ...(order.content_type !== 'short_reading' ? { candidates: '词表与中央定义' } : {}),
-            sampling: '正常抽样',
-            publication: '发布范围与结果'
-          }"
-          :key="view"
-          :type="tab === view ? 'primary' : 'default'"
-          @click="go(view)"
-          >{{ label }}</ElButton
-        >
-      </nav>
+      <div v-if="tab === 'import'" class="import-steps" aria-label="导入阶段">
+        <span>上传 ZIP</span><span :class="{ active: importPhase === 'validation' }">校验</span
+        ><span :class="{ active: importPhase === 'preview' }">对应预览</span
+        ><span :class="{ active: importPhase === 'result' }">确认导入</span>
+      </div>
       <template v-if="tab === 'overview'"
-        ><ElSelect v-model="status" aria-label="篇目状态筛选" @change="filter"
-          ><ElOption label="全部篇目" value="" /><ElOption
-            v-for="key in [
-              'processing',
-              'normal',
-              'review_required',
-              'failed',
-              'published',
-              'cancelled'
-            ]"
-            :key="key"
-            :value="key"
-            :label="productionLabels[key]" /></ElSelect
         ><WorkOrderOverview
           :order="order"
-          :items="items?.items || []"
-          :busy="busy"
-          :usage="usage"
+          :items="allItems"
+          :busy="busy || !membersReady"
           @edit="edit"
           @resume="model.resume"
-          @retry="retry" /><AppPagination
-          v-model:current-page="page"
-          v-model:page-size="pageSize"
-          :total="items?.total || 0"
-          @change="load"
-      /></template>
+        />
+      </template>
+      <WorkOrderTasks
+        v-else-if="tab === 'jobs'"
+        ref="tasksView"
+        :order="order"
+        :phases="phases"
+        :usage="usage"
+        :items="allItems"
+        :busy="busy || !membersReady"
+        @retry="retry"
+        @resume="model.resume"
+      />
       <WorkOrderImport
         v-else-if="tab === 'import' && preview"
         :preview="preview"
         :busy="busy"
-        @confirm="run('import-confirm', $event)"
-        @retry="run('import-retry', $event)"
+        :phase="importPhase"
+        :content-type="order.content_type"
+        @confirm="confirmImport($event)"
+        @retry="confirmImport($event, true)"
+        @exclude="excludeImport"
+        @edit="editById"
+        @preview-failed="go('import', 'preview')"
+        @previous="go('import', 'validation')"
       />
+      <AdminPanel v-if="tab === 'import' && order.pending_commands?.length" title="仍在处理的操作"
+        ><ElButton
+          v-for="pending in order.pending_commands"
+          :key="pending.command_id"
+          :disabled="busy || Date.parse(pending.retry_at) > Date.now()"
+          @click="model.resume(pending.command_id)"
+          >继续核实结果</ElButton
+        ></AdminPanel
+      >
       <WorkOrderCandidates
         v-else-if="tab === 'candidates' && order.content_type !== 'short_reading'"
         :groups="groups"
@@ -607,25 +684,62 @@ watch(
           }}</ElButton></AdminPanel
         ></template
       >
-      <AppPageActions
-        ><ElButton @click="router.push({ name: 'content-jobs' })">全部工作单</ElButton
-        ><ElButton v-if="tab === 'overview'" :disabled="busy" @click="organize()"
-          >自动整理本批</ElButton
-        ><ElButton v-if="tab === 'candidates'" :disabled="busy" @click="organize(true)"
-          >生成可选推荐</ElButton
-        ><ElButton
-          v-if="tab === 'overview'"
-          :disabled="busy"
-          @click="run('cancel', { scope: 'all' })"
-          >取消未开始项目</ElButton
-        ><ElButton
-          v-if="tab === 'overview'"
-          :disabled="busy || !order.counts.normal"
-          type="primary"
-          @click="startSampling"
-          >开始正常抽样</ElButton
-        ></AppPageActions
-      >
+      <AppPageActions v-if="!(tab === 'import' && importPhase === 'preview')">
+        <template v-if="tab === 'overview'"
+          ><ElButton v-if="order.import_batch_id" @click="downloadOriginal">查看原文件</ElButton
+          ><ElButton
+            :disabled="busy || !membersReady || !order.counts.normal"
+            type="primary"
+            @click="startSampling"
+            >开始校对</ElButton
+          ></template
+        >
+        <template v-else-if="tab === 'jobs'"
+          ><ElButton :disabled="busy" @click="run('cancel', { scope: 'all' })"
+            >取消未开始项目</ElButton
+          ><ElButton
+            :disabled="busy || !membersReady"
+            type="primary"
+            @click="tasksView && (tasksView.failedOpened = true)"
+            >重试失败阶段</ElButton
+          ></template
+        >
+        <template v-else-if="tab === 'import' && importPhase === 'validation'"
+          ><ElButton @click="router.push({ name: 'content-import' })">上一步</ElButton
+          ><ElButton
+            :disabled="
+              busy ||
+              !preview?.items.length ||
+              !!preview.batch_issues.some((issue) => issue.severity === 'ERROR')
+            "
+            type="primary"
+            @click="go('import', 'preview')"
+            >查看合格预览</ElButton
+          ></template
+        >
+        <template v-else-if="tab === 'import' && importPhase === 'preview'"
+          ><ElButton :disabled="busy" @click="go('import', 'validation')"
+            >上一步</ElButton
+          ></template
+        >
+        <template v-else-if="tab === 'import' && importPhase === 'result'"
+          ><ElButton @click="router.push({ name: 'content-import' })">再次上传</ElButton
+          ><ElButton
+            type="primary"
+            :disabled="busy || !!order.pending_commands?.length"
+            @click="enterProofreading"
+            >进入校对发布</ElButton
+          ></template
+        >
+        <template v-else-if="tab === 'candidates'"
+          ><ElButton :disabled="busy" @click="organize(true)">生成可选推荐</ElButton
+          ><ElButton @click="go('overview')">返回整理结果</ElButton></template
+        >
+        <template v-else
+          ><ElButton @click="go('overview')">返回整理结果</ElButton
+          ><ElButton @click="go('jobs')">查看批量任务</ElButton></template
+        >
+      </AppPageActions>
     </template>
   </section>
 </template>
@@ -652,10 +766,22 @@ watch(
     }
   }
 
-  .tabs {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+  .import-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+
+    span {
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--juya-color-surface);
+      color: var(--juya-color-text-secondary);
+    }
+
+    .active {
+      background: var(--juya-color-primary-soft);
+      color: var(--juya-color-primary);
+    }
   }
 }
 </style>

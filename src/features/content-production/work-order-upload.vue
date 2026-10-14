@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref, shallowRef } from 'vue'
+import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
+import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import { createContentPackageAdapter } from '@/features/content-import/content-package-adapter'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
@@ -23,6 +24,10 @@ const file = shallowRef<globalThis.File | null>(null),
   error = ref('')
 const limits = ref<{ maxBytes: number; maxItems: number } | null>(null)
 let uploadKey = createIdempotencyKey()
+let active = true
+onBeforeUnmount(() => {
+  active = false
+})
 const /** 选择原始文件，校验格式和服务端大小限制
    * @param selected - 管理员选择的实际上传文件
    */
@@ -53,10 +58,11 @@ const /** 创建工作单后立即保存可恢复地址
       body.set('content_type', props.contentType)
       body.set('mode', props.kind.toUpperCase())
       const order = await adapter.upload(body, uploadKey)
+      if (!active) return
       await router.replace({
         name: 'content-work-order',
         params: { id: order.work_order_id },
-        query: { view: 'import' }
+        query: { view: 'import', import_phase: 'validation' }
       })
     } catch (failure) {
       error.value = failure instanceof Error ? failure.message : '上传失败，请重试本次文件'
@@ -93,8 +99,42 @@ onMounted(async () => {
       单文件最大 {{ Math.round(limits.maxBytes / 1024 / 1024) }} MB，本批最多
       {{ limits.maxItems }} 篇
     </p>
-    <ElButton type="primary" :disabled="!file || !seriesId" :loading="busy" @click="upload"
-      >上传并校验内容</ElButton
+    <AppPageActions
+      ><ElButton @click="router.push({ name: 'content-import' })">返回批量导入</ElButton
+      ><ElButton type="primary" :disabled="!file || !seriesId" :loading="busy" @click="upload"
+        >开始校验</ElButton
+      ></AppPageActions
     ></AdminPanel
+  >
+  <AdminPanel v-if="kind === 'zip'" title="按稳定导入标识对应资料"
+    ><ElTable
+      :data="[
+        {
+          file: '内容表.xlsx · 内容导入 ID',
+          saved: '双语文档、封面、整段 / 全文音频',
+          binding: '每篇一个 DOCX，使用包内相对路径'
+        },
+        {
+          file: '词汇表.xlsx · 条目 ID',
+          saved: '英文、本篇释义、音标、解释与来源',
+          binding: '关联内容 ID；词汇可配图，语块无图片'
+        },
+        {
+          file: 'documents/ · images/ · audio/',
+          saved: '正文文件、素材与音频',
+          binding: '不按行号、标题或文件顺序猜配'
+        }
+      ]"
+      ><ElTableColumn prop="file" label="文件 / 标识" min-width="250" /><ElTableColumn
+        prop="saved"
+        label="保存资料"
+        min-width="350" /><ElTableColumn prop="binding" label="绑定方式" min-width="360" /></ElTable
+  ></AdminPanel>
+  <ElAlert
+    v-if="kind === 'zip' && contentType === 'short_reading'"
+    title="短文仍为纯阅读"
+    type="info"
+    :closable="false"
+    >只整理完整中英文、元信息、来源版权、安全封面与可选全文音频，不生成词汇、语块或讲解</ElAlert
   >
 </template>

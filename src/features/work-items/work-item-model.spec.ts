@@ -26,6 +26,16 @@ const items: WorkItemDto[] = [
 ]
 
 describe('work item model', () => {
+  it('uses confirmed entitlement actions while preserving their destinations', () => {
+    expect(toWorkItemViewModel({ ...items[0]!, kind: 'CAMPAIGN_STARTING' })).toMatchObject({
+      actionLabel: '查看权益',
+      destination: '/entitlements?type=LIMITED&status=PENDING'
+    })
+    expect(toWorkItemViewModel({ ...items[0]!, kind: 'CAMPAIGN_START_EXPIRED' })).toMatchObject({
+      actionLabel: '恢复或关闭',
+      destination: '/entitlements?type=LIMITED&status=START_EXPIRED'
+    })
+  })
   it('preserves server priority order while separating informational reminders', () => {
     const grouped = groupWorkItems(items)
 

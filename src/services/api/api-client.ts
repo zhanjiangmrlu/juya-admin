@@ -11,6 +11,7 @@ export interface ApiRequestOptions {
   path: string
   query?: Readonly<Record<string, boolean | number | string | null | undefined>>
   signal?: AbortSignal
+  responseType?: 'json' | 'blob'
 }
 
 export interface ApiClient {
@@ -57,67 +58,73 @@ export function createIdempotencyKey(): string {
   return `idem-${createUuid()}`
 }
 
-/**
- * 创建统一封装认证、追踪头与错误映射的 API 客户端
- *
- * @param options - API 根地址、认证回调和可替换的 fetch 实现
- * @returns 可执行类型化请求的 API 客户端
- */
-export function createApiClient(options: ApiClientOptions = {}): ApiClient {
-  const baseUrl = options.baseUrl?.replace(/\/$/, '') ?? ''
-  const fetchImplementation = options.fetchImplementation ?? fetch
-
-  /**
-   * 执行单次 API 请求并将非成功响应转换为统一错误
+export const /**
+   * 创建统一封装认证、追踪头与错误映射的 API 客户端
    *
-   * @param requestOptions - 请求方法、路径、参数和可选取消信号
-   * @returns 接口返回的类型化响应体
+   * @param options - API 根地址、认证回调和可替换的 fetch 实现
+   * @returns 可执行类型化请求的 API 客户端
    */
-  async function request<T>(requestOptions: ApiRequestOptions): Promise<T> {
-    const requestId = createRequestId()
-    const headers = new Headers(requestOptions.headers)
-    const isWriteRequest = requestOptions.method !== 'GET'
+  createApiClient = (options: ApiClientOptions = {}): ApiClient => {
+    const baseUrl = options.baseUrl?.replace(/\/$/, '') ?? ''
+    const fetchImplementation = options.fetchImplementation ?? fetch
 
-    headers.set('Accept', 'application/json')
-    headers.set('X-Request-ID', requestId)
+    const /**
+       * 执行单次 API 请求并将非成功响应转换为统一错误
+       *
+       * @param requestOptions - 请求方法、路径、参数和可选取消信号
+       * @returns 接口返回的类型化响应体
+       */
+      request = async <T>(requestOptions: ApiRequestOptions): Promise<T> => {
+        const requestId = createRequestId()
+        const headers = new Headers(requestOptions.headers)
+        const isWriteRequest = requestOptions.method !== 'GET'
 
-    if (isWriteRequest) {
-      const csrfToken = options.getCsrfToken?.()
-      if (options.getCsrfToken && !csrfToken) {
-        options.onUnauthorized?.()
-        throw new ApiError({
-          code: 'CSRF_TOKEN_MISSING',
-          message: '安全凭证已失效，请重新登录',
-          requestId,
-          status: 401
-        })
+        headers.set(
+          'Accept',
+          requestOptions.responseType === 'blob' ? 'application/octet-stream' : 'application/json'
+        )
+        headers.set('X-Request-ID', requestId)
+
+        if (isWriteRequest) {
+          const csrfToken = options.getCsrfToken?.()
+          if (options.getCsrfToken && !csrfToken) {
+            options.onUnauthorized?.()
+            throw new ApiError({
+              code: 'CSRF_TOKEN_MISSING',
+              message: '安全凭证已失效，请重新登录',
+              requestId,
+              status: 401
+            })
+          }
+          if (csrfToken) headers.set('X-CSRF-Token', csrfToken)
+          if (requestOptions.idempotencyKey) {
+            headers.set('X-Idempotency-Key', requestOptions.idempotencyKey)
+          }
+        }
+
+        const body = createRequestBody(requestOptions.body, headers)
+        const response = await fetchImplementation(
+          createRequestUrl(baseUrl, requestOptions.path, requestOptions.query),
+          {
+            body,
+            credentials: 'include',
+            headers,
+            method: requestOptions.method,
+            signal: requestOptions.signal
+          }
+        )
+
+        if (response.ok)
+          return requestOptions.responseType === 'blob'
+            ? ((await response.blob()) as T)
+            : readSuccessBody<T>(response)
+
+        if (response.status === 401) options.onUnauthorized?.()
+        throw await createApiError(response, requestId)
       }
-      if (csrfToken) headers.set('X-CSRF-Token', csrfToken)
-      if (requestOptions.idempotencyKey) {
-        headers.set('X-Idempotency-Key', requestOptions.idempotencyKey)
-      }
-    }
 
-    const body = createRequestBody(requestOptions.body, headers)
-    const response = await fetchImplementation(
-      createRequestUrl(baseUrl, requestOptions.path, requestOptions.query),
-      {
-        body,
-        credentials: 'include',
-        headers,
-        method: requestOptions.method,
-        signal: requestOptions.signal
-      }
-    )
-
-    if (response.ok) return readSuccessBody<T>(response)
-
-    if (response.status === 401) options.onUnauthorized?.()
-    throw await createApiError(response, requestId)
+    return { request }
   }
-
-  return { request }
-}
 
 /**
  * 创建包含查询参数的完整请求地址

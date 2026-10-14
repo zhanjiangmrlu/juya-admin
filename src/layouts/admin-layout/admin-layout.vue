@@ -52,6 +52,30 @@ const activePageNumber = computed(() => {
   return String(route.meta.navigationPath ?? route.path)
 })
 const pageTitle = computed(() => {
+  if (route.name === 'content-work-order') {
+    const view = String(route.query.view || 'overview')
+    if (view === 'import')
+      return (
+        (
+          {
+            validation: '校验内容包',
+            preview: '核对图文与音频',
+            result: '内容包导入结果'
+          } as Record<string, string>
+        )[String(route.query.import_phase || 'validation')] || '校验内容包'
+      )
+    return (
+      (
+        {
+          overview: '自动整理结果',
+          jobs: '批量任务',
+          candidates: '词表与中央定义',
+          sampling: '正常内容抽样',
+          publication: '校对与发布'
+        } as Record<string, string>
+      )[view] || '自动整理结果'
+    )
+  }
   if (route.name === 'learning-modules') return '学习模块配置'
   if (route.name === 'content-proofreading') return '正常内容抽样'
   if (route.name === 'content-short-reading-edit') return '短文结构化编辑'
@@ -92,6 +116,14 @@ const pageTitle = computed(() => {
   return ADMIN_DESIGN_TITLES[String(route.meta.pageNumber)] ?? route.meta.title
 })
 const pageDescription = computed(() => {
+  if (route.name === 'content-work-order')
+    return String(route.query.view) === 'jobs'
+      ? '离开页面后可恢复查看 · 成功步骤复用'
+      : String(route.query.view || 'overview') === 'overview'
+        ? '定位到具体篇目与问题 · 筛选结果需校对确认'
+        : String(route.query.view) === 'import'
+          ? '保存草稿与校对发布分开确认 · 按本次批次恢复'
+          : '保持当前候选与固定范围，按实际结果继续处理'
   if (route.name === 'learning-modules') return '按中文名称配置入口，保存后小程序读取最新配置'
   if (route.name === 'content-short-reading-edit')
     return '纯阅读模式 · 完整英文与全文中文 · 封面和全文音频选填'

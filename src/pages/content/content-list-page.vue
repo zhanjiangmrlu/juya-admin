@@ -16,7 +16,6 @@ import {
 import SceneHistory from '@/features/content-editor/scene-history.vue'
 import { createWorkOrderAdapter } from '@/features/content-production/work-order-adapter'
 import { resolveWorkOrderContext } from '@/features/content-production/work-order-context'
-import { productionLabels } from '@/features/content-production/work-order-model'
 import { createShortReadingAdapter } from '@/features/short-reading/short-reading-adapter'
 import { createIdempotencyKey } from '@/services/api/api-client'
 import { useAdminApiClient } from '@/services/api/use-admin-api-client'
@@ -274,6 +273,26 @@ const /**
         ElMessage.error(failure instanceof Error ? failure.message : '下线失败')
     }
   }
+const /** 打开已有内容所属的发布范围，仍由服务端校验合格候选
+   * @param row - 所选目录内容与实际分类
+   */ openPublication = async (row: CatalogueItem): Promise<void> => {
+    try {
+      const context = await resolveWorkOrderContext(production, {
+        content_type: row.content_type,
+        content_id: row.id,
+        series_id: row.series_id
+      })
+      if (!disposed)
+        await router.push({
+          name: 'content-work-order',
+          params: { id: context.orderId },
+          query: { view: 'publication' }
+        })
+    } catch (failure) {
+      if (!disposed)
+        ElMessage.error(failure instanceof Error ? failure.message : '发布范围加载失败')
+    }
+  }
 onMounted(loadScenes)
 onBeforeUnmount(() => {
   disposed = true
@@ -337,26 +356,12 @@ onBeforeUnmount(() => {
             ></template
           ></ElTableColumn
         >
-        <ElTableColumn label="生产进度" min-width="150"
-          ><template #default="{ row }"
-            ><span v-if="contexts.some((context) => context.content_id === row.id)">{{
-              productionLabels[
-                contexts.find((context) => context.content_id === row.id)!.production_status
-              ]
-            }}</span
-            ><span v-else>尚未加入工作单</span></template
-          ></ElTableColumn
-        >
         <ElTableColumn label="操作" min-width="260"
           ><template #default="{ row }">
             <ElButton link type="primary" @click="edit(row)">{{
               row.status === 'DRAFT' ? '继续校对' : '查看 · 编辑新版本'
             }}</ElButton>
-            <ElButton
-              v-if="row.draft_revision_id && row.content_type !== 'short_reading'"
-              link
-              type="primary"
-              @click="edit(row)"
+            <ElButton v-if="row.draft_revision_id" link type="primary" @click="openPublication(row)"
               >预览 · 发布</ElButton
             >
             <ElButton link @click="openHistory(row)">查看历史</ElButton
@@ -377,11 +382,6 @@ onBeforeUnmount(() => {
     <ElAlert class="operation-note" title="按模板展示内容" type="info" :closable="false"
       >学习图片、重点词汇和语块按需展开；没有配图也可发布。已发布内容可下线并保留历史引用。</ElAlert
     >
-    <div class="related-links">
-      <RouterLink to="/content/proofreading">抽样校对与批量发布</RouterLink
-      ><RouterLink to="/content/jobs">批量任务</RouterLink
-      ><RouterLink to="/content/discovery-config">开放与预览配置</RouterLink>
-    </div>
     <AppPageActions
       ><ElButton @click="openCreate">单篇新建</ElButton
       ><ElButton type="primary" @click="router.push({ name: 'content-import' })"

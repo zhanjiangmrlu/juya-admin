@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
@@ -25,17 +25,35 @@ const context = reactive({
 const source = computed(() =>
   String(route.query.source || (route.query.batch_id ? 'zip' : 'entry'))
 )
+let generation = 0
+onBeforeUnmount(() => {
+  generation++
+})
 const /** 加载真实分类，导入来源之间保持管理员选择 */
   load = async (): Promise<void> => {
+    const token = ++generation,
+      batchId = route.query.batch_id,
+      importPhase = String(route.query.import_phase || 'validation')
+    const seriesId = route.query.series_id
+    if (typeof seriesId === 'string') context.seriesId = seriesId
+    if (['dialogue', 'word_card', 'short_reading'].includes(String(route.query.content_type)))
+      context.contentType = route.query.content_type as ImportContentType
     try {
-      if (route.query.batch_id && source.value !== 'materials') {
-        const order = await createWorkOrderAdapter(api).fromBatch(String(route.query.batch_id))
-        await router.replace({ name: 'content-work-order', params: { id: order.work_order_id } })
+      if (batchId && source.value !== 'materials') {
+        const order = await createWorkOrderAdapter(api).fromBatch(String(batchId))
+        if (token !== generation) return
+        await router.replace({
+          name: 'content-work-order',
+          params: { id: order.work_order_id },
+          query: { view: 'import', import_phase: importPhase }
+        })
         return
       }
-      series.value = await content.listSeries()
+      const result = await content.listSeries()
+      if (token === generation) series.value = result
     } catch (failure) {
-      error.value = failure instanceof Error ? failure.message : '分类加载失败'
+      if (token === generation)
+        error.value = failure instanceof Error ? failure.message : '分类加载失败'
     }
   }
 const /**
@@ -52,7 +70,7 @@ const /**
       }
     })
   }
-onMounted(load)
+watch(() => route.fullPath, load, { immediate: true })
 </script>
 <template>
   <section class="content-import-page">
@@ -114,6 +132,10 @@ onMounted(load)
       >
     </template>
     <template v-else>
+      <div v-if="source === 'zip'" class="import-steps" aria-label="导入阶段">
+        <span class="active">上传 ZIP</span><span>校验</span><span>对应预览</span
+        ><span>确认导入</span>
+      </div>
       <ElButton
         v-if="source !== 'materials'"
         class="back-entry"
@@ -143,6 +165,24 @@ onMounted(load)
   display: grid;
   gap: 20px;
   min-width: 0;
+
+  .import-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+
+    span {
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--juya-color-surface);
+      color: var(--juya-color-text-secondary);
+    }
+
+    .active {
+      background: var(--juya-color-primary-soft);
+      color: var(--juya-color-primary);
+    }
+  }
 
   .classification,
   .source-grid {
