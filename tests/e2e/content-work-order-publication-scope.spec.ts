@@ -620,7 +620,7 @@ for (const status of ['QUEUED', 'RUNNING', 'PARTIAL'] as const) {
     })
     await loginAsAdmin(page)
     await navigateInApp(page, '/content/work-orders/order?view=publication')
-    await expect(page.getByRole('heading', { name: '逐篇发布结果', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '发布失败项目', exact: true })).toBeVisible()
     await expect(page.getByRole('heading', { name: '选择当前合格子集', exact: true })).toHaveCount(
       0
     )

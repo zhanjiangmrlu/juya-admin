@@ -57,12 +57,15 @@ const /** 将权威阶段计数组合成可读结果
       .join('，') || '尚无篇目'
 const /** 从实际调用记录显示已知计量及缺测范围
    * @param field - 供应商保存的输入或输出Token字段
-   * @returns 实际已知计量
+   * @returns 实际已知计量或未知状态，并说明未测调用数量
    */ actualTokens = (field: 'input_tokens' | 'output_tokens'): string => {
     const attempts = props.usage?.attempts.filter((row) => row.kind === 'AI_TOKENS') || []
     if (!attempts.length) return '尚无计量记录'
     const known = attempts.filter((row) => row[field] !== null && row[field] !== undefined)
-    return `${known.reduce((sum, row) => sum + Number(row[field]), 0)}${known.length < attempts.length ? '（部分调用待核实）' : ''}`
+    const missing = attempts.length - known.length
+    if (!known.length) return `未知（${missing} 次调用待核实）`
+    const total = known.reduce((sum, row) => sum + Number(row[field]), 0)
+    return missing ? `已知部分 ${total}（${missing} 次调用待核实）` : String(total)
   }
 defineExpose({ failedOpened })
 </script>

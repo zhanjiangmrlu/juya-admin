@@ -1,6 +1,6 @@
 import type { ProductionSchema as S, WorkItem, WorkOrder } from './work-order-model'
 
-export const /** 统计当前批次未纳入原冻结版本范围的真实草稿，不把旧已发布生命周期当作当前草稿已上线
+export const /** 仅排除工作单、内容、版本与正文 hash 完全匹配的冻结候选，统计其余当前草稿
    * @param state - 当前原发布范围的冻结候选
    * @param members - 当前工作单完整权威成员
    * @param complete - 是否已确认全部成员分页读取完整
@@ -11,12 +11,17 @@ export const /** 统计当前批次未纳入原冻结版本范围的真实草稿
     complete: boolean
   ): { held: number; review: number; failed: number } | null => {
     if (!complete) return null
-    const frozen = new Set(state.candidates.map((candidate) => candidate.revision_id))
     const drafts = members.filter(
       (member) =>
         member.current_draft &&
         member.production_status !== 'published' &&
-        !frozen.has(member.revision_id || '')
+        !state.candidates.some(
+          (candidate) =>
+            member.work_order_id === state.work_order_id &&
+            member.content_id === candidate.content_id &&
+            member.revision_id === candidate.revision_id &&
+            member.candidate_hash === candidate.candidate_hash
+        )
     )
     return {
       held: drafts.length,

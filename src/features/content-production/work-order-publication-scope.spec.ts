@@ -17,8 +17,17 @@ const member = {
   candidate_hash: 'hash',
   content_version: 4,
   edit_version: 2,
-  publishable: false
-} as WorkItem
+  publishable: false,
+  confirmed: false,
+  current_draft: true,
+  lifecycle_status: 'DRAFT',
+  production_status: 'normal',
+  published: false,
+  title_en: 'Frozen candidate',
+  title_zh: '冻结候选',
+  issues: [],
+  tasks: []
+} satisfies WorkItem
 const candidate = {
   content_type: 'short_reading',
   content_id: 'a',
@@ -27,16 +36,40 @@ const candidate = {
   expected_version: 4,
   expected_edit_version: 2,
   warning_codes: []
-} as S['PublicationCandidate-Output']
+} satisfies S['PublicationCandidate-Output']
 const state = {
   work_order_id: 'order',
   token: 'token',
   status: 'PREVIEW',
+  version: 3,
+  collection_hash: 'a'.repeat(64),
+  expires_at: '2026-10-15T00:00:00Z',
+  stage_id: null,
   candidates: [candidate],
   results: []
-} as unknown as S['PublicationState']
+} satisfies S['PublicationState']
 
 describe('冻结发布候选映射', () => {
+  it.each([
+    { status: 'review_required' as const, counts: { held: 1, review: 1, failed: 0 } },
+    { status: 'failed' as const, counts: { held: 1, review: 0, failed: 1 } }
+  ])('同 RID 修改 hash 后的 $status 草稿保留在当前统计中', ({ status, counts }) => {
+    const changed = { ...member, candidate_hash: 'changed', production_status: status }
+    expect(publicationDraftCounts(state, [changed], true)).toEqual(counts)
+    expect(publicationDraftCounts(state, [changed], false)).toBeNull()
+  })
+  it.each([{ content_id: 'other-content' }, { work_order_id: 'other-order' }])(
+    '同 RID/hash 的其他身份不会冒充冻结候选而被排除 %j',
+    (identity) => {
+      expect(
+        publicationDraftCounts(
+          state,
+          [{ ...member, ...identity, production_status: 'review_required' }],
+          true
+        )
+      ).toEqual({ held: 1, review: 1, failed: 0 })
+    }
+  )
   it('剩余草稿使用全量当前成员，旧已发布内容的新草稿仍计入，冻结失败不重复算处理失败', () => {
     const members = [
       { ...member, current_draft: true, production_status: 'failed' },

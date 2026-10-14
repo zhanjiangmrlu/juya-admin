@@ -591,7 +591,7 @@ test('语块不显示图片字段或无图确认，预览只有文本与选填�
 test('素材匹配按完整上传清单计数并保留人工候选，固定版本缺音频范围可见', async ({
   adminApi,
   page
-}) => {
+}, testInfo) => {
   void adminApi
   const candidate = { revision_id: 'REV-DRAFT-1', edit_version: 3, title_en: 'Ordering coffee' }
   const resources = [
@@ -665,7 +665,7 @@ test('素材匹配按完整上传清单计数并保留人工候选，固定版�
   })
   await page.screenshot({
     animations: 'disabled',
-    path: 'D:/个人/juya/juya-admin-api/.superpowers/sdd/2026-10-14-v15-confirmed-deviation-remediation/product-screenshots/task5-a18m-matching.png'
+    path: testInfo.outputPath('task5-a18m-matching.png')
   })
 })
 

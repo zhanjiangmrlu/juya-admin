@@ -65,7 +65,7 @@ for (const withImage of [true, false]) {
   test(`I1 词汇行${withImage ? '有图' : '无图'}与独立音频在同一确认范围预览`, async ({
     adminApi,
     page
-  }) => {
+  }, testInfo) => {
     void adminApi
     const imagePath = withImage ? 'images/word.png' : ''
     const audioPath = 'audio/word.wav'
@@ -198,7 +198,7 @@ for (const withImage of [true, false]) {
     })
     await page.screenshot({
       animations: 'disabled',
-      path: `D:/个人/juya/juya-admin-api/.superpowers/sdd/2026-10-14-v15-confirmed-deviation-remediation/product-screenshots/task5-fix1-word-${withImage ? 'image' : 'no-image'}-audio.png`
+      path: testInfo.outputPath(`task5-fix1-word-${withImage ? 'image' : 'no-image'}-audio.png`)
     })
     await panel
       .getByRole('checkbox', { name: '已逐项核对文件、角色、当前草稿和稳定词条' })
@@ -388,13 +388,11 @@ test('独立素材按稳定词条确认，并等实际绑定结果后显示完�
 test('正式词汇表四阶段上传按导入ID确认缺图与差异，异常行不能进入范围', async ({
   adminApi,
   page
-}) => {
+}, testInfo) => {
   void adminApi
   let body: Record<string, unknown> | null = null
   let completed = false
   let bindingKey = ''
-  const shots =
-    'D:/个人/juya/juya-admin-api/.superpowers/sdd/2026-10-14-v15-confirmed-deviation-remediation/product-screenshots'
   const rows = [
     {
       entry_type: 'word',
@@ -539,7 +537,10 @@ test('正式词汇表四阶段上传按导入ID确认缺图与差异，异常行
   await page.locator('.page-scrollbar-wrap').evaluate((node) => {
     node.scrollTop = 0
   })
-  await page.screenshot({ animations: 'disabled', path: `${shots}/task5-a18z-upload.png` })
+  await page.screenshot({
+    animations: 'disabled',
+    path: testInfo.outputPath('task5-a18z-upload.png')
+  })
   await page.getByRole('button', { name: '开始校验', exact: true }).click()
   await expect(page.getByRole('heading', { name: '图包校验', exact: true, level: 1 })).toBeVisible()
   await panel.getByRole('button', { name: '加载本页目标草稿', exact: true }).click()
@@ -552,7 +553,10 @@ test('正式词汇表四阶段上传按导入ID确认缺图与差异，异常行
   await page.locator('.page-scrollbar-wrap').evaluate((node) => {
     node.scrollTop = 0
   })
-  await page.screenshot({ animations: 'disabled', path: `${shots}/task5-a18zv-validation.png` })
+  await page.screenshot({
+    animations: 'disabled',
+    path: testInfo.outputPath('task5-a18zv-validation.png')
+  })
   await panel.getByRole('checkbox', { name: '选择词汇 word-coffee-medium' }).locator('..').click()
   await panel.getByRole('checkbox', { name: '选择词汇 word-home-medium' }).locator('..').click()
   await expect(page.getByRole('button', { name: '查看合格预览' })).toBeDisabled()
@@ -563,7 +567,10 @@ test('正式词汇表四阶段上传按导入ID确认缺图与差异，异常行
   await page.locator('.page-scrollbar-wrap').evaluate((node) => {
     node.scrollTop = 0
   })
-  await page.screenshot({ animations: 'disabled', path: `${shots}/task5-a18zp-preview.png` })
+  await page.screenshot({
+    animations: 'disabled',
+    path: testInfo.outputPath('task5-a18zp-preview.png')
+  })
   await panel
     .getByRole('checkbox', { name: '已逐项核对文件、角色、当前草稿和稳定词条' })
     .locator('..')
@@ -608,7 +615,10 @@ test('正式词汇表四阶段上传按导入ID确认缺图与差异，异常行
   await page.locator('.page-scrollbar-wrap').evaluate((node) => {
     node.scrollTop = 0
   })
-  await page.screenshot({ animations: 'disabled', path: `${shots}/task5-a18zd-result.png` })
+  await page.screenshot({
+    animations: 'disabled',
+    path: testInfo.outputPath('task5-a18zd-result.png')
+  })
   await page.reload()
   await expect(panel.getByText('word-coffee-medium', { exact: true })).toBeVisible()
   await expect(panel.getByText('word-home-medium', { exact: true })).toBeVisible()
