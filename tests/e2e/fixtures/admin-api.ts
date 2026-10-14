@@ -505,6 +505,34 @@ async function handleAdminRequest(route: Route, state: AdminApiState): Promise<v
     return
   }
   if (
+    url.pathname === '/api/v1/admin/limited-entitlements/preview-grant' &&
+    request.method() === 'POST'
+  ) {
+    await replyJson(route, {
+      before: null,
+      after: {
+        id: null,
+        user_id: 'USER-1',
+        campaign_version_id: 'VERSION-1',
+        status: 'PENDING',
+        granted_at: '2026-10-14T10:00:00Z',
+        start_deadline: '2026-10-21T10:00:00Z',
+        activated_at: null,
+        expires_at: null,
+        remedy_count: 0,
+        version: 1
+      },
+      actual_operation: 'GRANT',
+      expected_version: 3,
+      expected_fingerprint: 'a'.repeat(64),
+      previewed_at: '2026-10-14T10:00:00Z',
+      campaign_name: '秋季限时学习',
+      duration_days: 3,
+      scene_ids: ['SCENE-1']
+    })
+    return
+  }
+  if (
     url.pathname === '/api/v1/admin/limited-entitlements/commands/grant' &&
     request.method() === 'POST'
   ) {

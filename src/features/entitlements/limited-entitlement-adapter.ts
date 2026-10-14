@@ -1,5 +1,8 @@
 import type { LimitedEntitlementOperation } from './limited-entitlement-model'
 import type { ApiClient } from '@/services/api/api-client'
+import type { components } from '@/shared/contracts/generated/admin-api'
+
+type GrantPreviewDto = components['schemas']['GrantPreviewResponse']
 
 export interface LimitedEntitlement {
   activatedAt: string | null
@@ -21,13 +24,19 @@ export interface LimitedEntitlementCommandInput {
   reason?: string
   userId: string | null
   expectedVersion?: number
+  expectedFingerprint?: string
 }
 
 export interface LimitedEntitlementPreview {
-  before: LimitedEntitlement
-  after: LimitedEntitlement
+  before: LimitedEntitlement | null
+  after: Omit<LimitedEntitlement, 'id'> & { id: string | null }
   actualOperation: string
   expectedVersion: number
+  expectedFingerprint?: string
+  previewedAt?: string
+  campaignName?: string
+  durationDays?: number
+  sceneIds?: string[]
 }
 
 export interface LimitedEntitlementAdapter {
@@ -51,7 +60,32 @@ export const /**
        * @param input - 当前权益及补救模式
        * @returns 当前操作结果或完成状态
        */ async preview(input) {
-        if (!input.entitlementId || input.operation === 'GRANT') throw new Error('请选择已有权益')
+        if (input.operation === 'GRANT') {
+          if (!input.userId || !input.campaignVersionId) throw new Error('请选择用户和活动')
+          const response = await client.request<GrantPreviewDto>({
+            method: 'POST',
+            path: '/api/v1/admin/limited-entitlements/preview-grant',
+            body: { user_id: input.userId, campaign_version_id: input.campaignVersionId }
+          })
+          if (response.before !== null || !isRecord(response.after) || response.after.id !== null)
+            throw new Error('授予预览响应格式不正确')
+          return {
+            before: null,
+            after: { ...parseLimitedFields(response.after), id: null },
+            actualOperation: requireString(response, 'actual_operation'),
+            expectedVersion: requireNumber(response, 'expected_version'),
+            expectedFingerprint: requireString(response, 'expected_fingerprint'),
+            previewedAt: requireString(response, 'previewed_at'),
+            campaignName: requireString(response, 'campaign_name'),
+            durationDays: requireNumber(response, 'duration_days'),
+            sceneIds:
+              Array.isArray(response.scene_ids) &&
+              response.scene_ids.every((id) => typeof id === 'string')
+                ? response.scene_ids
+                : undefined
+          }
+        }
+        if (!input.entitlementId) throw new Error('请选择已有权益')
         const remedy =
           input.operation === 'EXTEND_START_DEADLINE' || input.operation === 'RESTORE_START_WINDOW'
         const response = await client.request<Record<string, unknown>>({
@@ -99,7 +133,12 @@ const /**
       if (!input.userId || !input.campaignVersionId)
         throw new Error('开通限时权益缺少用户或活动版本')
       return {
-        body: { campaign_version_id: input.campaignVersionId, user_id: input.userId },
+        body: {
+          campaign_version_id: input.campaignVersionId,
+          user_id: input.userId,
+          expected_fingerprint: input.expectedFingerprint,
+          ...(input.reason ? { reason: input.reason } : {})
+        },
         path: '/api/v1/admin/limited-entitlements/commands/grant'
       }
     }
@@ -125,19 +164,25 @@ const /**
  */
 function parseLimitedEntitlement(source: unknown): LimitedEntitlement {
   if (!isRecord(source)) throw new Error('限时权益接口响应格式不正确')
-  return {
-    activatedAt: nullableString(source, 'activated_at'),
-    campaignVersionId: requireString(source, 'campaign_version_id'),
-    expiresAt: nullableString(source, 'expires_at'),
-    grantedAt: requireString(source, 'granted_at'),
-    id: requireString(source, 'id'),
-    remedyCount: requireNumber(source, 'remedy_count'),
-    startDeadline: requireString(source, 'start_deadline'),
-    status: requireString(source, 'status'),
-    userId: requireString(source, 'user_id'),
-    version: requireNumber(source, 'version')
-  }
+  return { ...parseLimitedFields(source), id: requireString(source, 'id') }
 }
+
+const /** 映射服务端权益共有状态及期限
+   * @param source - 服务端授予预览或持久化回执的字段对象
+   * @returns 不含权益编号的真实状态与期限
+   */ parseLimitedFields = (source: Record<string, unknown>): Omit<LimitedEntitlement, 'id'> => {
+    return {
+      activatedAt: nullableString(source, 'activated_at'),
+      campaignVersionId: requireString(source, 'campaign_version_id'),
+      expiresAt: nullableString(source, 'expires_at'),
+      grantedAt: requireString(source, 'granted_at'),
+      remedyCount: requireNumber(source, 'remedy_count'),
+      startDeadline: requireString(source, 'start_deadline'),
+      status: requireString(source, 'status'),
+      userId: requireString(source, 'user_id'),
+      version: requireNumber(source, 'version')
+    }
+  }
 
 /**
  * 读取可为空的字符串字段

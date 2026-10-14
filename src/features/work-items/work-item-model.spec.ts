@@ -35,10 +35,19 @@ describe('work item model', () => {
 
   it('maps work-item kinds to stable labels and destinations', () => {
     expect(toWorkItemViewModel(items[0]!)).toMatchObject({
-      actionLabel: '处理',
+      actionLabel: '立即处理',
       destination: '/feedback?sla=OVERDUE',
       tone: 'danger'
     })
+  })
+
+  it('uses immediate handling and supplied-feedback recheck copy from A01', () => {
+    expect(toWorkItemViewModel({ ...items[0]!, kind: 'FEEDBACK_DUE_SOON' }).actionLabel).toBe(
+      '立即处理'
+    )
+    expect(toWorkItemViewModel({ ...items[0]!, kind: 'USER_SUPPLIED' }).actionLabel).toBe(
+      '重新查看'
+    )
   })
 
   it.each([

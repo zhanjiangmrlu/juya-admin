@@ -41,11 +41,14 @@ for (const viewport of [
       }
       if (id === 'A07') {
         await page.getByPlaceholder('输入用户编号').fill('USER-1')
+        await page
+          .getByRole('button', { name: '学习者 · 句芽号：JY000000000001', exact: true })
+          .click()
         await page.getByRole('combobox', { name: /开放中的活动/ }).click()
         await page.getByRole('option', { name: /秋季限时学习/ }).click()
         await page.keyboard.press('Escape')
         await expect(page.getByRole('option', { name: /秋季限时学习/ })).toBeHidden()
-        await expect(page.getByRole('button', { name: '二次确认并开通' })).toBeEnabled()
+        await expect(page.getByRole('button', { name: '预览并开通' })).toBeEnabled()
       }
       if (id === 'A08')
         await expect(page.getByRole('button', { name: '获取续期预览', exact: true })).toBeEnabled()

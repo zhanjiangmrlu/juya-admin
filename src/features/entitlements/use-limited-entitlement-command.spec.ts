@@ -6,7 +6,41 @@ import type { LimitedEntitlementAdapter } from './limited-entitlement-adapter'
 
 import { useLimitedEntitlementCommand } from './use-limited-entitlement-command'
 
+const previewGrant = async () => ({
+  before: null,
+  after: {
+    id: null,
+    userId: 'USER-1',
+    campaignVersionId: 'VERSION-B',
+    status: 'PENDING',
+    grantedAt: '2026-10-14T10:00:00Z',
+    startDeadline: '2026-10-21T10:00:00Z',
+    activatedAt: null,
+    expiresAt: null,
+    remedyCount: 0,
+    version: 1
+  },
+  actualOperation: 'GRANT',
+  expectedVersion: 1,
+  expectedFingerprint: 'a'.repeat(64)
+})
+
 describe('limited entitlement command', () => {
+  it('requires a server preview for grants and invalidates it when the source version changes', async () => {
+    const controller = useLimitedEntitlementCommand({ execute: vi.fn(), preview: previewGrant })
+    const draft = {
+      campaignVersionId: 'VERSION-B',
+      entitlementId: null,
+      operation: 'GRANT' as const,
+      userId: 'USER-1',
+      expectedVersion: 1
+    }
+    controller.setDraft(draft)
+    await expect(controller.submit('')).rejects.toThrow('请先获取服务端预览')
+    await controller.preview()
+    controller.setDraft({ ...draft, expectedVersion: 2 })
+    expect(controller.previewResult.value).toBeNull()
+  })
   it.each([
     new TypeError('connection lost'),
     new ApiError({ code: 'HTTP_503', message: '暂不可用', requestId: 'req-503', status: 503 })
@@ -17,7 +51,7 @@ describe('limited entitlement command', () => {
         .fn()
         .mockRejectedValueOnce(failure)
         .mockResolvedValueOnce({ id: 'LIMITED-1' })
-      const controller = useLimitedEntitlementCommand({ execute })
+      const controller = useLimitedEntitlementCommand({ execute, preview: previewGrant })
       const draft = {
         campaignVersionId: 'VERSION-B',
         entitlementId: null,
@@ -25,6 +59,7 @@ describe('limited entitlement command', () => {
         userId: 'USER-1'
       }
       controller.setDraft(draft)
+      await controller.preview()
       await expect(controller.submit('')).rejects.toBe(failure)
       controller.setDraft({ ...draft })
       await controller.submit('')
@@ -41,6 +76,7 @@ describe('limited entitlement command', () => {
       status: 409
     })
     const adapter: LimitedEntitlementAdapter = {
+      preview: previewGrant,
       execute: vi.fn(async () => Promise.reject(capacityError))
     }
     const controller = useLimitedEntitlementCommand(adapter)
@@ -51,6 +87,8 @@ describe('limited entitlement command', () => {
       userId: 'USER-1'
     }
     controller.setDraft(draft)
+
+    await controller.preview()
 
     await expect(controller.submit('运营开通')).rejects.toBe(capacityError)
     expect(controller.draft.value).toEqual(draft)

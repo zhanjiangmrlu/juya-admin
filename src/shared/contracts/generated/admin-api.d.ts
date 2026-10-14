@@ -2112,6 +2112,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/admin/limited-entitlements/preview-grant': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Preview Grant */
+    post: operations['preview_grant_api_v1_admin_limited_entitlements_preview_grant_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/admin/limited-entitlements/{entitlement_id}': {
     parameters: {
       query?: never
@@ -5114,10 +5131,85 @@ export interface components {
       /** Voice */
       voice: string
     }
+    /** GrantPreviewRequest */
+    GrantPreviewRequest: {
+      /** Campaign Version Id */
+      campaign_version_id: string
+      /** User Id */
+      user_id: string
+    }
+    /** GrantPreviewResponse */
+    GrantPreviewResponse: {
+      /** Activation Window Days */
+      activation_window_days: number
+      /**
+       * Actual Operation
+       * @constant
+       */
+      actual_operation: 'GRANT'
+      after: components['schemas']['GrantPreviewState']
+      /** Before */
+      before?: null
+      /** Campaign Name */
+      campaign_name: string | null
+      /** Capacity */
+      capacity: number | null
+      /** Duration Days */
+      duration_days: number
+      /** Expected Fingerprint */
+      expected_fingerprint: string
+      /** Expected Version */
+      expected_version: number
+      /** Granted User Count */
+      granted_user_count: number
+      /**
+       * Previewed At
+       * Format: date-time
+       */
+      previewed_at: string
+      /** Scene Ids */
+      scene_ids: string[]
+    }
+    /** GrantPreviewState */
+    GrantPreviewState: {
+      /** Activated At */
+      activated_at?: null
+      /** Campaign Version Id */
+      campaign_version_id: string
+      /** Expires At */
+      expires_at?: null
+      /**
+       * Granted At
+       * Format: date-time
+       */
+      granted_at: string
+      /** Id */
+      id?: null
+      /** Remedy Count */
+      remedy_count: number
+      /**
+       * Start Deadline
+       * Format: date-time
+       */
+      start_deadline: string
+      /**
+       * Status
+       * @constant
+       */
+      status: 'PENDING'
+      /** User Id */
+      user_id: string
+      /** Version */
+      version: number
+    }
     /** GrantRequest */
     GrantRequest: {
       /** Campaign Version Id */
       campaign_version_id: string
+      /** Expected Fingerprint */
+      expected_fingerprint?: string | null
+      /** Reason */
+      reason?: string | null
       /** User Id */
       user_id: string
     }
@@ -12241,6 +12333,41 @@ export interface operations {
           'application/json': {
             [key: string]: unknown
           }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_grant_api_v1_admin_limited_entitlements_preview_grant_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        juya_admin_session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GrantPreviewRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['GrantPreviewResponse']
         }
       }
       /** @description Validation Error */

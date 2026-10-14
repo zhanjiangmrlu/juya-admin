@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { ADMIN_SECTION_TITLES } from '@/app/admin-ui.config'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import ApiErrorDetails from '@/components/api-error-details/api-error-details.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
-import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import { createCampaignAdapter } from '@/features/campaigns/campaign-adapter'
+import EntitlementPreviewDialog from '@/features/entitlements/entitlement-preview-dialog.vue'
+import EntitlementUserSelector from '@/features/entitlements/entitlement-user-selector.vue'
 import { createLimitedEntitlementAdapter } from '@/features/entitlements/limited-entitlement-adapter'
 import { useLimitedEntitlementCommand } from '@/features/entitlements/use-limited-entitlement-command'
+import { createUserAdapter } from '@/features/users/user-adapter'
 import { createApiClient } from '@/services/api/api-client'
 import { ApiError } from '@/shared/errors/api-error'
 
@@ -28,8 +30,34 @@ const client = createApiClient({
   }
 })
 const campaigns = createCampaignAdapter(client)
-const controller = useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client))
 const form = reactive({ userId: '', campaignId: '' })
+const users = createUserAdapter(client)
+const userLabel = ref('')
+const userLoading = ref(false)
+let userSequence = 0
+watch(
+  () => form.userId,
+  async (id) => {
+    const sequence = ++userSequence
+    userLabel.value = ''
+    confirmVisible.value = false
+    userLoading.value = Boolean(id.trim())
+    if (!id.trim()) return
+    try {
+      const user = await users.getUserDetail(id.trim())
+      if (sequence === userSequence)
+        userLabel.value = `${user.nickname || '未设置昵称'} · ${user.juya_number || '句芽号未提供'}`
+    } catch (failure) {
+      if (sequence === userSequence) {
+        apiError.value = failure instanceof ApiError ? failure : null
+        error.value = '用户信息未能核实，请重新选择用户'
+      }
+    } finally {
+      if (sequence === userSequence) userLoading.value = false
+    }
+  }
+)
+const controller = useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client))
 const rows = ref<CampaignRow[]>([])
 const detail = ref<CampaignDetail | null>(null)
 const listPage = ref(1)
@@ -45,6 +73,10 @@ const confirmVisible = ref(false)
 const detailLoading = ref(false)
 const detailFresh = ref(false)
 let detailSequence = 0
+onBeforeUnmount(() => {
+  userSequence++
+  detailSequence++
+})
 const eligible = computed(
   () =>
     !detailLoading.value &&
@@ -55,54 +87,51 @@ const eligible = computed(
     (detail.value.currentVersion?.grantedUserCount ?? 0) <
       (detail.value.currentVersion?.capacity ?? 0)
 )
-/**
- * 加载开放活动分页。
- * @param page - 页码
- * @returns 加载完成的 Promise
- */
-async function loadCampaigns(page = 1): Promise<void> {
-  state.value = 'loading'
-  error.value = ''
-  apiError.value = null
-  try {
-    const result = await campaigns.list(page, 'OPEN', listPageSize.value)
-    rows.value = result.items
-    listPage.value = result.page
-    listTotal.value = result.total
-    state.value = 'ready'
-  } catch (failure) {
-    apiError.value = failure instanceof ApiError ? failure : null
-    state.value = 'error'
-    error.value = '活动列表加载失败，请重试'
+const /** 加载开放活动分页
+   * @param page - 活动列表目标页码
+   * @returns 加载结束的异步结果
+   */ loadCampaigns = async (page = 1): Promise<void> => {
+    state.value = 'loading'
+    error.value = ''
+    apiError.value = null
+    try {
+      const result = await campaigns.list(page, 'OPEN', listPageSize.value)
+      rows.value = result.items
+      listPage.value = result.page
+      listTotal.value = result.total
+      state.value = 'ready'
+    } catch (failure) {
+      apiError.value = failure instanceof ApiError ? failure : null
+      state.value = 'error'
+      error.value = '活动列表加载失败，请重试'
+    }
   }
-}
-/**
- * 加载管理员选择的活动详情。
- * @param id - 活动编号
- * @returns 加载完成的 Promise
- */
-async function selectCampaign(id: string): Promise<void> {
-  const sequence = ++detailSequence
-  detailFresh.value = false
-  if (detail.value?.id !== id) detail.value = null
-  error.value = ''
-  apiError.value = null
-  detailLoading.value = Boolean(id)
-  if (!id) return
-  try {
-    const result = await campaigns.detail(id)
-    if (sequence !== detailSequence || id !== form.campaignId) return
-    if (result.id !== id) throw new Error('活动详情与当前选择不匹配')
-    detail.value = result
-    detailFresh.value = true
-  } catch (failure) {
-    if (sequence !== detailSequence || id !== form.campaignId) return
-    apiError.value = failure instanceof ApiError ? failure : null
-    error.value = '活动详情加载失败，请重新选择或重试'
-  } finally {
-    if (sequence === detailSequence) detailLoading.value = false
+const /** 加载选中活动的最新详情并关闭旧确认
+   * @param id - 管理员当前选择的活动编号
+   * @returns 最新活动加载结束的异步结果
+   */ selectCampaign = async (id: string): Promise<void> => {
+    confirmVisible.value = false
+    const sequence = ++detailSequence
+    detailFresh.value = false
+    if (detail.value?.id !== id) detail.value = null
+    error.value = ''
+    apiError.value = null
+    detailLoading.value = Boolean(id)
+    if (!id) return
+    try {
+      const result = await campaigns.detail(id)
+      if (sequence !== detailSequence || id !== form.campaignId) return
+      if (result.id !== id) throw new Error('活动详情与当前选择不匹配')
+      detail.value = result
+      detailFresh.value = true
+    } catch (failure) {
+      if (sequence !== detailSequence || id !== form.campaignId) return
+      apiError.value = failure instanceof ApiError ? failure : null
+      error.value = '活动详情加载失败，请重新选择或重试'
+    } finally {
+      if (sequence === detailSequence) detailLoading.value = false
+    }
   }
-}
 watch(
   () => form.campaignId,
   (id) => {
@@ -117,33 +146,46 @@ watch(
       campaignVersionId: detail.value?.currentVersion?.id ?? null,
       entitlementId: null,
       operation: 'GRANT',
+      expectedVersion: detail.value.version,
       userId: form.userId.trim() || null
     })
   },
   { immediate: true }
 )
-/**
- * 提交限时权益开通命令。
- * @returns 开通限时权益完成后的 Promise
- */
-async function confirm(): Promise<void> {
-  if (!eligible.value) return
-  try {
-    commandError.value = null
-    commandApiError.value = null
-    hadConflict.value = false
-    await controller.submit('')
-    confirmVisible.value = false
-    ElMessage.success('限时权益已开通')
-    await selectCampaign(form.campaignId)
-  } catch (failure) {
-    confirmVisible.value = false
-    hadConflict.value = failure instanceof ApiError && failure.status === 409
-    commandError.value = controller.disabledReason.value ?? controller.errorMessage.value
-    commandApiError.value = controller.apiError.value
-    if (hadConflict.value) await selectCampaign(form.campaignId)
+const /** 确认预览后的限时授予并保存选填说明
+   * @param reason - 管理员在确认弹窗填写的选填备注
+   * @returns 授予完成的异步结果
+   */ confirm = async (reason: string): Promise<void> => {
+    if (!eligible.value) return
+    try {
+      commandError.value = null
+      commandApiError.value = null
+      hadConflict.value = false
+      await controller.submit(reason)
+      confirmVisible.value = false
+      ElMessage.success('限时权益已开通')
+      await selectCampaign(form.campaignId)
+    } catch (failure) {
+      confirmVisible.value = false
+      hadConflict.value = failure instanceof ApiError && failure.status === 409
+      commandError.value = controller.disabledReason.value ?? controller.errorMessage.value
+      commandApiError.value = controller.apiError.value
+      if (hadConflict.value) await selectCampaign(form.campaignId)
+    }
   }
-}
+const /** 获取服务端真实授予预览后打开核对弹窗
+   * @returns 当前预览完成的异步结果
+   */ preview = async (): Promise<void> => {
+    if (!eligible.value || !userLabel.value || userLoading.value) return
+    try {
+      commandError.value = null
+      await controller.preview()
+      confirmVisible.value = true
+    } catch (failure) {
+      commandError.value = failure instanceof Error ? failure.message : '开通预览失败，请重试'
+      commandApiError.value = failure instanceof ApiError ? failure : null
+    }
+  }
 void loadCampaigns()
 </script>
 
@@ -151,8 +193,8 @@ void loadCampaigns()
   <section class="limited-grant-page admin-brand-headings">
     <ElForm class="grant-layout" label-position="top">
       <AdminPanel :title="ADMIN_SECTION_TITLES.limitedGrant.editorCard" class="editor-card"
-        ><ElFormItem label="用户编号" required
-          ><ElInput v-model="form.userId" maxlength="64" placeholder="输入用户编号" /></ElFormItem
+        ><ElFormItem label="目标用户" required
+          ><EntitlementUserSelector v-model="form.userId" /></ElFormItem
         ><ElFormItem label="开放中的活动" required
           ><ElSelect
             v-model="form.campaignId"
@@ -162,7 +204,7 @@ void loadCampaigns()
             ><ElOption
               v-for="row in rows"
               :key="row.id"
-              :label="`${row.name} · ${row.id}`"
+              :label="row.name"
               :value="row.id" /></ElSelect></ElFormItem
         ><AppPagination
           v-model:current-page="listPage"
@@ -185,8 +227,10 @@ void loadCampaigns()
           ></ElAlert
         >
         <ElDescriptions v-if="detail?.currentVersion" :column="2" border class="summary"
-          ><ElDescriptionsItem label="当前状态">{{ detail.status }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="活动版本">{{ detail.currentVersion.id }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="当前状态">{{
+            detail.status === 'OPEN' ? '开放中' : detail.status === 'CLOSED' ? '已关闭' : '草稿'
+          }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="活动">{{ detail.name }}</ElDescriptionsItem
           ><ElDescriptionsItem label="容量"
             >{{ detail.currentVersion.grantedUserCount }} /
             {{ detail.currentVersion.capacity }}</ElDescriptionsItem
@@ -198,6 +242,13 @@ void loadCampaigns()
             >{{ detail.currentVersion.grantStartsAt ?? '—' }} 至
             {{ detail.currentVersion.grantEndsAt ?? '—' }}</ElDescriptionsItem
           ></ElDescriptions
+        >
+        <p v-if="userLabel">目标用户：{{ userLabel }}</p>
+        <ElCollapse v-if="detail?.currentVersion"
+          ><ElCollapseItem title="对象与版本详情">
+            用户编号 {{ form.userId }} · 活动版本 {{ detail.currentVersion.id }} · 版本
+            {{ detail.version }}
+          </ElCollapseItem></ElCollapse
         >
         <ElAlert
           v-if="detail && !eligible"
@@ -225,7 +276,7 @@ void loadCampaigns()
         <ElDescriptions v-if="controller.result.value" :column="2" border class="summary"
           ><ElDescriptionsItem label="权益编号">{{ controller.result.value.id }}</ElDescriptionsItem
           ><ElDescriptionsItem label="目标状态">{{
-            controller.result.value.status
+            controller.result.value.status === 'PENDING' ? '待开始' : controller.result.value.status
           }}</ElDescriptionsItem
           ><ElDescriptionsItem label="启动截止">{{
             controller.result.value.startDeadline
@@ -270,24 +321,34 @@ void loadCampaigns()
             type="primary"
             class="submit"
             :disabled="
-              !form.userId.trim() || !eligible || controller.commandState.value === 'submitting'
+              !userLabel ||
+              userLoading ||
+              !eligible ||
+              controller.commandState.value === 'submitting'
             "
             :loading="controller.commandState.value === 'submitting'"
-            @click="confirmVisible = true"
-            >二次确认并开通</ElButton
+            @click="preview"
+            >预览并开通</ElButton
           >
         </div>
       </div>
     </ElForm>
-    <ConfirmDialog
-      v-if="detail?.currentVersion"
+    <EntitlementPreviewDialog
+      v-if="detail?.currentVersion && controller.previewResult.value"
       v-model="confirmVisible"
-      :before-status="detail.status"
-      after-status="开通后的权益状态由服务端返回"
-      :impact-scope="`为用户 ${form.userId} 开通活动版本 ${detail.currentVersion.id}`"
-      :object-id="form.userId"
+      :before="controller.previewResult.value.before"
+      :after="controller.previewResult.value.after"
+      :actual-operation="controller.previewResult.value.actualOperation"
+      :expected-version="controller.previewResult.value.expectedVersion"
+      :previewed-at="controller.previewResult.value.previewedAt"
+      :user-label="userLabel"
+      :user-id="form.userId.trim()"
+      :content-label="controller.previewResult.value.campaignName ?? detail.name"
+      :duration-days="controller.previewResult.value.durationDays"
+      :scene-count="controller.previewResult.value.sceneIds?.length"
+      content-kind="活动"
+      :object-id="detail.currentVersion.id"
       :reason-required="false"
-      title="确认开通限时权益"
       :submitting="controller.commandState.value === 'submitting'"
       @confirm="confirm"
     />

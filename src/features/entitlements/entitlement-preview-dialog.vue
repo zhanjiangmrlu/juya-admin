@@ -25,6 +25,10 @@ const props = defineProps<{
   userLabel: string
   userId: string
   contentLabel: string
+  contentKind?: '活动' | '内容包'
+  previewedAt?: string
+  durationDays?: number
+  sceneCount?: number
   submitting: boolean
   reasonRequired: boolean
   error?: string | null
@@ -85,7 +89,17 @@ const operationLabels: Record<string, string> = {
   EXTEND_START_DEADLINE: '延长启动截止',
   RESTORE_START_WINDOW: '恢复启动窗口'
 }
-const actualLabel = computed(() => operationLabels[props.actualOperation] || props.actualOperation)
+const /** 显示当前权益种类的中文状态
+   * @param status - 服务端返回的前态或目标状态代码
+   * @returns 当前权益种类对应的业务状态文案
+   */ statusLabel = (status: string): string =>
+    props.contentKind === '活动' && status === 'ACTIVE' ? '学习中' : statusLabels[status] || status
+/** 根据权益种类命名真实确认动作 */
+const actualLabel = computed(() =>
+  props.contentKind === '活动' && props.actualOperation === 'GRANT'
+    ? '开通限时权益'
+    : operationLabels[props.actualOperation] || props.actualOperation
+)
 const invalid = computed(() =>
   props.actualOperation === 'EXTEND'
     ? !note.value.trim()
@@ -119,7 +133,7 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
         <div>{{ identity || userLabel }}</div>
       </div>
       <div class="change-row">
-        <span>内容包</span>
+        <span>{{ contentKind ?? '内容包' }}</span>
         <div>
           <strong>{{ contentLabel }}</strong>
         </div>
@@ -133,6 +147,14 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
           >
         </div>
       </div>
+      <div v-if="contentKind === '活动' && durationDays !== undefined" class="change-row">
+        <span>期限与范围</span>
+        <div>
+          {{ durationDays }} 天，从首次进入学习计时<span v-if="sceneCount !== undefined">
+            · {{ sceneCount }} 个固定场景</span
+          >
+        </div>
+      </div>
       <ElAlert
         v-if="actualOperation === 'RENEW'"
         title="当前权益有效，本次实际执行续期"
@@ -142,12 +164,12 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
       <div class="change-row">
         <span>权益状态</span>
         <div>
-          {{ before ? statusLabels[before.status] || before.status : '未开通' }} <b>→</b>
-          <strong>{{ statusLabels[after.status] || after.status }}</strong>
+          {{ before ? statusLabel(before.status) : '未开通' }} <b>→</b>
+          <strong>{{ statusLabel(after.status) }}</strong>
         </div>
       </div>
       <div class="change-row">
-        <span>生效时间</span>
+        <span>{{ contentKind === '活动' ? '授予时间' : '生效时间' }}</span>
         <div>
           {{ before ? formatDateTime(before.grantedAt) : '—' }} <b>→</b>
           <strong>{{ formatDateTime(after.grantedAt) }}</strong>
@@ -189,15 +211,31 @@ const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
         </div>
       </div>
       <p class="impact">
-        {{
-          ['PAUSE', 'REVOKE'].includes(actualOperation)
-            ? '暂不能访问内容包完整内容；收藏、学习进度和历史成果继续保留。操作原因与前后状态记录在操作审计中。'
-            : actualOperation === 'EXTEND'
-              ? '延期从原到期时间按自然月顺延，暂停状态保持不变；延期原因与前后状态单独记录在操作审计中。'
-              : actualOperation === 'RENEW'
-                ? '续期从原到期时间按自然月顺延；确认时状态发生变化，将重新获取预览。'
-                : '确认后可访问该内容包，学习数据按原规则保留。'
-        }}
+        <template v-if="contentKind === '活动'">
+          {{
+            ['PAUSE', 'REVOKE'].includes(actualOperation)
+              ? '暂停或撤销后不能继续访问该活动的学习内容；学习进度、收藏和历史记录保留。'
+              : actualOperation === 'GRANT'
+                ? '开通活动配置中的固定场景；首次进入学习才开始计时。确认时按服务端时间重新计算启动截止。'
+                : '按预览调整该活动权益；学习进度、收藏和历史记录保留。'
+          }}
+        </template>
+        <template v-else>
+          {{
+            ['PAUSE', 'REVOKE'].includes(actualOperation)
+              ? '暂不能访问内容包完整内容；收藏、学习进度和历史成果继续保留。操作原因与前后状态记录在操作审计中。'
+              : actualOperation === 'EXTEND'
+                ? '延期从原到期时间按自然月顺延，暂停状态保持不变；延期原因与前后状态单独记录在操作审计中。'
+                : actualOperation === 'RENEW'
+                  ? '续期从原到期时间按自然月顺延；确认时状态发生变化，将重新获取预览。'
+                  : '确认后可访问该内容包，学习数据按原规则保留。'
+          }}
+        </template>
+      </p>
+      <p v-if="previewedAt" class="impact">
+        预览时刻：{{
+          formatDateTime(previewedAt)
+        }}；以上授予时间和启动截止为预览预计，最终以确认回执为准。
       </p>
       <ElCollapse
         ><ElCollapseItem title="对象与版本详情"

@@ -4,9 +4,9 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
-import ConfirmDialog from '@/components/confirm-dialog/confirm-dialog.vue'
 import { useAuthStore } from '@/features/auth/auth-store'
 import EntitlementPreviewDialog from '@/features/entitlements/entitlement-preview-dialog.vue'
+import EntitlementUserSelector from '@/features/entitlements/entitlement-user-selector.vue'
 import CampaignEditPage from '@/pages/campaigns/campaign-edit-page.vue'
 import CampaignListPage from '@/pages/campaigns/campaign-list-page.vue'
 
@@ -46,6 +46,45 @@ function campaign(id: string) {
     }
   }
 }
+
+const user = {
+  user_id: 'USER-1',
+  nickname: 'Mia',
+  juya_number: 'JY-0188',
+  account_status: 'ACTIVE',
+  contact: null,
+  contact_degraded: false,
+  formal_entitlement_count: 0,
+  limited_entitlement_count: 0,
+  open_feedback_count: 0,
+  last_active_at: null,
+  favorite_count: null,
+  learning_days: null,
+  learning_degraded: false,
+  open_scene_completed_count: null
+}
+const grantPreview = (versionId: string) => ({
+  before: null,
+  after: {
+    id: null,
+    user_id: 'USER-1',
+    campaign_version_id: versionId,
+    status: 'PENDING',
+    granted_at: '2026-10-14T10:00:00Z',
+    start_deadline: '2026-10-21T10:00:00Z',
+    activated_at: null,
+    expires_at: null,
+    remedy_count: 0,
+    version: 1
+  },
+  actual_operation: 'GRANT',
+  expected_version: 3,
+  expected_fingerprint: 'a'.repeat(64),
+  previewed_at: '2026-10-14T10:00:00Z',
+  campaign_name: '秋季练习',
+  duration_days: 3,
+  scene_ids: ['scene-1']
+})
 async function setup(component: Component, path = '/test') {
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -79,6 +118,8 @@ describe('batch two page regressions', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string, init: RequestInit) => {
+        if (url.includes('/users/')) return json(user)
+        if (url.endsWith('/preview-grant')) return json(grantPreview('VERSION-A'))
         if (init.method === 'POST')
           return json(
             { code: 'CONFLICT', message: '活动状态冲突', request_id: 'req-grant-conflict' },
@@ -99,10 +140,12 @@ describe('batch two page regressions', () => {
     )
     const wrapper = await setup(LimitedGrantPage)
     await flushPromises()
-    await wrapper.find('input').setValue('USER-1')
+    wrapper.findComponent(EntitlementUserSelector).vm.$emit('update:modelValue', 'USER-1')
     wrapper.findComponent(ElSelect).vm.$emit('update:modelValue', 'A')
     await flushPromises()
-    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '')
+    await wrapper.find('.submit').trigger('click')
+    await flushPromises()
+    wrapper.findComponent(EntitlementPreviewDialog).vm.$emit('confirm', '')
     await flushPromises()
     expect(detailRequests).toBe(2)
     expect(wrapper.text()).toContain('暂未获取，请刷新')
@@ -119,7 +162,7 @@ describe('batch two page regressions', () => {
     expect(
       wrapper
         .findAll('button')
-        .find((button) => button.text() === '二次确认并开通')!
+        .find((button) => button.text() === '预览并开通')!
         .attributes('disabled')
     ).toBeDefined()
     await wrapper
@@ -139,6 +182,8 @@ describe('batch two page regressions', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string, init: RequestInit) => {
+        if (url.includes('/users/')) return Promise.resolve(json(user))
+        if (url.endsWith('/preview-grant')) return Promise.resolve(json(grantPreview('VERSION-B')))
         if (init.method === 'POST') {
           requests.push(init)
           return Promise.reject(new TypeError('lost'))
@@ -158,7 +203,7 @@ describe('batch two page regressions', () => {
     )
     const wrapper = await setup(LimitedGrantPage)
     await flushPromises()
-    await wrapper.find('input').setValue('USER-1')
+    wrapper.findComponent(EntitlementUserSelector).vm.$emit('update:modelValue', 'USER-1')
     wrapper.findComponent(ElSelect).vm.$emit('update:modelValue', 'A')
     await flushPromises()
     wrapper.findComponent(ElSelect).vm.$emit('update:modelValue', 'B')
@@ -169,11 +214,14 @@ describe('batch two page regressions', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('VERSION-B')
     expect(wrapper.text()).not.toContain('VERSION-A')
-    wrapper.findComponent(ConfirmDialog).vm.$emit('confirm', '')
+    await wrapper.find('.submit').trigger('click')
+    await flushPromises()
+    wrapper.findComponent(EntitlementPreviewDialog).vm.$emit('confirm', '')
     await flushPromises()
     expect(JSON.parse(String(requests[0]?.body))).toEqual({
       user_id: 'USER-1',
-      campaign_version_id: 'VERSION-B'
+      campaign_version_id: 'VERSION-B',
+      expected_fingerprint: 'a'.repeat(64)
     })
     wrapper.unmount()
   })

@@ -38,14 +38,14 @@ const itemPresentation: Readonly<Record<string, WorkItemViewModel>> = {
     tone: 'warning'
   },
   FEEDBACK_DUE_SOON: {
-    actionLabel: '处理',
+    actionLabel: '立即处理',
     description: '反馈即将超过处理时限',
     destination: '/feedback?sla=DUE_SOON',
     title: '反馈即将超时',
     tone: 'warning'
   },
   FEEDBACK_OVERDUE: {
-    actionLabel: '处理',
+    actionLabel: '立即处理',
     description: '反馈已超过处理时限',
     destination: '/feedback?sla=OVERDUE',
     title: '反馈处理已超时',
@@ -59,7 +59,7 @@ const itemPresentation: Readonly<Record<string, WorkItemViewModel>> = {
     tone: 'warning'
   },
   USER_SUPPLIED: {
-    actionLabel: '查看',
+    actionLabel: '重新查看',
     description: '用户已按要求补充资料',
     destination: '/feedback?status=USER_SUPPLIED',
     title: '用户已补充反馈资料',

@@ -18,6 +18,23 @@ function json(body: unknown) {
   })
 }
 
+const user = (id: string) => ({
+  user_id: id,
+  nickname: `昵称 ${id}`,
+  juya_number: `JY-${id}`,
+  account_status: 'ACTIVE',
+  contact: null,
+  contact_degraded: false,
+  formal_entitlement_count: 0,
+  limited_entitlement_count: 1,
+  open_feedback_count: 0,
+  last_active_at: null,
+  favorite_count: null,
+  learning_days: null,
+  learning_degraded: false,
+  open_scene_completed_count: null
+})
+
 function detail(id: string) {
   return {
     id,
@@ -93,6 +110,7 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
       'fetch',
       vi.fn((url: string) => {
         urls.push(url)
+        if (url.includes('/users/')) return Promise.resolve(json(user(url.split('/').at(-1)!)))
         return Promise.resolve(
           json(url.includes('/preview-operation') ? preview('A') : detail('A'))
         )
@@ -102,11 +120,7 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
     await flushPromises()
     await router.push('/entitlements')
     await flushPromises()
-    expect(urls).toEqual(
-      kind === 'formal'
-        ? [`/api/v1/admin/${kind}-entitlements/A`, '/api/v1/admin/users/USER-A']
-        : [`/api/v1/admin/${kind}-entitlements/A`]
-    )
+    expect(urls).toEqual([`/api/v1/admin/${kind}-entitlements/A`, '/api/v1/admin/users/USER-A'])
     wrapper.unmount()
   })
 
@@ -118,6 +132,7 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
       vi.stubGlobal(
         'fetch',
         vi.fn((url: string, init: RequestInit) => {
+          if (url.includes('/users/')) return Promise.resolve(json(user(url.split('/').at(-1)!)))
           if (init.method === 'POST') {
             if (url.includes('/commands/')) {
               commands.push({ url, body: JSON.parse(String(init.body)) })
@@ -171,6 +186,7 @@ describe.each(['formal', 'limited'] as const)('%s action object identity', (kind
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string, init: RequestInit) => {
+        if (url.includes('/users/')) return Promise.resolve(json(user(url.split('/').at(-1)!)))
         if (url.endsWith('/B'))
           return new Promise<Response>((resolve) => {
             finishB = resolve
@@ -242,7 +258,7 @@ describe('limited action retry identity', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string, init: RequestInit) => {
-        if (url.includes('/users/')) return Promise.resolve(json({}))
+        if (url.includes('/users/')) return Promise.resolve(json(user(url.split('/').at(-1)!)))
         if (url.includes('/preview-operation'))
           return Promise.resolve(json(preview(url.includes('/B/') ? 'B' : 'A')))
         if (init.method === 'POST') {
@@ -303,6 +319,7 @@ describe('limited action retry identity', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string, init: RequestInit) => {
+        if (url.includes('/users/')) return Promise.resolve(json(user(url.split('/').at(-1)!)))
         if (url.includes('/preview-operation'))
           return Promise.resolve(json(preview(url.includes('/B/') ? 'B' : 'A')))
         if (init.method === 'POST') {

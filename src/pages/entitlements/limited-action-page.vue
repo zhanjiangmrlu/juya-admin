@@ -12,6 +12,7 @@ import { createEntitlementQueryAdapter } from '@/features/entitlements/entitleme
 import { createLimitedEntitlementAdapter } from '@/features/entitlements/limited-entitlement-adapter'
 import { LIMITED_OPERATION_LABELS } from '@/features/entitlements/limited-entitlement-model'
 import { useLimitedEntitlementCommand } from '@/features/entitlements/use-limited-entitlement-command'
+import { createUserAdapter } from '@/features/users/user-adapter'
 import { createApiClient } from '@/services/api/api-client'
 import { ApiError } from '@/shared/errors/api-error'
 import { formatDateTime } from '@/shared/utils/date-time'
@@ -32,6 +33,8 @@ const client = createApiClient({
   }
 })
 const query = createEntitlementQueryAdapter(client)
+const users = createUserAdapter(client)
+const userLabel = ref('')
 const controller = shallowRef(useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client)))
 let controllerEntitlementId = entitlementId.value
 let requestSequence = 0
@@ -49,11 +52,12 @@ const operation = ref<LimitedEntitlementOperation>('PAUSE')
 const confirmVisible = ref(false)
 const confirmationReason = ref('')
 const statusLabels: Record<string, string> = {
-  ACTIVE: '有效',
+  ACTIVE: '学习中',
   PAUSED: '已暂停',
   REVOKED: '已撤销',
   PENDING: '待开始',
   ENDED: '已结束',
+  EXPIRED: '已到期',
   START_EXPIRED: '启动窗口已过期'
 }
 const allowedOperations = computed(() =>
@@ -96,6 +100,9 @@ const /**
       const result = await query.limited(id)
       if (sequence !== requestSequence || id !== entitlementId.value) return
       if (result.id !== id) throw new Error('权益详情与当前对象不一致')
+      const user = await users.getUserDetail(result.userId)
+      if (sequence !== requestSequence || id !== entitlementId.value) return
+      userLabel.value = `${user.nickname || '未设置昵称'} · ${user.juya_number || '句芽号未提供'}`
       detail.value = result
       if (!keepDraft) operation.value = allowedOperations.value[0] ?? 'PAUSE'
       state.value = 'ready'
@@ -112,6 +119,7 @@ watch([operation, detail], () => {
     campaignVersionId: null,
     entitlementId: detail.value.id,
     operation: operation.value,
+    expectedVersion: detail.value.version,
     userId: null
   })
 })
@@ -168,16 +176,19 @@ const /**
     <div v-if="detail" class="action-layout">
       <AdminPanel :title="ADMIN_SECTION_TITLES.limitedAction.detailCard" class="detail-card">
         <p class="record-summary">
-          <span>权益 {{ entitlementId }}</span
-          ><span>{{ detail.userId }} · {{ detail.campaignName }} · {{ detail.campaignId }}</span
-          ><span>v{{ detail.version }}</span
-          ><span>补救次数 {{ detail.remedyCount }}</span>
+          <span>{{ userLabel }} · {{ detail.campaignName }}</span>
         </p>
+        <ElCollapse
+          ><ElCollapseItem title="对象与版本详情">
+            权益 {{ entitlementId }} · 用户 {{ detail.userId }} · 活动版本
+            {{ detail.campaignVersionId }} · v{{ detail.version }}
+          </ElCollapseItem></ElCollapse
+        >
         <ElDescriptions :column="1" direction="vertical" class="detail-fields"
           ><ElDescriptionsItem label="当前状态">{{
             statusLabels[detail.status] || detail.status
           }}</ElDescriptionsItem
-          ><ElDescriptionsItem label="活动版本">{{ detail.campaignVersionId }}</ElDescriptionsItem
+          ><ElDescriptionsItem label="活动">{{ detail.campaignName }}</ElDescriptionsItem
           ><ElDescriptionsItem label="首次开始时间">{{
             formatDateTime(detail.activatedAt, '尚未开始')
           }}</ElDescriptionsItem
@@ -229,7 +240,7 @@ const /**
         >
         <ElDescriptions v-if="controller.result.value" :column="2" border
           ><ElDescriptionsItem label="结果状态">{{
-            controller.result.value.status
+            statusLabels[controller.result.value.status] || controller.result.value.status
           }}</ElDescriptionsItem
           ><ElDescriptionsItem label="启动截止">{{
             controller.result.value.startDeadline
@@ -270,9 +281,12 @@ const /**
       :after="controller.previewResult.value.after"
       :actual-operation="controller.previewResult.value.actualOperation"
       :expected-version="controller.previewResult.value.expectedVersion"
-      :user-label="`用户 ${detail.userId}`"
+      :user-label="userLabel"
       :user-id="detail.userId"
       :content-label="detail.campaignName"
+      content-kind="活动"
+      :duration-days="detail.durationDays"
+      :scene-count="detail.sceneIds.length"
       :error="controller.errorMessage.value"
       :object-id="entitlementId"
       :reason-required="true"

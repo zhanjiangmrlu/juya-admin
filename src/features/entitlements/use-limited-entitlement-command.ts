@@ -52,7 +52,7 @@ export const /**
        */
       setDraft = (nextDraft: LimitedEntitlementCommandInput): void => {
         const previous = draft.value
-        if (
+        const sameOperation = Boolean(
           previous &&
           previous.operation === nextDraft.operation &&
           previous.userId === nextDraft.userId &&
@@ -60,7 +60,7 @@ export const /**
           previous.campaignVersionId === nextDraft.campaignVersionId &&
           previous.reason === nextDraft.reason
         )
-          return
+        if (sameOperation && previous?.expectedVersion === nextDraft.expectedVersion) return
         draft.value = { ...nextDraft }
         previewGeneration++
         previewResult.value = null
@@ -68,7 +68,8 @@ export const /**
         errorMessage.value = null
         apiError.value = null
         disabledReason.value = null
-        command.reset(nextDraft)
+        // 不确定失败刷新同一对象时保留重试身份,新的服务端预览改变请求才开启新命令
+        if (!sameOperation || command.state.value !== 'error') command.reset(nextDraft)
       }
 
     const /**
@@ -80,16 +81,16 @@ export const /**
       submit = async (reason: string): Promise<LimitedEntitlement> => {
         if (draft.value === null) throw new Error('请先填写限时权益操作信息')
         if (command.state.value === 'submitting') throw new Error('操作正在提交')
-        if (draft.value.operation !== 'GRANT' && !previewResult.value)
-          throw new Error('请先获取服务端预览')
+        if (!previewResult.value) throw new Error('请先获取服务端预览')
         errorMessage.value = null
         apiError.value = null
         disabledReason.value = null
         try {
           const nextResult = await command.submit({
             ...draft.value,
-            reason: draft.value.operation !== 'GRANT' ? reason : undefined,
-            expectedVersion: previewResult.value?.expectedVersion
+            reason: draft.value.operation !== 'GRANT' ? reason : reason.trim() || undefined,
+            expectedVersion: previewResult.value?.expectedVersion,
+            expectedFingerprint: previewResult.value?.expectedFingerprint
           })
           result.value = nextResult
           return nextResult
