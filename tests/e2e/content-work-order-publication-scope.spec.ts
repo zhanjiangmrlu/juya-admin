@@ -4,7 +4,7 @@ import { item, mockWorkOrder, order } from './fixtures/content-work-orders'
 test('发布前、空排队、部分结果与原回执刷新保持不同统计及冻结失败子集', async ({
   adminApi,
   page
-}) => {
+}, testInfo) => {
   expect(adminApi).toBeDefined()
   await mockWorkOrder(page)
   let phase: 'PREVIEW' | 'QUEUED' | 'PARTIAL' = 'PREVIEW'
@@ -113,21 +113,23 @@ test('发布前、空排队、部分结果与原回执刷新保持不同统计�
       }
     })
   })
-  const evidence =
-    'D:/个人/juya/juya-admin-api/.superpowers/sdd/2026-10-14-v15-confirmed-deviation-remediation/task-7-visual'
   await page.setViewportSize({ width: 1440, height: 900 })
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/work-orders/order?view=publication')
+  await expect(page.locator('.header h1')).toHaveText('确认发布范围')
+  await expect(page.locator('.context h2')).toHaveCount(0)
   await expect(page.locator('.metrics article')).toHaveText([
     '3本次可发布',
     '1仍需校对',
     '1处理失败',
     '3本次保留草稿'
   ])
-  await page.screenshot({ path: `${evidence}/pre-1440.png`, animations: 'disabled' })
+  await page.screenshot({ path: testInfo.outputPath('pre-1440.png'), animations: 'disabled' })
   await page.getByText('已核对本次发布范围与来源 / 版权备注', { exact: true }).click()
   await page.getByRole('button', { name: '确认发布 3 篇', exact: true }).click()
   await expect(page.getByText('本次发布已提交，等待逐篇结果', { exact: true })).toBeVisible()
+  await expect(page.locator('.header h1')).toHaveText('发布结果')
+  await expect(page.locator('.header .subtitle')).not.toContainText('成功项已发布')
   expect(writes[0]!.body).toMatchObject({
     scope: 'selected',
     selected_item_ids: ['item-0', 'item-1', 'item-2'],
@@ -142,10 +144,17 @@ test('发布前、空排队、部分结果与原回执刷新保持不同统计�
     '1仍需校对',
     '1处理失败'
   ])
-  await page.screenshot({ path: `${evidence}/queued-empty-1440.png`, animations: 'disabled' })
+  await page.screenshot({
+    path: testInfo.outputPath('queued-empty-1440.png'),
+    animations: 'disabled'
+  })
   phase = 'PARTIAL'
   await page.getByRole('button', { name: '刷新发布结果', exact: true }).click()
   await expect(page.getByText('成功已保留', { exact: true })).toBeVisible()
+  await expect(page.locator('.publication-failed-table .el-table__body tbody tr')).toHaveCount(1)
+  await expect(page.locator('.publication-failed-table')).toContainText('A Quick Lunch')
+  await expect(page.locator('.publication-failed-table')).not.toContainText('A Rainy Day')
+  await expect(page.locator('.publication-unknown')).toContainText('A Rainy Day')
   await expect(page.locator('.metrics article')).toHaveText([
     '1已发布',
     '1发布失败',
@@ -157,7 +166,7 @@ test('发布前、空排队、部分结果与原回执刷新保持不同统计�
   await expect(page.getByRole('heading', { name: '选择当前合格子集', exact: true })).toHaveCount(0)
   await page.locator('.page-scrollbar-wrap').evaluate((element) => element.scrollTo(0, 0))
   await page.screenshot({
-    path: `${evidence}/partial-failed-unknown-1440.png`,
+    path: testInfo.outputPath('partial-failed-unknown-1440.png'),
     animations: 'disabled'
   })
   for (const [width, height] of [
@@ -167,7 +176,7 @@ test('发布前、空排队、部分结果与原回执刷新保持不同统计�
     await page.setViewportSize({ width: width!, height: height! })
     await page.locator('.page-scrollbar-wrap').evaluate((element) => element.scrollTo(0, 0))
     await page.screenshot({
-      path: `${evidence}/result-viewport-${width}.png`,
+      path: testInfo.outputPath(`result-viewport-${width}.png`),
       animations: 'disabled'
     })
   }
@@ -185,6 +194,112 @@ test('发布前、空排队、部分结果与原回执刷新保持不同统计�
     page.getByRole('button', { name: '仅重试 1 篇发布失败', exact: true })
   ).toBeDisabled()
   await expect(page.getByText('成功已保留', { exact: true })).toBeVisible()
+})
+
+test('主顶栏仅采用匹配工作单和回执的实际阶段，读取失败与迟到结果不冒充成功', async ({
+  adminApi,
+  page
+}) => {
+  await mockWorkOrder(page)
+  let release: (() => void) | undefined
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let started = false
+  let mode: 'PREVIEW' | 'WRONG_ORDER' | 'WRONG_TOKEN' | 'ERROR' = 'PREVIEW'
+  let writes = 0
+  await page.route('**/api/v1/admin/content-production/work-orders/**', async (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (route.request().method() !== 'GET') {
+      writes++
+      return route.abort()
+    }
+    const id = path.includes('/late-A') ? 'late-A' : 'current-B'
+    if (path.endsWith('/publication')) {
+      if (id === 'late-A') {
+        started = true
+        await gate
+      }
+      if (mode === 'ERROR') return route.fulfill({ status: 503, json: { message: '读取失败' } })
+      return route.fulfill({
+        json: {
+          work_order_id: mode === 'WRONG_ORDER' ? 'foreign' : id,
+          token: mode === 'WRONG_TOKEN' ? 'foreign-token' : `token-${id}`,
+          version: 1,
+          collection_hash: 'd'.repeat(64),
+          status: id === 'late-A' ? 'COMPLETED' : 'PREVIEW',
+          candidates: [],
+          results: [],
+          expires_at: '2030-01-01T00:00:00Z',
+          stage_id: null
+        }
+      })
+    }
+    if (path.endsWith('/items'))
+      return route.fulfill({
+        json: {
+          items: [],
+          total: 0,
+          page: 1,
+          page_size: 100,
+          version: 1,
+          collection_hash: 'members',
+          counts: { ...order.counts, total: 0 }
+        }
+      })
+    return route.fulfill({
+      json: {
+        ...order,
+        work_order_id: id,
+        publication_token: `token-${id}`,
+        counts: { ...order.counts, total: 0 }
+      }
+    })
+  })
+  await loginAsAdmin(page)
+  const lateResponse = page.waitForResponse((response) =>
+    response.url().includes('/late-A/publication')
+  )
+  await navigateInApp(page, '/content/work-orders/late-A?view=publication&phase=result')
+  await expect.poll(() => started).toBe(true)
+  await expect(page.locator('.header h1')).toHaveText('校对与发布')
+  await navigateInApp(page, '/content/work-orders/current-B?view=publication&phase=result')
+  try {
+    await expect(page.locator('.header h1')).toHaveText('确认发布范围')
+  } finally {
+    release?.()
+  }
+  await (await lateResponse).finished()
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      )
+  )
+  await expect(page.locator('.header h1')).toHaveText('确认发布范围')
+  for (const next of ['WRONG_ORDER', 'WRONG_TOKEN', 'ERROR'] as const) {
+    mode = next
+    const refreshed = page.waitForResponse((response) =>
+      response.url().includes('/current-B/publication')
+    )
+    await page.getByRole('button', { name: '刷新进度', exact: true }).click()
+    await (await refreshed).finished()
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+        )
+    )
+    await expect(page.locator('.header h1')).toHaveText('校对与发布')
+    await expect(page.locator('.header .subtitle')).not.toContainText('成功项已发布')
+  }
+  await navigateInApp(page, '/dashboard')
+  await expect(page.locator('.header h1')).toHaveText('工作台')
+  mode = 'PREVIEW'
+  await navigateInApp(page, '/content/work-orders/current-B?view=publication')
+  await expect(page.locator('.header h1')).toHaveText('确认发布范围')
+  expect(writes).toBe(0)
+  expect(adminApi.unexpectedRequests).toEqual([])
 })
 
 test('混合工作单按冻结合格 A 确认发布，异常 B 保留草稿', async ({ adminApi, page }) => {

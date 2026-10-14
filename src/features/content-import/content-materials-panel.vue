@@ -195,6 +195,7 @@ const bindingError = computed(() => {
     Record<string, { error_code?: string }> | undefined
   return errors?.[submittedStage.value]?.error_code || ''
 })
+const bindingUnconfirmed = computed(() => recoveryConflict.value || !submittedStage.value)
 watch(
   () => [
     phase.value,
@@ -1247,14 +1248,26 @@ onMounted(() => {
     </template>
     <template v-if="phase === 'result' && batch">
       <AdminPanel class="material-card result-card"
-        ><strong class="result-status">{{ bindingCompleted ? '已完成' : '等待处理结果' }}</strong>
+        ><strong class="result-status">{{
+          bindingCompleted
+            ? '已完成'
+            : bindingError
+              ? '绑定失败'
+              : bindingUnconfirmed
+                ? '结果待核实'
+                : '等待处理结果'
+        }}</strong>
         <h2>
           {{
             bindingCompleted
               ? hasVocabularyTable
                 ? `${vocabularyResults.length} 条词汇资料已保存`
                 : '选中素材已关联至来源草稿'
-              : '导入任务已提交，尚未完成绑定'
+              : bindingError
+                ? '本次绑定失败，原资料已保留'
+                : bindingUnconfirmed
+                  ? '尚未确认本次绑定结果'
+                  : '导入任务已提交，等待实际绑定结果'
           }}
         </h2>
         <ElAlert
@@ -1272,7 +1285,9 @@ onMounted(() => {
           {{
             bindingCompleted
               ? '对应来源版本已保存，后续仍需内容校对与发布确认'
-              : '离开页面后可通过素材批次继续恢复查看'
+              : bindingUnconfirmed
+                ? '请核对原链接与回执；当前没有采用其他阶段的请求或结果'
+                : '离开页面后可通过素材批次继续恢复查看'
           }}
         </p></AdminPanel
       >

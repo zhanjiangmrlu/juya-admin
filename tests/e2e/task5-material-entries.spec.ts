@@ -47,7 +47,7 @@ for (const selection of [
   test(`I2 双身份恢复 ${selection.source} ${selection.stage}/${selection.key} ${selection.conflict ? '冲突保持未知' : '一致精确恢复'}`, async ({
     adminApi,
     page
-  }) => {
+  }, testInfo) => {
     let posts = 0
     await page.route('**/api/v1/admin/content-materials/DUAL-RECEIPTS**', (route) => {
       if (route.request().method() === 'POST') {
@@ -163,6 +163,10 @@ for (const selection of [
     if (selection.conflict) {
       await expect(page.getByText('已完成', { exact: true })).toHaveCount(0)
       await expect(page.getByText(/绑定恢复身份冲突/)).toBeVisible()
+      await expect(page.locator('.result-card .result-status')).toHaveText('结果待核实')
+      await expect(page.locator('.result-card h2')).toHaveText('尚未确认本次绑定结果')
+      await expect(page.locator('.result-card')).not.toContainText('导入任务已提交')
+      await expect(page.locator('.result-card')).not.toContainText('尚未完成绑定')
       await expect(page.getByText('SUCCESS-ENTRY', { exact: true })).toHaveCount(0)
       await expect(page.getByText('FAILED-ENTRY', { exact: true })).toHaveCount(0)
       await expect(page.getByRole('button', { name: '重试本次失败绑定', exact: true })).toHaveCount(
@@ -214,7 +218,9 @@ for (const selection of [
         })
         await page.screenshot({
           animations: 'disabled',
-          path: `D:/个人/juya/juya-admin-api/.superpowers/sdd/2026-10-14-v15-confirmed-deviation-remediation/product-screenshots/task5-fix2-vocabulary-${selection.conflict ? 'conflict' : 'success'}.png`
+          path: testInfo.outputPath(
+            `task8-vocabulary-${selection.conflict ? 'conflict' : 'success'}.png`
+          )
         })
       }
     }
@@ -284,6 +290,9 @@ test('B1 词汇待处理回执不由导航阶段声称执行或完成', async ({
   )
   await expect(page.getByText('等待处理结果', { exact: true })).toBeVisible()
   await expect(page.getByText('PENDING-WORD', { exact: true })).toBeVisible()
+  await expect(page.locator('.result-card .result-status')).toHaveText('等待处理结果')
+  await expect(page.locator('.result-card h2')).toHaveText('导入任务已提交，等待实际绑定结果')
+  await expect(page.locator('.result-card')).not.toContainText('尚未完成绑定')
   await expect(page.getByText('已完成', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: /已导入|处理中/, level: 1 })).toHaveCount(0)
   await expect(

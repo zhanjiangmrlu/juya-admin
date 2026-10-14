@@ -14,6 +14,7 @@ const props = defineProps<{
   busy: boolean
   membersReady: boolean
   pendingCommands?: S['PendingCommand'][]
+  contentType?: S['WorkOrder']['content_type']
 }>()
 const emit = defineEmits<{
   confirm: [retry: boolean]
@@ -31,6 +32,10 @@ watch(
   }
 )
 const failed = computed(() => publicationRetryIds(props.state.results))
+const failedRows = computed(() => props.state.results.filter((row) => row.status === 'FAILED'))
+const unresolved = computed(() =>
+  props.state.results.filter((row) => !['FAILED', 'SUCCEEDED'].includes(row.status))
+)
 const preview = computed(() => props.state.status === 'PREVIEW' && !props.state.results.length)
 const pending = computed(() => ['QUEUED', 'RUNNING'].includes(props.state.status))
 const unknown = computed(() => props.state.results.filter((row) => row.status === 'UNKNOWN'))
@@ -58,14 +63,30 @@ const receipts = computed(() =>
 const succeeded = computed(
   () => props.state.results.filter((row) => row.status === 'SUCCEEDED').length
 )
-const /** 按固定版本查找真实篇目名称
+const /** 仅在完整候选内容与类型身份一致时复用冻结标题
    * @param revisionId - 发布范围内的固定候选版本
    * @returns 可读内容标题
    */
   title = (revisionId: string): string => {
     const candidate = props.state.candidates.find((row) => row.revision_id === revisionId)
-    const item = props.items.find((row) => row.revision_id === revisionId)
-    return item?.title_en || item?.title_zh || `冻结候选 ${candidate?.content_id || revisionId}`
+    const matches = props.items.filter(
+      (row) =>
+        candidate?.candidate_hash &&
+        candidate.content_type === props.contentType &&
+        row.work_order_id === props.state.work_order_id &&
+        row.content_id === candidate.content_id &&
+        row.revision_id === revisionId &&
+        row.candidate_hash === candidate.candidate_hash
+    )
+    const item = matches.length === 1 ? matches[0] : undefined
+    return item?.title_en || item?.title_zh || '原冻结候选（标题未保留）'
+  }
+const /** 显示原冻结内容与版本身份，供标题未保留时核对
+   * @param revisionId - 逐项结果指向的冻结版本
+   * @returns 实际内容与版本编号
+   */ identity = (revisionId: string): string => {
+    const candidate = props.state.candidates.find((row) => row.revision_id === revisionId)
+    return [candidate?.content_id, revisionId].filter(Boolean).join(' · ')
   }
 const /** 保留服务端错误代码，并仅对已确认契约解释具体问题
    * @param code - 逐项发布的真实错误代码
@@ -95,35 +116,33 @@ const /** 保留服务端错误代码，并仅对已确认契约解释具体问�
         !membersReady ? '，完整成员尚未读取' : ''
       }}。
     </p>
-    <AdminPanel :title="preview ? '本次发布内容' : '逐篇发布结果'"
+    <AdminPanel :title="preview ? '本次发布内容' : '发布失败项目'"
       ><p v-if="!preview && !state.results.length" role="status">
         {{ pending ? '本次发布已提交，等待逐篇结果' : '尚无逐篇结果，请刷新原发布任务状态' }}
       </p>
-      <ElTable v-if="!preview" :data="state.results" empty-text="逐篇结果尚未返回"
+      <ElTable
+        v-if="!preview"
+        class="publication-failed-table"
+        :data="failedRows"
+        empty-text="本次尚无明确失败项目"
         ><ElTableColumn label="内容标题" min-width="220"
-          ><template #default="{ row }">{{ title(row.revision_id) }}</template></ElTableColumn
-        ><ElTableColumn label="发布状态"
-          ><template #default="{ row }">{{
-            row.status === 'UNKNOWN' ? '待核实' : productionLabels[row.status] || '处理中'
-          }}</template></ElTableColumn
+          ><template #default="{ row }"
+            >{{ title(row.revision_id)
+            }}<small class="candidate-identity">{{ identity(row.revision_id) }}</small></template
+          ></ElTableColumn
         ><ElTableColumn label="问题" min-width="300"
-          ><template #default="{ row }">{{
-            row.status === 'SUCCEEDED' ? '成功已保留' : problem(row.error_code)
-          }}</template></ElTableColumn
-        ><ElTableColumn label="后续处理" min-width="180"
-          ><template #default="{ row }">{{
-            row.status === 'FAILED'
-              ? '保留原候选，仅重试明确失败项'
-              : row.status === 'UNKNOWN'
-                ? '核实原回执'
-                : row.status === 'SUCCEEDED'
-                  ? '成功资源与历史记录已保留'
-                  : '刷新查看最终结果'
-          }}</template></ElTableColumn
+          ><template #default="{ row }">{{ problem(row.error_code) }}</template></ElTableColumn
+        ><ElTableColumn label="当前状态" min-width="180"
+          ><template #default>保留原合格候选</template></ElTableColumn
+        ><ElTableColumn label="操作" min-width="180"
+          ><template #default>仅重试明确失败项</template></ElTableColumn
         ></ElTable
       ><ElTable v-else :data="state.candidates"
         ><ElTableColumn label="内容标题" min-width="220"
-          ><template #default="{ row }">{{ title(row.revision_id) }}</template></ElTableColumn
+          ><template #default="{ row }"
+            >{{ title(row.revision_id)
+            }}<small class="candidate-identity">{{ identity(row.revision_id) }}</small></template
+          ></ElTableColumn
         ><ElTableColumn label="确认依据"
           ><template #default>服务端已核验当前候选合格</template></ElTableColumn
         ></ElTable
@@ -132,6 +151,7 @@ const /** 保留服务端错误代码，并仅对已确认契约解释具体问�
       ></AdminPanel
     >
     <div class="notice">
+      <strong v-if="!preview && succeeded">成功已保留</strong>
       {{
         preview
           ? '仅发布此处预览的合格内容，其余项目继续保留草稿。每篇启用完整内容版本。'
@@ -141,6 +161,29 @@ const /** 保留服务端错误代码，并仅对已确认契约解释具体问�
         {{ unknown.length }} 篇结果待核实，未计入发布失败。请刷新并核对原任务回执。
       </p>
     </div>
+    <AdminPanel
+      v-if="!preview && unresolved.length"
+      class="publication-unknown"
+      title="待核实与处理中结果"
+    >
+      <p>这些结果未计入发布失败，请刷新并核对原任务回执。</p>
+      <ElTable :data="unresolved">
+        <ElTableColumn label="内容标题" min-width="220">
+          <template #default="{ row }"
+            >{{ title(row.revision_id)
+            }}<small class="candidate-identity">{{ identity(row.revision_id) }}</small></template
+          >
+        </ElTableColumn>
+        <ElTableColumn label="实际状态" min-width="140">
+          <template #default="{ row }">{{
+            row.status === 'UNKNOWN' ? '待核实' : productionLabels[row.status] || row.status
+          }}</template>
+        </ElTableColumn>
+        <ElTableColumn label="原回执问题" min-width="300">
+          <template #default="{ row }">{{ problem(row.error_code) }}</template>
+        </ElTableColumn>
+      </ElTable>
+    </AdminPanel>
     <AdminPanel v-if="!preview" title="后续校对">
       <p>
         当前批次未纳入本次范围的草稿：{{ drafts?.held ?? '待核实' }} 篇。其中
@@ -219,11 +262,22 @@ const /** 保留服务端错误代码，并仅对已确认契约解释具体问�
     line-height: 1.8;
   }
 
+  .candidate-identity {
+    display: block;
+    color: var(--juya-color-text-regular);
+    overflow-wrap: anywhere;
+  }
+
   .notice {
     padding: 20px;
     background: var(--juya-color-primary-soft);
     border-radius: 16px;
     line-height: 1.8;
+
+    strong {
+      display: block;
+      margin-bottom: 8px;
+    }
   }
 
   .receipt {

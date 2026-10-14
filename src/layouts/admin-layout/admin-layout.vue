@@ -11,7 +11,7 @@ import {
   Tickets,
   User
 } from '@element-plus/icons-vue'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, ref, shallowRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { ADMIN_NAVIGATION_GROUPS } from '@/app/admin-navigation'
@@ -20,7 +20,10 @@ import {
   ADMIN_DESIGN_TITLES,
   CONTENT_STAGE_TITLES
 } from '@/app/admin-presentation'
+import { workOrderPublicationHeadingKey } from '@/app/work-order-publication-heading'
 import { useAuthStore } from '@/features/auth/auth-store'
+
+import type { WorkOrderPublicationHeading } from '@/app/work-order-publication-heading'
 
 const navigationIconMap = {
   analytics: DataAnalysis,
@@ -37,6 +40,32 @@ const navigationIconMap = {
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const publicationHeading = shallowRef<(WorkOrderPublicationHeading & { owner: symbol }) | null>(
+  null
+)
+const /** 更新当前发布页的权威标题，并阻止旧页面清理新页面上下文
+   * @param owner - 发布页实例的独立身份
+   * @param heading - 当前路由已读取的阶段标题，空值仅清理同一实例
+   */ setPublicationHeading = (
+    owner: symbol,
+    heading: WorkOrderPublicationHeading | null
+  ): void => {
+    if (!heading) {
+      if (publicationHeading.value?.owner === owner) publicationHeading.value = null
+      return
+    }
+    if (heading.routePath !== route.fullPath) return
+    publicationHeading.value = { ...heading, owner }
+  }
+provide(workOrderPublicationHeadingKey, setPublicationHeading)
+const currentPublicationHeading = computed(() =>
+  route.name === 'content-work-order' &&
+  route.query.view === 'publication' &&
+  publicationHeading.value?.routePath === route.fullPath &&
+  publicationHeading.value.workOrderId === String(route.params.id || '')
+    ? publicationHeading.value
+    : null
+)
 const isCollapsed = ref(globalThis.innerWidth < 768)
 const narrowViewport = globalThis.matchMedia?.('(max-width: 767px)')
 const /**
@@ -52,6 +81,7 @@ const activePageNumber = computed(() => {
   return String(route.meta.navigationPath ?? route.path)
 })
 const pageTitle = computed(() => {
+  if (currentPublicationHeading.value) return currentPublicationHeading.value.title
   if (route.name === 'content-work-order') {
     const view = String(route.query.view || 'overview')
     if (view === 'import')
@@ -126,6 +156,7 @@ const pageTitle = computed(() => {
   return ADMIN_DESIGN_TITLES[String(route.meta.pageNumber)] ?? route.meta.title
 })
 const pageDescription = computed(() => {
+  if (currentPublicationHeading.value) return currentPublicationHeading.value.description
   if (route.name === 'content-work-order')
     return String(route.query.view) === 'jobs'
       ? '离开页面后可恢复查看 · 成功步骤复用'

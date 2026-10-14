@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ElMessageBox } from 'element-plus'
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { workOrderPublicationHeadingKey } from '@/app/work-order-publication-heading'
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
 import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
@@ -111,6 +112,51 @@ const tab = computed(() =>
 )
 const importPhase = computed(() => String(route.query.import_phase || 'validation'))
 const id = computed(() => String(route.params.id || route.query.work_order_id || ''))
+const setPublicationHeading = inject(workOrderPublicationHeadingKey, undefined)
+const headingOwner = Symbol('publication-page')
+const headingReady = ref(false)
+watch(
+  () => [
+    route.fullPath,
+    order.value,
+    publication.value,
+    error.value,
+    busy.value,
+    headingReady.value
+  ],
+  () => {
+    const state = publication.value
+    if (
+      route.name !== 'content-work-order' ||
+      tab.value !== 'publication' ||
+      !headingReady.value ||
+      error.value ||
+      busy.value ||
+      !state ||
+      order.value?.work_order_id !== id.value ||
+      state.work_order_id !== id.value ||
+      state.token !== order.value.publication_token
+    ) {
+      setPublicationHeading?.(headingOwner, null)
+      return
+    }
+    const preview = state.status === 'PREVIEW' && !state.results.length
+    const succeeded = state.results.filter((row) => row.status === 'SUCCEEDED').length
+    setPublicationHeading?.(headingOwner, {
+      routePath: route.fullPath,
+      workOrderId: id.value,
+      title: preview ? '确认发布范围' : '发布结果',
+      description: preview
+        ? '仅发布已合格集合，其余篇目继续保留草稿'
+        : ['QUEUED', 'RUNNING'].includes(state.status)
+          ? '本次发布已提交 · 等待实际逐篇结果'
+          : succeeded
+            ? `已发布 ${succeeded} 篇 · 按本次冻结结果继续处理`
+            : '按本次冻结范围核对结果 · 不推断成功'
+    })
+  },
+  { immediate: true, flush: 'sync' }
+)
 const types = { dialogue: '场景对话', word_card: '原词汇卡', short_reading: '短文阅读' }
 let generation = 0
 let sampleGeneration = 0
@@ -129,6 +175,7 @@ onBeforeUnmount(() => {
   sampleGeneration++
   generation++
   model.invalidate()
+  setPublicationHeading?.(headingOwner, null)
 })
 const /** 切换当前工作单视图并保留地址上下文
    * @param view - 当前业务视图
@@ -167,6 +214,7 @@ const /** 按地址读取工作单，每个异步分区均绑定本次路由与�
        */ current = (): boolean =>
         token === generation && orderId === id.value && view === tab.value
     error.value = ''
+    headingReady.value = false
     membersReady.value = false
     try {
       if (!orderId) {
@@ -196,8 +244,9 @@ const /** 按地址读取工作单，每个异步分区均绑定本次路由与�
         if (current()) list.value = result
         return
       }
-      await model.load(orderId)
-      if (!current() || !order.value) return
+      const loaded = await model.load(orderId)
+      if (!current() || !loaded || !order.value) return
+      headingReady.value = true
       if (view === 'import') {
         const result = await adapter.preview(orderId)
         if (current()) preview.value = result
@@ -650,13 +699,6 @@ watch(
     <template v-else-if="order"
       ><div class="context">
         <div>
-          <h2 v-if="tab === 'publication'">
-            {{
-              publication && (publication.status !== 'PREVIEW' || publication.results.length)
-                ? '发布结果'
-                : '确认发布范围'
-            }}
-          </h2>
           <p>
             {{ order.series_title }} · {{ types[order.content_type] }} · 本次
             {{ order.counts.total }} 篇
@@ -751,6 +793,7 @@ watch(
         ><WorkOrderPublication
           v-if="publication"
           :state="publication"
+          :content-type="order.content_type"
           :items="allItems"
           :busy="busy || !membersReady"
           :members-ready="membersReady"

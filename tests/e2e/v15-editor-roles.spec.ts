@@ -25,7 +25,7 @@ test('正文对照下载实际原文件字节，不从当前候选重新拼接',
   expect(adminApi.unexpectedRequests).toEqual([])
 })
 
-test('短文主入口保持纯全文编辑，原文仅在明确对照入口显示', async ({ adminApi, page }) => {
+test('短文主入口保持纯全文编辑，原文仅在明确对照入口显示', async ({ adminApi, page }, testInfo) => {
   const requests = await mockWorkOrder(page)
   await loginAsAdmin(page)
   await navigateInApp(page, '/content/work-orders/order/items/one')
@@ -33,6 +33,14 @@ test('短文主入口保持纯全文编辑，原文仅在明确对照入口显�
   await expect(page.locator('.original-document')).toHaveCount(0)
   await expect(page.locator('.short-reading-fields .reading-grid')).toBeVisible()
   await expect(page.locator('.lexicon-fields')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '保存草稿', exact: true })).not.toHaveClass(
+    /el-button--primary/
+  )
+  await expect(page.getByRole('button', { name: '预览与发布检查', exact: true })).toHaveClass(
+    /el-button--primary/
+  )
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.screenshot({ path: testInfo.outputPath('task8-a30-1440.png'), animations: 'disabled' })
   await page.getByText('编辑正文与译文', { exact: true }).click()
   await page.getByLabel('全文中文翻译', { exact: true }).fill('管理员手动修订全文。')
   await page.getByRole('button', { name: '保存草稿', exact: true }).click()

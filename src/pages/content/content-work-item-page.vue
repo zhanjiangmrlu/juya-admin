@@ -670,11 +670,15 @@ watch(
           >手机 / 平板预览</ElButton
         ><ElButton
           v-if="detail.current"
-          type="primary"
+          :type="isReading && !pairing ? 'default' : 'primary'"
           :disabled="busy || conflict || hasMediaWork"
           @click="save"
           >{{ saveLabel }}</ElButton
-        ><ElButton v-if="isReading && !pairing" :disabled="busy || conflict" @click="listening"
+        ><ElButton
+          v-if="isReading && !pairing"
+          type="primary"
+          :disabled="busy || conflict"
+          @click="listening"
           >预览与发布检查</ElButton
         ></AppPageActions
       ></template

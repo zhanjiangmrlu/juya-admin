@@ -2,12 +2,66 @@ import { flushPromises, mount } from '@vue/test-utils'
 import ElementPlus, { ElCheckbox, ElCheckboxGroup } from 'element-plus'
 import { describe, expect, it } from 'vitest'
 
-import type { ProductionSchema as S } from './work-order-model'
+import type { ProductionSchema as S, WorkItem } from './work-order-model'
 
 import WorkOrderImport from './work-order-import.vue'
 import WorkOrderPublication from './work-order-publication.vue'
 
 describe('固定预览范围的人工作业确认', () => {
+  it('冻结标题只复用相同内容和完整候选哈希，同RID修订不冒充历史标题', async () => {
+    const candidate = {
+      content_type: 'short_reading',
+      content_id: 'original-content',
+      revision_id: 'same-revision',
+      candidate_hash: 'original-hash',
+      expected_version: 1
+    }
+    const member = {
+      work_order_id: 'order',
+      content_id: 'original-content',
+      revision_id: 'same-revision',
+      candidate_hash: 'original-hash',
+      title_en: 'Original frozen title',
+      content_version: 2,
+      published: true
+    } as WorkItem
+    const state = {
+      work_order_id: 'order',
+      token: 'token',
+      status: 'PARTIAL',
+      collection_hash: 'hash',
+      candidates: [candidate],
+      results: [{ revision_id: 'same-revision', status: 'FAILED' }]
+    } as unknown as S['PublicationState']
+    const wrapper = mount(WorkOrderPublication, {
+      props: {
+        state,
+        contentType: 'short_reading',
+        items: [member],
+        busy: false,
+        membersReady: true
+      },
+      global: { plugins: [ElementPlus] }
+    })
+    await flushPromises()
+    expect(wrapper.text()).toContain('Original frozen title')
+    await wrapper.setProps({
+      items: [{ ...member, candidate_hash: 'new-hash', title_en: 'Corrected new title' }]
+    })
+    expect(wrapper.text()).not.toContain('Corrected new title')
+    expect(wrapper.text()).toContain('原冻结候选（标题未保留）')
+    expect(wrapper.text()).toContain('original-content')
+    expect(wrapper.text()).toContain('same-revision')
+    await wrapper.setProps({
+      items: [{ ...member, content_id: 'other-content', title_en: 'Foreign title' }]
+    })
+    expect(wrapper.text()).not.toContain('Foreign title')
+    await wrapper.setProps({ items: [member], contentType: 'dialogue' })
+    expect(wrapper.text()).not.toContain('Original frozen title')
+    await wrapper.setProps({ contentType: 'short_reading' })
+    expect(wrapper.text()).toContain('Original frozen title')
+    wrapper.unmount()
+  })
   it('导入预览变化清除旧勾选与默认素材确认', async () => {
     const preview = {
       preview_hash: 'first',
@@ -70,6 +124,12 @@ describe('固定预览范围的人工作业确认', () => {
     expect(wrapper.text()).toContain('成功已保留')
     expect(wrapper.text()).toContain('PUBLICATION_PREVIEW_STALE')
     expect(wrapper.text()).toContain('待核实')
+    const failedTable = wrapper.find('.publication-failed-table')
+    expect(failedTable.exists()).toBe(true)
+    expect(failedTable.findAll('.el-table__body tbody tr')).toHaveLength(1)
+    expect(failedTable.text()).toContain('PUBLICATION_PREVIEW_STALE')
+    expect(failedTable.text()).not.toContain('PUBLICATION_ITEM_RESULT_UNKNOWN')
+    expect(wrapper.find('.publication-unknown').text()).toContain('PUBLICATION_ITEM_RESULT_UNKNOWN')
   })
   it.each(['QUEUED', 'RUNNING', 'FAILED', 'COMPLETED'])(
     '%s 无逐篇结果也不回到确认发布',
