@@ -25,6 +25,7 @@ const context = reactive({
 const source = computed(() =>
   String(route.query.source || (route.query.batch_id ? 'zip' : 'entry'))
 )
+const materialSource = computed(() => ['materials', 'vocabulary'].includes(source.value))
 let generation = 0
 onBeforeUnmount(() => {
   generation++
@@ -39,7 +40,7 @@ const /** 加载真实分类，导入来源之间保持管理员选择 */
     if (['dialogue', 'word_card', 'short_reading'].includes(String(route.query.content_type)))
       context.contentType = route.query.content_type as ImportContentType
     try {
-      if (batchId && source.value !== 'materials') {
+      if (batchId && !materialSource.value) {
         const order = await createWorkOrderAdapter(api).fromBatch(String(batchId))
         if (token !== generation) return
         await router.replace({
@@ -119,12 +120,12 @@ watch(() => route.fullPath, load, { immediate: true })
         >ZIP 按内容 ID 和条目 ID 绑定资料；DOCX
         按标题提出匹配。短文纯阅读；场景另做词义确认和音频切句。1000 篇逻辑批次由系统处理。</ElAlert
       >
-      <div class="entry-row">
+      <div v-if="context.contentType !== 'short_reading'" class="entry-row">
         <div>
           <strong>词汇图包 · 可选</strong>
           <p>一个 ZIP 上传词汇表和图片，按条目 ID 校验并预览图文。</p>
         </div>
-        <ElButton @click="selectSource('materials')">导入词汇图包</ElButton>
+        <ElButton @click="selectSource('vocabulary')">导入词汇图包</ElButton>
       </div>
       <AppPageActions
         ><ElButton @click="router.push({ name: 'content-scenes' })">返回内容生产</ElButton
@@ -137,7 +138,7 @@ watch(() => route.fullPath, load, { immediate: true })
         ><span>确认导入</span>
       </div>
       <ElButton
-        v-if="source !== 'materials'"
+        v-if="!materialSource"
         class="back-entry"
         link
         type="primary"
@@ -145,7 +146,8 @@ watch(() => route.fullPath, load, { immediate: true })
         >返回批量导入入口</ElButton
       >
       <ContentMaterialsPanel
-        v-if="source === 'materials'"
+        v-if="materialSource"
+        :source="source"
         :initial-series-id="context.seriesId"
         :initial-content-type="context.contentType"
       />

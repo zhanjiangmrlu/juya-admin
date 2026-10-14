@@ -90,6 +90,17 @@ const pageTitle = computed(() => {
     const action = String(route.query.action || '')
     return Object.hasOwn(titles, action) ? titles[action] : '正式权益操作'
   }
+  if (route.name === 'content-import' && route.query.source === 'materials') return '素材匹配'
+  if (route.name === 'content-import' && route.query.source === 'vocabulary') {
+    const titles: Record<string, string> = {
+      upload: '上传词汇图包',
+      validation: '图包校验',
+      preview: '图文对应预览',
+      processing: '词汇图包导入处理中',
+      result: '词汇图包已导入'
+    }
+    return titles[String(route.query.material_phase || 'upload')] || titles.upload
+  }
   if (route.name === 'content-import' && (route.query.source === 'zip' || route.query.batch_id)) {
     const titles: Record<string, string> = {
       upload: '上传统一内容包',
@@ -100,17 +111,6 @@ const pageTitle = computed(() => {
     return titles[String(route.query.import_phase || 'upload')] || '上传统一内容包'
   }
   if (route.name === 'content-import' && route.query.source === 'docx') return '导入中英文文档'
-  if (route.name === 'content-import' && route.query.source === 'materials') {
-    const titles: Record<string, string> = {
-      upload: '上传词汇图包',
-      validation: '图包校验',
-      preview: '图文对应预览',
-      processing: '词汇图包导入处理中',
-      result: '词汇图包已导入'
-    }
-    const phase = String(route.query.material_phase || 'upload')
-    return Object.hasOwn(titles, phase) ? titles[phase] : titles.upload
-  }
   if (route.name === 'content-scene-edit')
     return CONTENT_STAGE_TITLES[String(route.query.stage ?? 'proofread')] ?? route.meta.title
   return ADMIN_DESIGN_TITLES[String(route.meta.pageNumber)] ?? route.meta.title
@@ -129,6 +129,10 @@ const pageDescription = computed(() => {
     return '纯阅读模式 · 完整英文与全文中文 · 封面和全文音频选填'
   if (route.name === 'content-import' && route.query.source === 'zip')
     return '正文、译文、封面、词汇图片与音频，按 ID 一次绑定'
+  if (route.name === 'content-import' && route.query.source === 'materials')
+    return '按实际素材与固定草稿核对 · 标题候选须人工采纳'
+  if (route.name === 'content-import' && route.query.source === 'vocabulary')
+    return '英文、当前释义与对应图片 · 按条目 ID 核对'
   return ADMIN_DESIGN_DESCRIPTIONS[String(route.meta.pageNumber)] ?? '句芽英语 V1.5 · 单管理员后台'
 })
 

@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  shallowRef,
+  watch
+} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AdminPanel from '@/components/admin-panel/admin-panel.vue'
@@ -18,14 +27,23 @@ import type { ContentSeries } from '@/features/content/content-adapter'
 import type { UploadFile } from 'element-plus'
 
 import { createContentMaterialsAdapter } from './content-materials-adapter'
-import ImportResourcePreview from './import-resource-preview.vue'
+import ContentMaterialsMatching from './content-materials-matching.vue'
+import { allowedMaterialRoles, materialMode, materialStatistics } from './content-materials-model'
+import ContentMaterialsPreview from './content-materials-preview.vue'
+import ContentMaterialsTarget from './content-materials-target.vue'
 
 const client = useAdminApiClient()
 const router = useRouter()
 const route = useRoute()
-const recoveryBatch = String(route.query.material_batch_id || '')
-const recoveryStage = String(route.query.material_stage_id || '')
-const props = defineProps<{ initialSeriesId?: string; initialContentType?: string }>()
+const recoveryBatch = String(route.query.material_batch_id || route.query.batch_id || '')
+const requestedBatch = ref(recoveryBatch)
+const requestedStage = ref(String(route.query.material_stage_id || ''))
+const requestedKey = ref(String(route.query.material_bind_key || ''))
+const props = defineProps<{
+  initialSeriesId?: string
+  initialContentType?: string
+  source?: string
+}>()
 const adapter = createContentMaterialsAdapter(client)
 const content = createContentAdapter(client)
 const catalogue = createCatalogueAdapter(client)
@@ -50,6 +68,7 @@ const target = shallowRef<{
 const bindings = ref<(MaterialBinding & { selected: boolean })[]>([])
 interface VocabularyRow {
   row_no: number
+  entry_type: 'word' | 'chunk'
   import_entry_id: string
   entry_id?: string
   english: string
@@ -66,12 +85,75 @@ interface VocabularyRow {
 const vocabularyRows = ref<VocabularyRow[]>([])
 const vocabularyHash = ref('')
 const chosenVocabulary = computed(() => vocabularyRows.value.filter((row) => row.selected))
-const hasVocabularyTable = computed(() =>
-  Array.isArray((batch.value?.manifest as Record<string, unknown> | undefined)?.vocabulary_rows)
+const receiptMode = ref<'materials' | 'vocabulary' | null>(null)
+const recovering = ref(true)
+const command = shallowRef<{ key: string; body: Record<string, unknown> } | null>(null)
+const receiptRevision = ref('')
+const mode = computed(() =>
+  batch.value
+    ? materialMode(batch.value.manifest, props.source || 'materials') === 'unknown'
+      ? receiptMode.value || 'unknown'
+      : materialMode(batch.value.manifest, props.source || 'materials')
+    : props.source === 'vocabulary'
+      ? 'vocabulary'
+      : 'materials'
+)
+const hasVocabularyTable = computed(
+  () =>
+    context.type !== 'short_reading' &&
+    (mode.value === 'vocabulary' || props.source === 'vocabulary')
+)
+const packageMismatch = computed(
+  () => !!batch.value && props.source === 'vocabulary' && mode.value === 'materials'
+)
+const statistics = computed(() =>
+  batch.value && ['PREVIEW_READY', 'BOUND'].includes(batch.value.status)
+    ? materialStatistics(
+        batch.value.manifest.resources || [],
+        batch.value.content_type || (target.value ? context.type : ''),
+        target.value?.content || null
+      )
+    : { clearAudio: null, ambiguous: null, missingAudio: null, optionalImageErrors: null }
+)
+const matchingIssues = computed(() =>
+  (batch.value?.manifest.resources || [])
+    .filter((row) => row.ambiguous_title || row.matching_candidates.length !== 1)
+    .map((row) => ({
+      path: row.filename || row.path,
+      title:
+        row.matching_candidates.map((candidate) => candidate.title_en).join(' / ') || '尚未匹配',
+      problem: `${row.matching_candidate_count ?? row.matching_candidates.length} 个标题候选 · ${row.kind === 'audio' || /\.(mp3|m4a|wav|aac)$/i.test(row.path) ? '时长待实际解码校验' : '图片角色需人工核对'}`
+    }))
+)
+const requiredAudioIssue = computed(() =>
+  target.value && statistics.value.missingAudio === 1
+    ? [
+        {
+          path: '未上传',
+          title:
+            targets.value.find((row) => row.revisionId === target.value?.revisionId)?.title ||
+            target.value.revisionId,
+          problem: '当前固定草稿缺少必需完整对话音频，请在下方明确补充'
+        }
+      ]
+    : []
+)
+const validationErrors = computed(() =>
+  batch.value?.status === 'FAILED'
+    ? Object.values(
+        ((batch.value.manifest as Record<string, unknown>).binding_errors as Record<
+          string,
+          { error_code: string }
+        >) || {}
+      )
+        .map((row) => row.error_code)
+        .join(' / ')
+    : ''
 )
 const checked = ref(false)
 const busy = ref(false)
 const error = ref('')
+const recoveryOpen = ref(false)
 const phase = ref<'upload' | 'validation' | 'preview' | 'result'>('upload')
 const submittedStage = ref('')
 const steps = ['上传 ZIP', '校验', '图文预览', '确认导入']
@@ -120,7 +202,11 @@ watch(
     route.query.material_stage_id
   ],
   () => {
-    if (route.name !== 'content-import' || route.query.source !== 'materials') return
+    if (
+      route.name !== 'content-import' ||
+      !['materials', 'vocabulary'].includes(String(route.query.source))
+    )
+      return
     const actualPhase =
       phase.value === 'result' && !bindingCompleted.value ? 'processing' : phase.value
     if (
@@ -133,9 +219,21 @@ watch(
       name: 'content-import',
       query: {
         ...route.query,
+        source:
+          context.type === 'short_reading'
+            ? 'materials'
+            : mode.value === 'vocabulary'
+              ? 'vocabulary'
+              : props.source === 'vocabulary'
+                ? 'vocabulary'
+                : 'materials',
+        series_id: context.seriesId || undefined,
+        content_type: context.type,
         material_phase: actualPhase,
         material_batch_id: batch.value?.batch_id,
-        material_stage_id: submittedStage.value || undefined
+        material_stage_id: submittedStage.value || undefined,
+        material_bind_key:
+          phase.value === 'upload' ? undefined : command.value?.key || route.query.material_bind_key
       }
     })
   },
@@ -144,12 +242,15 @@ watch(
 const previewRows = computed(() =>
   hasVocabularyTable.value
     ? chosenVocabulary.value.map((row) => ({
-        path: row.image_path || '',
+        path: (row.entry_type === 'chunk' ? row.pronunciation_path : row.image_path) || '',
         entry_id: row.import_entry_id,
         english: row.english,
         meaning: row.meaning_zh,
-        source: targets.value.find((item) => item.revisionId === targetId.value)?.title || '—',
-        role: 'WORD_IMAGE',
+        source:
+          targets.value.find((item) => item.revisionId === targetId.value)?.title ||
+          receiptRevision.value ||
+          '—',
+        role: row.entry_type === 'chunk' ? 'CHUNK_AUDIO' : 'WORD_IMAGE',
         operation: row.operation,
         previous: row.previous
       }))
@@ -159,7 +260,10 @@ const previewRows = computed(() =>
           ...binding,
           english: entry?.english || '—',
           meaning: entry?.chinese || '—',
-          source: targets.value.find((item) => item.revisionId === targetId.value)?.title || '—',
+          source:
+            targets.value.find((item) => item.revisionId === targetId.value)?.title ||
+            receiptRevision.value ||
+            '—',
           operation: 'BIND',
           previous: undefined
         }
@@ -186,37 +290,52 @@ const chosenCount = computed(() =>
 const canPreview = computed(
   () =>
     !!target.value &&
+    mode.value !== 'unknown' &&
+    !packageMismatch.value &&
+    target.value.revisionId === targetId.value &&
     (hasVocabularyTable.value
       ? !!vocabularyHash.value &&
         chosenVocabulary.value.length > 0 &&
         chosenVocabulary.value.every(
           (row) =>
             !row.issues.some((issue) => issue.severity === 'ERROR') &&
-            (!!row.image_path || row.noImageConfirmed)
+            (row.entry_type === 'chunk' || !!row.image_path || row.noImageConfirmed)
         )
-      : selected.value.length > 0)
+      : selected.value.length > 0 && validBindings.value)
 )
 const entries = computed(() => (target.value ? normalizeSceneContent(target.value.content) : null))
+const validBindings = computed(
+  () =>
+    selected.value.every((row) => {
+      const resource = batch.value?.manifest.resources?.find((item) => item.path === row.path)
+      return (
+        !!resource &&
+        allowedMaterialRoles(resource.allowed_roles, context.type).includes(row.role) &&
+        (!['WORD_IMAGE', 'WORD_AUDIO', 'CHUNK_AUDIO'].includes(row.role) ||
+          roleEntries(row.role).some((entry) => entry.entry_id === row.entry_id))
+      )
+    }) &&
+    new Set(selected.value.map((row) => `${row.role}:${row.entry_id || ''}`)).size ===
+      selected.value.length
+)
 const ready = computed(
   () =>
     !!target.value &&
     target.value.revisionId === targetId.value &&
     checked.value &&
+    mode.value !== 'unknown' &&
+    !packageMismatch.value &&
     (hasVocabularyTable.value
       ? !!vocabularyHash.value &&
         chosenVocabulary.value.length > 0 &&
         chosenVocabulary.value.every(
           (row) =>
             !row.issues.some((issue) => issue.severity === 'ERROR') &&
-            (!!row.image_path || row.noImageConfirmed) &&
+            (row.entry_type === 'chunk' || !!row.image_path || row.noImageConfirmed) &&
             (row.operation !== 'UPDATE' || row.differenceConfirmed)
         )
       : selected.value.length > 0 &&
-        selected.value.every(
-          (row) =>
-            row.role &&
-            (!['WORD_IMAGE', 'WORD_AUDIO', 'CHUNK_AUDIO'].includes(row.role) || row.entry_id)
-        ) &&
+        selected.value.every((row) => row.role && validBindings.value) &&
         new Set(selected.value.map((row) => `${row.role}:${row.entry_id || ''}`)).size ===
           selected.value.length) &&
     ['PREVIEW_READY', 'BOUND'].includes(batch.value?.status || '')
@@ -276,11 +395,20 @@ const /**
    * 读取实际文件清单；新批次清除之前的绑定选择
    * @param id - 服务端素材批次编号
    */ read = async (id: string): Promise<void> => {
+    const token = generation
     const value = await adapter.load(id)
-    if (disposed) return
+    if (disposed || token !== generation) return
     if (batch.value?.batch_id !== value.batch_id) {
       target.value = null
       targetId.value = ''
+      vocabularyRows.value = []
+      vocabularyHash.value = ''
+      if (batch.value) {
+        submittedStage.value = ''
+        command.value = null
+        receiptMode.value = null
+        receiptRevision.value = ''
+      }
       checked.value = false
       bindings.value = (value.manifest.resources || []).map((row) => ({
         path: row.path,
@@ -293,14 +421,27 @@ const /**
         role: '',
         selected: false
       }))
+    if (value.series_id) context.seriesId = value.series_id
+    if (value.content_type) context.type = value.content_type
+    await Promise.resolve()
+    if (disposed || token !== generation) return
     batch.value = value
+    if (!vocabularyRows.value.length && Array.isArray(value.manifest.vocabulary_rows))
+      vocabularyRows.value = (value.manifest.vocabulary_rows as VocabularyRow[]).map((row) => ({
+        ...row,
+        selected: false,
+        noImageConfirmed: false,
+        differenceConfirmed: false
+      }))
     recoveryId.value = value.batch_id
     if (phase.value === 'upload') phase.value = 'validation'
+    restoreReceipt(value)
   }
 const /**
    * 更换本地素材包时更换上传身份
    * @param value - 管理员重新选择的 ZIP
    */ selectFile = (value: UploadFile): void => {
+    if (batch.value) startNew()
     file.value = value.raw || null
     uploadKey = createIdempotencyKey()
     phase.value = 'upload'
@@ -310,14 +451,23 @@ const /** 上传明确系列和模板的独立素材 ZIP
    * @returns 上传与恢复结果完成状态
    */ upload = async (): Promise<void> =>
     run(async () => {
-      if (!file.value || !context.seriesId) return
+      if (!file.value || !context.seriesId || (hasVocabularyTable.value && !target.value)) return
+      const token = generation
+      const fixedSource = hasVocabularyTable.value ? targetId.value : ''
       const value = await adapter.upload(file.value, context.seriesId, context.type, uploadKey)
+      if (disposed || token !== generation) return
       await read(value.batch_id)
+      if (fixedSource) {
+        targetId.value = fixedSource
+        await nextTick()
+        await readTarget()
+      }
     })
 const /** 加载当前页可编辑草稿，标题建议不自动采用
    * @returns 草稿加载完成状态
    */ loadTargets = async (): Promise<void> =>
     run(async () => {
+      const token = generation
       if (!series.value.length) series.value = await content.listSeries()
       if (!context.seriesId) return
       const value = await catalogue.list({
@@ -328,7 +478,7 @@ const /** 加载当前页可编辑草稿，标题建议不自动采用
         contentType: context.type as 'dialogue' | 'word_card' | 'short_reading',
         status: ''
       })
-      if (disposed) return
+      if (disposed || token !== generation) return
       missingDraftCount.value = value.items.filter((row) => !row.draft_revision_id).length
       targets.value = value.items
         .filter((row) => row.draft_revision_id)
@@ -340,59 +490,64 @@ const /** 加载当前页可编辑草稿，标题建议不自动采用
     })
 const /** 读取明确选择的草稿版本和稳定词条
    * @returns 固定草稿读取完成状态
-   */ loadTarget = async (): Promise<void> =>
-    run(async () => {
-      target.value = null
-      checked.value = false
-      const row = targets.value.find((item) => item.revisionId === targetId.value)
-      if (!row) return
-      const value =
-        context.type === 'short_reading'
-          ? await readings.load(row.id)
-          : await content.getRevision(row.revisionId)
-      if (disposed) return
-      if ('revisionId' in value && value.revisionId !== row.revisionId)
-        throw new Error('来源草稿已改变，请重新加载并选择当前候选版本')
-      target.value = {
-        revisionId: row.revisionId,
-        version: 'editVersion' in value ? value.editVersion : value.version,
-        content: { ...value.content }
-      }
-      if (hasVocabularyTable.value && batch.value) {
-        const preview = await client.request<{
-          preview_hash: string
-          revision_id: string
-          expected_version: number
-          vocabulary_rows: Omit<
-            VocabularyRow,
-            'selected' | 'noImageConfirmed' | 'differenceConfirmed'
-          >[]
-        }>({
-          method: 'GET',
-          path: `/api/v1/admin/content-materials/${encodeURIComponent(batch.value.batch_id)}/vocabulary-preview`,
-          query: { revision_id: row.revisionId, expected_version: target.value.version }
-        })
-        if (disposed || targetId.value !== row.revisionId) return
-        if (
-          preview.revision_id !== row.revisionId ||
-          preview.expected_version !== target.value.version ||
-          !/^[a-f0-9]{64}$/.test(preview.preview_hash)
-        )
-          throw new Error('图包预览与当前来源版本不一致，请重新读取')
-        vocabularyHash.value = preview.preview_hash
-        vocabularyRows.value = preview.vocabulary_rows.map((item) => ({
-          ...item,
-          selected: false,
-          noImageConfirmed: false,
-          differenceConfirmed: false
-        }))
-      }
-    })
+   */ readTarget = async (): Promise<void> => {
+    const token = generation
+    target.value = null
+    checked.value = false
+    const row = targets.value.find((item) => item.revisionId === targetId.value)
+    if (!row) return
+    const value =
+      context.type === 'short_reading'
+        ? await readings.load(row.id)
+        : await content.getRevision(row.revisionId)
+    if (disposed || token !== generation || targetId.value !== row.revisionId) return
+    if ('revisionId' in value && value.revisionId !== row.revisionId)
+      throw new Error('来源草稿已改变，请重新加载并选择当前候选版本')
+    target.value = {
+      revisionId: row.revisionId,
+      version: 'editVersion' in value ? value.editVersion : value.version,
+      content: { ...value.content }
+    }
+    if (hasVocabularyTable.value && batch.value) {
+      const preview = await client.request<{
+        preview_hash: string
+        revision_id: string
+        expected_version: number
+        vocabulary_rows: Omit<
+          VocabularyRow,
+          'selected' | 'noImageConfirmed' | 'differenceConfirmed'
+        >[]
+      }>({
+        method: 'GET',
+        path: `/api/v1/admin/content-materials/${encodeURIComponent(batch.value.batch_id)}/vocabulary-preview`,
+        query: { revision_id: row.revisionId, expected_version: target.value.version }
+      })
+      if (disposed || token !== generation || targetId.value !== row.revisionId) return
+      if (
+        preview.revision_id !== row.revisionId ||
+        preview.expected_version !== target.value.version ||
+        !/^[a-f0-9]{64}$/.test(preview.preview_hash)
+      )
+        throw new Error('图包预览与当前来源版本不一致，请重新读取')
+      vocabularyHash.value = preview.preview_hash
+      vocabularyRows.value = preview.vocabulary_rows.map((item) => ({
+        ...item,
+        selected: false,
+        noImageConfirmed: false,
+        differenceConfirmed: false
+      }))
+    }
+  }
+const /** 串行读取管理员明确的来源版本
+   * @returns 来源读取结果
+   */ loadTarget = async (): Promise<void> => run(readTarget)
 const /** 明确绑定选中文件，网络不确定时保留相同命令身份
    * @returns 绑定命令完成状态
    */ bind = async (): Promise<void> =>
     run(async () => {
       if (!ready.value || !target.value || !batch.value) return
+      const token = generation
+      const batchId = batch.value.batch_id
       const rows = selected.value.map((row) => ({
         path: row.path,
         role: row.role,
@@ -416,17 +571,15 @@ const /** 明确绑定选中文件，网络不确定时保留相同命令身份
         bindSignature = signature
         bindKey = createIdempotencyKey()
       }
-      try {
-        const receipt = hasVocabularyTable.value
-          ? await client.request<{ stage_id: string }>({
-              method: 'POST',
-              path: `/api/v1/admin/content-materials/${encodeURIComponent(batch.value.batch_id)}/bindings`,
-              headers: { 'Idempotency-Key': bindKey },
-              body: {
-                revision_id: target.value.revisionId,
-                expected_version: target.value.version,
-                manual_checked: true,
-                bindings: [],
+      command.value = {
+        key: bindKey,
+        body: {
+          revision_id: target.value.revisionId,
+          expected_version: target.value.version,
+          manual_checked: true,
+          bindings: hasVocabularyTable.value ? [] : rows,
+          ...(hasVocabularyTable.value
+            ? {
                 vocabulary_preview_hash: vocabularyHash.value,
                 vocabulary_selections: chosenVocabulary.value.map((row) => ({
                   import_entry_id: row.import_entry_id,
@@ -434,32 +587,35 @@ const /** 明确绑定选中文件，网络不确定时保留相同命令身份
                   difference_confirmed: row.differenceConfirmed
                 }))
               }
-            })
-          : await adapter.bind(
-              batch.value.batch_id,
-              target.value.revisionId,
-              target.value.version,
-              rows,
-              bindKey
-            )
-        submittedStage.value = String((receipt as { stage_id?: string }).stage_id || '')
-        phase.value = 'result'
-      } catch (failure) {
-        if (failure instanceof ApiError && failure.status === 409) {
-          target.value = null
-          checked.value = false
+            : {})
         }
+      }
+      try {
+        await submitCommand()
+      } catch (failure) {
+        if (disposed || token !== generation) return
+        if (failure instanceof ApiError && failure.status >= 400 && failure.status < 500) {
+          await rejectCommand()
+        } else {
+          phase.value = 'result'
+        }
+        await read(batchId).catch(() => undefined)
         throw failure
       }
+      if (disposed || token !== generation) return
       checked.value = false
-      await read(batch.value.batch_id)
+      await read(batchId)
     })
 const /**
    * 获取本篇角色所需的稳定词条
    * @param role - 文件正在绑定的角色
    * @returns 本篇词汇或语块
    */ roleEntries = (role: string) =>
-    role === 'CHUNK_AUDIO' ? entries.value?.chunks || [] : entries.value?.vocabulary || []
+    context.type === 'short_reading'
+      ? []
+      : role === 'CHUNK_AUDIO'
+        ? entries.value?.chunks || []
+        : entries.value?.vocabulary || []
 const /** 进入固定草稿的图文核对，不自动确认任何文件
    * @returns 切换预览状态
    */ showPreview = (): void => {
@@ -471,6 +627,9 @@ const /** 恢复上传入口，已有完成结果仍保留在服务端
    */ startNew = (): void => {
     phase.value = 'upload'
     submittedStage.value = ''
+    command.value = null
+    receiptMode.value = null
+    receiptRevision.value = ''
     checked.value = false
     batch.value = null
     file.value = null
@@ -483,57 +642,208 @@ const /** 恢复上传入口，已有完成结果仍保留在服务端
 const /** 返回批量导入的来源选择入口
    * @returns 路由切换完成状态
    */ returnToImport = (): void => {
-    void router.push({ name: 'content-import' })
+    void router.push({
+      name: 'content-import',
+      query: { series_id: context.seriesId || undefined, content_type: context.type }
+    })
   }
 const /** 素材实际绑定后桥接工作单，保留对应正文范围 */
   continueWorkOrder = async (): Promise<void> => {
     if (!bindingCompleted.value || !batch.value) return
     await run(async () => {
-      const order = await createWorkOrderAdapter(client).fromBatch(batch.value!.batch_id)
+      const token = generation
+      const batchId = batch.value!.batch_id
+      const order = await createWorkOrderAdapter(client).fromBatch(batchId)
+      if (disposed || token !== generation || batch.value?.batch_id !== batchId) return
       await router.push({ name: 'content-work-order', params: { id: order.work_order_id } })
     })
   }
-onMounted(() => {
-  if (route.name !== 'content-import' || route.query.source !== 'materials') return
-  // URL 的阶段只用于展示；恢复结果必须读取实际批次与任务记录。
-  void router.replace({
-    name: 'content-import',
-    query: { ...route.query, material_phase: 'upload' }
-  })
-  if (!recoveryBatch) return
-  void run(async () => {
-    await read(recoveryBatch)
-    const manifest = batch.value?.manifest as Record<string, unknown> | undefined
-    const requests = manifest?.binding_requests as
-      Record<string, { request?: Record<string, unknown> }> | undefined
-    const request = requests?.[recoveryStage]?.request
-    if (!request) return
-    submittedStage.value = recoveryStage
-    if (Array.isArray(request.bindings))
-      bindings.value = (request.bindings as MaterialBinding[]).map((row) => ({
-        ...row,
-        selected: true
-      }))
-    if (Array.isArray(request.vocabulary_selections) && Array.isArray(manifest?.vocabulary_rows)) {
-      const ids = new Set(
-        (request.vocabulary_selections as { import_entry_id: string }[]).map(
-          (row) => row.import_entry_id
-        )
-      )
-      vocabularyRows.value = (manifest.vocabulary_rows as VocabularyRow[]).map((row) => ({
-        ...row,
-        selected: ids.has(row.import_entry_id),
-        noImageConfirmed: false,
-        differenceConfirmed: false
-      }))
+const /**
+   * 恢复 URL 指定阶段或原幂等键对应的回执
+   * @param value - 当前批次的实际持久化清单
+   */ restoreReceipt = (value: MaterialBatch): void => {
+    const manifest = value.manifest as Record<string, unknown>
+    const requests = (manifest.binding_requests || {}) as Record<
+      string,
+      { key?: string; request?: Record<string, unknown> }
+    >
+    const key =
+      command.value?.key || (value.batch_id === requestedBatch.value ? requestedKey.value : '')
+    const stage =
+      submittedStage.value ||
+      (!command.value && value.batch_id === requestedBatch.value ? requestedStage.value : '') ||
+      (key ? Object.keys(requests).find((id) => requests[id]?.key === key) : '')
+    const receipt = stage ? requests[stage] : undefined
+    const request = receipt?.request
+    if (!request) {
+      if (key || (value.batch_id === requestedBatch.value && requestedStage.value)) {
+        phase.value = 'result'
+        error.value = '当前绑定回执尚未确认，请恢复原操作；不会推断最新任务或重发新绑定'
+      }
+      return
     }
+    submittedStage.value = stage || ''
+    receiptRevision.value = String(request.revision_id || '')
+    if (receipt?.key)
+      command.value = { key: receipt.key, body: { ...request, manual_checked: true } }
+    const bound = Array.isArray(request.bindings) ? (request.bindings as MaterialBinding[]) : []
+    const selections = Array.isArray(request.vocabulary_selections)
+      ? (request.vocabulary_selections as {
+          import_entry_id: string
+          no_image_confirmed?: boolean
+          difference_confirmed?: boolean
+        }[])
+      : []
+    if (selections.length) receiptMode.value = 'vocabulary'
+    else if (bound.length) receiptMode.value = 'materials'
+    bindings.value = (value.manifest.resources || []).map((resource) => {
+      const binding = bound.find((row) => row.path === resource.path)
+      return binding
+        ? { ...binding, selected: true }
+        : { path: resource.path, role: '', selected: false }
+    })
+    if (selections.length && Array.isArray(manifest.vocabulary_rows))
+      vocabularyRows.value = (manifest.vocabulary_rows as VocabularyRow[]).map((row) => {
+        const selection = selections.find((item) => item.import_entry_id === row.import_entry_id)
+        return {
+          ...row,
+          selected: !!selection,
+          noImageConfirmed: !!selection?.no_image_confirmed,
+          differenceConfirmed: !!selection?.difference_confirmed
+        }
+      })
     phase.value = 'result'
+  }
+const /** 提交冻结的素材命令，不从可变表单重建请求 */ submitCommand = async (): Promise<void> => {
+    if (!command.value || !batch.value) return
+    const token = generation
+    const origin = { batchId: batch.value.batch_id, key: command.value.key }
+    const receipt = await client.request<{ stage_id?: string }>({
+      method: 'POST',
+      path: `/api/v1/admin/content-materials/${encodeURIComponent(batch.value.batch_id)}/bindings`,
+      headers: { 'Idempotency-Key': command.value.key },
+      body: command.value.body
+    })
+    if (
+      disposed ||
+      token !== generation ||
+      batch.value?.batch_id !== origin.batchId ||
+      command.value?.key !== origin.key
+    )
+      return
+    submittedStage.value = receipt.stage_id || ''
+    phase.value = 'result'
+  }
+const /** 服务端明确拒绝原命令时返回校验，要求重新读取来源版本 */ rejectCommand =
+    async (): Promise<void> => {
+      command.value = null
+      submittedStage.value = ''
+      requestedStage.value = ''
+      requestedKey.value = ''
+      target.value = null
+      checked.value = false
+      await router.replace({
+        name: 'content-import',
+        query: {
+          ...route.query,
+          material_stage_id: undefined,
+          material_bind_key: undefined,
+          material_phase: 'validation'
+        }
+      })
+      phase.value = 'validation'
+    }
+const /**
+   * 未确认回执时续办冻结的同一个请求和幂等键
+   * @returns 原操作续办结果
+   */ resumeUnknown = async (): Promise<void> =>
+    run(async () => {
+      if (!command.value || !batch.value || submittedStage.value) return
+      const token = generation
+      const batchId = batch.value.batch_id
+      try {
+        await submitCommand()
+      } catch (failure) {
+        if (disposed || token !== generation) return
+        if (failure instanceof ApiError && failure.status >= 400 && failure.status < 500)
+          await rejectCommand()
+        throw failure
+      } finally {
+        if (!disposed && token === generation) await read(batchId)
+      }
+    })
+const /**
+   * 只重试明确失败且没有成功结果的原绑定
+   * @returns 本次失败绑定重试结果
+   */ retryFailed = async (): Promise<void> =>
+    run(async () => {
+      if (!batch.value || !bindingError.value || bindingCompleted.value || !command.value) return
+      const token = generation
+      const batchId = batch.value.batch_id
+      command.value = {
+        key: createIdempotencyKey(),
+        body: globalThis.structuredClone(command.value.body)
+      }
+      submittedStage.value = ''
+      try {
+        await submitCommand()
+      } catch (failure) {
+        if (disposed || token !== generation) return
+        if (failure instanceof ApiError && failure.status >= 400 && failure.status < 500)
+          await rejectCommand()
+        throw failure
+      } finally {
+        if (!disposed && token === generation) await read(batchId)
+      }
+    })
+watch(
+  () => [
+    String(route.query.material_batch_id || route.query.batch_id || ''),
+    String(route.query.material_stage_id || ''),
+    String(route.query.material_bind_key || '')
+  ],
+  ([id, stage, key]) => {
+    if (
+      !id ||
+      (id === batch.value?.batch_id &&
+        (!stage || stage === submittedStage.value) &&
+        (!key || key === command.value?.key))
+    )
+      return
+    generation++
+    busy.value = false
+    recovering.value = true
+    startNew()
+    requestedBatch.value = id || ''
+    requestedStage.value = stage || ''
+    requestedKey.value = key || ''
+    const token = generation
+    void run(async () => {
+      try {
+        await read(id || '')
+      } finally {
+        if (token === generation) recovering.value = false
+      }
+    })
+  }
+)
+onMounted(() => {
+  const token = generation
+  void run(async () => {
+    try {
+      const loaded = await content.listSeries()
+      if (disposed || token !== generation) return
+      series.value = loaded
+      if (recoveryBatch) await read(recoveryBatch)
+    } finally {
+      if (token === generation) recovering.value = false
+    }
   })
 })
 </script>
 <template>
   <section class="content-materials-panel">
-    <nav class="material-steps" aria-label="词汇图包导入步骤">
+    <nav v-if="hasVocabularyTable" class="material-steps" aria-label="词汇图包导入步骤">
       <span v-for="(step, index) in steps" :key="step" :class="{ active: index === phaseIndex }">{{
         step
       }}</span>
@@ -545,13 +855,51 @@ onMounted(() => {
       :closable="false"
     />
     <ElAlert v-if="error" :title="error" type="error" :closable="false" />
+    <ContentMaterialsMatching
+      v-if="!hasVocabularyTable"
+      :statistics="statistics"
+      :batch-id="batch?.batch_id || ''"
+      :revision-id="target?.revisionId"
+      :issues="[...matchingIssues, ...requiredAudioIssue]"
+    />
+    <ElAlert
+      v-if="mode === 'unknown'"
+      title="历史清单未记录包类型，请核对原 ZIP 或明确的绑定回执；当前不发送新绑定"
+      type="warning"
+      :closable="false"
+    />
+    <ElAlert
+      v-if="packageMismatch"
+      title="该包未包含词汇表.xlsx，请使用独立素材入口或修正原 ZIP"
+      type="error"
+      :closable="false"
+    />
+    <ElAlert
+      v-if="batch?.status === 'FAILED'"
+      :title="`校验失败：${validationErrors || '错误详情待恢复'}。原 ZIP 已保留，请修正原文件后重新上传。`"
+      type="error"
+      :closable="false"
+    />
     <template v-if="phase === 'upload'">
-      <AdminPanel title="词汇与图片，一次上传" class="material-card">
+      <AdminPanel
+        :title="hasVocabularyTable ? '词汇与图片，一次上传' : '补充独立音频与图片'"
+        class="material-card"
+      >
         <p>
           将对应素材放入同一个
           ZIP，选择来源内容后按稳定条目核对。英文和当前释义保留为可编辑文字，图片不提取文字。
         </p>
-        <div class="actions">
+        <p v-if="context.seriesId" class="caption">
+          分类：{{ series.find((row) => row.id === context.seriesId)?.title || context.seriesId }} ·
+          {{
+            context.type === 'dialogue'
+              ? '场景对话'
+              : context.type === 'short_reading'
+                ? '独立短文阅读'
+                : '原词汇卡'
+          }}
+        </p>
+        <div v-if="!initialSeriesId && !batch" class="actions">
           <ElButton :loading="busy" @click="loadTargets">加载素材分类 / 草稿</ElButton
           ><ElSelect
             v-model="context.seriesId"
@@ -572,9 +920,23 @@ onMounted(() => {
               value="dialogue" /><ElOption label="独立短文" value="short_reading"
           /></ElSelect>
         </div>
+        <ContentMaterialsTarget
+          v-if="hasVocabularyTable"
+          v-model:page="context.page"
+          v-model:target-id="targetId"
+          :targets="targets"
+          :busy="busy"
+          :missing-draft-count="missingDraftCount"
+          :target="target"
+          @load="loadTargets"
+          @read="loadTarget"
+        />
         <div class="selected-package">
           <div>
-            <strong>{{ file?.name || '选择词汇图片 / 音频 ZIP' }}</strong
+            <strong>{{
+              file?.name ||
+              (hasVocabularyTable ? '选择词汇表.xlsx + images/ ZIP' : '选择独立图片 / 音频 ZIP')
+            }}</strong
             ><small>{{
               file
                 ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
@@ -588,77 +950,107 @@ onMounted(() => {
             :disabled="busy || !adapter.available"
             @change="selectFile"
             ><ElButton :disabled="busy || !adapter.available">{{
-              file ? '更换 ZIP' : '选择独立素材 ZIP'
+              file ? '更换 ZIP' : hasVocabularyTable ? '选择词汇图包 ZIP' : '选择独立素材 ZIP'
             }}</ElButton></ElUpload
           >
         </div>
       </AdminPanel>
-      <AdminPanel title="每条词汇都有自己的图片路径" class="material-card"
+      <AdminPanel v-if="hasVocabularyTable" title="每条词汇都有自己的图片路径" class="material-card"
         ><ElTable
           :data="[
-            { field: '来源内容', rule: '选择已保存的内容草稿，英文与当前释义来自该篇' },
-            { field: '条目 ID', rule: '按稳定条目区分同词不同语境，不按英文合并' },
-            { field: '图片路径', rule: '明确选择包内文件与本篇条目，不按行号猜测' }
+            {
+              field: '条目 ID',
+              example: 'v_coffee_latte_01',
+              rule: '唯一标识；按当前来源的稳定条目核对'
+            },
+            {
+              field: '英文 / 当前释义',
+              example: 'latte / 拿铁咖啡',
+              rule: '保存当前篇目中的意思，同词不同语境分别保留'
+            },
+            {
+              field: '图片路径',
+              example: 'images/v_coffee_latte_01.png',
+              rule: '按条目 ID 对应图片；不按行号或英文猜测'
+            }
           ]"
-          ><ElTableColumn label="对应字段" prop="field" min-width="150" /><ElTableColumn
-            label="核对规则"
-            prop="rule"
-            min-width="300"
+          ><ElTableColumn label="表格字段" prop="field" min-width="150" /><ElTableColumn
+            label="格式示例"
+            prop="example"
+            min-width="240" /><ElTableColumn label="用途" prop="rule" min-width="300"
         /></ElTable>
         <p class="caption">
           图片和音频由管理员确认角色；已有用户收藏资料不被后台更新自动改写。
         </p></AdminPanel
       >
     </template>
+    <ElButton
+      v-if="phase === 'upload'"
+      link
+      type="primary"
+      class="recovery-entry"
+      @click="recoveryOpen = !recoveryOpen"
+      >恢复已有素材批次</ElButton
+    >
     <AdminPanel
-      v-if="phase === 'validation' || (phase === 'upload' && recoveryId)"
+      v-if="phase === 'validation' || (phase === 'upload' && recoveryOpen)"
       class="material-card"
-      title="图包校验与恢复"
+      :title="hasVocabularyTable ? '图包校验与恢复' : '明确素材来源与角色'"
     >
       <div class="actions">
+        <ElInput v-model="recoveryId" aria-label="素材批次编号" placeholder="恢复已有素材批次" />
         <ElButton :disabled="busy || !recoveryId.trim()" @click="run(() => read(recoveryId.trim()))"
           >恢复 / 刷新素材结果</ElButton
         >
       </div>
       <template v-if="batch">
+        <p v-if="hasVocabularyTable && Array.isArray(batch.manifest.vocabulary_rows)">
+          本包 {{ vocabularyRows.length }} 行 · 错误
+          {{
+            vocabularyRows.filter((row) => row.issues.some((issue) => issue.severity === 'ERROR'))
+              .length
+          }}
+          行 · 缺图待确认
+          {{
+            vocabularyRows.filter(
+              (row) => row.entry_type === 'word' && !row.image_path && !row.noImageConfirmed
+            ).length
+          }}
+          行
+        </p>
         <p>
-          {{ batch.manifest.resources?.length ?? 0 }}份素材 ·
+          {{
+            Array.isArray(batch.manifest.resources)
+              ? `${batch.manifest.resources.length}份素材`
+              : '素材数量待校验'
+          }}
+          ·
           {{
             ['PREVIEW_READY', 'BOUND'].includes(batch.status)
               ? '文件校验已完成，请核对来源与条目'
               : '正在处理或需要恢复，请刷新结果'
           }}
         </p>
-        <div class="actions">
-          <ElInputNumber
-            v-model="context.page"
-            :min="1"
-            :precision="0"
-            aria-label="素材草稿页码"
-          /><ElButton :loading="busy" @click="loadTargets">加载本页目标草稿</ElButton
-          ><ElSelect
-            v-model="targetId"
-            aria-label="素材目标草稿"
-            placeholder="明确选择来源草稿"
-            :disabled="busy"
-            ><ElOption
-              v-for="row in targets"
-              :key="row.revisionId"
-              :label="`${row.title} · ${row.revisionId}`"
-              :value="row.revisionId" /></ElSelect
-          ><ElButton :disabled="busy || !targetId" @click="loadTarget">读取固定草稿</ElButton>
-        </div>
+        <ContentMaterialsTarget
+          v-model:page="context.page"
+          v-model:target-id="targetId"
+          :targets="targets"
+          :busy="busy"
+          :missing-draft-count="missingDraftCount"
+          :target="target"
+          @load="loadTargets"
+          @read="loadTarget"
+        />
         <ElAlert
-          v-if="missingDraftCount"
-          :title="`本页 ${missingDraftCount} 篇内容尚无可编辑草稿；请先在内容生产生成候选版本，再加载素材目标。`"
-          type="info"
+          v-if="
+            hasVocabularyTable &&
+            Array.isArray(batch.manifest.vocabulary_rows) &&
+            !batch.manifest.vocabulary_rows.length
+          "
+          title="词汇表没有可导入行，请修正原 ZIP 后重新上传"
+          type="error"
           :closable="false"
-          ><RouterLink to="/content/scenes">前往内容生产生成候选版本</RouterLink></ElAlert
-        >
-        <p v-if="target">
-          来源：{{ targets.find((row) => row.revisionId === targetId)?.title }} · 当前编辑版本
-          {{ target.version }}
-        </p>
+        />
         <ElTable
           v-if="hasVocabularyTable"
           :data="vocabularyRows"
@@ -694,9 +1086,9 @@ onMounted(() => {
           >
           <ElTableColumn label="图片路径 / 处理" min-width="210"
             ><template #default="{ row }"
-              ><span v-if="row.image_path">{{ row.image_path }}</span
+              ><span v-if="row.entry_type !== 'chunk' && row.image_path">{{ row.image_path }}</span
               ><ElCheckbox
-                v-else
+                v-else-if="row.entry_type !== 'chunk'"
                 v-model="row.noImageConfirmed"
                 :disabled="busy"
                 @change="checked = false"
@@ -719,6 +1111,10 @@ onMounted(() => {
                   : '按当前内容与素材角色逐项核对'
               }}
             </p>
+            <p v-for="candidate in resource.matching_candidates" :key="candidate.revision_id">
+              候选：{{ candidate.title_en }} · {{ candidate.revision_id }} · 版本
+              {{ candidate.edit_version }}（仅建议）
+            </p>
           </div>
           <template v-if="bindings[index]"
             ><ElCheckbox v-model="bindings[index]!.selected" :disabled="busy"
@@ -729,9 +1125,7 @@ onMounted(() => {
               :aria-label="`素材角色 ${index + 1}`"
               placeholder="文件角色"
               ><ElOption
-                v-for="role in resource.allowed_roles.filter(
-                  (role) => context.type !== 'word_card' || role !== 'WHOLE_AUDIO'
-                )"
+                v-for="role in allowedMaterialRoles(resource.allowed_roles, context.type)"
                 :key="role"
                 :value="role"
                 :label="roleLabels[role] || role" /></ElSelect
@@ -751,41 +1145,20 @@ onMounted(() => {
       </template>
     </AdminPanel>
     <template v-if="phase === 'preview' && batch">
-      <AdminPanel title="逐条确认图片、英文与当前释义" class="material-card"
+      <AdminPanel
+        :title="hasVocabularyTable ? '逐条确认图片、英文与当前释义' : '核对明确的文件、角色与来源'"
+        class="material-card"
         ><p>本次明确选择 {{ chosenCount }}条资料，来源与版本固定后再确认导入。</p>
-        <ElTable :data="previewRows" class="preview-table"
-          ><ElTableColumn label="图片 / 音频" min-width="150"
-            ><template #default="{ row }"
-              ><ImportResourcePreview
-                v-if="row.path"
-                source="materials"
-                :batch-id="batch.batch_id"
-                :path="row.path"
-                :disabled="busy"
-              /><span v-else>无图已确认</span></template
-            ></ElTableColumn
-          ><ElTableColumn label="条目 ID" prop="entry_id" min-width="160" /><ElTableColumn
-            label="英文"
-            prop="english"
-            min-width="120"
-          /><ElTableColumn label="当前释义" prop="meaning" min-width="140" /><ElTableColumn
-            label="来源"
-            prop="source"
-            min-width="160"
-          /><ElTableColumn label="本次操作" min-width="140"
-            ><template #default="{ row }">{{
-              row.operation === 'CREATE'
-                ? '新增条目'
-                : row.operation === 'UPDATE'
-                  ? '更新当前条目'
-                  : row.operation === 'SKIP'
-                    ? '跳过完全重复记录'
-                    : `关联${roleLabels[row.role] || '素材'}`
-            }}</template></ElTableColumn
-          ></ElTable
-        ></AdminPanel
-      >
-      <AdminPanel title="同一条目：核对后再确认更新" class="material-card"
+        <ContentMaterialsPreview
+          :batch-id="batch.batch_id"
+          :busy="busy"
+          :content-type="context.type"
+          :rows="previewRows"
+        />
+      </AdminPanel>
+      <AdminPanel
+        :title="hasVocabularyTable ? '同一条目：核对后再确认更新' : '核对固定草稿与素材角色'"
+        class="material-card"
         ><p>
           仅更新已明确选择的当前草稿条目，来源与义项仍分别保留。替换音频或图片后需重新校对，已有线上版本与收藏资料不会静默覆盖。
         </p>
@@ -813,7 +1186,13 @@ onMounted(() => {
       <AdminPanel class="material-card result-card"
         ><strong class="result-status">{{ bindingCompleted ? '已完成' : '等待处理结果' }}</strong>
         <h2>
-          {{ bindingCompleted ? '选中素材已关联至来源草稿' : '导入任务已提交，尚未完成绑定' }}
+          {{
+            bindingCompleted
+              ? hasVocabularyTable
+                ? `${vocabularyResults.length} 条词汇资料已保存`
+                : '选中素材已关联至来源草稿'
+              : '导入任务已提交，尚未完成绑定'
+          }}
         </h2>
         <ElAlert
           v-if="bindingError"
@@ -821,6 +1200,11 @@ onMounted(() => {
           :closable="false"
           type="error"
         />
+        <p v-if="bindingCompleted && hasVocabularyTable">
+          新增 {{ vocabularyResults.filter((row) => row.status === 'CREATED').length }} 条 · 更新
+          {{ vocabularyResults.filter((row) => row.status === 'UPDATED').length }} 条 · 跳过
+          {{ vocabularyResults.filter((row) => row.status === 'SKIPPED').length }} 条
+        </p>
         <p>
           {{
             bindingCompleted
@@ -874,7 +1258,13 @@ onMounted(() => {
         >上一步</ElButton
       ><ElButton
         v-if="phase === 'upload'"
-        :disabled="busy || !file || !context.seriesId || !adapter.available"
+        :disabled="
+          busy ||
+          !file ||
+          !context.seriesId ||
+          !adapter.available ||
+          (hasVocabularyTable && !target)
+        "
         :loading="busy"
         type="primary"
         @click="upload"
@@ -892,11 +1282,21 @@ onMounted(() => {
         type="primary"
         @click="bind"
         >确认导入</ElButton
+      ><ElButton
+        v-if="phase === 'result' && command && !submittedStage"
+        :disabled="busy"
+        @click="resumeUnknown"
+        >续办原绑定</ElButton
+      ><ElButton
+        v-if="bindingError && command && !bindingCompleted"
+        :disabled="busy"
+        @click="retryFailed"
+        >重试本次失败绑定</ElButton
       ><ElButton v-if="bindingCompleted" :disabled="busy" type="primary" @click="continueWorkOrder"
         >继续本批校对</ElButton
-      ><ElButton v-if="phase === 'result'" :disabled="busy" @click="startNew"
-        >导入新图包</ElButton
-      ></AppPageActions
+      ><ElButton v-if="phase === 'result'" :disabled="busy" @click="startNew">{{
+        hasVocabularyTable ? '导入新图包' : '上传新素材'
+      }}</ElButton></AppPageActions
     >
   </section>
 </template>

@@ -36,7 +36,7 @@ test('短文素材目标由服务端按分类类型分页，并忽略伪造的�
         batch_id: 'MATERIAL-READING',
         status: 'PREVIEW_READY',
         input_hash: 'c'.repeat(64),
-        manifest: { resources: [] }
+        manifest: { has_vocabulary_table: false, vocabulary_rows: [], resources: [] }
       }
     })
   )
@@ -45,11 +45,10 @@ test('短文素材目标由服务端按分类类型分页，并忽略伪造的�
     page,
     '/content/import?source=materials&content_type=short_reading&series_id=SERIES-1&material_phase=result'
   )
-  await expect(
-    page.getByRole('heading', { name: '上传词汇图包', exact: true, level: 1 })
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: '素材匹配', exact: true, level: 1 })).toBeVisible()
   const panel = page.locator('.content-materials-panel')
   await expect(panel.getByText('已完成', { exact: true })).toHaveCount(0)
+  await panel.getByRole('button', { name: '恢复已有素材批次', exact: true }).click()
   await panel.getByLabel('素材批次编号').fill('MATERIAL-READING')
   await panel.getByRole('button', { name: '恢复 / 刷新素材结果', exact: true }).click()
   await panel.getByRole('spinbutton', { name: '素材草稿页码' }).fill('2')
@@ -62,10 +61,7 @@ test('短文素材目标由服务端按分类类型分页，并忽略伪造的�
   expect(targetQueries.at(-1)?.searchParams.get('status')).toBeNull()
 })
 
-test('词汇图包四阶段按稳定词条确认，并等实际绑定结果后显示完成', async ({
-  adminApi,
-  page
-}, testInfo) => {
+test('独立素材按稳定词条确认，并等实际绑定结果后显示完成', async ({ adminApi, page }, testInfo) => {
   void adminApi
   let submitted = false,
     completed = false
@@ -110,6 +106,8 @@ test('词汇图包四阶段按稳定词条确认，并等实际绑定结果后�
         status: completed ? 'BOUND' : 'PREVIEW_READY',
         input_hash: 'c'.repeat(64),
         manifest: {
+          has_vocabulary_table: false,
+          vocabulary_rows: [],
           resources: [
             {
               path: 'word.png',
@@ -157,23 +155,17 @@ test('词汇图包四阶段按稳定词条确认，并等实际绑定结果后�
     })
   )
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/import?mode=word_images')
-  await page.getByRole('button', { name: '导入词汇图包', exact: true }).click()
+  await navigateInApp(page, '/content/import?series_id=SERIES-1&content_type=word_card')
+  await page.getByRole('button', { name: '添加音频或图片', exact: true }).click()
   const panel = page.locator('.content-materials-panel')
-  await expect(page.getByRole('heading', { name: '上传词汇图包', exact: true })).toBeVisible()
-  await expect(panel.getByText('图文预览', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '素材匹配', exact: true })).toBeVisible()
+  await expect(page.getByLabel('词汇图包导入步骤')).toHaveCount(0)
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.screenshot({ path: testInfo.outputPath('word-images-upload.png') })
-  await panel.getByRole('button', { name: '加载素材分类 / 草稿', exact: true }).click()
-  // 键盘输入不会等待异步加载解除禁用，先确认分类选择器已可操作
-  await expect(panel.getByRole('combobox', { name: '素材目标分类', exact: true })).toBeEnabled()
-  await panel.getByRole('combobox', { name: '素材目标分类', exact: true }).press('Enter')
-  await page.getByRole('option', { name: '日常英语', exact: true }).click()
-  await panel.getByRole('combobox', { name: '素材内容模板', exact: true }).press('Enter')
-  await page.getByRole('option', { name: '原词汇卡', exact: true }).click()
+  await panel.getByRole('button', { name: '恢复已有素材批次', exact: true }).click()
   await panel.getByLabel('素材批次编号').fill('MATERIAL-1')
   await panel.getByRole('button', { name: '恢复 / 刷新素材结果', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '图包校验', exact: true, level: 1 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '素材匹配', exact: true, level: 1 })).toBeVisible()
   await panel.getByRole('button', { name: '加载本页目标草稿', exact: true }).click()
   // 草稿列表异步加载时选择器禁用，键盘操作前等待加载完成
   await expect(panel.getByRole('combobox', { name: '素材目标草稿', exact: true })).toBeEnabled()
@@ -191,7 +183,7 @@ test('词汇图包四阶段按稳定词条确认，并等实际绑定结果后�
   await page.getByRole('option', { name: /latte/ }).click()
   await page.screenshot({ path: testInfo.outputPath('word-images-validation.png') })
   await page.getByRole('button', { name: '查看合格预览', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '图文对应预览', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '素材匹配', exact: true })).toBeVisible()
   await expect(panel.getByText('latte', { exact: true })).toBeVisible()
   await panel.getByRole('button', { name: '预览此素材', exact: true }).click()
   const image = panel.getByRole('img', { name: '导入素材受控预览' })
@@ -204,16 +196,16 @@ test('词汇图包四阶段按稳定词条确认，并等实际绑定结果后�
     .click()
   await page.getByRole('button', { name: '确认导入', exact: true }).click()
   await expect(panel.getByText('等待处理结果', { exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: '词汇图包导入处理中', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '素材匹配', exact: true })).toBeVisible()
   await expect(panel.getByText('已完成', { exact: true })).toHaveCount(0)
   completed = true
   await page.getByRole('button', { name: '刷新导入结果', exact: true }).click()
   await expect(panel.getByText('已完成', { exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: '词汇图包已导入', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '素材匹配', exact: true })).toBeVisible()
   await expect(panel.locator('pre')).toHaveCount(0)
   await page.screenshot({ path: testInfo.outputPath('word-images-result.png') })
   await page.reload()
-  await expect(page.getByRole('heading', { name: '词汇图包已导入', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '素材匹配', exact: true })).toBeVisible()
   await expect(panel.getByText('ENTRY-1', { exact: true })).toBeVisible()
   for (const viewport of [
     { width: 1280, height: 800 },
@@ -223,15 +215,23 @@ test('词汇图包四阶段按稳定词条确认，并等实际绑定结果后�
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
     ).toBeLessThanOrEqual(1)
-    await expect(page.getByRole('button', { name: '导入新图包', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: '上传新素材', exact: true })).toBeVisible()
   }
 })
 
-test('正式词汇表预览按导入ID确认缺图与差异，异常行不能进入范围', async ({ adminApi, page }) => {
+test('正式词汇表四阶段上传按导入ID确认缺图与差异，异常行不能进入范围', async ({
+  adminApi,
+  page
+}) => {
   void adminApi
   let body: Record<string, unknown> | null = null
+  let completed = false
+  let bindingKey = ''
+  const shots =
+    'D:/个人/juya/juya-admin-api/.superpowers/sdd/2026-10-14-v15-confirmed-deviation-remediation/product-screenshots'
   const rows = [
     {
+      entry_type: 'word',
       row_no: 2,
       import_entry_id: 'word-coffee-medium',
       english: 'medium',
@@ -241,6 +241,7 @@ test('正式词汇表预览按导入ID确认缺图与差异，异常行不能进
       issues: []
     },
     {
+      entry_type: 'word',
       row_no: 3,
       import_entry_id: 'word-home-medium',
       english: 'medium',
@@ -251,13 +252,20 @@ test('正式词汇表预览按导入ID确认缺图与差异，异常行不能进
       issues: []
     },
     {
+      entry_type: 'word',
       row_no: 4,
       import_entry_id: 'duplicate',
       english: 'latte',
       meaning_zh: '拿铁',
       image_path: 'wrong.png',
       operation: 'CREATE',
-      issues: [{ code: 'DUPLICATE_ID', severity: 'ERROR', message: '条目ID重复' }]
+      issues: [
+        {
+          code: 'IMPORT_RESOURCE_INVALID',
+          severity: 'ERROR',
+          message: '声明的素材路径不存在或类型不符'
+        }
+      ]
     }
   ]
   await page.route('**/api/v1/admin/content/catalogue?**', (route) =>
@@ -280,6 +288,17 @@ test('正式词汇表预览按导入ID确认缺图与差异，异常行不能进
     })
   )
   await page.route('**/api/v1/admin/content-materials**', (route) => {
+    if (
+      route.request().method() === 'POST' &&
+      new URL(route.request().url()).pathname.endsWith('/content-materials')
+    ) {
+      const upload = route.request().postData() || ''
+      expect(upload).toContain('SERIES-1')
+      expect(upload).toContain('word_card')
+      return route.fulfill({
+        json: { batch_id: 'VOCAB-1', stage_id: 'VALIDATE', status: 'PENDING' }
+      })
+    }
     if (route.request().url().includes('/vocabulary-preview'))
       return route.fulfill({
         json: {
@@ -292,6 +311,7 @@ test('正式词汇表预览按导入ID确认缺图与差异，异常行不能进
       })
     if (route.request().method() === 'POST') {
       body = route.request().postDataJSON()
+      bindingKey = route.request().headers()['idempotency-key'] || ''
       return route.fulfill({
         json: { batch_id: 'VOCAB-1', stage_id: 'VOCAB-STAGE', status: 'PENDING' }
       })
@@ -299,25 +319,63 @@ test('正式词汇表预览按导入ID确认缺图与差异，异常行不能进
     return route.fulfill({
       json: {
         batch_id: 'VOCAB-1',
-        status: 'PREVIEW_READY',
+        status: completed ? 'BOUND' : 'PREVIEW_READY',
         input_hash: 'c'.repeat(64),
-        manifest: { resources: [], vocabulary_rows: rows }
+        series_id: 'SERIES-1',
+        content_type: 'word_card',
+        manifest: {
+          has_vocabulary_table: true,
+          resources: [],
+          vocabulary_rows: rows,
+          binding_requests: body ? { 'VOCAB-STAGE': { key: bindingKey, request: body } } : {},
+          binding_results: completed
+            ? {
+                'VOCAB-STAGE': {
+                  status: 'BOUND',
+                  revision_id: 'REV-DRAFT-1',
+                  edit_version: 4,
+                  vocabulary_results: [
+                    {
+                      import_entry_id: 'word-coffee-medium',
+                      entry_id: 'ENTRY-NEW',
+                      status: 'CREATED'
+                    },
+                    {
+                      import_entry_id: 'word-home-medium',
+                      entry_id: 'ENTRY-EXISTING',
+                      status: 'UPDATED'
+                    }
+                  ]
+                }
+              }
+            : {}
+        }
       }
     })
   })
   await loginAsAdmin(page)
-  await navigateInApp(page, '/content/import')
+  await navigateInApp(page, '/content/import?series_id=SERIES-1&content_type=word_card')
   await page.getByRole('button', { name: '导入词汇图包', exact: true }).click()
   const panel = page.locator('.content-materials-panel')
-  await panel.getByRole('button', { name: '加载素材分类 / 草稿', exact: true }).click()
-  // 等待分类加载完成后再打开下拉，避免把 Enter 发给禁用控件
-  await expect(panel.getByRole('combobox', { name: '素材目标分类', exact: true })).toBeEnabled()
-  await panel.getByRole('combobox', { name: '素材目标分类', exact: true }).press('Enter')
-  await page.getByRole('option', { name: '日常英语', exact: true }).click()
-  await panel.getByRole('combobox', { name: '素材内容模板', exact: true }).press('Enter')
-  await page.getByRole('option', { name: '原词汇卡', exact: true }).click()
-  await panel.getByLabel('素材批次编号').fill('VOCAB-1')
-  await panel.getByRole('button', { name: '恢复 / 刷新素材结果', exact: true }).click()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await panel.locator('input[type=file]').setInputFiles({
+    name: 'coffee-vocabulary.zip',
+    mimeType: 'application/zip',
+    buffer: Buffer.from('PK\u0003\u0004local-mock-archive')
+  })
+  await expect(page.getByRole('button', { name: '开始校验', exact: true })).toBeDisabled()
+  await panel.getByRole('button', { name: '加载本页目标草稿', exact: true }).click()
+  await expect(panel.getByRole('combobox', { name: '素材目标草稿', exact: true })).toBeEnabled()
+  await panel.getByRole('combobox', { name: '素材目标草稿', exact: true }).press('Enter')
+  await page.getByRole('option', { name: /词汇图包来源/ }).click()
+  await panel.getByRole('button', { name: '读取固定草稿', exact: true }).click()
+  await expect(page.getByRole('button', { name: '开始校验', exact: true })).toBeEnabled()
+  await page.locator('.page-scrollbar-wrap').evaluate((node) => {
+    node.scrollTop = 0
+  })
+  await page.screenshot({ animations: 'disabled', path: `${shots}/task5-a18z-upload.png` })
+  await page.getByRole('button', { name: '开始校验', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '图包校验', exact: true, level: 1 })).toBeVisible()
   await panel.getByRole('button', { name: '加载本页目标草稿', exact: true }).click()
   // press 不等待禁用控件恢复，先确认目标草稿选择器可操作
   await expect(panel.getByRole('combobox', { name: '素材目标草稿', exact: true })).toBeEnabled()
@@ -325,6 +383,10 @@ test('正式词汇表预览按导入ID确认缺图与差异，异常行不能进
   await page.getByRole('option', { name: /词汇图包来源/ }).click()
   await panel.getByRole('button', { name: '读取固定草稿', exact: true }).click()
   await expect(panel.getByRole('checkbox', { name: '选择词汇 duplicate' })).toBeDisabled()
+  await page.locator('.page-scrollbar-wrap').evaluate((node) => {
+    node.scrollTop = 0
+  })
+  await page.screenshot({ animations: 'disabled', path: `${shots}/task5-a18zv-validation.png` })
   await panel.getByRole('checkbox', { name: '选择词汇 word-coffee-medium' }).locator('..').click()
   await panel.getByRole('checkbox', { name: '选择词汇 word-home-medium' }).locator('..').click()
   await expect(page.getByRole('button', { name: '查看合格预览' })).toBeDisabled()
@@ -332,6 +394,10 @@ test('正式词汇表预览按导入ID确认缺图与差异，异常行不能进
   await panel.getByRole('checkbox', { name: '明确确认无图' }).nth(1).locator('..').click()
   await page.getByRole('button', { name: '查看合格预览' }).click()
   await expect(panel.getByText('medium', { exact: true })).toHaveCount(2)
+  await page.locator('.page-scrollbar-wrap').evaluate((node) => {
+    node.scrollTop = 0
+  })
+  await page.screenshot({ animations: 'disabled', path: `${shots}/task5-a18zp-preview.png` })
   await panel
     .getByRole('checkbox', { name: '已逐项核对文件、角色、当前草稿和稳定词条' })
     .locator('..')
@@ -363,4 +429,17 @@ test('正式词汇表预览按导入ID确认缺图与差异，异常行不能进
         }
       ]
     })
+  await expect(panel.getByText('已完成', { exact: true })).toHaveCount(0)
+  completed = true
+  await page.getByRole('button', { name: '刷新导入结果', exact: true }).click()
+  await expect(
+    page.getByRole('heading', { name: '词汇图包已导入', exact: true, level: 1 })
+  ).toBeVisible()
+  await page.locator('.page-scrollbar-wrap').evaluate((node) => {
+    node.scrollTop = 0
+  })
+  await page.screenshot({ animations: 'disabled', path: `${shots}/task5-a18zd-result.png` })
+  await page.reload()
+  await expect(panel.getByText('word-coffee-medium', { exact: true })).toBeVisible()
+  await expect(panel.getByText('word-home-medium', { exact: true })).toBeVisible()
 })

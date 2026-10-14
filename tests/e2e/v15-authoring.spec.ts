@@ -138,9 +138,12 @@ test('独立素材包明确选择草稿、文件角色与稳定词条后绑定',
     })
   )
   let body: unknown = null
+  const bindingAttempts: { key: string; body: unknown }[] = []
   await page.route('**/api/v1/admin/content-materials**', async (route) => {
     if (route.request().method() === 'POST') {
       body = route.request().postDataJSON()
+      bindingAttempts.push({ key: route.request().headers()['idempotency-key'] || '', body })
+      if (bindingAttempts.length === 1) return route.abort()
       return route.fulfill({ json: { status: 'PENDING', stage_id: 'STAGE-1' } })
     }
     return route.fulfill({
@@ -149,6 +152,8 @@ test('独立素材包明确选择草稿、文件角色与稳定词条后绑定',
         status: 'PREVIEW_READY',
         input_hash: 'c'.repeat(64),
         manifest: {
+          has_vocabulary_table: false,
+          vocabulary_rows: [],
           resources: [
             {
               path: 'word.png',
@@ -196,6 +201,10 @@ test('独立素材包明确选择草稿、文件角色与稳定词条后绑定',
   await expect(bind).toBeDisabled()
   await panel.locator('.el-checkbox').filter({ hasText: '已逐项核对文件' }).click()
   await bind.click()
+  await page.getByRole('button', { name: '续办原绑定', exact: true }).click()
+  expect(bindingAttempts).toHaveLength(2)
+  expect(bindingAttempts[0]?.key).toBe(bindingAttempts[1]?.key)
+  expect(bindingAttempts[0]?.body).toEqual(bindingAttempts[1]?.body)
   await expect
     .poll(() => body)
     .toMatchObject({

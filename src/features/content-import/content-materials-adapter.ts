@@ -11,13 +11,21 @@ export interface MaterialBatch {
   batch_id: string
   status: string
   input_hash: string
+  series_id?: string
+  content_type?: string
   manifest: {
+    has_vocabulary_table?: boolean
+    vocabulary_rows?: unknown[]
     resources?: {
       path: string
       sha256: string
       allowed_roles: string[]
       ambiguous_title: boolean
       matching_candidates: { revision_id: string; edit_version: number; title_en: string }[]
+      matching_candidate_count?: number
+      suggestions_truncated?: boolean
+      kind?: string
+      filename?: string
     }[]
     binding_requests?: Record<string, unknown>
     results?: unknown
