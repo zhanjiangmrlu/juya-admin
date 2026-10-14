@@ -1,5 +1,5 @@
 {
-  "backend_commit": "d6e70d79e0643f1af8f5d76a3f4321b67ae89e81",
+  "backend_commit": "3e5da98ef23ad6808f019f975ae08c7bb10d95dd",
   "source_document": "../juya-admin-api/docs/contracts/v15-routes.md",
   "source_openapi": "../juya-admin-api/docs/contracts/v15-openapi.json",
   "source_sha256": "8d63e2488f1480b630e9e160b1d1372740260f8002a17089ef0f161e69faa03d",
