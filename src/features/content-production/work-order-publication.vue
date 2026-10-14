@@ -79,9 +79,9 @@ const /** 仅在完整候选内容与类型身份一致时复用冻结标题
         row.candidate_hash === candidate.candidate_hash
     )
     const item = matches.length === 1 ? matches[0] : undefined
-    return item?.title_en || item?.title_zh || '原冻结候选（标题未保留）'
+    return item?.title_en || item?.title_zh || '原冻结候选（原标题暂无法核验）'
   }
-const /** 显示原冻结内容与版本身份，供标题未保留时核对
+const /** 显示原冻结内容与版本身份，供原标题暂无法核验时核对
    * @param revisionId - 逐项结果指向的冻结版本
    * @returns 实际内容与版本编号
    */ identity = (revisionId: string): string => {

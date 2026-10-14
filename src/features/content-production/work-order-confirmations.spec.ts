@@ -49,7 +49,7 @@ describe('固定预览范围的人工作业确认', () => {
       items: [{ ...member, candidate_hash: 'new-hash', title_en: 'Corrected new title' }]
     })
     expect(wrapper.text()).not.toContain('Corrected new title')
-    expect(wrapper.text()).toContain('原冻结候选（标题未保留）')
+    expect(wrapper.text()).toContain('原冻结候选（原标题暂无法核验）')
     expect(wrapper.text()).toContain('original-content')
     expect(wrapper.text()).toContain('same-revision')
     await wrapper.setProps({
