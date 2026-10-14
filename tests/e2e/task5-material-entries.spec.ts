@@ -34,6 +34,106 @@ test('两种入口保持一次分类选择且短文不显示词汇图包模块',
   await expect(page.getByRole('button', { name: '导入词汇图包', exact: true })).toHaveCount(0)
 })
 
+for (const selection of [
+  { stage: 'SUCCESS', key: 'failed-key', conflict: true },
+  { stage: 'FAILED', key: 'success-key', conflict: true },
+  { stage: 'SUCCESS', key: 'success-key', conflict: false },
+  { stage: 'FAILED', key: 'failed-key', conflict: false }
+]) {
+  test(`I2 双身份恢复 ${selection.stage}/${selection.key} ${selection.conflict ? '冲突保持未知' : '一致精确恢复'}`, async ({
+    adminApi,
+    page
+  }) => {
+    let posts = 0
+    await page.route('**/api/v1/admin/content-materials/DUAL-RECEIPTS**', (route) => {
+      if (route.request().method() === 'POST') {
+        posts++
+        return route.abort()
+      }
+      return route.fulfill({
+        json: {
+          batch_id: 'DUAL-RECEIPTS',
+          status: 'BOUND',
+          input_hash: 'c'.repeat(64),
+          series_id: 'SERIES-1',
+          content_type: 'word_card',
+          manifest: {
+            has_vocabulary_table: false,
+            vocabulary_rows: [],
+            resources: [
+              {
+                path: 'word.png',
+                sha256: 'd'.repeat(64),
+                allowed_roles: ['WORD_IMAGE'],
+                ambiguous_title: false,
+                matching_candidates: []
+              }
+            ],
+            binding_requests: {
+              SUCCESS: {
+                key: 'success-key',
+                request: {
+                  revision_id: 'SUCCESS-REV',
+                  expected_version: 3,
+                  bindings: [{ path: 'word.png', role: 'WORD_IMAGE', entry_id: 'SUCCESS-ENTRY' }]
+                }
+              },
+              FAILED: {
+                key: 'failed-key',
+                request: {
+                  revision_id: 'FAILED-REV',
+                  expected_version: 7,
+                  bindings: [{ path: 'word.png', role: 'WORD_IMAGE', entry_id: 'FAILED-ENTRY' }]
+                }
+              }
+            },
+            binding_results: {
+              SUCCESS: { status: 'BOUND', revision_id: 'SUCCESS-REV', edit_version: 4 }
+            },
+            binding_errors: { FAILED: { error_code: 'MATERIAL_IMAGE_INVALID' } }
+          }
+        }
+      })
+    })
+    await loginAsAdmin(page)
+    const path = `/content/import?source=materials&series_id=SERIES-1&content_type=word_card&material_batch_id=DUAL-RECEIPTS&material_stage_id=${selection.stage}&material_bind_key=${selection.key}&material_phase=result`
+    await navigateInApp(page, path)
+    if (selection.conflict) {
+      await expect(page.getByText('已完成', { exact: true })).toHaveCount(0)
+      await expect(page.getByText(/绑定恢复身份冲突/)).toBeVisible()
+      await expect(page.getByText('SUCCESS-ENTRY', { exact: true })).toHaveCount(0)
+      await expect(page.getByText('FAILED-ENTRY', { exact: true })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: '重试本次失败绑定', exact: true })).toHaveCount(
+        0
+      )
+      await expect(page.getByRole('button', { name: '续办原绑定', exact: true })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: '继续本批校对', exact: true })).toHaveCount(0)
+      await expect(page).toHaveURL(new URL(path, page.url()).href)
+      await page.getByRole('button', { name: '刷新导入结果', exact: true }).click()
+      await expect(page.getByText(/绑定恢复身份冲突/)).toBeVisible()
+      await expect(page).toHaveURL(new URL(path, page.url()).href)
+      await page.reload()
+      await expect(page.getByText(/绑定恢复身份冲突/)).toBeVisible()
+      await expect(page).toHaveURL(new URL(path, page.url()).href)
+    } else if (selection.stage === 'SUCCESS') {
+      await expect(page.getByText('已完成', { exact: true })).toBeVisible()
+      await expect(page.getByText('SUCCESS-ENTRY', { exact: true })).toBeVisible()
+      await expect(page.getByRole('button', { name: '重试本次失败绑定', exact: true })).toHaveCount(
+        0
+      )
+    } else {
+      await expect(page.getByText('已完成', { exact: true })).toHaveCount(0)
+      await expect(page.getByText('FAILED-ENTRY', { exact: true })).toBeVisible()
+      await expect(page.getByText(/当前导入失败：MATERIAL_IMAGE_INVALID/)).toBeVisible()
+      await expect(
+        page.getByRole('button', { name: '重试本次失败绑定', exact: true })
+      ).toBeEnabled()
+    }
+    expect(posts).toBe(0)
+    expect(adminApi.unexpectedRequests).toEqual([])
+  })
+}
+
 test('丢失回执按原幂等键恢复，旧成功阶段不被其他失败或最新阶段替代', async ({ adminApi, page }) => {
   let posts = 0
   await page.route('**/api/v1/admin/content-materials/RECEIPTS**', (route) => {

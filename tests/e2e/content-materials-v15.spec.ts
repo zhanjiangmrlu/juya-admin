@@ -61,10 +61,174 @@ test('短文素材目标由服务端按分类类型分页，并忽略伪造的�
   expect(targetQueries.at(-1)?.searchParams.get('status')).toBeNull()
 })
 
+for (const withImage of [true, false]) {
+  test(`I1 词汇行${withImage ? '有图' : '无图'}与独立音频在同一确认范围预览`, async ({
+    adminApi,
+    page
+  }) => {
+    void adminApi
+    const imagePath = withImage ? 'images/word.png' : ''
+    const audioPath = 'audio/word.wav'
+    const word = {
+      row_no: 2,
+      import_entry_id: 'word-with-audio',
+      entry_type: 'word',
+      english: 'bank',
+      meaning_zh: '河岸',
+      image_path: imagePath,
+      pronunciation_path: audioPath,
+      operation: 'CREATE',
+      issues: []
+    }
+    let binding: unknown = null
+    const previewPaths: string[] = []
+    await page.route('**/api/v1/admin/content/catalogue?**', (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            {
+              id: 'SCENE-1',
+              title_zh: '词汇音频来源',
+              title_en: 'Word media',
+              draft_revision_id: 'REV-DRAFT-1',
+              content_type: 'word_card',
+              status: 'DRAFT'
+            }
+          ],
+          total: 1,
+          page: 1,
+          page_size: 100
+        }
+      })
+    )
+    await page.route('**/api/v1/admin/content-materials/WORD-MEDIA**', (route) => {
+      if (route.request().url().includes('/resources/preview')) {
+        const path = String(route.request().postDataJSON().path)
+        previewPaths.push(path)
+        return route.fulfill({
+          json: {
+            url: path === audioPath ? '/task5-word.wav' : '/task5-word.png',
+            content_type: path === audioPath ? 'audio/wav' : 'image/png',
+            expires_at: new Date(Date.now() + 60_000).toISOString(),
+            sha256: 'd'.repeat(64)
+          }
+        })
+      }
+      if (route.request().method() === 'POST') {
+        binding = route.request().postDataJSON()
+        return route.fulfill({
+          json: { batch_id: 'WORD-MEDIA', stage_id: 'WORD-BIND', status: 'PENDING' }
+        })
+      }
+      if (route.request().url().includes('/vocabulary-preview'))
+        return route.fulfill({
+          json: {
+            revision_id: 'REV-DRAFT-1',
+            expected_version: 3,
+            preview_hash: 'e'.repeat(64),
+            vocabulary_rows: [word]
+          }
+        })
+      return route.fulfill({
+        json: {
+          batch_id: 'WORD-MEDIA',
+          status: 'PREVIEW_READY',
+          input_hash: 'c'.repeat(64),
+          series_id: 'SERIES-1',
+          content_type: 'word_card',
+          manifest: {
+            has_vocabulary_table: true,
+            vocabulary_rows: [word],
+            resources: [
+              { path: audioPath, sha256: 'd'.repeat(64), allowed_roles: ['WORD_AUDIO'] },
+              ...(withImage
+                ? [{ path: imagePath, sha256: 'd'.repeat(64), allowed_roles: ['WORD_IMAGE'] }]
+                : [])
+            ]
+          }
+        }
+      })
+    })
+    await page.route('**/task5-word.png', (route) =>
+      route.fulfill({
+        contentType: 'image/png',
+        body: Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aBTcAAAAASUVORK5CYII=',
+          'base64'
+        )
+      })
+    )
+    await loginAsAdmin(page)
+    await navigateInApp(page, '/content/import?source=vocabulary&material_batch_id=WORD-MEDIA')
+    const panel = page.locator('.content-materials-panel')
+    await expect(panel.getByText(audioPath, { exact: true })).toBeVisible()
+    await panel.getByRole('button', { name: '加载本页目标草稿', exact: true }).click()
+    await expect(panel.getByRole('combobox', { name: '素材目标草稿', exact: true })).toBeEnabled()
+    await panel.getByRole('combobox', { name: '素材目标草稿', exact: true }).press('Enter')
+    await page.getByRole('option', { name: /词汇音频来源/ }).click()
+    await panel.getByRole('button', { name: '读取固定草稿', exact: true }).click()
+    await panel.getByRole('checkbox', { name: '选择词汇 word-with-audio' }).locator('..').click()
+    if (!withImage) {
+      await expect(page.getByRole('button', { name: '查看合格预览', exact: true })).toBeDisabled()
+      await panel.getByRole('checkbox', { name: '明确确认无图', exact: true }).locator('..').click()
+    }
+    await page.getByRole('button', { name: '查看合格预览', exact: true }).click()
+    const row = panel.locator('.content-materials-preview .el-table__body tbody tr')
+    await expect(row).toHaveCount(1)
+    await expect(row.getByText('word-with-audio', { exact: true })).toBeVisible()
+    await expect(row.getByText('词汇音频来源', { exact: true })).toBeVisible()
+    const audio = row.getByLabel('词汇独立音频 word-with-audio')
+    await expect(audio.getByText('WORD_AUDIO', { exact: false })).toBeVisible()
+    await expect(audio.getByText(audioPath, { exact: true })).toBeVisible()
+    await audio.getByRole('button', { name: '预览此素材', exact: true }).click()
+    await expect(audio.locator('audio')).toHaveAttribute('src', '/task5-word.wav')
+    expect(await audio.locator('audio').evaluate((node) => (node as HTMLAudioElement).paused)).toBe(
+      true
+    )
+    if (withImage) {
+      await row.getByRole('button', { name: '预览此素材', exact: true }).click()
+      await expect(row.getByRole('img', { name: '导入素材受控预览' })).toBeVisible()
+    } else await expect(row.getByText('无图已确认', { exact: true })).toBeVisible()
+    expect(previewPaths).toEqual(withImage ? [audioPath, imagePath] : [audioPath])
+    expect(binding).toBeNull()
+    await expect(page.getByRole('button', { name: '确认导入', exact: true })).toBeDisabled()
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.locator('.page-scrollbar-wrap').evaluate((node) => {
+      node.scrollTop = 0
+    })
+    await page.screenshot({
+      animations: 'disabled',
+      path: `D:/个人/juya/juya-admin-api/.superpowers/sdd/2026-10-14-v15-confirmed-deviation-remediation/product-screenshots/task5-fix1-word-${withImage ? 'image' : 'no-image'}-audio.png`
+    })
+    await panel
+      .getByRole('checkbox', { name: '已逐项核对文件、角色、当前草稿和稳定词条' })
+      .locator('..')
+      .click()
+    await page.getByRole('button', { name: '确认导入', exact: true }).click()
+    await expect
+      .poll(() => binding)
+      .toEqual({
+        revision_id: 'REV-DRAFT-1',
+        expected_version: 3,
+        manual_checked: true,
+        bindings: [],
+        vocabulary_preview_hash: 'e'.repeat(64),
+        vocabulary_selections: [
+          {
+            import_entry_id: 'word-with-audio',
+            no_image_confirmed: !withImage,
+            difference_confirmed: false
+          }
+        ]
+      })
+  })
+}
+
 test('独立素材按稳定词条确认，并等实际绑定结果后显示完成', async ({ adminApi, page }, testInfo) => {
   void adminApi
   let submitted = false,
     completed = false
+  let submittedKey = ''
   const targetQueries: URL[] = []
   await page.route('**/api/v1/admin/content/catalogue?**', (route) => {
     targetQueries.push(new URL(route.request().url()))
@@ -96,6 +260,7 @@ test('独立素材按稳定词条确认，并等实际绑定结果后显示完�
   await page.route('**/api/v1/admin/content-materials**', (route) => {
     if (route.request().method() === 'POST') {
       submitted = true
+      submittedKey = route.request().headers()['idempotency-key'] || ''
       return route.fulfill({
         json: { batch_id: 'MATERIAL-1', status: 'PENDING', stage_id: 'STAGE-1' }
       })
@@ -120,6 +285,7 @@ test('独立素材按稳定词条确认，并等实际绑定结果后显示完�
           binding_requests: submitted
             ? {
                 'STAGE-1': {
+                  key: submittedKey,
                   request: {
                     revision_id: 'REV-DRAFT-1',
                     bindings: [{ path: 'word.png', role: 'WORD_IMAGE', entry_id: 'ENTRY-1' }]

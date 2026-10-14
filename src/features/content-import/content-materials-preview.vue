@@ -7,6 +7,7 @@ defineProps<{
   contentType?: string
   rows: {
     path: string
+    pronunciation_path?: string
     entry_id?: string
     english: string
     meaning: string
@@ -57,6 +58,24 @@ const labels: Record<string, string> = {
           /><span v-else>无图已确认</span></template
         ></ElTableColumn
       >
+      <ElTableColumn
+        v-if="rows.some((row) => row.pronunciation_path)"
+        label="词汇独立音频"
+        min-width="230"
+      >
+        <template #default="{ row }">
+          <section v-if="row.pronunciation_path" :aria-label="`词汇独立音频 ${row.entry_id}`">
+            <span>词汇独立音频 · WORD_AUDIO</span>
+            <p>{{ row.pronunciation_path }}</p>
+            <ImportResourcePreview
+              source="materials"
+              :batch-id="batchId"
+              :path="row.pronunciation_path"
+              :disabled="busy"
+            />
+          </section>
+        </template>
+      </ElTableColumn>
       <ElTableColumn label="条目 ID" prop="entry_id" min-width="160" />
       <ElTableColumn label="英文" prop="english" min-width="120" />
       <ElTableColumn label="当前释义" prop="meaning" min-width="140" />

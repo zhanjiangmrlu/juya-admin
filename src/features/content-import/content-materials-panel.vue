@@ -31,6 +31,7 @@ import ContentMaterialsMatching from './content-materials-matching.vue'
 import { allowedMaterialRoles, materialMode, materialStatistics } from './content-materials-model'
 import ContentMaterialsPreview from './content-materials-preview.vue'
 import ContentMaterialsTarget from './content-materials-target.vue'
+import ImportResourcePreview from './import-resource-preview.vue'
 
 const client = useAdminApiClient()
 const router = useRouter()
@@ -89,6 +90,7 @@ const receiptMode = ref<'materials' | 'vocabulary' | null>(null)
 const recovering = ref(true)
 const command = shallowRef<{ key: string; body: Record<string, unknown> } | null>(null)
 const receiptRevision = ref('')
+const recoveryConflict = ref(false)
 const mode = computed(() =>
   batch.value
     ? materialMode(batch.value.manifest, props.source || 'materials') === 'unknown'
@@ -161,6 +163,7 @@ const phaseIndex = computed(() =>
   ['upload', 'validation', 'preview', 'result'].indexOf(phase.value)
 )
 const bindingResult = computed(() => {
+  if (recoveryConflict.value) return undefined
   const results = (batch.value?.manifest as Record<string, unknown> | undefined)
     ?.binding_results as Record<string, Record<string, unknown>> | undefined
   return submittedStage.value ? results?.[submittedStage.value] : undefined
@@ -187,6 +190,7 @@ const bindingCompleted = computed(
       ))
 )
 const bindingError = computed(() => {
+  if (recoveryConflict.value) return ''
   const errors = (batch.value?.manifest as Record<string, unknown> | undefined)?.binding_errors as
     Record<string, { error_code?: string }> | undefined
   return errors?.[submittedStage.value]?.error_code || ''
@@ -199,9 +203,12 @@ watch(
     submittedStage.value,
     route.query.material_phase,
     route.query.material_batch_id,
-    route.query.material_stage_id
+    route.query.material_stage_id,
+    recovering.value,
+    recoveryConflict.value
   ],
   () => {
+    if (recovering.value || recoveryConflict.value) return
     if (
       route.name !== 'content-import' ||
       !['materials', 'vocabulary'].includes(String(route.query.source))
@@ -243,6 +250,8 @@ const previewRows = computed(() =>
   hasVocabularyTable.value
     ? chosenVocabulary.value.map((row) => ({
         path: (row.entry_type === 'chunk' ? row.pronunciation_path : row.image_path) || '',
+        // 同一词汇行的图片与独立音频属于同一选择范围，不拆成两个操作
+        pronunciation_path: row.entry_type === 'word' ? row.pronunciation_path || '' : '',
         entry_id: row.import_entry_id,
         english: row.english,
         meaning: row.meaning_zh,
@@ -290,6 +299,7 @@ const chosenCount = computed(() =>
 const canPreview = computed(
   () =>
     !!target.value &&
+    !recoveryConflict.value &&
     mode.value !== 'unknown' &&
     !packageMismatch.value &&
     target.value.revisionId === targetId.value &&
@@ -321,6 +331,7 @@ const validBindings = computed(
 const ready = computed(
   () =>
     !!target.value &&
+    !recoveryConflict.value &&
     target.value.revisionId === targetId.value &&
     checked.value &&
     mode.value !== 'unknown' &&
@@ -625,6 +636,7 @@ const /** 进入固定草稿的图文核对，不自动确认任何文件
 const /** 恢复上传入口，已有完成结果仍保留在服务端
    * @returns 新包上传状态
    */ startNew = (): void => {
+    recoveryConflict.value = false
     phase.value = 'upload'
     submittedStage.value = ''
     command.value = null
@@ -674,6 +686,28 @@ const /**
       (!command.value && value.batch_id === requestedBatch.value ? requestedStage.value : '') ||
       (key ? Object.keys(requests).find((id) => requests[id]?.key === key) : '')
     const receipt = stage ? requests[stage] : undefined
+    // 双身份必须指向同一持久化回执，冲突时不采用任何请求或结果
+    if (
+      stage &&
+      key &&
+      ((receipt && receipt.key !== key) ||
+        (!receipt && !command.value && requestedStage.value && requestedKey.value))
+    ) {
+      recoveryConflict.value = true
+      submittedStage.value = ''
+      command.value = null
+      receiptRevision.value = ''
+      receiptMode.value = null
+      bindings.value = []
+      vocabularyRows.value = []
+      checked.value = false
+      target.value = null
+      phase.value = 'result'
+      error.value =
+        '绑定恢复身份冲突：阶段与原幂等键无法对应同一回执，当前状态未知；请核对原链接后恢复'
+      return
+    }
+    recoveryConflict.value = false
     const request = receipt?.request
     if (!request) {
       if (key || (value.batch_id === requestedBatch.value && requestedStage.value)) {
@@ -715,7 +749,7 @@ const /**
     phase.value = 'result'
   }
 const /** 提交冻结的素材命令，不从可变表单重建请求 */ submitCommand = async (): Promise<void> => {
-    if (!command.value || !batch.value) return
+    if (recoveryConflict.value || !command.value || !batch.value) return
     const token = generation
     const origin = { batchId: batch.value.batch_id, key: command.value.key }
     const receipt = await client.request<{ stage_id?: string }>({
@@ -758,7 +792,7 @@ const /**
    * @returns 原操作续办结果
    */ resumeUnknown = async (): Promise<void> =>
     run(async () => {
-      if (!command.value || !batch.value || submittedStage.value) return
+      if (recoveryConflict.value || !command.value || !batch.value || submittedStage.value) return
       const token = generation
       const batchId = batch.value.batch_id
       try {
@@ -777,7 +811,14 @@ const /**
    * @returns 本次失败绑定重试结果
    */ retryFailed = async (): Promise<void> =>
     run(async () => {
-      if (!batch.value || !bindingError.value || bindingCompleted.value || !command.value) return
+      if (
+        recoveryConflict.value ||
+        !batch.value ||
+        !bindingError.value ||
+        bindingCompleted.value ||
+        !command.value
+      )
+        return
       const token = generation
       const batchId = batch.value.batch_id
       command.value = {
@@ -1096,6 +1137,28 @@ onMounted(() => {
               ></template
             ></ElTableColumn
           >
+          <ElTableColumn
+            v-if="vocabularyRows.some((row) => row.pronunciation_path)"
+            label="独立音频 / 角色"
+            min-width="220"
+          >
+            <template #default="{ row }">
+              <div v-if="row.pronunciation_path">
+                <span>{{
+                  row.entry_type === 'word'
+                    ? '词汇独立音频 · WORD_AUDIO'
+                    : '语块独立音频 · CHUNK_AUDIO'
+                }}</span>
+                <p>{{ row.pronunciation_path }}</p>
+                <ImportResourcePreview
+                  source="materials"
+                  :batch-id="batch.batch_id"
+                  :path="row.pronunciation_path"
+                  :disabled="busy"
+                />
+              </div>
+            </template>
+          </ElTableColumn>
         </ElTable>
         <article
           v-for="(resource, index) in hasVocabularyTable ? [] : batch.manifest.resources || []"
