@@ -23,16 +23,19 @@ const file = shallowRef<globalThis.File | null>(null),
   busy = ref(false),
   error = ref('')
 const limits = ref<{ maxBytes: number; maxItems: number } | null>(null)
+const uploadProgress = ref<number | null>(null)
+let uploadAbort: globalThis.AbortController | null = null
 let uploadKey = createIdempotencyKey()
 let active = true
 onBeforeUnmount(() => {
   active = false
+  uploadAbort?.abort()
 })
 const /** 选择原始文件，校验格式和服务端大小限制
    * @param selected - 管理员选择的实际上传文件
    */
   choose = (selected: UploadFile): void => {
-    if (!selected.raw) return
+    if (busy.value || !selected.raw) return
     if (!selected.name.toLowerCase().endsWith(`.${props.kind}`)) {
       error.value = `请选择 ${props.kind.toUpperCase()} 文件`
       return
@@ -50,6 +53,8 @@ const /** 创建工作单后立即保存可恢复地址
   upload = async (): Promise<void> => {
     if (!file.value || !props.seriesId || busy.value) return
     busy.value = true
+    uploadProgress.value = null
+    uploadAbort = new globalThis.AbortController()
     error.value = ''
     try {
       const body = new globalThis.FormData()
@@ -57,7 +62,12 @@ const /** 创建工作单后立即保存可恢复地址
       body.set('series_id', props.seriesId)
       body.set('content_type', props.contentType)
       body.set('mode', props.kind.toUpperCase())
-      const order = await adapter.upload(body, uploadKey)
+      const order = await adapter.upload(body, uploadKey, {
+        signal: uploadAbort.signal,
+        onUploadProgress: (percentage) => {
+          if (active) uploadProgress.value = percentage
+        }
+      })
       if (!active) return
       await router.replace({
         name: 'content-work-order',
@@ -99,6 +109,10 @@ onMounted(async () => {
       单文件最大 {{ Math.round(limits.maxBytes / 1024 / 1024) }} MB，本批最多
       {{ limits.maxItems }} 篇
     </p>
+    <div v-if="busy" class="upload-progress" role="status" aria-live="polite">
+      <p>{{ uploadProgress === 100 ? '文件传输完成，等待服务器确认' : '正在上传文件，请稍候' }}</p>
+      <ElProgress v-if="uploadProgress !== null" :percentage="uploadProgress" />
+    </div>
     <AppPageActions
       ><ElButton @click="router.push({ name: 'content-import' })">返回批量导入</ElButton
       ><ElButton type="primary" :disabled="!file || !seriesId" :loading="busy" @click="upload"

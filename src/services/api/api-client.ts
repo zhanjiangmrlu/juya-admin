@@ -1,6 +1,8 @@
 import { ApiError } from '@/shared/errors/api-error'
 import { createUuid } from '@/shared/utils/create-uuid'
 
+import { progressRequest } from './progress-request'
+
 export type HttpMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
 
 export interface ApiRequestOptions {
@@ -12,6 +14,7 @@ export interface ApiRequestOptions {
   query?: Readonly<Record<string, boolean | number | string | null | undefined>>
   signal?: AbortSignal
   responseType?: 'json' | 'blob'
+  onUploadProgress?: (percentage: number | null) => void
 }
 
 export interface ApiClient {
@@ -23,6 +26,7 @@ export interface ApiClientOptions {
   fetchImplementation?: typeof fetch
   getCsrfToken?: () => string | null | undefined
   onUnauthorized?: () => void
+  xhrFactory?: () => XMLHttpRequest
 }
 
 interface ApiErrorPayload {
@@ -103,16 +107,21 @@ export const /**
         }
 
         const body = createRequestBody(requestOptions.body, headers)
-        const response = await fetchImplementation(
-          createRequestUrl(baseUrl, requestOptions.path, requestOptions.query),
-          {
-            body,
-            credentials: 'include',
-            headers,
-            method: requestOptions.method,
-            signal: requestOptions.signal
-          }
-        )
+        const url = createRequestUrl(baseUrl, requestOptions.path, requestOptions.query)
+        const response = requestOptions.onUploadProgress
+          ? await progressRequest(
+              url,
+              requestOptions,
+              headers,
+              options.xhrFactory ?? (() => new XMLHttpRequest())
+            )
+          : await fetchImplementation(url, {
+              body,
+              credentials: 'include',
+              headers,
+              method: requestOptions.method,
+              signal: requestOptions.signal
+            })
 
         if (response.ok)
           return requestOptions.responseType === 'blob'

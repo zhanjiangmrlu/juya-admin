@@ -9,6 +9,8 @@ import AppPageActions from '@/components/app-page-actions/app-page-actions.vue'
 import AppPagination from '@/components/app-pagination/app-pagination.vue'
 import { createContentAdapter } from '@/features/content/content-adapter'
 import { createSceneMediaAdapter } from '@/features/content-editor/scene-media-adapter'
+import { createContentStageAdapter } from '@/features/content-import/content-stage-adapter'
+import { useImportProgress } from '@/features/content-production/use-import-progress'
 import { useWorkOrder } from '@/features/content-production/use-work-order'
 import {
   createWorkOrderAdapter,
@@ -18,6 +20,7 @@ import {
 import WorkOrderCandidates from '@/features/content-production/work-order-candidates.vue'
 import { findWorkOrderRange } from '@/features/content-production/work-order-context'
 import WorkOrderImport from '@/features/content-production/work-order-import.vue'
+import WorkOrderImportProgress from '@/features/content-production/work-order-import-progress.vue'
 import { issueAction } from '@/features/content-production/work-order-model'
 import WorkOrderOverview from '@/features/content-production/work-order-overview.vue'
 import WorkOrderPublication from '@/features/content-production/work-order-publication.vue'
@@ -52,6 +55,26 @@ const list = shallowRef<S['OrderPage'] | null>(null)
 const listPage = ref(1)
 const legacyRange = ref(false)
 const preview = shallowRef<S['ImportPreview'] | null>(null)
+const importStages = createContentStageAdapter(client)
+const importProgress = useImportProgress({
+  read: adapter.preview,
+  stages: (batch, signal) =>
+    importStages.batchAvailable ? importStages.forBatch(batch, signal) : Promise.resolve([]),
+  ready: async (orderId) => {
+    error.value = ''
+    if (!(await model.load(orderId))) {
+      const failure = error.value || '工作单读取失败'
+      error.value = ''
+      throw new Error(failure)
+    }
+  }
+})
+const importWaiting = computed(
+  () => tab.value === 'import' && importProgress.state.value !== 'ready'
+)
+watch(importProgress.preview, (result) => {
+  if (result) preview.value = result
+})
 const groups = ref<CandidateGroup[]>([])
 const candidateDetails = ref<WorkItemDetail[]>([])
 const usage = shallowRef<S['WorkOrderUsage'] | null>(null)
@@ -171,6 +194,7 @@ watch(
   { flush: 'sync' }
 )
 onBeforeUnmount(() => {
+  importProgress.stop()
   originalAbort?.abort()
   sampleGeneration++
   generation++
@@ -244,13 +268,13 @@ const /** 按地址读取工作单，每个异步分区均绑定本次路由与�
         if (current()) list.value = result
         return
       }
+      if (view === 'import') {
+        await importProgress.start(orderId)
+        return
+      }
       const loaded = await model.load(orderId)
       if (!current() || !loaded || !order.value) return
       headingReady.value = true
-      if (view === 'import') {
-        const result = await adapter.preview(orderId)
-        if (current()) preview.value = result
-      }
       if (view === 'candidates') {
         const result = await adapter.candidates(orderId)
         if (!current()) return
@@ -622,6 +646,7 @@ watch(
   () => [id.value, tab.value, route.fullPath],
   () => {
     generation++
+    importProgress.stop()
     originalAbort?.abort()
     model.invalidate()
     list.value = null
@@ -641,6 +666,16 @@ watch(
 </script>
 <template>
   <section class="work-order-page">
+    <WorkOrderImportProgress
+      v-if="tab === 'import' && id && !order && !error"
+      :state="importProgress.state.value"
+      :message="importProgress.message.value"
+      :long-running="importProgress.longRunning.value"
+      @reconnect="importProgress.reconnect"
+    />
+    <AppPageActions v-if="tab === 'import' && id && !order && !error">
+      <ElButton @click="router.push({ name: 'content-import' })">返回批量导入</ElButton>
+    </AppPageActions>
     <ElAlert v-if="error" :title="error" type="error" :closable="false"
       ><ElButton @click="load">刷新权威状态</ElButton></ElAlert
     >
@@ -700,11 +735,12 @@ watch(
       ><div class="context">
         <div>
           <p>
-            {{ order.series_title }} · {{ types[order.content_type] }} · 本次
-            {{ order.counts.total }} 篇
+            {{ order.series_title }} · {{ types[order.content_type] }} ·
+            <template v-if="importWaiting">导入校验</template>
+            <template v-else>本次 {{ order.counts.total }} 篇</template>
           </p>
         </div>
-        <ElButton :loading="busy" @click="load">刷新进度</ElButton>
+        <ElButton v-if="tab !== 'import'" :loading="busy" @click="load">刷新进度</ElButton>
       </div>
       <div v-if="tab === 'import'" class="import-steps" aria-label="导入阶段">
         <span>上传 ZIP</span><span :class="{ active: importPhase === 'validation' }">校验</span
@@ -731,10 +767,17 @@ watch(
         @retry="retry"
         @resume="resume"
       />
+      <WorkOrderImportProgress
+        v-else-if="importWaiting"
+        :state="importProgress.state.value"
+        :message="importProgress.message.value"
+        :long-running="importProgress.longRunning.value"
+        @reconnect="importProgress.reconnect"
+      />
       <WorkOrderImport
         v-else-if="tab === 'import' && preview"
         :preview="preview"
-        :busy="busy"
+        :busy="busy || importWaiting"
         :phase="importPhase"
         :content-type="order.content_type"
         @confirm="confirmImport($event)"
@@ -853,6 +896,7 @@ watch(
           ><ElButton
             :disabled="
               busy ||
+              importWaiting ||
               !preview?.items.length ||
               !!preview.batch_issues.some((issue) => issue.severity === 'ERROR')
             "

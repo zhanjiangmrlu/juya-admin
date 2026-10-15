@@ -32,14 +32,16 @@ export const /**
     /**
      * 从真实批次关联读取阶段，不扫描或猜测其他阶段
      * @param batchId - 当前内容或素材批次
+     * @param signal - 当前页面查询的取消信号
      * @returns 当前批次实际阶段选择列表
-     */ forBatch: async (batchId: string): Promise<ContentStage[]> => {
+     */ forBatch: async (batchId: string, signal?: AbortSignal): Promise<ContentStage[]> => {
       const result = await client.request<{
         batch_id: string
         stages: (Omit<ContentStage, 'public_id'> & { stage_id: string })[]
       }>({
         method: 'GET',
-        path: `/api/v1/admin/content-imports/${encodeURIComponent(batchId)}/stages`
+        path: `/api/v1/admin/content-imports/${encodeURIComponent(batchId)}/stages`,
+        signal
       })
       if (
         result.batch_id !== batchId ||

@@ -96,7 +96,18 @@ export const /** 建立工作单正式契约适配
         }),
       detail: (id: string, itemId: string) =>
         read<S['WorkItemDetail']>(path(id, `/items/${encodeURIComponent(itemId)}`)),
-      preview: (id: string) => read<S['ImportPreview']>(path(id, '/import-preview')),
+      /**
+       * 读取当前导入预览，id 为工作单身份，signal 为页面生命周期取消信号
+       * @param id - 服务端工作单身份
+       * @param signal - 页面生命周期取消信号
+       * @returns 当前操作结果或完成状态
+       */
+      preview: (id: string, signal?: AbortSignal) =>
+        client.request<S['ImportPreview']>({
+          method: 'GET',
+          path: path(id, '/import-preview'),
+          signal
+        }),
       candidates: (id: string) => read<S['CandidateGroups']>(path(id, '/candidates')),
       sampling: (id: string) => read<S['SamplingState']>(path(id, '/sampling')),
       publication: (id: string) => read<S['PublicationState']>(path(id, '/publication')),
@@ -123,7 +134,25 @@ export const /** 建立工作单正式契约适配
         write<S['WorkOrder']>(`${base}/manual`, body, key),
       contexts: (body: S['ContextLookupRequest']) =>
         write<S['ContentContexts']>('/api/v1/admin/content-production/contexts', body),
-      upload: (body: FormData, key?: string) => write<S['WorkOrder']>(base, body, key),
+      /**
+       * 上传原始文件，body 为固定分类的表单，key 为同次幂等键，options 为进度和取消设置
+       * @param body - 本次请求或响应载荷
+       * @param key - 同次上传的幂等键
+       * @param options - 当前上传进度与取消设置
+       * @returns 当前操作结果或完成状态
+       */
+      upload: (
+        body: FormData,
+        key = createIdempotencyKey(),
+        options: Pick<ApiRequestOptions, 'onUploadProgress' | 'signal'> = {}
+      ) =>
+        client.request<S['WorkOrder']>({
+          method: 'POST',
+          path: base,
+          body,
+          headers: { 'Idempotency-Key': key },
+          ...options
+        }),
       command: <K extends WorkCommand>(
         id: string,
         action: K,
