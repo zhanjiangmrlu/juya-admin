@@ -447,14 +447,15 @@ const /** 保存当前候选后切换同一工作单成员的职责页面
       query: { ...route.query, section: target }
     })
   }
-const /** 下载实际保留的原始上传文件，迟到响应不在另一篇触发下载 */ downloadOriginal =
+const /** 下载实际原始文件，忽略取消请求和离开篇目后的迟到响应 */ downloadOriginal =
     async (): Promise<void> => {
-      const active = capture()
+      const active = capture(),
+        requestController = new globalThis.AbortController()
       try {
         originalAbort?.abort()
-        originalAbort = new globalThis.AbortController()
-        const blob = await adapter.originalFile(id.value, originalAbort.signal)
-        if (!active()) return
+        originalAbort = requestController
+        const blob = await adapter.originalFile(id.value, requestController.signal)
+        if (requestController.signal.aborted || !active()) return
         const url = globalThis.URL.createObjectURL(blob),
           link = globalThis.document.createElement('a')
         link.href = url
@@ -462,7 +463,8 @@ const /** 下载实际保留的原始上传文件，迟到响应不在另一篇�
         link.click()
         globalThis.URL.revokeObjectURL(url)
       } catch (failure) {
-        if (active()) error.value = failure instanceof Error ? failure.message : '原文件下载失败'
+        if (!requestController.signal.aborted && active())
+          error.value = failure instanceof Error ? failure.message : '原文件下载失败'
       }
     }
 watch(

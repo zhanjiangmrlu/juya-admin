@@ -622,15 +622,16 @@ const /** 明确排除尚未保存的导入行
     if (token === generation)
       await run('cancel', { scope: 'selected', selected_item_ids: [itemId] })
   }
-const /** 下载当前工作单真实上传字节，离开后不产生下载 */ downloadOriginal =
+const /** 下载当前工作单真实上传字节，忽略已取消下载的结果与异常 */ downloadOriginal =
     async (): Promise<void> => {
       const token = generation,
-        orderId = id.value
+        orderId = id.value,
+        requestController = new globalThis.AbortController()
       try {
         originalAbort?.abort()
-        originalAbort = new globalThis.AbortController()
-        const blob = await adapter.originalFile(orderId, originalAbort.signal)
-        if (token !== generation || orderId !== id.value) return
+        originalAbort = requestController
+        const blob = await adapter.originalFile(orderId, requestController.signal)
+        if (requestController.signal.aborted || token !== generation || orderId !== id.value) return
         const url = globalThis.URL.createObjectURL(blob),
           link = globalThis.document.createElement('a')
         link.href = url
@@ -638,7 +639,7 @@ const /** 下载当前工作单真实上传字节，离开后不产生下载 */ 
         link.click()
         globalThis.URL.revokeObjectURL(url)
       } catch (failure) {
-        if (token === generation)
+        if (!requestController.signal.aborted && token === generation)
           error.value = failure instanceof Error ? failure.message : '原文件下载失败'
       }
     }
