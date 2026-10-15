@@ -79,6 +79,37 @@ const ready = computed(
         (!row.issues.length || compared.value.includes(row.item_id))
     )
 )
+const /** 汇总已选篇目的差异确认项，保留逐篇确认状态 */
+  differenceRows = computed(() => rows.value.filter((row) => row.issues.length))
+const /** 展示原有默认素材确认项的名称
+   * @param value - 服务端返回的默认素材标识
+   * @returns 与原有确认控件一致的文案
+   */ defaultLabel = (value: string): string =>
+    value.includes('cover')
+      ? '确认使用默认封面'
+      : value.includes('audio')
+        ? '确认不配全文音频'
+        : '确认此单词无图片'
+const /** 解释现有禁用条件，仅用于提示，不参与保存校验 */
+  saveDisabledReasons = computed(() => {
+    const reasons: string[] = []
+    if (props.busy) reasons.push('正在处理，请稍候再保存')
+    if (!rows.value.length) reasons.push('请先在上方表格选择需要保存的篇目')
+    for (const row of rows.value) {
+      const title = row.candidate.title_zh || row.candidate.title_en || row.import_content_id
+      const errors = row.issues.filter((issue) => issue.severity === 'ERROR')
+      if (errors.length)
+        reasons.push(
+          `${title}：存在阻断问题（${errors.map((issue) => issue.message).join('；')}），请补充或修正源文件`
+        )
+      const missingDefaults = row.defaults.filter((value) => !defaults.value.includes(value))
+      if (missingDefaults.length)
+        reasons.push(`${title}：尚未确认默认素材：${missingDefaults.map(defaultLabel).join('、')}`)
+      if (row.issues.length && !compared.value.includes(row.item_id))
+        reasons.push(`${title}：尚未确认原文与表格差异`)
+    }
+    return reasons
+  })
 const /** 统计导入资料中已提供的词汇或语块
    * @param entries - 此篇真实词表记录
    * @param kind - 需要统计的词汇或语块类型
@@ -262,35 +293,143 @@ const resourceLabels: Record<string, string> = {
           </div>
           <ElCheckboxGroup v-model="defaults"
             ><ElCheckbox v-for="value in row.defaults" :key="value" :value="value">{{
-              value.includes('cover')
-                ? '确认使用默认封面'
-                : value.includes('audio')
-                  ? '确认不配全文音频'
-                  : '确认此单词无图片'
+              defaultLabel(value)
             }}</ElCheckbox></ElCheckboxGroup
-          >
-          <ElCheckboxGroup v-model="compared"
-            ><ElCheckbox v-if="row.issues.length" :value="row.item_id"
-              >已核对原文与表格的差异，按预览值保存；阻断问题仍需补充源文件</ElCheckbox
-            ></ElCheckboxGroup
           >
         </AdminPanel>
       </details>
     </ElCheckboxGroup>
     <AppPageActions>
-      <ElButton :disabled="busy" @click="emit('previous')">上一步</ElButton>
-      <ElButton :disabled="busy || !ready" type="primary" @click="confirm()"
-        >确认保存选中 {{ selected.length }} 篇草稿</ElButton
-      ><ElButton
-        v-if="rows.some((row) => row.status === 'FAILED')"
-        :disabled="busy || !ready"
-        @click="confirm(true)"
-        >仅重试选中失败篇目</ElButton
-      >
+      <section class="save-review" aria-label="保存前确认">
+        <div class="save-checks">
+          <ElCheckboxGroup
+            v-if="differenceRows.length"
+            v-model="compared"
+            class="difference-checks"
+            aria-label="差异核对确认"
+          >
+            <ElCheckbox v-for="row in differenceRows" :key="row.item_id" :value="row.item_id">
+              <span class="difference-title">{{
+                row.candidate.title_zh || row.candidate.title_en || row.import_content_id
+              }}</span>
+              <span>已核对原文与表格的差异，按预览值保存；阻断问题仍需补充源文件</span>
+            </ElCheckbox>
+          </ElCheckboxGroup>
+          <div
+            v-if="saveDisabledReasons.length"
+            id="import-save-reasons"
+            class="save-reasons"
+            role="status"
+            aria-live="polite"
+          >
+            <span>暂不能保存：</span>
+            <ul>
+              <li v-for="reason in saveDisabledReasons" :key="reason">{{ reason }}</li>
+            </ul>
+          </div>
+        </div>
+        <div class="save-buttons">
+          <ElButton :disabled="busy" @click="emit('previous')">上一步</ElButton>
+          <ElButton
+            :disabled="busy || !ready"
+            :aria-describedby="saveDisabledReasons.length ? 'import-save-reasons' : undefined"
+            type="primary"
+            @click="confirm()"
+            >确认保存选中 {{ selected.length }} 篇草稿</ElButton
+          ><ElButton
+            v-if="rows.some((row) => row.status === 'FAILED')"
+            :disabled="busy || !ready"
+            :aria-describedby="saveDisabledReasons.length ? 'import-save-reasons' : undefined"
+            @click="confirm(true)"
+            >仅重试选中失败篇目</ElButton
+          >
+        </div>
+      </section>
     </AppPageActions>
   </div>
 </template>
 <style scoped lang="scss">
+.save-review {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  min-width: 0;
+  max-width: 100%;
+
+  .save-checks {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    max-width: 680px;
+  }
+
+  .difference-checks {
+    display: grid;
+    gap: 6px;
+    max-height: 144px;
+    overflow-y: auto;
+
+    :deep(.el-checkbox) {
+      height: auto;
+      align-items: flex-start;
+      max-width: 100%;
+      margin: 0;
+    }
+
+    :deep([class~='el-checkbox__input']) {
+      margin-top: 3px;
+    }
+
+    :deep([class~='el-checkbox__label']) {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .difference-title {
+      display: block;
+      font-weight: 600;
+    }
+  }
+
+  .save-reasons {
+    max-height: 96px;
+    overflow-y: auto;
+    color: var(--juya-color-text-regular);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+
+    ul {
+      margin: 0;
+      padding-inline-start: 18px;
+    }
+  }
+
+  .save-buttons {
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  @media (width <= 1100px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+
+    .save-checks {
+      max-width: none;
+    }
+
+    .save-buttons {
+      gap: 8px;
+    }
+  }
+}
+
 .import-preview {
   display: grid;
   gap: 20px;
