@@ -60,7 +60,12 @@ const /** 把管理员明确选择的真实保留段落写入当前句子的中�
 </script>
 <template>
   <AdminPanel title="结构化候选 · 可校正" class="scene-pairing-panel">
-    <article v-for="(row, index) in rows" :key="row.id" class="pair-row">
+    <article
+      v-for="(row, index) in rows"
+      :key="row.id"
+      class="pair-row"
+      :data-source-sentence="index + 1"
+    >
       <h3>英文段落 {{ index + 1 }}</h3>
       <p>{{ row.speaker ? `${row.speaker}: ` : '' }}{{ row.english }}</p>
       <ElForm label-position="top">
@@ -106,6 +111,11 @@ const /** 把管理员明确选择的真实保留段落写入当前句子的中�
     padding: 0 0 20px;
     margin-bottom: 20px;
     border-bottom: 1px solid var(--juya-color-border);
+
+    &[data-source-highlight='true'] {
+      outline: 2px solid var(--el-color-primary);
+      outline-offset: 3px;
+    }
 
     h3,
     p {

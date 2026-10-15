@@ -17,6 +17,7 @@ import {
 } from '@/features/content-production/work-order-correction-model'
 import { issueFieldLabel } from '@/features/content-production/work-order-model'
 import WorkOrderOriginal from '@/features/content-production/work-order-original.vue'
+import WorkOrderSourceIssues from '@/features/content-production/work-order-source-issues.vue'
 import { createShortReadingAdapter } from '@/features/short-reading/short-reading-adapter'
 import ShortReadingEditorFields from '@/features/short-reading/short-reading-editor-fields.vue'
 import { normalizeShortReading } from '@/features/short-reading/short-reading-model'
@@ -499,7 +500,7 @@ watch(
 )
 </script>
 <template>
-  <section ref="editorRoot" class="work-item-page">
+  <section ref="editorRoot" class="work-item-page" data-source-scope>
     <div class="heading">
       <h2>{{ detail?.title_en || detail?.title_zh || '本批内容修正' }}</h2>
       <div v-if="detail?.current" class="editor-navigation">
@@ -550,7 +551,16 @@ watch(
       >
       <ElButton :disabled="busy" @click="load()">放弃本地输入，使用服务端候选</ElButton>
     </AdminPanel>
-    <ElAlert v-if="focusedIssue" :title="focusedIssue.message" type="warning" :closable="false" />
+    <WorkOrderSourceIssues
+      v-if="detail?.issues?.length"
+      :issues="detail.issues"
+      :item-id="detail.item_id"
+      :source-visible="pairing"
+      :snapshot="detail.source_available ? detail.source_snapshot : null"
+      :sentences="pairing && !isReading ? scene.dialogue : []"
+      :editable="!!detail.current"
+      @edit="editSection('entries')"
+    />
     <template v-if="detail"
       ><div :class="{ comparison: pairing }">
         <WorkOrderOriginal
@@ -641,18 +651,7 @@ watch(
         >系统整理和配对已提交的正文。需要改动文字时由管理员手动编辑并确认，不静默改写或整篇重译。</ElAlert
       >
       <AdminPanel v-if="detail.current && detail.issues?.length" title="本次处理的问题"
-        ><p
-          v-for="issue in detail.issues.filter((row) => !row.acknowledgement_eligible)"
-          :key="issue.id"
-        >
-          {{ issue.message }}。
-          {{
-            issue.origin_work_item_id && issue.origin_work_item_id !== detail.item_id
-              ? '此问题来自另一份导入记录，请回到原工作单对照处理'
-              : '修正后保存，系统将按当前内容重新校验'
-          }}
-        </p>
-        <ElCheckbox v-if="pairing" v-model="compared" :disabled="!detail.source_available">{{
+        ><ElCheckbox v-if="pairing" v-model="compared" :disabled="!detail.source_available">{{
           wordCard ? '已对照不可变原文，核对本篇词条与来源' : '已对照不可变原文，核对本次正文与配对'
         }}</ElCheckbox
         ><ElCheckboxGroup v-if="pairing" v-model="resolved"

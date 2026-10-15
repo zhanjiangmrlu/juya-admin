@@ -10,6 +10,7 @@ import type { ProductionSchema as S } from './work-order-model'
 import WorkOrderImportResult from './work-order-import-result.vue'
 import WorkOrderImportValidation from './work-order-import-validation.vue'
 import { originalParagraphs } from './work-order-model'
+import WorkOrderSourceIssues from './work-order-source-issues.vue'
 const props = withDefaults(
   defineProps<{
     preview: S['ImportPreview']
@@ -204,7 +205,12 @@ const resourceLabels: Record<string, string> = {
           ></ElTable
         ></AdminPanel
       >
-      <details v-for="row in preview.items" :key="row.item_id" class="content-detail">
+      <details
+        v-for="row in preview.items"
+        :key="row.item_id"
+        class="content-detail"
+        data-source-scope
+      >
         <summary>
           查看正文、译文、图片角色与音频 ·
           {{ row.candidate.title_zh || row.candidate.title_en || row.import_content_id }}
@@ -222,12 +228,15 @@ const resourceLabels: Record<string, string> = {
             >选中此篇 · 文件标识 {{ row.import_content_id }} · 表格第
             {{ row.row_no }} 行</ElCheckbox
           >
-          <ElAlert
-            v-for="issue in row.issues"
-            :key="issue.id"
-            :title="issue.message"
-            type="warning"
-            :closable="false"
+          <WorkOrderSourceIssues
+            :issues="row.issues"
+            :item-id="row.item_id"
+            :snapshot="row.source_snapshot"
+            :sentences="
+              Array.isArray(row.candidate.dialogue)
+                ? (row.candidate.dialogue as Record<string, unknown>[])
+                : []
+            "
           />
           <div class="comparison">
             <div>
@@ -236,6 +245,8 @@ const resourceLabels: Record<string, string> = {
               <div
                 v-for="(paragraph, index) in originalParagraphs(row.source_snapshot)"
                 :key="index"
+                :data-source-location="paragraph.sourceKey || paragraph.locator"
+                :data-source-aliases="paragraph.sourceAliases?.join(' ')"
               >
                 <small>{{ paragraph.locator }}</small>
                 <p>{{ paragraph.text }}</p>
@@ -247,6 +258,7 @@ const resourceLabels: Record<string, string> = {
                 ><p
                   v-for="(sentence, index) in row.candidate.dialogue as Record<string, unknown>[]"
                   :key="index"
+                  :data-source-sentence="Number(index) + 1"
                 >
                   {{ sentence.speaker }}: {{ sentence.english }}<br />{{ sentence.chinese }}
                 </p></template
@@ -457,6 +469,11 @@ const resourceLabels: Record<string, string> = {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px;
+
+    [data-source-highlight='true'] {
+      outline: 2px solid var(--el-color-primary);
+      outline-offset: 3px;
+    }
 
     p {
       white-space: pre-wrap;

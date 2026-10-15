@@ -30,9 +30,14 @@ export const /** 组合读取不可变文档、工作簿与冲突两侧
    */
   originalParagraphs = (
     snapshot: Record<string, unknown> | null
-  ): { text: string; locator: string }[] => {
+  ): { text: string; locator: string; sourceKey?: string; sourceAliases?: string[] }[] => {
     if (!snapshot) return []
-    const result: { text: string; locator: string }[] = []
+    const result: {
+      text: string
+      locator: string
+      sourceKey?: string
+      sourceAliases?: string[]
+    }[] = []
     if (Array.isArray(snapshot.documents) && snapshot.documents.length)
       result.push(
         ...snapshot.documents.flatMap((document, index) =>
@@ -69,14 +74,26 @@ export const /** 组合读取不可变文档、工作簿与冲突两侧
                 const cellLocator = at(
                   `内嵌表 ${index + 1} · 第 ${rowIndex + 1} 行 · 第 ${columnIndex + 1} 列`
                 )
+                const first = result.length
                 if (Array.isArray(value.children) && value.children.length)
                   appendBlocks(value.children, cellLocator)
                 else result.push({ text: String(value.text ?? ''), locator: cellLocator })
+                if (typeof value.id === 'string' && result[first])
+                  result[first]!.sourceAliases = [...(result[first]!.sourceAliases || []), value.id]
               })
             })
           } else if (Array.isArray(row.children) && row.children.length) {
+            const first = result.length
             appendBlocks(row.children, locator)
-          } else result.push({ text: String(row.text ?? row.english ?? ''), locator })
+            // 表格定位引用父单元格，锚点放在该单元格首个真实段落而不补造原文
+            if (typeof row.id === 'string' && result[first])
+              result[first]!.sourceAliases = [...(result[first]!.sourceAliases || []), row.id]
+          } else
+            result.push({
+              text: String(row.text ?? row.english ?? ''),
+              locator,
+              ...(typeof row.id === 'string' ? { sourceKey: row.id } : {})
+            })
         })
       }
     const paragraphs = snapshot.blocks ?? snapshot.paragraphs

@@ -14,7 +14,12 @@ defineProps<{ snapshot: Record<string, unknown> | null }>()
       :closable="false"
     /><template v-else
       ><ElTag type="info">原文保留</ElTag>
-      <article v-for="(paragraph, index) in originalParagraphs(snapshot)" :key="index">
+      <article
+        v-for="(paragraph, index) in originalParagraphs(snapshot)"
+        :key="index"
+        :data-source-location="paragraph.sourceKey || paragraph.locator"
+        :data-source-aliases="paragraph.sourceAliases?.join(' ')"
+      >
         <small>{{ paragraph.locator }}</small>
         <p>{{ paragraph.text }}</p>
       </article></template
@@ -28,6 +33,11 @@ defineProps<{ snapshot: Record<string, unknown> | null }>()
   article {
     padding: 12px 0;
     border-bottom: 1px solid var(--juya-color-border);
+
+    &[data-source-highlight='true'] {
+      outline: 2px solid var(--el-color-primary);
+      outline-offset: 3px;
+    }
 
     p {
       white-space: pre-wrap;

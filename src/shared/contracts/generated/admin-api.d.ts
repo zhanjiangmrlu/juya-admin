@@ -6813,10 +6813,11 @@ export interface components {
        * @default false
        */
       resolved: boolean
-      /** Source Hash */
-      source_hash?: string | null
       /** Severity */
       severity?: string | null
+      source_diagnostic?: components['schemas']['SourceDiagnostic'] | null
+      /** Source Hash */
+      source_hash?: string | null
     }
     /** WorkItem */
     WorkItem: {
@@ -7377,6 +7378,39 @@ export interface components {
       provenance: string
       /** Retryable */
       retryable?: components['schemas']['PhaseRetry'][]
+    }
+    /**
+     * SourceDiagnostic
+     * @description Read-only evidence of one rejected word/chunk source declaration
+     */
+    SourceDiagnostic: {
+      /** Actual Sentence Id */
+      actual_sentence_id?: string | null
+      /** Actual Sentence Number */
+      actual_sentence_number?: number | null
+      /** Actual Source Locations */
+      actual_source_locations?: string[]
+      /** Actual Speaker */
+      actual_speaker?: string | null
+      /** Actual Text */
+      actual_text?: string | null
+      declared_locator?: components['schemas']['JsonValue']
+      /** Declared Speaker */
+      declared_speaker?: string | null
+      /** Declared Text */
+      declared_text?: string | null
+      /** Entry Id */
+      entry_id?: string | null
+      /** Entry Text */
+      entry_text?: string | null
+      /** Entry Type */
+      entry_type?: string | null
+      /** Matched Sentence Numbers */
+      matched_sentence_numbers?: number[]
+      /** Source Locations */
+      source_locations?: string[]
+      /** Unsupported Fields */
+      unsupported_fields?: string[]
     }
   }
   responses: never
