@@ -28,47 +28,49 @@ let disposed = false
 let sequence = 0
 let createKey = createIdempotencyKey()
 const labels: Record<string, string> = { DRAFT: '草稿', PUBLISHED: '已发布', OFFLINE: '已下线' }
-const /** 显式加载独立短文列表与可用分类 */ load = async (): Promise<void> => {
-    if (busy.value || !adapter.available) return
-    const current = ++sequence
-    busy.value = true
-    error.value = ''
-    try {
-      const result = await client.request<{ items: { public_id: string }[]; total: number }>({
-        method: 'GET',
-        path: '/api/v1/admin/content/short-readings',
-        query: { page: page.value, page_size: 20 }
-      })
-      const rows = await Promise.all(result.items.map((item) => adapter.load(item.public_id)))
-      const categories = await content.listSeries()
-      if (disposed || current !== sequence) return
-      items.value = rows
-      total.value = result.total
-      series.value = categories
-    } catch (failure) {
-      if (!disposed && current === sequence)
-        error.value = failure instanceof Error ? failure.message : '短文列表加载失败'
-    } finally {
-      if (current === sequence) busy.value = false
-    }
+/** 显式加载独立短文列表与可用分类 */
+const load = async (): Promise<void> => {
+  if (busy.value || !adapter.available) return
+  const current = ++sequence
+  busy.value = true
+  error.value = ''
+  try {
+    const result = await client.request<{ items: { public_id: string }[]; total: number }>({
+      method: 'GET',
+      path: '/api/v1/admin/content/short-readings',
+      query: { page: page.value, page_size: 20 }
+    })
+    const rows = await Promise.all(result.items.map((item) => adapter.load(item.public_id)))
+    const categories = await content.listSeries()
+    if (disposed || current !== sequence) return
+    items.value = rows
+    total.value = result.total
+    series.value = categories
+  } catch (failure) {
+    if (!disposed && current === sequence)
+      error.value = failure instanceof Error ? failure.message : '短文列表加载失败'
+  } finally {
+    if (current === sequence) busy.value = false
   }
-const /** 创建选定分类下的独立纯阅读草稿 */ create = async (): Promise<void> => {
-    if (busy.value || !seriesId.value || !adapter.available) return
-    const current = ++sequence
-    busy.value = true
-    error.value = ''
-    try {
-      const result = await adapter.create(seriesId.value, normalizeShortReading({}), createKey)
-      if (disposed || current !== sequence) return
-      createKey = createIdempotencyKey()
-      await router.push({ name: 'content-short-reading-edit', params: { id: result.id } })
-    } catch (failure) {
-      if (!disposed && current === sequence)
-        error.value = failure instanceof Error ? failure.message : '创建短文失败'
-    } finally {
-      if (current === sequence) busy.value = false
-    }
+}
+/** 创建选定分类下的独立纯阅读草稿 */
+const create = async (): Promise<void> => {
+  if (busy.value || !seriesId.value || !adapter.available) return
+  const current = ++sequence
+  busy.value = true
+  error.value = ''
+  try {
+    const result = await adapter.create(seriesId.value, normalizeShortReading({}), createKey)
+    if (disposed || current !== sequence) return
+    createKey = createIdempotencyKey()
+    await router.push({ name: 'content-short-reading-edit', params: { id: result.id } })
+  } catch (failure) {
+    if (!disposed && current === sequence)
+      error.value = failure instanceof Error ? failure.message : '创建短文失败'
+  } finally {
+    if (current === sequence) busy.value = false
   }
+}
 onBeforeUnmount(() => {
   disposed = true
   sequence++

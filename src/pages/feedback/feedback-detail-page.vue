@@ -33,11 +33,11 @@ const categoryLabels: Record<FeedbackCategory, string> = {
   PRONUNCIATION: '发音问题'
 }
 
-const /** 清理失效会话并跳转登录页。 */
-  handleUnauthorized = (): void => {
-    authStore.clearSensitiveState()
-    void router.replace({ name: 'login' })
-  }
+/** 清理失效会话并跳转登录页。 */
+const handleUnauthorized = (): void => {
+  authStore.clearSensitiveState()
+  void router.replace({ name: 'login' })
+}
 
 const controller = useFeedbackDetail(
   createFeedbackAdapter(
@@ -73,70 +73,70 @@ const timeline = computed(() =>
 onMounted(() => void controller.load())
 onBeforeUnmount(controller.dispose)
 
-const /**
-   * 格式化管理端日期时间。
-   * @param value - ISO 8601 日期时间
-   * @returns 日期时间文案
-   */
-  formatDateTime = (value: string): string => {
-    return formatTimestamp(value)
-  }
+/**
+ * 格式化管理端日期时间。
+ * @param value - ISO 8601 日期时间
+ * @returns 日期时间文案
+ */
+const formatDateTime = (value: string): string => {
+  return formatTimestamp(value)
+}
 
-const /**
-   * 返回反馈事件的管理员可读文案。
-   * @param event - 反馈时间线事件
-   * @returns 事件文案
-   */
-  timelineLabel = (event: FeedbackTimelineEvent): string => {
-    const labels: Record<string, string> = {
-      CLOSED_INSUFFICIENT: '因信息不足关闭',
-      CREATED: '提交反馈',
-      INTERNAL_NOTE_ADDED: '添加内部备注',
-      PROCESSING_STARTED: '开始处理',
-      RESOLVED: '反馈已解决',
-      NEED_MORE: '要求补充信息',
-      REOPENED: '用户重开反馈',
-      USER_SUPPLIED: '用户已补充信息'
-    }
-    return labels[event.eventType] ?? event.eventType
+/**
+ * 返回反馈事件的管理员可读文案。
+ * @param event - 反馈时间线事件
+ * @returns 事件文案
+ */
+const timelineLabel = (event: FeedbackTimelineEvent): string => {
+  const labels: Record<string, string> = {
+    CLOSED_INSUFFICIENT: '因信息不足关闭',
+    CREATED: '提交反馈',
+    INTERNAL_NOTE_ADDED: '添加内部备注',
+    PROCESSING_STARTED: '开始处理',
+    RESOLVED: '反馈已解决',
+    NEED_MORE: '要求补充信息',
+    REOPENED: '用户重开反馈',
+    USER_SUPPLIED: '用户已补充信息'
   }
+  return labels[event.eventType] ?? event.eventType
+}
 
-const /**
-   * 拼接事件标签与服务端记录的业务说明。
-   * @param event - 反馈时间线事件
-   * @returns 完整事件文案
-   */
-  timelineContent = (event: FeedbackTimelineEvent): string => {
-    const payloadKeys = ['request_text', 'supplement_text', 'reason', 'template']
-    const detail = payloadKeys
-      .map((key) => event.payload[key])
-      .find((value): value is string => typeof value === 'string' && value.length > 0)
-    return detail ? `${timelineLabel(event)}：${detail}` : timelineLabel(event)
-  }
+/**
+ * 拼接事件标签与服务端记录的业务说明。
+ * @param event - 反馈时间线事件
+ * @returns 完整事件文案
+ */
+const timelineContent = (event: FeedbackTimelineEvent): string => {
+  const payloadKeys = ['request_text', 'supplement_text', 'reason', 'template']
+  const detail = payloadKeys
+    .map((key) => event.payload[key])
+    .find((value): value is string => typeof value === 'string' && value.length > 0)
+  return detail ? `${timelineLabel(event)}：${detail}` : timelineLabel(event)
+}
 
-const /** 按需重新签发并展示截图临时地址。 */
-  loadScreenshot = async (): Promise<void> => {
-    isLoadingScreenshot.value = true
-    try {
-      await controller.loadScreenshot()
-    } catch {
-      // 控制器提供页面错误状态。
-    } finally {
-      isLoadingScreenshot.value = false
-    }
+/** 按需重新签发并展示截图临时地址。 */
+const loadScreenshot = async (): Promise<void> => {
+  isLoadingScreenshot.value = true
+  try {
+    await controller.loadScreenshot()
+  } catch {
+    // 控制器提供页面错误状态。
+  } finally {
+    isLoadingScreenshot.value = false
   }
+}
 
-const /**
-   * 返回反馈状态标签色调。
-   * @param status - 当前反馈状态
-   * @returns 状态标签色调
-   */
-  getStatusTone = (status: FeedbackStatus): 'danger' | 'info' | 'success' | 'warning' => {
-    if (status === 'RESOLVED') return 'success'
-    if (status === 'CLOSED_INSUFFICIENT') return 'info'
-    if (status === 'NEED_MORE' || status === 'USER_SUPPLIED') return 'warning'
-    return status === 'PENDING' ? 'danger' : 'info'
-  }
+/**
+ * 返回反馈状态标签色调。
+ * @param status - 当前反馈状态
+ * @returns 状态标签色调
+ */
+const getStatusTone = (status: FeedbackStatus): 'danger' | 'info' | 'success' | 'warning' => {
+  if (status === 'RESOLVED') return 'success'
+  if (status === 'CLOSED_INSUFFICIENT') return 'info'
+  if (status === 'NEED_MORE' || status === 'USER_SUPPLIED') return 'warning'
+  return status === 'PENDING' ? 'danger' : 'info'
+}
 </script>
 
 <template>

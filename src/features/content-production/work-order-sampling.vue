@@ -67,12 +67,14 @@ const allPlayed = computed(() =>
     .filter((row) => row.kind === 'audio')
     .every((row) => played.value.includes(row.key))
 )
-const /** 只接收当前固定资源的实际播放事件
-   * @param resource - 触发播放的资源快照
-   */ recordPlay = (resource: SampleResource): void => {
-    if (!resources.value.includes(resource) || !resource.url || resource.error) return
-    played.value = [...new Set([...played.value, resource.key])]
-  }
+/**
+ * 只接收当前固定资源的实际播放事件
+ * @param resource - 触发播放的资源快照
+ */
+const recordPlay = (resource: SampleResource): void => {
+  if (!resources.value.includes(resource) || !resource.url || resource.error) return
+  played.value = [...new Set([...played.value, resource.key])]
+}
 const allSamplesChecked = computed(() =>
   props.state.sample_ids.every((id) => props.state.confirmed_revision_ids.includes(id))
 )
@@ -84,14 +86,15 @@ const canConfirm = computed(
     (!hasAudio.value || (checked.audio && allPlayed.value)) &&
     (!hasImages.value || checked.images)
 )
-const /** 打开工作单内当前样本并重置本篇检查
-   * @param revisionId - 服务端样本固定版本
-   */
-  select = (revisionId: string): void => {
-    selected.value = revisionId
-    played.value = []
-    Object.assign(checked, { text: false, images: false, audio: false, played: false })
-  }
+/**
+ * 打开工作单内当前样本并重置本篇检查
+ * @param revisionId - 服务端样本固定版本
+ */
+const select = (revisionId: string): void => {
+  selected.value = revisionId
+  played.value = []
+  Object.assign(checked, { text: false, images: false, audio: false, played: false })
+}
 watch(
   () =>
     JSON.stringify([
@@ -130,33 +133,33 @@ watch(
     checked.images = false
   }
 )
-const /** 确认当前实际检查记录
-   */
-  confirm = (): void => {
-    if (!canConfirm.value || !item.value || !current.value) return
-    emit('action', {
-      operation: 'confirm',
-      scope: 'selected',
-      selected_item_ids: [item.value.item_id],
-      candidate_hash: current.value.candidate_hash,
-      text_checked: checked.text,
-      images_checked: checked.images,
-      audio_listened: checked.audio
-    })
-  }
-const /** 将选定同类问题篇目移出正常集合
-   * @returns 触发异常范围分类
-   */
-  fail = (): void =>
-    emit('action', {
-      operation: 'fail',
-      scope: 'selected',
-      selected_item_ids: affectedIds.value,
-      observed_item_id: item.value?.item_id,
-      candidate_hash: current.value?.candidate_hash,
-      collection_hash: props.state.collection_hash,
-      error_code: 'MANUAL_REVIEW_REQUIRED'
-    })
+/** 确认当前实际检查记录 */
+const confirm = (): void => {
+  if (!canConfirm.value || !item.value || !current.value) return
+  emit('action', {
+    operation: 'confirm',
+    scope: 'selected',
+    selected_item_ids: [item.value.item_id],
+    candidate_hash: current.value.candidate_hash,
+    text_checked: checked.text,
+    images_checked: checked.images,
+    audio_listened: checked.audio
+  })
+}
+/**
+ * 将选定同类问题篇目移出正常集合
+ * @returns 触发异常范围分类
+ */
+const fail = (): void =>
+  emit('action', {
+    operation: 'fail',
+    scope: 'selected',
+    selected_item_ids: affectedIds.value,
+    observed_item_id: item.value?.item_id,
+    candidate_hash: current.value?.candidate_hash,
+    collection_hash: props.state.collection_hash,
+    error_code: 'MANUAL_REVIEW_REQUIRED'
+  })
 </script>
 <template>
   <div class="sampling-workspace">

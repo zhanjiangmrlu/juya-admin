@@ -30,47 +30,47 @@ let generation = 0
 onBeforeUnmount(() => {
   generation++
 })
-const /** 加载真实分类，导入来源之间保持管理员选择 */
-  load = async (): Promise<void> => {
-    const token = ++generation,
-      batchId = route.query.batch_id,
-      importPhase = String(route.query.import_phase || 'validation')
-    const seriesId = route.query.series_id
-    if (typeof seriesId === 'string') context.seriesId = seriesId
-    if (['dialogue', 'word_card', 'short_reading'].includes(String(route.query.content_type)))
-      context.contentType = route.query.content_type as ImportContentType
-    try {
-      if (batchId && !materialSource.value) {
-        const order = await createWorkOrderAdapter(api).fromBatch(String(batchId))
-        if (token !== generation) return
-        await router.replace({
-          name: 'content-work-order',
-          params: { id: order.work_order_id },
-          query: { view: 'import', import_phase: importPhase }
-        })
-        return
-      }
-      const result = await content.listSeries()
-      if (token === generation) series.value = result
-    } catch (failure) {
-      if (token === generation)
-        error.value = failure instanceof Error ? failure.message : '分类加载失败'
+/** 加载真实分类，导入来源之间保持管理员选择 */
+const load = async (): Promise<void> => {
+  const token = ++generation,
+    batchId = route.query.batch_id,
+    importPhase = String(route.query.import_phase || 'validation')
+  const seriesId = route.query.series_id
+  if (typeof seriesId === 'string') context.seriesId = seriesId
+  if (['dialogue', 'word_card', 'short_reading'].includes(String(route.query.content_type)))
+    context.contentType = route.query.content_type as ImportContentType
+  try {
+    if (batchId && !materialSource.value) {
+      const order = await createWorkOrderAdapter(api).fromBatch(String(batchId))
+      if (token !== generation) return
+      await router.replace({
+        name: 'content-work-order',
+        params: { id: order.work_order_id },
+        query: { view: 'import', import_phase: importPhase }
+      })
+      return
     }
+    const result = await content.listSeries()
+    if (token === generation) series.value = result
+  } catch (failure) {
+    if (token === generation)
+      error.value = failure instanceof Error ? failure.message : '分类加载失败'
   }
-const /**
-   * 进入所选导入来源，内容包、DOCX 和独立素材分别走正式契约
-   * @param next - 管理员选择的来源
-   */
-  selectSource = async (next: string): Promise<void> => {
-    await router.push({
-      name: 'content-import',
-      query: {
-        source: next,
-        series_id: context.seriesId || undefined,
-        content_type: context.contentType
-      }
-    })
-  }
+}
+/**
+ * 进入所选导入来源，内容包、DOCX 和独立素材分别走正式契约
+ * @param next - 管理员选择的来源
+ */
+const selectSource = async (next: string): Promise<void> => {
+  await router.push({
+    name: 'content-import',
+    query: {
+      source: next,
+      series_id: context.seriesId || undefined,
+      content_type: context.contentType
+    }
+  })
+}
 watch(() => route.fullPath, load, { immediate: true })
 </script>
 <template>

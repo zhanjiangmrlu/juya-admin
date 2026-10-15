@@ -57,8 +57,8 @@ export default tseslint.config(
           contexts: [
             'FunctionDeclaration',
             'MethodDefinition',
-            'VariableDeclarator[init.type="ArrowFunctionExpression"]',
-            'VariableDeclarator[init.type="FunctionExpression"]'
+            'VariableDeclarator[init.type="ArrowFunctionExpression"] > ArrowFunctionExpression',
+            'VariableDeclarator[init.type="FunctionExpression"] > FunctionExpression'
           ],
           enableFixer: false
         }

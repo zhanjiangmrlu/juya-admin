@@ -52,98 +52,103 @@ const senseGroups = computed(() => {
     }
   return [...rows.values()]
 })
-const /** 读取候选所属的真实来源句
-   * @param group - 当前篇目候选组
-   * @param row - 推荐结果的来源绑定
-   * @returns 本篇实际原句
-   */ sourceSentence = (group: CandidateGroup, row: S['CandidateResult']): string => {
-    const detail = props.details?.find((item) => item.item_id === group.item_id)
-    return detail?.current?.template !== 'short_reading'
-      ? detail?.current?.content.dialogue?.find((line) => line.id === row.source_id)?.english ||
-          row.provided?.source_sentence ||
-          ''
-      : row.provided?.source_sentence || ''
-  }
-const /** 列出推荐英文在固定来源句中的精确出现位置
-   * @param group - 当前篇目候选组
-   * @param row - 待定位的推荐结果
-   * @returns 可供管理员明确选择的字符起点
-   */ sourcePositions = (group: CandidateGroup, row: S['CandidateResult']): number[] => {
-    const text = Array.from(sourceSentence(group, row))
-    const word = Array.from(row.english || '')
-    if (!word.length) return []
-    return text.flatMap((_, index) =>
-      text.slice(index, index + word.length).join('') === word.join('') ? [index] : []
-    )
-  }
-const /** 决定当前一条结果，不替换同组其他结果
-   * @param group - 当前篇目候选组
-   * @param row - 管理员核对的结果
-   * @returns 触发本条明确决定
-   * @param decision - 保留或采纳或拒绝
-   */
-  decide = (
-    group: CandidateGroup,
-    row: S['CandidateResult'],
-    decision: CandidateDecision['decision']
-  ): void =>
-    emit('decide', group, [
-      {
-        result_id: row.result_id,
-        decision,
-        ...(decision === 'ADOPTED' && group.kind === 'AI_LEXICON'
-          ? {
-              entry_type: entryTypes[row.result_id] || 'VOCABULARY',
-              ...(positions[row.result_id] === undefined
-                ? {}
-                : {
-                    source_id: row.source_id,
-                    start: positions[row.result_id],
-                    end: positions[row.result_id]! + Array.from(row.english || '').length
-                  })
-            }
-          : {}),
-        ...(translations[row.result_id] === undefined
-          ? {}
-          : { chinese: translations[row.result_id] })
-      }
-    ])
-const /** 明确选择中央定义和释义变化性质
-   * @param group - 当前篇目候选组
-   * @param row - 当前本地词条候选
-   * @param option - 经核对的中央固定定义
-   */
-  central = (
-    group: CandidateGroup,
-    row: S['CandidateResult'],
-    option: S['CentralOption']
-  ): void => {
-    if (option.meaning_differs && !meanings[row.result_id]) return
-    emit('decide', group, [
-      {
-        result_id: row.result_id,
-        decision: 'USE_CENTRAL',
-        lexicon_entry_id: option.lexicon_entry_id,
-        definition_version: option.definition_version,
-        meaning_change: meanings[row.result_id]
-      }
-    ])
-  }
-const /** 仅处理本组勾选的待决定结果
-   * @param group - 当前候选组
-   * @returns 触发所选结果的决定
-   * @param decision - 明确的批量保留或拒绝动作
-   */
-  bulk = (group: CandidateGroup, decision: 'KEEP_PROVIDED' | 'REJECTED'): void =>
-    emit(
-      'decide',
-      group,
-      group.results
-        .filter(
-          (row) => row.status === 'PENDING' && selected[group.candidate_id]?.includes(row.result_id)
-        )
-        .map((row) => ({ result_id: row.result_id, decision }))
-    )
+/**
+ * 读取候选所属的真实来源句
+ * @param group - 当前篇目候选组
+ * @param row - 推荐结果的来源绑定
+ * @returns 本篇实际原句
+ */
+const sourceSentence = (group: CandidateGroup, row: S['CandidateResult']): string => {
+  const detail = props.details?.find((item) => item.item_id === group.item_id)
+  return detail?.current?.template !== 'short_reading'
+    ? detail?.current?.content.dialogue?.find((line) => line.id === row.source_id)?.english ||
+        row.provided?.source_sentence ||
+        ''
+    : row.provided?.source_sentence || ''
+}
+/**
+ * 列出推荐英文在固定来源句中的精确出现位置
+ * @param group - 当前篇目候选组
+ * @param row - 待定位的推荐结果
+ * @returns 可供管理员明确选择的字符起点
+ */
+const sourcePositions = (group: CandidateGroup, row: S['CandidateResult']): number[] => {
+  const text = Array.from(sourceSentence(group, row))
+  const word = Array.from(row.english || '')
+  if (!word.length) return []
+  return text.flatMap((_, index) =>
+    text.slice(index, index + word.length).join('') === word.join('') ? [index] : []
+  )
+}
+/**
+ * 决定当前一条结果，不替换同组其他结果
+ * @param group - 当前篇目候选组
+ * @param row - 管理员核对的结果
+ * @returns 触发本条明确决定
+ * @param decision - 保留或采纳或拒绝
+ */
+const decide = (
+  group: CandidateGroup,
+  row: S['CandidateResult'],
+  decision: CandidateDecision['decision']
+): void =>
+  emit('decide', group, [
+    {
+      result_id: row.result_id,
+      decision,
+      ...(decision === 'ADOPTED' && group.kind === 'AI_LEXICON'
+        ? {
+            entry_type: entryTypes[row.result_id] || 'VOCABULARY',
+            ...(positions[row.result_id] === undefined
+              ? {}
+              : {
+                  source_id: row.source_id,
+                  start: positions[row.result_id],
+                  end: positions[row.result_id]! + Array.from(row.english || '').length
+                })
+          }
+        : {}),
+      ...(translations[row.result_id] === undefined ? {} : { chinese: translations[row.result_id] })
+    }
+  ])
+/**
+ * 明确选择中央定义和释义变化性质
+ * @param group - 当前篇目候选组
+ * @param row - 当前本地词条候选
+ * @param option - 经核对的中央固定定义
+ */
+const central = (
+  group: CandidateGroup,
+  row: S['CandidateResult'],
+  option: S['CentralOption']
+): void => {
+  if (option.meaning_differs && !meanings[row.result_id]) return
+  emit('decide', group, [
+    {
+      result_id: row.result_id,
+      decision: 'USE_CENTRAL',
+      lexicon_entry_id: option.lexicon_entry_id,
+      definition_version: option.definition_version,
+      meaning_change: meanings[row.result_id]
+    }
+  ])
+}
+/**
+ * 仅处理本组勾选的待决定结果
+ * @param group - 当前候选组
+ * @returns 触发所选结果的决定
+ * @param decision - 明确的批量保留或拒绝动作
+ */
+const bulk = (group: CandidateGroup, decision: 'KEEP_PROVIDED' | 'REJECTED'): void =>
+  emit(
+    'decide',
+    group,
+    group.results
+      .filter(
+        (row) => row.status === 'PENDING' && selected[group.candidate_id]?.includes(row.result_id)
+      )
+      .map((row) => ({ result_id: row.result_id, decision }))
+  )
 </script>
 <template>
   <div class="candidate-groups">

@@ -12,12 +12,12 @@ export const PRODUCTION_STAGES: readonly { stage: ProductionStage; label: string
   { stage: 'publish', label: '预览与发布检查' }
 ]
 
-export const /**
-   * 校验编辑工作区参数，旧编辑链接默认打开正文对照与配对校对
-   * @param value - 路由查询参数
-   * @returns 当前编辑步骤
-   */
-  parseEditorStage = (value: unknown): EditorStage =>
-    value === 'draft' || value === 'audio' || value === 'entries' || value === 'candidates'
-      ? value
-      : 'proofread'
+/**
+ * 校验编辑工作区参数，旧编辑链接默认打开正文对照与配对校对
+ * @param value - 路由查询参数
+ * @returns 当前编辑步骤
+ */
+export const parseEditorStage = (value: unknown): EditorStage =>
+  value === 'draft' || value === 'audio' || value === 'entries' || value === 'candidates'
+    ? value
+    : 'proofread'

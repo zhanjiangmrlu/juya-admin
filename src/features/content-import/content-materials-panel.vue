@@ -386,458 +386,481 @@ onBeforeUnmount(() => {
   generation++
 })
 
-const /**
-   * 串行执行素材命令，离页后不回写
-   * @param action - 本次明确的素材操作
-   */ run = async (action: () => Promise<void>): Promise<void> => {
-    if (busy.value) return
-    const token = generation
-    busy.value = true
-    error.value = ''
-    try {
-      await action()
-    } catch (failure) {
-      if (!disposed && token === generation)
-        error.value = failure instanceof Error ? failure.message : '素材操作失败'
-    } finally {
-      if (!disposed && token === generation) busy.value = false
-    }
+/**
+ * 串行执行素材命令，离页后不回写
+ * @param action - 本次明确的素材操作
+ */
+const run = async (action: () => Promise<void>): Promise<void> => {
+  if (busy.value) return
+  const token = generation
+  busy.value = true
+  error.value = ''
+  try {
+    await action()
+  } catch (failure) {
+    if (!disposed && token === generation)
+      error.value = failure instanceof Error ? failure.message : '素材操作失败'
+  } finally {
+    if (!disposed && token === generation) busy.value = false
   }
-const /**
-   * 读取实际文件清单；新批次清除之前的绑定选择
-   * @param id - 服务端素材批次编号
-   */ read = async (id: string): Promise<void> => {
-    const token = generation
-    const value = await adapter.load(id)
-    if (disposed || token !== generation) return
-    if (batch.value?.batch_id !== value.batch_id) {
-      target.value = null
-      targetId.value = ''
-      vocabularyRows.value = []
-      vocabularyHash.value = ''
-      if (batch.value) {
-        submittedStage.value = ''
-        command.value = null
-        receiptMode.value = null
-        receiptRevision.value = ''
-      }
-      checked.value = false
-      bindings.value = (value.manifest.resources || []).map((row) => ({
-        path: row.path,
-        role: '',
-        selected: false
-      }))
-    } else if (!bindings.value.length)
-      bindings.value = (value.manifest.resources || []).map((row) => ({
-        path: row.path,
-        role: '',
-        selected: false
-      }))
-    if (value.series_id) context.seriesId = value.series_id
-    if (value.content_type) context.type = value.content_type
-    await Promise.resolve()
-    if (disposed || token !== generation) return
-    batch.value = value
-    if (!vocabularyRows.value.length && Array.isArray(value.manifest.vocabulary_rows))
-      vocabularyRows.value = (value.manifest.vocabulary_rows as VocabularyRow[]).map((row) => ({
-        ...row,
-        selected: false,
-        noImageConfirmed: false,
-        differenceConfirmed: false
-      }))
-    recoveryId.value = value.batch_id
-    if (phase.value === 'upload') phase.value = 'validation'
-    restoreReceipt(value)
-  }
-const /**
-   * 更换本地素材包时更换上传身份
-   * @param value - 管理员重新选择的 ZIP
-   */ selectFile = (value: UploadFile): void => {
-    if (batch.value) startNew()
-    file.value = value.raw || null
-    uploadKey = createIdempotencyKey()
-    phase.value = 'upload'
-    submittedStage.value = ''
-  }
-const /** 上传明确系列和模板的独立素材 ZIP
-   * @returns 上传与恢复结果完成状态
-   */ upload = async (): Promise<void> =>
-    run(async () => {
-      if (!file.value || !context.seriesId || (hasVocabularyTable.value && !target.value)) return
-      const token = generation
-      const fixedSource = hasVocabularyTable.value ? targetId.value : ''
-      const value = await adapter.upload(file.value, context.seriesId, context.type, uploadKey)
-      if (disposed || token !== generation) return
-      await read(value.batch_id)
-      if (fixedSource) {
-        targetId.value = fixedSource
-        await nextTick()
-        await readTarget()
-      }
-    })
-const /** 加载当前页可编辑草稿，标题建议不自动采用
-   * @returns 草稿加载完成状态
-   */ loadTargets = async (): Promise<void> =>
-    run(async () => {
-      const token = generation
-      if (!series.value.length) series.value = await content.listSeries()
-      if (!context.seriesId) return
-      const value = await catalogue.list({
-        page: context.page,
-        pageSize: 100,
-        query: '',
-        seriesId: context.seriesId,
-        contentType: context.type as 'dialogue' | 'word_card' | 'short_reading',
-        status: ''
-      })
-      if (disposed || token !== generation) return
-      missingDraftCount.value = value.items.filter((row) => !row.draft_revision_id).length
-      targets.value = value.items
-        .filter((row) => row.draft_revision_id)
-        .map((row) => ({
-          id: row.id,
-          revisionId: row.draft_revision_id!,
-          title: row.title_zh || row.title_en
-        }))
-    })
-const /** 读取明确选择的草稿版本和稳定词条
-   * @returns 固定草稿读取完成状态
-   */ readTarget = async (): Promise<void> => {
-    const token = generation
-    target.value = null
-    checked.value = false
-    const row = targets.value.find((item) => item.revisionId === targetId.value)
-    if (!row) return
-    const value =
-      context.type === 'short_reading'
-        ? await readings.load(row.id)
-        : await content.getRevision(row.revisionId)
-    if (disposed || token !== generation || targetId.value !== row.revisionId) return
-    if ('revisionId' in value && value.revisionId !== row.revisionId)
-      throw new Error('来源草稿已改变，请重新加载并选择当前候选版本')
-    target.value = {
-      revisionId: row.revisionId,
-      version: 'editVersion' in value ? value.editVersion : value.version,
-      content: { ...value.content }
-    }
-    if (hasVocabularyTable.value && batch.value) {
-      const preview = await client.request<{
-        preview_hash: string
-        revision_id: string
-        expected_version: number
-        vocabulary_rows: Omit<
-          VocabularyRow,
-          'selected' | 'noImageConfirmed' | 'differenceConfirmed'
-        >[]
-      }>({
-        method: 'GET',
-        path: `/api/v1/admin/content-materials/${encodeURIComponent(batch.value.batch_id)}/vocabulary-preview`,
-        query: { revision_id: row.revisionId, expected_version: target.value.version }
-      })
-      if (disposed || token !== generation || targetId.value !== row.revisionId) return
-      if (
-        preview.revision_id !== row.revisionId ||
-        preview.expected_version !== target.value.version ||
-        !/^[a-f0-9]{64}$/.test(preview.preview_hash)
-      )
-        throw new Error('图包预览与当前来源版本不一致，请重新读取')
-      vocabularyHash.value = preview.preview_hash
-      vocabularyRows.value = preview.vocabulary_rows.map((item) => ({
-        ...item,
-        selected: false,
-        noImageConfirmed: false,
-        differenceConfirmed: false
-      }))
-    }
-  }
-const /** 串行读取管理员明确的来源版本
-   * @returns 来源读取结果
-   */ loadTarget = async (): Promise<void> => run(readTarget)
-const /** 明确绑定选中文件，网络不确定时保留相同命令身份
-   * @returns 绑定命令完成状态
-   */ bind = async (): Promise<void> =>
-    run(async () => {
-      if (!ready.value || !target.value || !batch.value) return
-      const token = generation
-      const batchId = batch.value.batch_id
-      const rows = selected.value.map((row) => ({
-        path: row.path,
-        role: row.role,
-        ...(['WORD_IMAGE', 'WORD_AUDIO', 'CHUNK_AUDIO'].includes(row.role)
-          ? { entry_id: row.entry_id }
-          : {})
-      }))
-      const signature = JSON.stringify([
-        batch.value.batch_id,
-        target.value.revisionId,
-        target.value.version,
-        rows,
-        vocabularyHash.value,
-        chosenVocabulary.value.map((row) => [
-          row.import_entry_id,
-          row.noImageConfirmed,
-          row.differenceConfirmed
-        ])
-      ])
-      if (signature !== bindSignature) {
-        bindSignature = signature
-        bindKey = createIdempotencyKey()
-      }
-      command.value = {
-        key: bindKey,
-        body: {
-          revision_id: target.value.revisionId,
-          expected_version: target.value.version,
-          manual_checked: true,
-          bindings: hasVocabularyTable.value ? [] : rows,
-          ...(hasVocabularyTable.value
-            ? {
-                vocabulary_preview_hash: vocabularyHash.value,
-                vocabulary_selections: chosenVocabulary.value.map((row) => ({
-                  import_entry_id: row.import_entry_id,
-                  no_image_confirmed: row.noImageConfirmed,
-                  difference_confirmed: row.differenceConfirmed
-                }))
-              }
-            : {})
-        }
-      }
-      try {
-        await submitCommand()
-      } catch (failure) {
-        if (disposed || token !== generation) return
-        if (failure instanceof ApiError && failure.status >= 400 && failure.status < 500) {
-          await rejectCommand()
-        } else {
-          phase.value = 'result'
-        }
-        await read(batchId).catch(() => undefined)
-        throw failure
-      }
-      if (disposed || token !== generation) return
-      checked.value = false
-      await read(batchId)
-    })
-const /**
-   * 获取本篇角色所需的稳定词条
-   * @param role - 文件正在绑定的角色
-   * @returns 本篇词汇或语块
-   */ roleEntries = (role: string) =>
-    context.type === 'short_reading'
-      ? []
-      : role === 'CHUNK_AUDIO'
-        ? entries.value?.chunks || []
-        : entries.value?.vocabulary || []
-const /** 进入固定草稿的图文核对，不自动确认任何文件
-   * @returns 切换预览状态
-   */ showPreview = (): void => {
-    checked.value = false
-    phase.value = 'preview'
-  }
-const /** 恢复上传入口，已有完成结果仍保留在服务端
-   * @returns 新包上传状态
-   */ startNew = (): void => {
-    recoveryConflict.value = false
-    phase.value = 'upload'
-    submittedStage.value = ''
-    command.value = null
-    receiptMode.value = null
-    receiptRevision.value = ''
-    checked.value = false
-    batch.value = null
-    file.value = null
+}
+/**
+ * 读取实际文件清单；新批次清除之前的绑定选择
+ * @param id - 服务端素材批次编号
+ */
+const read = async (id: string): Promise<void> => {
+  const token = generation
+  const value = await adapter.load(id)
+  if (disposed || token !== generation) return
+  if (batch.value?.batch_id !== value.batch_id) {
     target.value = null
     targetId.value = ''
-    vocabularyHash.value = ''
     vocabularyRows.value = []
-    bindings.value = []
-  }
-const /** 返回批量导入的来源选择入口
-   * @returns 路由切换完成状态
-   */ returnToImport = (): void => {
-    void router.push({
-      name: 'content-import',
-      query: { series_id: context.seriesId || undefined, content_type: context.type }
-    })
-  }
-const /** 素材实际绑定后桥接工作单，保留对应正文范围 */
-  continueWorkOrder = async (): Promise<void> => {
-    if (!bindingCompleted.value || !batch.value) return
-    await run(async () => {
-      const token = generation
-      const batchId = batch.value!.batch_id
-      const order = await createWorkOrderAdapter(client).fromBatch(batchId)
-      if (disposed || token !== generation || batch.value?.batch_id !== batchId) return
-      await router.push({ name: 'content-work-order', params: { id: order.work_order_id } })
-    })
-  }
-const /**
-   * 恢复 URL 指定阶段或原幂等键对应的回执
-   * @param value - 当前批次的实际持久化清单
-   */ restoreReceipt = (value: MaterialBatch): void => {
-    const manifest = value.manifest as Record<string, unknown>
-    const requests = (manifest.binding_requests || {}) as Record<
-      string,
-      { key?: string; request?: Record<string, unknown> }
-    >
-    const key =
-      command.value?.key || (value.batch_id === requestedBatch.value ? requestedKey.value : '')
-    const stage =
-      submittedStage.value ||
-      (!command.value && value.batch_id === requestedBatch.value ? requestedStage.value : '') ||
-      (key ? Object.keys(requests).find((id) => requests[id]?.key === key) : '')
-    const receipt = stage ? requests[stage] : undefined
-    // 双身份必须指向同一持久化回执，冲突时不采用任何请求或结果
-    if (
-      stage &&
-      key &&
-      ((receipt && receipt.key !== key) ||
-        (!receipt && !command.value && requestedStage.value && requestedKey.value))
-    ) {
-      recoveryConflict.value = true
+    vocabularyHash.value = ''
+    if (batch.value) {
       submittedStage.value = ''
       command.value = null
-      receiptRevision.value = ''
       receiptMode.value = null
-      bindings.value = []
-      vocabularyRows.value = []
-      checked.value = false
-      target.value = null
-      phase.value = 'result'
-      error.value =
-        '绑定恢复身份冲突：阶段与原幂等键无法对应同一回执，当前状态未知；请核对原链接后恢复'
-      return
+      receiptRevision.value = ''
     }
-    recoveryConflict.value = false
-    const request = receipt?.request
-    if (!request) {
-      if (key || (value.batch_id === requestedBatch.value && requestedStage.value)) {
-        phase.value = 'result'
-        error.value = '当前绑定回执尚未确认，请恢复原操作；不会推断最新任务或重发新绑定'
-      }
-      return
-    }
-    submittedStage.value = stage || ''
-    receiptRevision.value = String(request.revision_id || '')
-    if (receipt?.key)
-      command.value = { key: receipt.key, body: { ...request, manual_checked: true } }
-    const bound = Array.isArray(request.bindings) ? (request.bindings as MaterialBinding[]) : []
-    const selections = Array.isArray(request.vocabulary_selections)
-      ? (request.vocabulary_selections as {
-          import_entry_id: string
-          no_image_confirmed?: boolean
-          difference_confirmed?: boolean
-        }[])
-      : []
-    if (selections.length) receiptMode.value = 'vocabulary'
-    else if (bound.length) receiptMode.value = 'materials'
-    bindings.value = (value.manifest.resources || []).map((resource) => {
-      const binding = bound.find((row) => row.path === resource.path)
-      return binding
-        ? { ...binding, selected: true }
-        : { path: resource.path, role: '', selected: false }
-    })
-    if (selections.length && Array.isArray(manifest.vocabulary_rows))
-      vocabularyRows.value = (manifest.vocabulary_rows as VocabularyRow[]).map((row) => {
-        const selection = selections.find((item) => item.import_entry_id === row.import_entry_id)
-        return {
-          ...row,
-          selected: !!selection,
-          noImageConfirmed: !!selection?.no_image_confirmed,
-          differenceConfirmed: !!selection?.difference_confirmed
-        }
-      })
-    phase.value = 'result'
-  }
-const /** 提交冻结的素材命令，不从可变表单重建请求 */ submitCommand = async (): Promise<void> => {
-    if (recoveryConflict.value || !command.value || !batch.value) return
+    checked.value = false
+    bindings.value = (value.manifest.resources || []).map((row) => ({
+      path: row.path,
+      role: '',
+      selected: false
+    }))
+  } else if (!bindings.value.length)
+    bindings.value = (value.manifest.resources || []).map((row) => ({
+      path: row.path,
+      role: '',
+      selected: false
+    }))
+  if (value.series_id) context.seriesId = value.series_id
+  if (value.content_type) context.type = value.content_type
+  await Promise.resolve()
+  if (disposed || token !== generation) return
+  batch.value = value
+  if (!vocabularyRows.value.length && Array.isArray(value.manifest.vocabulary_rows))
+    vocabularyRows.value = (value.manifest.vocabulary_rows as VocabularyRow[]).map((row) => ({
+      ...row,
+      selected: false,
+      noImageConfirmed: false,
+      differenceConfirmed: false
+    }))
+  recoveryId.value = value.batch_id
+  if (phase.value === 'upload') phase.value = 'validation'
+  restoreReceipt(value)
+}
+/**
+ * 更换本地素材包时更换上传身份
+ * @param value - 管理员重新选择的 ZIP
+ */
+const selectFile = (value: UploadFile): void => {
+  if (batch.value) startNew()
+  file.value = value.raw || null
+  uploadKey = createIdempotencyKey()
+  phase.value = 'upload'
+  submittedStage.value = ''
+}
+/**
+ * 上传明确系列和模板的独立素材 ZIP
+ * @returns 上传与恢复结果完成状态
+ */
+const upload = async (): Promise<void> =>
+  run(async () => {
+    if (!file.value || !context.seriesId || (hasVocabularyTable.value && !target.value)) return
     const token = generation
-    const origin = { batchId: batch.value.batch_id, key: command.value.key }
-    const receipt = await client.request<{ stage_id?: string }>({
-      method: 'POST',
-      path: `/api/v1/admin/content-materials/${encodeURIComponent(batch.value.batch_id)}/bindings`,
-      headers: { 'Idempotency-Key': command.value.key },
-      body: command.value.body
+    const fixedSource = hasVocabularyTable.value ? targetId.value : ''
+    const value = await adapter.upload(file.value, context.seriesId, context.type, uploadKey)
+    if (disposed || token !== generation) return
+    await read(value.batch_id)
+    if (fixedSource) {
+      targetId.value = fixedSource
+      await nextTick()
+      await readTarget()
+    }
+  })
+/**
+ * 加载当前页可编辑草稿，标题建议不自动采用
+ * @returns 草稿加载完成状态
+ */
+const loadTargets = async (): Promise<void> =>
+  run(async () => {
+    const token = generation
+    if (!series.value.length) series.value = await content.listSeries()
+    if (!context.seriesId) return
+    const value = await catalogue.list({
+      page: context.page,
+      pageSize: 100,
+      query: '',
+      seriesId: context.seriesId,
+      contentType: context.type as 'dialogue' | 'word_card' | 'short_reading',
+      status: ''
     })
+    if (disposed || token !== generation) return
+    missingDraftCount.value = value.items.filter((row) => !row.draft_revision_id).length
+    targets.value = value.items
+      .filter((row) => row.draft_revision_id)
+      .map((row) => ({
+        id: row.id,
+        revisionId: row.draft_revision_id!,
+        title: row.title_zh || row.title_en
+      }))
+  })
+/**
+ * 读取明确选择的草稿版本和稳定词条
+ * @returns 固定草稿读取完成状态
+ */
+const readTarget = async (): Promise<void> => {
+  const token = generation
+  target.value = null
+  checked.value = false
+  const row = targets.value.find((item) => item.revisionId === targetId.value)
+  if (!row) return
+  const value =
+    context.type === 'short_reading'
+      ? await readings.load(row.id)
+      : await content.getRevision(row.revisionId)
+  if (disposed || token !== generation || targetId.value !== row.revisionId) return
+  if ('revisionId' in value && value.revisionId !== row.revisionId)
+    throw new Error('来源草稿已改变，请重新加载并选择当前候选版本')
+  target.value = {
+    revisionId: row.revisionId,
+    version: 'editVersion' in value ? value.editVersion : value.version,
+    content: { ...value.content }
+  }
+  if (hasVocabularyTable.value && batch.value) {
+    const preview = await client.request<{
+      preview_hash: string
+      revision_id: string
+      expected_version: number
+      vocabulary_rows: Omit<
+        VocabularyRow,
+        'selected' | 'noImageConfirmed' | 'differenceConfirmed'
+      >[]
+    }>({
+      method: 'GET',
+      path: `/api/v1/admin/content-materials/${encodeURIComponent(batch.value.batch_id)}/vocabulary-preview`,
+      query: { revision_id: row.revisionId, expected_version: target.value.version }
+    })
+    if (disposed || token !== generation || targetId.value !== row.revisionId) return
     if (
-      disposed ||
-      token !== generation ||
-      batch.value?.batch_id !== origin.batchId ||
-      command.value?.key !== origin.key
+      preview.revision_id !== row.revisionId ||
+      preview.expected_version !== target.value.version ||
+      !/^[a-f0-9]{64}$/.test(preview.preview_hash)
+    )
+      throw new Error('图包预览与当前来源版本不一致，请重新读取')
+    vocabularyHash.value = preview.preview_hash
+    vocabularyRows.value = preview.vocabulary_rows.map((item) => ({
+      ...item,
+      selected: false,
+      noImageConfirmed: false,
+      differenceConfirmed: false
+    }))
+  }
+}
+/**
+ * 串行读取管理员明确的来源版本
+ * @returns 来源读取结果
+ */
+const loadTarget = async (): Promise<void> => run(readTarget)
+/**
+ * 明确绑定选中文件，网络不确定时保留相同命令身份
+ * @returns 绑定命令完成状态
+ */
+const bind = async (): Promise<void> =>
+  run(async () => {
+    if (!ready.value || !target.value || !batch.value) return
+    const token = generation
+    const batchId = batch.value.batch_id
+    const rows = selected.value.map((row) => ({
+      path: row.path,
+      role: row.role,
+      ...(['WORD_IMAGE', 'WORD_AUDIO', 'CHUNK_AUDIO'].includes(row.role)
+        ? { entry_id: row.entry_id }
+        : {})
+    }))
+    const signature = JSON.stringify([
+      batch.value.batch_id,
+      target.value.revisionId,
+      target.value.version,
+      rows,
+      vocabularyHash.value,
+      chosenVocabulary.value.map((row) => [
+        row.import_entry_id,
+        row.noImageConfirmed,
+        row.differenceConfirmed
+      ])
+    ])
+    if (signature !== bindSignature) {
+      bindSignature = signature
+      bindKey = createIdempotencyKey()
+    }
+    command.value = {
+      key: bindKey,
+      body: {
+        revision_id: target.value.revisionId,
+        expected_version: target.value.version,
+        manual_checked: true,
+        bindings: hasVocabularyTable.value ? [] : rows,
+        ...(hasVocabularyTable.value
+          ? {
+              vocabulary_preview_hash: vocabularyHash.value,
+              vocabulary_selections: chosenVocabulary.value.map((row) => ({
+                import_entry_id: row.import_entry_id,
+                no_image_confirmed: row.noImageConfirmed,
+                difference_confirmed: row.differenceConfirmed
+              }))
+            }
+          : {})
+      }
+    }
+    try {
+      await submitCommand()
+    } catch (failure) {
+      if (disposed || token !== generation) return
+      if (failure instanceof ApiError && failure.status >= 400 && failure.status < 500) {
+        await rejectCommand()
+      } else {
+        phase.value = 'result'
+      }
+      await read(batchId).catch(() => undefined)
+      throw failure
+    }
+    if (disposed || token !== generation) return
+    checked.value = false
+    await read(batchId)
+  })
+/**
+ * 获取本篇角色所需的稳定词条
+ * @param role - 文件正在绑定的角色
+ * @returns 本篇词汇或语块
+ */
+const roleEntries = (role: string) =>
+  context.type === 'short_reading'
+    ? []
+    : role === 'CHUNK_AUDIO'
+      ? entries.value?.chunks || []
+      : entries.value?.vocabulary || []
+/**
+ * 进入固定草稿的图文核对，不自动确认任何文件
+ * @returns 切换预览状态
+ */
+const showPreview = (): void => {
+  checked.value = false
+  phase.value = 'preview'
+}
+/**
+ * 恢复上传入口，已有完成结果仍保留在服务端
+ * @returns 新包上传状态
+ */
+const startNew = (): void => {
+  recoveryConflict.value = false
+  phase.value = 'upload'
+  submittedStage.value = ''
+  command.value = null
+  receiptMode.value = null
+  receiptRevision.value = ''
+  checked.value = false
+  batch.value = null
+  file.value = null
+  target.value = null
+  targetId.value = ''
+  vocabularyHash.value = ''
+  vocabularyRows.value = []
+  bindings.value = []
+}
+/**
+ * 返回批量导入的来源选择入口
+ * @returns 路由切换完成状态
+ */
+const returnToImport = (): void => {
+  void router.push({
+    name: 'content-import',
+    query: { series_id: context.seriesId || undefined, content_type: context.type }
+  })
+}
+/** 素材实际绑定后桥接工作单，保留对应正文范围 */
+const continueWorkOrder = async (): Promise<void> => {
+  if (!bindingCompleted.value || !batch.value) return
+  await run(async () => {
+    const token = generation
+    const batchId = batch.value!.batch_id
+    const order = await createWorkOrderAdapter(client).fromBatch(batchId)
+    if (disposed || token !== generation || batch.value?.batch_id !== batchId) return
+    await router.push({ name: 'content-work-order', params: { id: order.work_order_id } })
+  })
+}
+/**
+ * 恢复 URL 指定阶段或原幂等键对应的回执
+ * @param value - 当前批次的实际持久化清单
+ */
+const restoreReceipt = (value: MaterialBatch): void => {
+  const manifest = value.manifest as Record<string, unknown>
+  const requests = (manifest.binding_requests || {}) as Record<
+    string,
+    { key?: string; request?: Record<string, unknown> }
+  >
+  const key =
+    command.value?.key || (value.batch_id === requestedBatch.value ? requestedKey.value : '')
+  const stage =
+    submittedStage.value ||
+    (!command.value && value.batch_id === requestedBatch.value ? requestedStage.value : '') ||
+    (key ? Object.keys(requests).find((id) => requests[id]?.key === key) : '')
+  const receipt = stage ? requests[stage] : undefined
+  // 双身份必须指向同一持久化回执，冲突时不采用任何请求或结果
+  if (
+    stage &&
+    key &&
+    ((receipt && receipt.key !== key) ||
+      (!receipt && !command.value && requestedStage.value && requestedKey.value))
+  ) {
+    recoveryConflict.value = true
+    submittedStage.value = ''
+    command.value = null
+    receiptRevision.value = ''
+    receiptMode.value = null
+    bindings.value = []
+    vocabularyRows.value = []
+    checked.value = false
+    target.value = null
+    phase.value = 'result'
+    error.value =
+      '绑定恢复身份冲突：阶段与原幂等键无法对应同一回执，当前状态未知；请核对原链接后恢复'
+    return
+  }
+  recoveryConflict.value = false
+  const request = receipt?.request
+  if (!request) {
+    if (key || (value.batch_id === requestedBatch.value && requestedStage.value)) {
+      phase.value = 'result'
+      error.value = '当前绑定回执尚未确认，请恢复原操作；不会推断最新任务或重发新绑定'
+    }
+    return
+  }
+  submittedStage.value = stage || ''
+  receiptRevision.value = String(request.revision_id || '')
+  if (receipt?.key) command.value = { key: receipt.key, body: { ...request, manual_checked: true } }
+  const bound = Array.isArray(request.bindings) ? (request.bindings as MaterialBinding[]) : []
+  const selections = Array.isArray(request.vocabulary_selections)
+    ? (request.vocabulary_selections as {
+        import_entry_id: string
+        no_image_confirmed?: boolean
+        difference_confirmed?: boolean
+      }[])
+    : []
+  if (selections.length) receiptMode.value = 'vocabulary'
+  else if (bound.length) receiptMode.value = 'materials'
+  bindings.value = (value.manifest.resources || []).map((resource) => {
+    const binding = bound.find((row) => row.path === resource.path)
+    return binding
+      ? { ...binding, selected: true }
+      : { path: resource.path, role: '', selected: false }
+  })
+  if (selections.length && Array.isArray(manifest.vocabulary_rows))
+    vocabularyRows.value = (manifest.vocabulary_rows as VocabularyRow[]).map((row) => {
+      const selection = selections.find((item) => item.import_entry_id === row.import_entry_id)
+      return {
+        ...row,
+        selected: !!selection,
+        noImageConfirmed: !!selection?.no_image_confirmed,
+        differenceConfirmed: !!selection?.difference_confirmed
+      }
+    })
+  phase.value = 'result'
+}
+/** 提交冻结的素材命令，不从可变表单重建请求 */
+const submitCommand = async (): Promise<void> => {
+  if (recoveryConflict.value || !command.value || !batch.value) return
+  const token = generation
+  const origin = { batchId: batch.value.batch_id, key: command.value.key }
+  const receipt = await client.request<{ stage_id?: string }>({
+    method: 'POST',
+    path: `/api/v1/admin/content-materials/${encodeURIComponent(batch.value.batch_id)}/bindings`,
+    headers: { 'Idempotency-Key': command.value.key },
+    body: command.value.body
+  })
+  if (
+    disposed ||
+    token !== generation ||
+    batch.value?.batch_id !== origin.batchId ||
+    command.value?.key !== origin.key
+  )
+    return
+  submittedStage.value = receipt.stage_id || ''
+  phase.value = 'result'
+}
+/** 服务端明确拒绝原命令时返回校验，要求重新读取来源版本 */
+const rejectCommand = async (): Promise<void> => {
+  command.value = null
+  submittedStage.value = ''
+  requestedStage.value = ''
+  requestedKey.value = ''
+  target.value = null
+  checked.value = false
+  await router.replace({
+    name: 'content-import',
+    query: {
+      ...route.query,
+      material_stage_id: undefined,
+      material_bind_key: undefined,
+      material_phase: 'validation'
+    }
+  })
+  phase.value = 'validation'
+}
+/**
+ * 未确认回执时续办冻结的同一个请求和幂等键
+ * @returns 原操作续办结果
+ */
+const resumeUnknown = async (): Promise<void> =>
+  run(async () => {
+    if (recoveryConflict.value || !command.value || !batch.value || submittedStage.value) return
+    const token = generation
+    const batchId = batch.value.batch_id
+    try {
+      await submitCommand()
+    } catch (failure) {
+      if (disposed || token !== generation) return
+      if (failure instanceof ApiError && failure.status >= 400 && failure.status < 500)
+        await rejectCommand()
+      throw failure
+    } finally {
+      if (!disposed && token === generation) await read(batchId)
+    }
+  })
+/**
+ * 只重试明确失败且没有成功结果的原绑定
+ * @returns 本次失败绑定重试结果
+ */
+const retryFailed = async (): Promise<void> =>
+  run(async () => {
+    if (
+      recoveryConflict.value ||
+      !batch.value ||
+      !bindingError.value ||
+      bindingCompleted.value ||
+      !command.value
     )
       return
-    submittedStage.value = receipt.stage_id || ''
-    phase.value = 'result'
-  }
-const /** 服务端明确拒绝原命令时返回校验，要求重新读取来源版本 */ rejectCommand =
-    async (): Promise<void> => {
-      command.value = null
-      submittedStage.value = ''
-      requestedStage.value = ''
-      requestedKey.value = ''
-      target.value = null
-      checked.value = false
-      await router.replace({
-        name: 'content-import',
-        query: {
-          ...route.query,
-          material_stage_id: undefined,
-          material_bind_key: undefined,
-          material_phase: 'validation'
-        }
-      })
-      phase.value = 'validation'
+    const token = generation
+    const batchId = batch.value.batch_id
+    command.value = {
+      key: createIdempotencyKey(),
+      body: globalThis.structuredClone(command.value.body)
     }
-const /**
-   * 未确认回执时续办冻结的同一个请求和幂等键
-   * @returns 原操作续办结果
-   */ resumeUnknown = async (): Promise<void> =>
-    run(async () => {
-      if (recoveryConflict.value || !command.value || !batch.value || submittedStage.value) return
-      const token = generation
-      const batchId = batch.value.batch_id
-      try {
-        await submitCommand()
-      } catch (failure) {
-        if (disposed || token !== generation) return
-        if (failure instanceof ApiError && failure.status >= 400 && failure.status < 500)
-          await rejectCommand()
-        throw failure
-      } finally {
-        if (!disposed && token === generation) await read(batchId)
-      }
-    })
-const /**
-   * 只重试明确失败且没有成功结果的原绑定
-   * @returns 本次失败绑定重试结果
-   */ retryFailed = async (): Promise<void> =>
-    run(async () => {
-      if (
-        recoveryConflict.value ||
-        !batch.value ||
-        !bindingError.value ||
-        bindingCompleted.value ||
-        !command.value
-      )
-        return
-      const token = generation
-      const batchId = batch.value.batch_id
-      command.value = {
-        key: createIdempotencyKey(),
-        body: globalThis.structuredClone(command.value.body)
-      }
-      submittedStage.value = ''
-      try {
-        await submitCommand()
-      } catch (failure) {
-        if (disposed || token !== generation) return
-        if (failure instanceof ApiError && failure.status >= 400 && failure.status < 500)
-          await rejectCommand()
-        throw failure
-      } finally {
-        if (!disposed && token === generation) await read(batchId)
-      }
-    })
+    submittedStage.value = ''
+    try {
+      await submitCommand()
+    } catch (failure) {
+      if (disposed || token !== generation) return
+      if (failure instanceof ApiError && failure.status >= 400 && failure.status < 500)
+        await rejectCommand()
+      throw failure
+    } finally {
+      if (!disposed && token === generation) await read(batchId)
+    }
+  })
 watch(
   () => [
     String(route.query.material_batch_id || route.query.batch_id || ''),

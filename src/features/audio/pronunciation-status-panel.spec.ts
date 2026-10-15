@@ -17,30 +17,34 @@ afterEach(() => {
   for (const wrapper of wrappers.splice(0)) wrapper.unmount()
   vi.resetAllMocks()
 })
-const /** 读取已确认目标的独立状态夹具
-   * @param status - 实际任务状态
-   * @returns 不允许新增收费调用的固定目标
-   */ fact = (status: string) => ({
-    target_id: 'TARGET-A',
-    target_status: 'CONFIRMED',
-    target_type: 'WORD',
-    allow_synthesis: false,
-    synthesis_enabled: false,
-    source: 'CACHE',
-    resource_version: 'FIXED-A',
-    task: { public_id: 'TASK-A', status, attempt: 1, error_code: null },
-    attempts: []
+/**
+ * 读取已确认目标的独立状态夹具
+ * @param status - 实际任务状态
+ * @returns 不允许新增收费调用的固定目标
+ */
+const fact = (status: string) => ({
+  target_id: 'TARGET-A',
+  target_status: 'CONFIRMED',
+  target_type: 'WORD',
+  allow_synthesis: false,
+  synthesis_enabled: false,
+  source: 'CACHE',
+  resource_version: 'FIXED-A',
+  task: { public_id: 'TASK-A', status, attempt: 1, error_code: null },
+  attempts: []
+})
+/**
+ * 装载真实控件与可观察的安全命令
+ * @returns 当前面板测试实例
+ */
+const panel = () => {
+  const wrapper = mount(PronunciationStatusPanel, {
+    props: { targetId: 'TARGET-A' },
+    global: { plugins: [ElementPlus] }
   })
-const /** 装载真实控件与可观察的安全命令
-   * @returns 当前面板测试实例
-   */ panel = () => {
-    const wrapper = mount(PronunciationStatusPanel, {
-      props: { targetId: 'TARGET-A' },
-      global: { plugins: [ElementPlus] }
-    })
-    wrappers.push(wrapper)
-    return wrapper
-  }
+  wrappers.push(wrapper)
+  return wrapper
+}
 
 describe('pronunciation administrative observation', () => {
   it('does not expose a recovery command for UNKNOWN paid outcomes', async () => {

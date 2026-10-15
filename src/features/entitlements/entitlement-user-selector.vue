@@ -14,39 +14,43 @@ let selectedId = ''
 let timer: ReturnType<typeof globalThis.setTimeout> | undefined
 let sequence = 0
 let disposed = false
-const /** 搜索昵称或句芽号，不将完整联系方式写入持久化
-   * @param value - 管理员输入的昵称或句芽编号
-   */ search = (value: string): void => {
-    selectedId = ''
-    model.value = value.trim()
-    globalThis.clearTimeout(timer)
-    const token = ++sequence
-    matches.value = []
-    error.value = ''
-    if (!value.trim()) return
-    timer = globalThis.setTimeout(async () => {
-      busy.value = true
-      try {
-        const result = await adapter.searchUsers(value.trim())
-        if (!disposed && token === sequence) matches.value = result
-      } catch {
-        if (!disposed && token === sequence) error.value = '用户搜索失败，请重试'
-      } finally {
-        if (token === sequence) busy.value = false
-      }
-    }, 250)
-  }
-const /** 选择服务端用户身份，保存稳定编号并显示昵称与句芽号
-   * @param user - 当前搜索结果中的真实用户
-   */ select = (user: UserProjectionDto): void => {
-    globalThis.clearTimeout(timer)
-    sequence++
-    busy.value = false
-    selectedId = user.user_id
-    model.value = user.user_id
-    text.value = `${user.nickname || '未设置昵称'} · 句芽号：${user.juya_number || user.user_id}`
-    matches.value = []
-  }
+/**
+ * 搜索昵称或句芽号，不将完整联系方式写入持久化
+ * @param value - 管理员输入的昵称或句芽编号
+ */
+const search = (value: string): void => {
+  selectedId = ''
+  model.value = value.trim()
+  globalThis.clearTimeout(timer)
+  const token = ++sequence
+  matches.value = []
+  error.value = ''
+  if (!value.trim()) return
+  timer = globalThis.setTimeout(async () => {
+    busy.value = true
+    try {
+      const result = await adapter.searchUsers(value.trim())
+      if (!disposed && token === sequence) matches.value = result
+    } catch {
+      if (!disposed && token === sequence) error.value = '用户搜索失败，请重试'
+    } finally {
+      if (token === sequence) busy.value = false
+    }
+  }, 250)
+}
+/**
+ * 选择服务端用户身份，保存稳定编号并显示昵称与句芽号
+ * @param user - 当前搜索结果中的真实用户
+ */
+const select = (user: UserProjectionDto): void => {
+  globalThis.clearTimeout(timer)
+  sequence++
+  busy.value = false
+  selectedId = user.user_id
+  model.value = user.user_id
+  text.value = `${user.nickname || '未设置昵称'} · 句芽号：${user.juya_number || user.user_id}`
+  matches.value = []
+}
 watch(model, (value) => {
   if (value !== selectedId) text.value = value
 })

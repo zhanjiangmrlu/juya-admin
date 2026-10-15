@@ -63,43 +63,48 @@ const receipts = computed(() =>
 const succeeded = computed(
   () => props.state.results.filter((row) => row.status === 'SUCCEEDED').length
 )
-const /** 仅在完整候选内容与类型身份一致时复用冻结标题
-   * @param revisionId - 发布范围内的固定候选版本
-   * @returns 可读内容标题
-   */
-  title = (revisionId: string): string => {
-    const candidate = props.state.candidates.find((row) => row.revision_id === revisionId)
-    const matches = props.items.filter(
-      (row) =>
-        candidate?.candidate_hash &&
-        candidate.content_type === props.contentType &&
-        row.work_order_id === props.state.work_order_id &&
-        row.content_id === candidate.content_id &&
-        row.revision_id === revisionId &&
-        row.candidate_hash === candidate.candidate_hash
-    )
-    const item = matches.length === 1 ? matches[0] : undefined
-    return item?.title_en || item?.title_zh || '原冻结候选（原标题暂无法核验）'
+/**
+ * 仅在完整候选内容与类型身份一致时复用冻结标题
+ * @param revisionId - 发布范围内的固定候选版本
+ * @returns 可读内容标题
+ */
+const title = (revisionId: string): string => {
+  const candidate = props.state.candidates.find((row) => row.revision_id === revisionId)
+  const matches = props.items.filter(
+    (row) =>
+      candidate?.candidate_hash &&
+      candidate.content_type === props.contentType &&
+      row.work_order_id === props.state.work_order_id &&
+      row.content_id === candidate.content_id &&
+      row.revision_id === revisionId &&
+      row.candidate_hash === candidate.candidate_hash
+  )
+  const item = matches.length === 1 ? matches[0] : undefined
+  return item?.title_en || item?.title_zh || '原冻结候选（原标题暂无法核验）'
+}
+/**
+ * 显示原冻结内容与版本身份，供原标题暂无法核验时核对
+ * @param revisionId - 逐项结果指向的冻结版本
+ * @returns 实际内容与版本编号
+ */
+const identity = (revisionId: string): string => {
+  const candidate = props.state.candidates.find((row) => row.revision_id === revisionId)
+  return [candidate?.content_id, revisionId].filter(Boolean).join(' · ')
+}
+/**
+ * 保留服务端错误代码，并仅对已确认契约解释具体问题
+ * @param code - 逐项发布的真实错误代码
+ * @returns 问题说明与可核对的原代码
+ */
+const problem = (code: string | null | undefined): string => {
+  if (!code) return '服务端尚未提供具体问题，请刷新结果'
+  const messages: Record<string, string> = {
+    PUBLICATION_PREVIEW_STALE: '候选版本或资料已变化，请核对原冻结版本',
+    PUBLICATION_CANDIDATE_NOT_READY: '候选尚未满足发布条件',
+    PUBLICATION_ITEM_RESULT_UNKNOWN: '发布结果待核实，请查看原任务与回执'
   }
-const /** 显示原冻结内容与版本身份，供原标题暂无法核验时核对
-   * @param revisionId - 逐项结果指向的冻结版本
-   * @returns 实际内容与版本编号
-   */ identity = (revisionId: string): string => {
-    const candidate = props.state.candidates.find((row) => row.revision_id === revisionId)
-    return [candidate?.content_id, revisionId].filter(Boolean).join(' · ')
-  }
-const /** 保留服务端错误代码，并仅对已确认契约解释具体问题
-   * @param code - 逐项发布的真实错误代码
-   * @returns 问题说明与可核对的原代码
-   */ problem = (code: string | null | undefined): string => {
-    if (!code) return '服务端尚未提供具体问题，请刷新结果'
-    const messages: Record<string, string> = {
-      PUBLICATION_PREVIEW_STALE: '候选版本或资料已变化，请核对原冻结版本',
-      PUBLICATION_CANDIDATE_NOT_READY: '候选尚未满足发布条件',
-      PUBLICATION_ITEM_RESULT_UNKNOWN: '发布结果待核实，请查看原任务与回执'
-    }
-    return messages[code] ? `${messages[code]}（${code}）` : `服务端返回：${code}；请核对原任务结果`
-  }
+  return messages[code] ? `${messages[code]}（${code}）` : `服务端返回：${code}；请核对原任务结果`
+}
 </script>
 <template>
   <div class="publication-workspace">

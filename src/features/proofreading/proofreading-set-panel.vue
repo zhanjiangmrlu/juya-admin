@@ -90,138 +90,150 @@ let generation = 0
 let bulkSignature = ''
 let bulkKey = ''
 let disposed = false
-const /**
-   * 串行执行集合命令并阻止离页迟到回写
-   * @param action - 本次真实校对命令
-   * @returns 当前操作结果或完成状态
-   */ run = async (action: () => Promise<void>): Promise<void> => {
-    if (busy.value || disposed) return
-    busy.value = true
-    error.value = ''
-    const sequence = generation
-    try {
-      await action()
-    } catch (failure) {
-      if (!disposed && sequence === generation)
-        error.value = failure instanceof Error ? failure.message : '校对操作失败'
-    } finally {
-      if (!disposed && sequence === generation) busy.value = false
-    }
+/**
+ * 串行执行集合命令并阻止离页迟到回写
+ * @param action - 本次真实校对命令
+ * @returns 当前操作结果或完成状态
+ */
+const run = async (action: () => Promise<void>): Promise<void> => {
+  if (busy.value || disposed) return
+  busy.value = true
+  error.value = ''
+  const sequence = generation
+  try {
+    await action()
+  } catch (failure) {
+    if (!disposed && sequence === generation)
+      error.value = failure instanceof Error ? failure.message : '校对操作失败'
+  } finally {
+    if (!disposed && sequence === generation) busy.value = false
   }
-const /** 读取并建立明确候选集合，抽样成员由服务端决定
-   * @returns 当前操作结果或完成状态
-   */ create = async (): Promise<void> =>
-    run(async () => {
-      const sequence = generation
-      const candidates = await Promise.all(
-        props.candidates.map(async (item) => ({
-          content_type: item.contentType,
-          content_id: item.contentId,
-          revision_id: item.revisionId,
-          candidate_hash: item.contentHash || (await candidateHash(item.content))
-        }))
-      )
-      const result = await adapter.create(candidates)
-      if (disposed || sequence !== generation) return
+}
+/**
+ * 读取并建立明确候选集合，抽样成员由服务端决定
+ * @returns 当前操作结果或完成状态
+ */
+const create = async (): Promise<void> =>
+  run(async () => {
+    const sequence = generation
+    const candidates = await Promise.all(
+      props.candidates.map(async (item) => ({
+        content_type: item.contentType,
+        content_id: item.contentId,
+        revision_id: item.revisionId,
+        candidate_hash: item.contentHash || (await candidateHash(item.content))
+      }))
+    )
+    const result = await adapter.create(candidates)
+    if (disposed || sequence !== generation) return
+    set.value = result
+    recoveryId.value = result.public_id
+    selected.value = result.sample_ids[0] || result.candidates[0]?.revision_id || ''
+  })
+/**
+ * 恢复持久化候选集合和确认事实
+ * @returns 当前操作结果或完成状态
+ */
+const restore = async (): Promise<void> =>
+  run(async () => {
+    const sequence = generation
+    const result = await adapter.load(recoveryId.value.trim())
+    if (!disposed && sequence === generation) {
       set.value = result
-      recoveryId.value = result.public_id
-      selected.value = result.sample_ids[0] || result.candidates[0]?.revision_id || ''
-    })
-const /** 恢复持久化候选集合和确认事实
-   * @returns 当前操作结果或完成状态
-   */ restore = async (): Promise<void> =>
-    run(async () => {
-      const sequence = generation
-      const result = await adapter.load(recoveryId.value.trim())
-      if (!disposed && sequence === generation) {
-        set.value = result
-        selected.value = result.sample_ids[0] || ''
-      }
-    })
-const /** 刷新服务端确认状态
-   * @returns 当前操作结果或完成状态
-   */ refresh = async (): Promise<void> => {
+      selected.value = result.sample_ids[0] || ''
+    }
+  })
+/**
+ * 刷新服务端确认状态
+ * @returns 当前操作结果或完成状态
+ */
+const refresh = async (): Promise<void> => {
+  if (!set.value) return
+  const sequence = generation
+  const result = await adapter.load(set.value.public_id)
+  if (!disposed && sequence === generation) set.value = result
+}
+/**
+ * 保存这篇固定候选的明确人工检查事实
+ * @returns 当前操作结果或完成状态
+ */
+const confirm = async (): Promise<void> =>
+  run(async () => {
+    if (
+      !set.value ||
+      !current.value ||
+      !previewReady.value ||
+      !checks.text_checked ||
+      (needsAudio.value && !checks.audio_listened)
+    )
+      return
+    await adapter.confirm(
+      set.value.public_id,
+      current.value.revision_id,
+      current.value.candidate_hash,
+      { ...checks }
+    )
+    await refresh()
+  })
+/**
+ * 将当前异常升级到整个集合，批准由服务端撤销
+ * @returns 当前操作结果或完成状态
+ */
+const fail = async (): Promise<void> =>
+  run(async () => {
+    if (!set.value || !current.value) return
+    await adapter.fail(set.value.public_id, current.value.revision_id, exception.value)
+    await refresh()
+  })
+/**
+ * 追加管理员明确选择的样本
+ * @returns 当前操作结果或完成状态
+ */
+const append = async (): Promise<void> =>
+  run(async () => {
+    if (!set.value || !extra.value.length) return
+    await adapter.append(set.value.public_id, extra.value)
+    await refresh()
+    extra.value = []
+  })
+/**
+ * 完成集合校对，仍需单独确认明确发布范围
+ * @returns 当前操作结果或完成状态
+ */
+const complete = async (): Promise<void> =>
+  run(async () => {
     if (!set.value) return
-    const sequence = generation
-    const result = await adapter.load(set.value.public_id)
-    if (!disposed && sequence === generation) set.value = result
-  }
-const /** 保存这篇固定候选的明确人工检查事实
-   * @returns 当前操作结果或完成状态
-   */ confirm = async (): Promise<void> =>
-    run(async () => {
-      if (
-        !set.value ||
-        !current.value ||
-        !previewReady.value ||
-        !checks.text_checked ||
-        (needsAudio.value && !checks.audio_listened)
-      )
-        return
-      await adapter.confirm(
-        set.value.public_id,
-        current.value.revision_id,
-        current.value.candidate_hash,
-        { ...checks }
-      )
-      await refresh()
-    })
-const /** 将当前异常升级到整个集合，批准由服务端撤销
-   * @returns 当前操作结果或完成状态
-   */ fail = async (): Promise<void> =>
-    run(async () => {
-      if (!set.value || !current.value) return
-      await adapter.fail(set.value.public_id, current.value.revision_id, exception.value)
-      await refresh()
-    })
-const /** 追加管理员明确选择的样本
-   * @returns 当前操作结果或完成状态
-   */ append = async (): Promise<void> =>
-    run(async () => {
-      if (!set.value || !extra.value.length) return
-      await adapter.append(set.value.public_id, extra.value)
-      await refresh()
-      extra.value = []
-    })
-const /** 完成集合校对，仍需单独确认明确发布范围
-   * @returns 当前操作结果或完成状态
-   */ complete = async (): Promise<void> =>
-    run(async () => {
-      if (!set.value) return
-      await adapter.complete(set.value.public_id, holdAbnormal.value)
-      await refresh()
-      if (!disposed && set.value) emit('confirmed', set.value)
-    })
-const /** 接受明确范围的正常结果，不伪造逐项听音事实
-   * @returns 当前批准操作完成状态
-   */ bulk = async (): Promise<void> =>
-    run(async () => {
-      if (
-        !set.value ||
-        !samplesChecked.value ||
-        !acceptNormal.value ||
-        !normalSelection.value.length
-      )
-        return
-      const signature = JSON.stringify([
-        set.value.public_id,
-        set.value.collection_hash,
-        normalSelection.value
-      ])
-      if (signature !== bulkSignature) {
-        bulkSignature = signature
-        bulkKey = createIdempotencyKey()
-      }
-      await adapter.bulk(
-        set.value.public_id,
-        set.value.collection_hash,
-        normalSelection.value,
-        bulkKey
-      )
-      await refresh()
-      normalSelection.value = []
-      acceptNormal.value = false
-    })
+    await adapter.complete(set.value.public_id, holdAbnormal.value)
+    await refresh()
+    if (!disposed && set.value) emit('confirmed', set.value)
+  })
+/**
+ * 接受明确范围的正常结果，不伪造逐项听音事实
+ * @returns 当前批准操作完成状态
+ */
+const bulk = async (): Promise<void> =>
+  run(async () => {
+    if (!set.value || !samplesChecked.value || !acceptNormal.value || !normalSelection.value.length)
+      return
+    const signature = JSON.stringify([
+      set.value.public_id,
+      set.value.collection_hash,
+      normalSelection.value
+    ])
+    if (signature !== bulkSignature) {
+      bulkSignature = signature
+      bulkKey = createIdempotencyKey()
+    }
+    await adapter.bulk(
+      set.value.public_id,
+      set.value.collection_hash,
+      normalSelection.value,
+      bulkKey
+    )
+    await refresh()
+    normalSelection.value = []
+    acceptNormal.value = false
+  })
 watch(selected, async (value) => {
   checks.text_checked = false
   checks.images_checked = false

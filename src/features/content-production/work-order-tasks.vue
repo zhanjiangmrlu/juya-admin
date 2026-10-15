@@ -47,26 +47,30 @@ const phaseLabels: Record<string, string> = {
   not_applicable: '不适用',
   cancelled: '已取消'
 }
-const /** 将权威阶段计数组合成可读结果
-   * @param counts - 同阶段全批互斥计数
-   * @returns 阶段结果
-   */ phaseResult = (counts: S['PhaseCounts']): string =>
-    Object.entries(counts)
-      .filter(([key, value]) => key !== 'total' && value)
-      .map(([key, value]) => `${value} 篇${phaseLabels[key]}`)
-      .join('，') || '尚无篇目'
-const /** 从实际调用记录显示已知计量及缺测范围
-   * @param field - 供应商保存的输入或输出Token字段
-   * @returns 实际已知计量或未知状态，并说明未测调用数量
-   */ actualTokens = (field: 'input_tokens' | 'output_tokens'): string => {
-    const attempts = props.usage?.attempts.filter((row) => row.kind === 'AI_TOKENS') || []
-    if (!attempts.length) return '尚无计量记录'
-    const known = attempts.filter((row) => row[field] !== null && row[field] !== undefined)
-    const missing = attempts.length - known.length
-    if (!known.length) return `未知（${missing} 次调用待核实）`
-    const total = known.reduce((sum, row) => sum + Number(row[field]), 0)
-    return missing ? `已知部分 ${total}（${missing} 次调用待核实）` : String(total)
-  }
+/**
+ * 将权威阶段计数组合成可读结果
+ * @param counts - 同阶段全批互斥计数
+ * @returns 阶段结果
+ */
+const phaseResult = (counts: S['PhaseCounts']): string =>
+  Object.entries(counts)
+    .filter(([key, value]) => key !== 'total' && value)
+    .map(([key, value]) => `${value} 篇${phaseLabels[key]}`)
+    .join('，') || '尚无篇目'
+/**
+ * 从实际调用记录显示已知计量及缺测范围
+ * @param field - 供应商保存的输入或输出Token字段
+ * @returns 实际已知计量或未知状态，并说明未测调用数量
+ */
+const actualTokens = (field: 'input_tokens' | 'output_tokens'): string => {
+  const attempts = props.usage?.attempts.filter((row) => row.kind === 'AI_TOKENS') || []
+  if (!attempts.length) return '尚无计量记录'
+  const known = attempts.filter((row) => row[field] !== null && row[field] !== undefined)
+  const missing = attempts.length - known.length
+  if (!known.length) return `未知（${missing} 次调用待核实）`
+  const total = known.reduce((sum, row) => sum + Number(row[field]), 0)
+  return missing ? `已知部分 ${total}（${missing} 次调用待核实）` : String(total)
+}
 defineExpose({ failedOpened })
 </script>
 <template>

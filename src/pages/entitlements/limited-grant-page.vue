@@ -88,51 +88,55 @@ const eligible = computed(
       (detail.value.currentVersion?.grantedUserCount ?? 0) <
         (detail.value.currentVersion?.capacity ?? 0))
 )
-const /** 加载开放活动分页
-   * @param page - 活动列表目标页码
-   * @returns 加载结束的异步结果
-   */ loadCampaigns = async (page = 1): Promise<void> => {
-    state.value = 'loading'
-    error.value = ''
-    apiError.value = null
-    try {
-      const result = await campaigns.list(page, 'OPEN', listPageSize.value)
-      rows.value = result.items
-      listPage.value = result.page
-      listTotal.value = result.total
-      state.value = 'ready'
-    } catch (failure) {
-      apiError.value = failure instanceof ApiError ? failure : null
-      state.value = 'error'
-      error.value = '活动列表加载失败，请重试'
-    }
+/**
+ * 加载开放活动分页
+ * @param page - 活动列表目标页码
+ * @returns 加载结束的异步结果
+ */
+const loadCampaigns = async (page = 1): Promise<void> => {
+  state.value = 'loading'
+  error.value = ''
+  apiError.value = null
+  try {
+    const result = await campaigns.list(page, 'OPEN', listPageSize.value)
+    rows.value = result.items
+    listPage.value = result.page
+    listTotal.value = result.total
+    state.value = 'ready'
+  } catch (failure) {
+    apiError.value = failure instanceof ApiError ? failure : null
+    state.value = 'error'
+    error.value = '活动列表加载失败，请重试'
   }
-const /** 加载选中活动的最新详情并关闭旧确认
-   * @param id - 管理员当前选择的活动编号
-   * @returns 最新活动加载结束的异步结果
-   */ selectCampaign = async (id: string): Promise<void> => {
-    confirmVisible.value = false
-    const sequence = ++detailSequence
-    detailFresh.value = false
-    if (detail.value?.id !== id) detail.value = null
-    error.value = ''
-    apiError.value = null
-    detailLoading.value = Boolean(id)
-    if (!id) return
-    try {
-      const result = await campaigns.detail(id)
-      if (sequence !== detailSequence || id !== form.campaignId) return
-      if (result.id !== id) throw new Error('活动详情与当前选择不匹配')
-      detail.value = result
-      detailFresh.value = true
-    } catch (failure) {
-      if (sequence !== detailSequence || id !== form.campaignId) return
-      apiError.value = failure instanceof ApiError ? failure : null
-      error.value = '活动详情加载失败，请重新选择或重试'
-    } finally {
-      if (sequence === detailSequence) detailLoading.value = false
-    }
+}
+/**
+ * 加载选中活动的最新详情并关闭旧确认
+ * @param id - 管理员当前选择的活动编号
+ * @returns 最新活动加载结束的异步结果
+ */
+const selectCampaign = async (id: string): Promise<void> => {
+  confirmVisible.value = false
+  const sequence = ++detailSequence
+  detailFresh.value = false
+  if (detail.value?.id !== id) detail.value = null
+  error.value = ''
+  apiError.value = null
+  detailLoading.value = Boolean(id)
+  if (!id) return
+  try {
+    const result = await campaigns.detail(id)
+    if (sequence !== detailSequence || id !== form.campaignId) return
+    if (result.id !== id) throw new Error('活动详情与当前选择不匹配')
+    detail.value = result
+    detailFresh.value = true
+  } catch (failure) {
+    if (sequence !== detailSequence || id !== form.campaignId) return
+    apiError.value = failure instanceof ApiError ? failure : null
+    error.value = '活动详情加载失败，请重新选择或重试'
+  } finally {
+    if (sequence === detailSequence) detailLoading.value = false
   }
+}
 watch(
   () => form.campaignId,
   (id) => {
@@ -153,48 +157,52 @@ watch(
   },
   { immediate: true }
 )
-const /** 确认预览后的限时授予并保存选填说明
-   * @param reason - 管理员在确认弹窗填写的选填备注
-   * @param retryOriginal - 是否按原请求及原备注取得不确定操作回执
-   * @returns 授予完成的异步结果
-   */ confirm = async (reason: string, retryOriginal = false): Promise<void> => {
-    if (retryOriginal ? !controller.canRetry.value : !eligible.value) return
-    const sequence = detailSequence
-    const userId = form.userId
-    const campaignId = form.campaignId
-    try {
-      commandError.value = null
-      commandApiError.value = null
-      hadConflict.value = false
-      await (retryOriginal ? controller.retry() : controller.submit(reason))
-      if (sequence !== detailSequence || userId !== form.userId || campaignId !== form.campaignId)
-        return
-      confirmVisible.value = false
-      ElMessage.success('限时权益已开通')
-      await selectCampaign(form.campaignId)
-    } catch (failure) {
-      if (sequence !== detailSequence || userId !== form.userId || campaignId !== form.campaignId)
-        return
-      confirmVisible.value = false
-      hadConflict.value = failure instanceof ApiError && failure.status === 409
-      commandError.value = controller.disabledReason.value ?? controller.errorMessage.value
-      commandApiError.value = controller.apiError.value
-      if (hadConflict.value) await selectCampaign(form.campaignId)
-    }
+/**
+ * 确认预览后的限时授予并保存选填说明
+ * @param reason - 管理员在确认弹窗填写的选填备注
+ * @param retryOriginal - 是否按原请求及原备注取得不确定操作回执
+ * @returns 授予完成的异步结果
+ */
+const confirm = async (reason: string, retryOriginal = false): Promise<void> => {
+  if (retryOriginal ? !controller.canRetry.value : !eligible.value) return
+  const sequence = detailSequence
+  const userId = form.userId
+  const campaignId = form.campaignId
+  try {
+    commandError.value = null
+    commandApiError.value = null
+    hadConflict.value = false
+    await (retryOriginal ? controller.retry() : controller.submit(reason))
+    if (sequence !== detailSequence || userId !== form.userId || campaignId !== form.campaignId)
+      return
+    confirmVisible.value = false
+    ElMessage.success('限时权益已开通')
+    await selectCampaign(form.campaignId)
+  } catch (failure) {
+    if (sequence !== detailSequence || userId !== form.userId || campaignId !== form.campaignId)
+      return
+    confirmVisible.value = false
+    hadConflict.value = failure instanceof ApiError && failure.status === 409
+    commandError.value = controller.disabledReason.value ?? controller.errorMessage.value
+    commandApiError.value = controller.apiError.value
+    if (hadConflict.value) await selectCampaign(form.campaignId)
   }
-const /** 获取服务端真实授予预览后打开核对弹窗
-   * @returns 当前预览完成的异步结果
-   */ preview = async (): Promise<void> => {
-    if (!eligible.value || !userLabel.value || userLoading.value) return
-    try {
-      commandError.value = null
-      await controller.preview()
-      confirmVisible.value = true
-    } catch (failure) {
-      commandError.value = failure instanceof Error ? failure.message : '开通预览失败，请重试'
-      commandApiError.value = failure instanceof ApiError ? failure : null
-    }
+}
+/**
+ * 获取服务端真实授予预览后打开核对弹窗
+ * @returns 当前预览完成的异步结果
+ */
+const preview = async (): Promise<void> => {
+  if (!eligible.value || !userLabel.value || userLoading.value) return
+  try {
+    commandError.value = null
+    await controller.preview()
+    confirmVisible.value = true
+  } catch (failure) {
+    commandError.value = failure instanceof Error ? failure.message : '开通预览失败，请重试'
+    commandApiError.value = failure instanceof ApiError ? failure : null
   }
+}
 void loadCampaigns()
 </script>
 

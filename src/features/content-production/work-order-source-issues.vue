@@ -26,114 +26,130 @@ const groups = computed(() => {
   }
   return [...result].map(([code, issues]) => ({ code, issues, message: issues[0]!.message }))
 })
-const /** 展示来源词条类型与真实名称
-   * @param issue - 服务端保留的来源问题和诊断证据
-   * @returns 带有词条类型与名称的问题标题
-   */ title = (issue: S['WorkIssue']): string => {
-    const diagnostic = issue.source_diagnostic
-    if (!diagnostic?.entry_text) return issue.message
-    const kind = ['chunk', 'CHUNK', 'PHRASE'].includes(diagnostic.entry_type || '')
-      ? '语块'
-      : ['word', 'WORD', 'vocabulary', 'VOCABULARY'].includes(diagnostic.entry_type || '')
-        ? '词汇'
-        : '条目'
-    return `${kind}「${diagnostic.entry_text}」：${issue.message}`
+/**
+ * 展示来源词条类型与真实名称
+ * @param issue - 服务端保留的来源问题和诊断证据
+ * @returns 带有词条类型与名称的问题标题
+ */
+const title = (issue: S['WorkIssue']): string => {
+  const diagnostic = issue.source_diagnostic
+  if (!diagnostic?.entry_text) return issue.message
+  const kind = ['chunk', 'CHUNK', 'PHRASE'].includes(diagnostic.entry_type || '')
+    ? '语块'
+    : ['word', 'WORD', 'vocabulary', 'VOCABULARY'].includes(diagnostic.entry_type || '')
+      ? '词汇'
+      : '条目'
+  return `${kind}「${diagnostic.entry_text}」：${issue.message}`
+}
+/**
+ * 标出两侧不同的文本范围，始终通过文本插值转义
+ * @param text - 当前一侧原始文本
+ * @param other - 对照一侧原始文本
+ * @returns 相同前后文与中间差异文本
+ */
+const difference = (text: string | null | undefined, other: string | null | undefined) => {
+  const value = text ?? '',
+    compared = other ?? ''
+  let start = 0,
+    end = value.length,
+    otherEnd = compared.length
+  while (start < Math.min(end, otherEnd) && value[start] === compared[start]) start++
+  while (end > start && otherEnd > start && value[end - 1] === compared[otherEnd - 1]) {
+    end--
+    otherEnd--
   }
-const /** 标出两侧不同的文本范围，始终通过文本插值转义
-   * @param text - 当前一侧原始文本
-   * @param other - 对照一侧原始文本
-   * @returns 相同前后文与中间差异文本
-   */ difference = (text: string | null | undefined, other: string | null | undefined) => {
-    const value = text ?? '',
-      compared = other ?? ''
-    let start = 0,
-      end = value.length,
-      otherEnd = compared.length
-    while (start < Math.min(end, otherEnd) && value[start] === compared[start]) start++
-    while (end > start && otherEnd > start && value[end - 1] === compared[otherEnd - 1]) {
-      end--
-      otherEnd--
-    }
-    return {
-      before: value.slice(0, start),
-      changed: value.slice(start, end),
-      after: value.slice(end)
-    }
+  return {
+    before: value.slice(0, start),
+    changed: value.slice(start, end),
+    after: value.slice(end)
   }
-const /** 只使用快照中真实存在的位置建立原文导航
-   * @param locations - 解析器原文标识或词表坐标
-   * @returns 在当前快照中唯一存在的位置
-   */ sourceTargets = (locations: string[] | undefined): string[] => {
-    if (!props.sourceVisible) return []
-    const paragraphs = originalParagraphs(props.snapshot)
-    return (locations || []).filter(
+}
+/**
+ * 只使用快照中真实存在的位置建立原文导航
+ * @param locations - 解析器原文标识或词表坐标
+ * @returns 在当前快照中唯一存在的位置
+ */
+const sourceTargets = (locations: string[] | undefined): string[] => {
+  if (!props.sourceVisible) return []
+  const paragraphs = originalParagraphs(props.snapshot)
+  return (locations || []).filter(
+    (location) =>
+      paragraphs.filter(
+        (paragraph) =>
+          (paragraph.sourceKey || paragraph.locator) === location ||
+          paragraph.sourceAliases?.includes(location)
+      ).length === 1
+  )
+}
+/**
+ * 将解析器稳定标识翻译为快照中真实的段落或表格坐标
+ * @param locations - 问题诊断保留的原文件定位
+ * @returns 原始段落或表格坐标文案
+ */
+const sourceLabels = (locations: string[]): string => {
+  const paragraphs = originalParagraphs(props.snapshot)
+  return locations
+    .map(
       (location) =>
-        paragraphs.filter(
+        paragraphs.find(
           (paragraph) =>
-            (paragraph.sourceKey || paragraph.locator) === location ||
-            paragraph.sourceAliases?.includes(location)
-        ).length === 1
+            paragraph.sourceKey === location || paragraph.sourceAliases?.includes(location)
+        )?.locator || location
     )
-  }
-const /** 将解析器稳定标识翻译为快照中真实的段落或表格坐标
-   * @param locations - 问题诊断保留的原文件定位
-   * @returns 原始段落或表格坐标文案
-   */ sourceLabels = (locations: string[]): string => {
-    const paragraphs = originalParagraphs(props.snapshot)
-    return locations
-      .map(
-        (location) =>
-          paragraphs.find(
-            (paragraph) =>
-              paragraph.sourceKey === location || paragraph.sourceAliases?.includes(location)
-          )?.locator || location
-      )
-      .join('、')
-  }
-const /** 判断问题是否属于另一份导入记录，避免导航到当前篇目
-   * @param issue - 记录原始工作项身份的问题
-   * @returns 是否需要回原工作项对照
-   */ foreignIssue = (issue: S['WorkIssue']): boolean =>
-    !!props.itemId && !!issue.origin_work_item_id && issue.origin_work_item_id !== props.itemId
-const /** 仅在稳定身份和原始英文均吻合时导航当前正文
-   * @param issue - 带有原始句子身份的来源问题
-   * @returns 当前正文句子序号或空
-   */ sentenceTarget = (issue: S['WorkIssue']): number | null => {
-    const diagnostic = issue.source_diagnostic
-    const index = props.sentences.findIndex(
-      (sentence) =>
-        !!diagnostic?.actual_sentence_id &&
-        sentence.id === diagnostic.actual_sentence_id &&
-        sentence.english === diagnostic.actual_text
-    )
-    return index < 0 ? null : index + 1
-  }
-const /** 展示服务端原始定位值，不改写定位契约
-   * @param value - 上传词表中填写的来源定位
-   * @returns 原始定位文本或 JSON
-   */ locator = (value: unknown): string =>
-    typeof value === 'string' ? value : JSON.stringify(value)
-const /** 定位当前篇目中确实存在的正文或原文，突出并转移键盘焦点
-   * @param kind - 目标属于候选正文还是不可变原文
-   * @param value - 已验证的句子序号或原文稳定坐标
-   */ navigate = (kind: 'sentence' | 'location', value: string | number): void => {
-    const scope = root.value?.closest('[data-source-scope]')
-    const target = [
-      ...(scope?.querySelectorAll<globalThis.HTMLElement>(`[data-source-${kind}]`) || [])
-    ].find(
-      (element) =>
-        element.getAttribute(`data-source-${kind}`) === String(value) ||
-        (kind === 'location' && element.dataset.sourceAliases?.split(' ').includes(String(value)))
-    )
-    if (!target) return
-    scope
-      ?.querySelectorAll('[data-source-highlight]')
-      .forEach((element) => element.removeAttribute('data-source-highlight'))
-    target.setAttribute('data-source-highlight', 'true')
-    target.setAttribute('tabindex', '-1')
-    target.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    target.focus({ preventScroll: true })
-  }
+    .join('、')
+}
+/**
+ * 判断问题是否属于另一份导入记录，避免导航到当前篇目
+ * @param issue - 记录原始工作项身份的问题
+ * @returns 是否需要回原工作项对照
+ */
+const foreignIssue = (issue: S['WorkIssue']): boolean =>
+  !!props.itemId && !!issue.origin_work_item_id && issue.origin_work_item_id !== props.itemId
+/**
+ * 仅在稳定身份和原始英文均吻合时导航当前正文
+ * @param issue - 带有原始句子身份的来源问题
+ * @returns 当前正文句子序号或空
+ */
+const sentenceTarget = (issue: S['WorkIssue']): number | null => {
+  const diagnostic = issue.source_diagnostic
+  const index = props.sentences.findIndex(
+    (sentence) =>
+      !!diagnostic?.actual_sentence_id &&
+      sentence.id === diagnostic.actual_sentence_id &&
+      sentence.english === diagnostic.actual_text
+  )
+  return index < 0 ? null : index + 1
+}
+/**
+ * 展示服务端原始定位值，不改写定位契约
+ * @param value - 上传词表中填写的来源定位
+ * @returns 原始定位文本或 JSON
+ */
+const locator = (value: unknown): string =>
+  typeof value === 'string' ? value : JSON.stringify(value)
+/**
+ * 定位当前篇目中确实存在的正文或原文，突出并转移键盘焦点
+ * @param kind - 目标属于候选正文还是不可变原文
+ * @param value - 已验证的句子序号或原文稳定坐标
+ */
+const navigate = (kind: 'sentence' | 'location', value: string | number): void => {
+  const scope = root.value?.closest('[data-source-scope]')
+  const target = [
+    ...(scope?.querySelectorAll<globalThis.HTMLElement>(`[data-source-${kind}]`) || [])
+  ].find(
+    (element) =>
+      element.getAttribute(`data-source-${kind}`) === String(value) ||
+      (kind === 'location' && element.dataset.sourceAliases?.split(' ').includes(String(value)))
+  )
+  if (!target) return
+  scope
+    ?.querySelectorAll('[data-source-highlight]')
+    .forEach((element) => element.removeAttribute('data-source-highlight'))
+  target.setAttribute('data-source-highlight', 'true')
+  target.setAttribute('tabindex', '-1')
+  target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  target.focus({ preventScroll: true })
+}
 </script>
 <template>
   <section v-if="issues.length" ref="root" class="source-issues" aria-label="问题详情">

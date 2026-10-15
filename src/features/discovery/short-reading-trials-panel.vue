@@ -23,78 +23,80 @@ const error = ref('')
 const keys = new Map<string, { signature: string; key: string }>()
 let generation = 0
 let disposed = false
-const /** 仅读取已发布短文标题及真实试读状态，不将候选草稿误作线上内容 */ load =
-    async (): Promise<void> => {
-      const token = ++generation
-      busy.value = true
-      error.value = ''
-      try {
-        const result = await client.request<{ items: Record<string, unknown>[]; total: number }>({
-          method: 'GET',
-          path: '/api/v1/admin/content/short-readings',
-          query: { page: page.value, page_size: pageSize.value, status: 'PUBLISHED' }
+/** 仅读取已发布短文标题及真实试读状态，不将候选草稿误作线上内容 */
+const load = async (): Promise<void> => {
+  const token = ++generation
+  busy.value = true
+  error.value = ''
+  try {
+    const result = await client.request<{ items: Record<string, unknown>[]; total: number }>({
+      method: 'GET',
+      path: '/api/v1/admin/content/short-readings',
+      query: { page: page.value, page_size: pageSize.value, status: 'PUBLISHED' }
+    })
+    const items = await Promise.all(
+      result.items
+        .filter((row) => row.status === 'PUBLISHED' && row.published_revision_id)
+        .map(async (row) => {
+          const id = String(row.public_id)
+          const revision = await client.request<{ content_snapshot: Record<string, unknown> }>({
+            method: 'GET',
+            path: `/api/v1/admin/content/short-readings/${encodeURIComponent(id)}/revisions/${encodeURIComponent(String(row.published_revision_id))}`
+          })
+          const title = [revision.content_snapshot.title_en, revision.content_snapshot.title_zh]
+            .filter((value) => typeof value === 'string' && value)
+            .join('｜')
+          return {
+            id,
+            title: title || '未设置标题',
+            enabled: typeof row.trial_enabled === 'boolean' ? row.trial_enabled : null,
+            draftEnabled: row.trial_enabled === true,
+            version: Number(row.version)
+          }
         })
-        const items = await Promise.all(
-          result.items
-            .filter((row) => row.status === 'PUBLISHED' && row.published_revision_id)
-            .map(async (row) => {
-              const id = String(row.public_id)
-              const revision = await client.request<{ content_snapshot: Record<string, unknown> }>({
-                method: 'GET',
-                path: `/api/v1/admin/content/short-readings/${encodeURIComponent(id)}/revisions/${encodeURIComponent(String(row.published_revision_id))}`
-              })
-              const title = [revision.content_snapshot.title_en, revision.content_snapshot.title_zh]
-                .filter((value) => typeof value === 'string' && value)
-                .join('｜')
-              return {
-                id,
-                title: title || '未设置标题',
-                enabled: typeof row.trial_enabled === 'boolean' ? row.trial_enabled : null,
-                draftEnabled: row.trial_enabled === true,
-                version: Number(row.version)
-              }
-            })
-        )
-        if (disposed || token !== generation) return
-        rows.value = items
-        total.value = result.total
-      } catch (failure) {
-        if (!disposed && token === generation)
-          error.value = failure instanceof Error ? failure.message : '短文试读配置读取失败'
-      } finally {
-        if (token === generation) busy.value = false
-      }
-    }
-const /** 保存明确目标状态，失败重试复用命令身份
-   * @param row - 当前已发布短文及读取版本
-   * @param enabled - 管理员选择的试读目标状态
-   */ save = async (row: TrialRow, enabled: boolean): Promise<void> => {
-    if (busy.value || row.enabled === null) return
-    row.draftEnabled = enabled
-    const signature = JSON.stringify([row.version, enabled])
-    if (keys.get(row.id)?.signature !== signature)
-      keys.set(row.id, { signature, key: createIdempotencyKey() })
-    const token = ++generation
-    busy.value = true
-    error.value = ''
-    try {
-      const result = await client.request<{ version: number }>({
-        method: 'PUT',
-        path: `/api/v1/admin/content/short-readings/${encodeURIComponent(row.id)}/trial`,
-        headers: { 'Idempotency-Key': keys.get(row.id)!.key },
-        body: { expected_version: row.version, enabled }
-      })
-      if (disposed || token !== generation) return
-      row.enabled = enabled
-      row.version = result.version
-      keys.delete(row.id)
-    } catch (failure) {
-      if (!disposed && token === generation)
-        error.value = failure instanceof Error ? failure.message : '试读保存失败，原选择保留'
-    } finally {
-      if (token === generation) busy.value = false
-    }
+    )
+    if (disposed || token !== generation) return
+    rows.value = items
+    total.value = result.total
+  } catch (failure) {
+    if (!disposed && token === generation)
+      error.value = failure instanceof Error ? failure.message : '短文试读配置读取失败'
+  } finally {
+    if (token === generation) busy.value = false
   }
+}
+/**
+ * 保存明确目标状态，失败重试复用命令身份
+ * @param row - 当前已发布短文及读取版本
+ * @param enabled - 管理员选择的试读目标状态
+ */
+const save = async (row: TrialRow, enabled: boolean): Promise<void> => {
+  if (busy.value || row.enabled === null) return
+  row.draftEnabled = enabled
+  const signature = JSON.stringify([row.version, enabled])
+  if (keys.get(row.id)?.signature !== signature)
+    keys.set(row.id, { signature, key: createIdempotencyKey() })
+  const token = ++generation
+  busy.value = true
+  error.value = ''
+  try {
+    const result = await client.request<{ version: number }>({
+      method: 'PUT',
+      path: `/api/v1/admin/content/short-readings/${encodeURIComponent(row.id)}/trial`,
+      headers: { 'Idempotency-Key': keys.get(row.id)!.key },
+      body: { expected_version: row.version, enabled }
+    })
+    if (disposed || token !== generation) return
+    row.enabled = enabled
+    row.version = result.version
+    keys.delete(row.id)
+  } catch (failure) {
+    if (!disposed && token === generation)
+      error.value = failure instanceof Error ? failure.message : '试读保存失败，原选择保留'
+  } finally {
+    if (token === generation) busy.value = false
+  }
+}
 onMounted(() => void load())
 onBeforeUnmount(() => {
   disposed = true

@@ -39,33 +39,33 @@ onBeforeUnmount(() => {
   disposed = true
   generation++
 })
-const /** 对明确选中的新版草稿集中确认词条，部分失败逐项展示 */ confirm =
-    async (): Promise<void> => {
-      if (busy.value || !checked.value || !eligible.value.length) return
-      busy.value = true
-      error.value = ''
-      const token = generation
-      try {
-        const candidates = await Promise.all(
-          eligible.value.map(async (row) => ({
-            revision_id: row.revisionId,
-            expected_version: row.version!,
-            candidate_hash: await candidateHash(row.content)
-          }))
-        )
-        if (disposed || token !== generation) return
-        const result = await adapter.confirmEntries(candidates)
-        if (disposed || token !== generation) return
-        results.value = result.items
-        checked.value = false
-        emit('saved')
-      } catch (failure) {
-        if (!disposed && token === generation)
-          error.value = failure instanceof Error ? failure.message : '词条确认失败'
-      } finally {
-        busy.value = false
-      }
-    }
+/** 对明确选中的新版草稿集中确认词条，部分失败逐项展示 */
+const confirm = async (): Promise<void> => {
+  if (busy.value || !checked.value || !eligible.value.length) return
+  busy.value = true
+  error.value = ''
+  const token = generation
+  try {
+    const candidates = await Promise.all(
+      eligible.value.map(async (row) => ({
+        revision_id: row.revisionId,
+        expected_version: row.version!,
+        candidate_hash: await candidateHash(row.content)
+      }))
+    )
+    if (disposed || token !== generation) return
+    const result = await adapter.confirmEntries(candidates)
+    if (disposed || token !== generation) return
+    results.value = result.items
+    checked.value = false
+    emit('saved')
+  } catch (failure) {
+    if (!disposed && token === generation)
+      error.value = failure instanceof Error ? failure.message : '词条确认失败'
+  } finally {
+    busy.value = false
+  }
+}
 </script>
 <template>
   <AdminPanel v-if="eligible.length" title="选中草稿的本篇词条集中确认">

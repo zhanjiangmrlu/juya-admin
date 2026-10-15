@@ -19,22 +19,24 @@ const versionA = {
   source: 'UPLOAD',
   created_at: '2026-10-14T00:00:00Z'
 }
-const /** 装配本篇现代词条的真实组件与认证适配
-   * @param entry - 本次当前草稿条目
-   * @returns 可操作的媒体组件
-   */ mountModernMedia = async (entry: LexiconRow) => {
-    const pinia = createPinia()
-    useAuthStore(pinia).csrfToken = 'test-csrf'
-    const router = createRouter({
-      history: createMemoryHistory(),
-      routes: [{ path: '/', component: { template: '<div />' } }]
-    })
-    await router.push('/')
-    return mount(LexiconMediaFields, {
-      props: { entry, entryType: 'vocabulary', modern: true },
-      global: { plugins: [pinia, router, ElementPlus] }
-    })
-  }
+/**
+ * 装配本篇现代词条的真实组件与认证适配
+ * @param entry - 本次当前草稿条目
+ * @returns 可操作的媒体组件
+ */
+const mountModernMedia = async (entry: LexiconRow) => {
+  const pinia = createPinia()
+  useAuthStore(pinia).csrfToken = 'test-csrf'
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/', component: { template: '<div />' } }]
+  })
+  await router.push('/')
+  return mount(LexiconMediaFields, {
+    props: { entry, entryType: 'vocabulary', modern: true },
+    global: { plugins: [pinia, router, ElementPlus] }
+  })
+}
 
 it.each(['target', 'versions', 'confirm'] as const)(
   '条目A的%s迟到不能给条目B绑定旧发音',

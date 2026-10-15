@@ -56,31 +56,31 @@ const statusLabels: Record<string, string> = {
   REVOKED: '已撤销',
   EXPIRED: '已到期'
 }
-const /**
-   * 仅格式化服务端到期时间，不在前端推算权益状态。
-   * @param value - 服务端时间或空值
-   * @returns 可读的本地时间
-   */
-  displayTime = (value: string | null): string => {
-    return formatDateTime(value, '无到期日期')
-  }
-const /**
-   * 按筛选条件重新加载第一页权益。
-   * @returns 无返回值
-   */
-  search = (): void => {
-    filters.page = 1
-    void controller.load({ ...filters, userId: filters.userId?.trim() })
-  }
-const /**
-   * 切换服务端分页。
-   * @param page - 新页码
-   * @returns 无返回值
-   */
-  changePage = (page: number): void => {
-    filters.page = page
-    void controller.load({ ...filters })
-  }
+/**
+ * 仅格式化服务端到期时间，不在前端推算权益状态。
+ * @param value - 服务端时间或空值
+ * @returns 可读的本地时间
+ */
+const displayTime = (value: string | null): string => {
+  return formatDateTime(value, '无到期日期')
+}
+/**
+ * 按筛选条件重新加载第一页权益。
+ * @returns 无返回值
+ */
+const search = (): void => {
+  filters.page = 1
+  void controller.load({ ...filters, userId: filters.userId?.trim() })
+}
+/**
+ * 切换服务端分页。
+ * @param page - 新页码
+ * @returns 无返回值
+ */
+const changePage = (page: number): void => {
+  filters.page = page
+  void controller.load({ ...filters })
+}
 void controller.load({ ...filters })
 </script>
 

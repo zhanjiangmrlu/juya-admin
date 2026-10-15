@@ -19,29 +19,30 @@ const defaultLabels: Record<string, string> = {
   NO_AUDIO: '确认本篇不配全文音频'
 }
 const actionLabels = { CREATE: '新增草稿', UPDATE: '更新草稿', SKIP: '内容相同，跳过' }
-const /**
-   * 展示正文或候选值，保留双语内容
-   * @param value - 本次服务端提供的字段内容
-   * @returns 当前操作结果或完成状态
-   */ text = (value: unknown): string => {
-    if (value === null || value === undefined || value === '') return '—'
-    if (Array.isArray(value)) return value.map(text).join('\n\n')
-    if (typeof value === 'object') {
-      const row = value as Record<string, unknown>
-      return (
-        [
-          row.speaker,
-          row.english,
-          row.chinese ?? row.meaning_zh,
-          row.explanation,
-          row.source_sentence
-        ]
-          .filter(Boolean)
-          .join('\n') || Object.values(row).map(text).join(' · ')
-      )
-    }
-    return String(value)
+/**
+ * 展示正文或候选值，保留双语内容
+ * @param value - 本次服务端提供的字段内容
+ * @returns 当前操作结果或完成状态
+ */
+const text = (value: unknown): string => {
+  if (value === null || value === undefined || value === '') return '—'
+  if (Array.isArray(value)) return value.map(text).join('\n\n')
+  if (typeof value === 'object') {
+    const row = value as Record<string, unknown>
+    return (
+      [
+        row.speaker,
+        row.english,
+        row.chinese ?? row.meaning_zh,
+        row.explanation,
+        row.source_sentence
+      ]
+        .filter(Boolean)
+        .join('\n') || Object.values(row).map(text).join(' · ')
+    )
   }
+  return String(value)
+}
 const fieldLabels: Record<string, string> = {
   title_en: '英文标题',
   title_zh: '中文标题',

@@ -42,36 +42,36 @@ const state = ref<'loading' | 'empty' | 'error' | 'success'>('loading')
 const error = ref('')
 const apiError = shallowRef<ApiError | null>(null)
 let requestSequence = 0
-const /**
-   * 加载服务端活动分页。
-   * @returns 活动列表加载完成后的 Promise
-   */
-  load = async (): Promise<void> => {
-    const sequence = ++requestSequence
-    state.value = 'loading'
-    error.value = ''
-    apiError.value = null
-    try {
-      const result = await adapter.list(filters.page, filters.status || undefined, filters.pageSize)
-      if (sequence !== requestSequence) return
-      page.value = result
-      state.value = page.value.items.length ? 'success' : 'empty'
-    } catch (failure) {
-      if (sequence !== requestSequence) return
-      state.value = 'error'
-      apiError.value = failure instanceof ApiError ? failure : null
-      error.value = failure instanceof ApiError ? failure.message : '活动列表加载失败，请重试'
-    }
+/**
+ * 加载服务端活动分页。
+ * @returns 活动列表加载完成后的 Promise
+ */
+const load = async (): Promise<void> => {
+  const sequence = ++requestSequence
+  state.value = 'loading'
+  error.value = ''
+  apiError.value = null
+  try {
+    const result = await adapter.list(filters.page, filters.status || undefined, filters.pageSize)
+    if (sequence !== requestSequence) return
+    page.value = result
+    state.value = page.value.items.length ? 'success' : 'empty'
+  } catch (failure) {
+    if (sequence !== requestSequence) return
+    state.value = 'error'
+    apiError.value = failure instanceof ApiError ? failure : null
+    error.value = failure instanceof ApiError ? failure.message : '活动列表加载失败，请重试'
   }
-const /**
-   * 切换服务端分页。
-   * @param next - 新页码
-   * @returns 无返回值
-   */
-  changePage = (next: number): void => {
-    filters.page = next
-    void load()
-  }
+}
+/**
+ * 切换服务端分页。
+ * @param next - 新页码
+ * @returns 无返回值
+ */
+const changePage = (next: number): void => {
+  filters.page = next
+  void load()
+}
 void load()
 </script>
 

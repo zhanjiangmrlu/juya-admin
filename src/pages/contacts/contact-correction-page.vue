@@ -46,12 +46,14 @@ const contactEventLabels: Record<string, string> = {
   CONTACT_CORRECTION_REJECTED: '管理员拒绝更正申请',
   CONTACT_CORRECTION_CANCELLED: '用户取消更正申请'
 }
-const /** 将联系更正审计事实转换为中文业务文案
-   * @param value - 服务端申请状态或审计事件
-   * @param labels - 对应业务字段的中文映射
-   * @returns 可读文案或未知记录提示
-   */ businessLabel = (value: string, labels: Record<string, string>): string =>
-    Object.hasOwn(labels, value) ? labels[value]! : '其他操作记录'
+/**
+ * 将联系更正审计事实转换为中文业务文案
+ * @param value - 服务端申请状态或审计事件
+ * @param labels - 对应业务字段的中文映射
+ * @returns 可读文案或未知记录提示
+ */
+const businessLabel = (value: string, labels: Record<string, string>): string =>
+  Object.hasOwn(labels, value) ? labels[value]! : '其他操作记录'
 
 onMounted(() => void controller.loadDetail(correctionId.value))
 onBeforeUnmount(controller.dispose)

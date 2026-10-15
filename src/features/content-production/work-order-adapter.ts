@@ -53,136 +53,140 @@ export type WorkCommandFields<K extends WorkCommand> = Omit<
   WorkCommandRequests[K],
   'expected_version'
 >
-const /** 拼接工作单所属资源路径
-   * @param orderId - 当前工作单
-   * @param suffix - 所属资源相对路径
-   * @returns 安全编码路径
+/**
+ * 拼接工作单所属资源路径
+ * @param orderId - 当前工作单
+ * @param suffix - 所属资源相对路径
+ * @returns 安全编码路径
+ */
+const path = (orderId: string, suffix = ''): string =>
+  `${base}/${encodeURIComponent(orderId)}${suffix}`
+/**
+ * 建立工作单正式契约适配
+ * @param client - 已认证客户端
+ * @returns 工作单接口集合
+ */
+export const createWorkOrderAdapter = (client: ApiClient) => {
+  /**
+   * 执行有持久回执的写操作
+   * @param url - 正式契约路径
+   * @param body - 当前业务版本与明确范围
+   * @param key - 同次重试复用的幂等键
+   * @param method - 契约写入方式
+   * @returns 服务端权威响应
    */
-  path = (orderId: string, suffix = ''): string => `${base}/${encodeURIComponent(orderId)}${suffix}`
-export const /** 建立工作单正式契约适配
-   * @param client - 已认证客户端
-   * @returns 工作单接口集合
+  const write = <T>(
+    url: string,
+    body: unknown,
+    key = createIdempotencyKey(),
+    method: 'POST' | 'PUT' = 'POST'
+  ): Promise<T> => client.request({ method, path: url, body, headers: { 'Idempotency-Key': key } })
+  /**
+   * 读取当前权威数据
+   * @param url - 正式读取路径
+   * @param query - 分页或固定版本查询
+   * @returns 服务端原始类型化数据
    */
-  createWorkOrderAdapter = (client: ApiClient) => {
-    const /** 执行有持久回执的写操作
-       * @param url - 正式契约路径
-       * @param body - 当前业务版本与明确范围
-       * @param key - 同次重试复用的幂等键
-       * @param method - 契约写入方式
-       * @returns 服务端权威响应
-       */
-      write = <T>(
-        url: string,
-        body: unknown,
-        key = createIdempotencyKey(),
-        method: 'POST' | 'PUT' = 'POST'
-      ): Promise<T> =>
-        client.request({ method, path: url, body, headers: { 'Idempotency-Key': key } })
-    const /** 读取当前权威数据
-       * @param url - 正式读取路径
-       * @param query - 分页或固定版本查询
-       * @returns 服务端原始类型化数据
-       */
-      read = <T>(url: string, query?: ApiRequestOptions['query']): Promise<T> =>
-        client.request({ method: 'GET', path: url, ...(query ? { query } : {}) })
-    return {
-      list: (page = 1, pageSize = 20) => read<S['OrderPage']>(base, { page, page_size: pageSize }),
-      get: (id: string) => read<S['WorkOrder']>(path(id)),
-      items: (id: string, page = 1, pageSize = 20, status = '') =>
-        read<S['ItemPage']>(path(id, '/items'), {
-          page,
-          page_size: pageSize,
-          status: status || undefined
-        }),
-      detail: (id: string, itemId: string) =>
-        read<S['WorkItemDetail']>(path(id, `/items/${encodeURIComponent(itemId)}`)),
-      /**
-       * 读取当前导入预览，id 为工作单身份，signal 为页面生命周期取消信号
-       * @param id - 服务端工作单身份
-       * @param signal - 页面生命周期取消信号
-       * @returns 当前操作结果或完成状态
-       */
-      preview: (id: string, signal?: AbortSignal) =>
-        client.request<S['ImportPreview']>({
-          method: 'GET',
-          path: path(id, '/import-preview'),
-          signal
-        }),
-      candidates: (id: string) => read<S['CandidateGroups']>(path(id, '/candidates')),
-      sampling: (id: string) => read<S['SamplingState']>(path(id, '/sampling')),
-      publication: (id: string) => read<S['PublicationState']>(path(id, '/publication')),
-      usage: (id: string) => read<S['WorkOrderUsage']>(path(id, '/usage')),
-      phases: (id: string) => read<S['WorkOrderPhases']>(path(id, '/phases')),
-      /** 通过共用认证层获取原上传文件字节
-       * @param id - 文件所属工作单
-       * @param signal - 离开当前页面时的取消信号
-       * @returns 完整原始文件
-       */ originalFile: (id: string, signal?: AbortSignal) =>
-        client.request<Blob>({
-          method: 'GET',
-          path: path(id, '/original-file'),
-          responseType: 'blob',
-          signal
-        }),
-      bindings: (id: string, itemId: string, revisionId?: string) =>
-        read<S['EntryBindings']>(path(id, `/items/${encodeURIComponent(itemId)}/entry-bindings`), {
-          revision_id: revisionId
-        }),
-      fromBatch: (batchId: string) =>
-        write<S['WorkOrder']>(`${base}/from-batch`, { batch_id: batchId }),
-      manual: (body: S['ManualRequest'], key?: string) =>
-        write<S['WorkOrder']>(`${base}/manual`, body, key),
-      contexts: (body: S['ContextLookupRequest']) =>
-        write<S['ContentContexts']>('/api/v1/admin/content-production/contexts', body),
-      /**
-       * 上传原始文件，body 为固定分类的表单，key 为同次幂等键，options 为进度和取消设置
-       * @param body - 本次请求或响应载荷
-       * @param key - 同次上传的幂等键
-       * @param options - 当前上传进度与取消设置
-       * @returns 当前操作结果或完成状态
-       */
-      upload: (
-        body: FormData,
-        key = createIdempotencyKey(),
-        options: Pick<ApiRequestOptions, 'onUploadProgress' | 'signal'> = {}
-      ) =>
-        client.request<S['WorkOrder']>({
-          method: 'POST',
-          path: base,
-          body,
-          headers: { 'Idempotency-Key': key },
-          ...options
-        }),
-      command: <K extends WorkCommand>(
-        id: string,
-        action: K,
-        body: WorkCommandRequests[K],
-        key?: string
-      ) => write<S['CommandResult']>(path(id, `/${action}`), body, key),
-      correction: (id: string, itemId: string, body: S['CorrectionRequest'], key?: string) =>
-        write<S['CommandResult']>(
-          path(id, `/items/${encodeURIComponent(itemId)}/correction`),
-          body,
-          key,
-          'PUT'
-        ),
-      /** 确认保存后重新读取的单条义项及来源
-       * @param revisionId - 当前实际草稿版本
-       * @param entryId - 保存后服务端返回的本篇词条身份
-       * @param expectedVersion - 当前草稿编辑版本
-       * @returns 正式单条人工确认结果
-       */ confirmEntry: (revisionId: string, entryId: string, expectedVersion: number) =>
-        write<unknown>(
-          `/api/v1/admin/content/revisions/${encodeURIComponent(revisionId)}/entries/${encodeURIComponent(entryId)}/confirm`,
-          {
-            expected_version: expectedVersion,
-            manual_checked: true
-          } satisfies S['ManualEntryRequest']
-        ),
-      resume: (id: string, commandId: string) =>
-        write<S['CommandResult']>(
-          path(id, `/commands/${encodeURIComponent(commandId)}/resume`),
-          undefined
-        )
-    }
+  const read = <T>(url: string, query?: ApiRequestOptions['query']): Promise<T> =>
+    client.request({ method: 'GET', path: url, ...(query ? { query } : {}) })
+  return {
+    list: (page = 1, pageSize = 20) => read<S['OrderPage']>(base, { page, page_size: pageSize }),
+    get: (id: string) => read<S['WorkOrder']>(path(id)),
+    items: (id: string, page = 1, pageSize = 20, status = '') =>
+      read<S['ItemPage']>(path(id, '/items'), {
+        page,
+        page_size: pageSize,
+        status: status || undefined
+      }),
+    detail: (id: string, itemId: string) =>
+      read<S['WorkItemDetail']>(path(id, `/items/${encodeURIComponent(itemId)}`)),
+    /**
+     * 读取当前导入预览，id 为工作单身份，signal 为页面生命周期取消信号
+     * @param id - 服务端工作单身份
+     * @param signal - 页面生命周期取消信号
+     * @returns 当前操作结果或完成状态
+     */
+    preview: (id: string, signal?: AbortSignal) =>
+      client.request<S['ImportPreview']>({
+        method: 'GET',
+        path: path(id, '/import-preview'),
+        signal
+      }),
+    candidates: (id: string) => read<S['CandidateGroups']>(path(id, '/candidates')),
+    sampling: (id: string) => read<S['SamplingState']>(path(id, '/sampling')),
+    publication: (id: string) => read<S['PublicationState']>(path(id, '/publication')),
+    usage: (id: string) => read<S['WorkOrderUsage']>(path(id, '/usage')),
+    phases: (id: string) => read<S['WorkOrderPhases']>(path(id, '/phases')),
+    /** 通过共用认证层获取原上传文件字节
+     * @param id - 文件所属工作单
+     * @param signal - 离开当前页面时的取消信号
+     * @returns 完整原始文件
+     */ originalFile: (id: string, signal?: AbortSignal) =>
+      client.request<Blob>({
+        method: 'GET',
+        path: path(id, '/original-file'),
+        responseType: 'blob',
+        signal
+      }),
+    bindings: (id: string, itemId: string, revisionId?: string) =>
+      read<S['EntryBindings']>(path(id, `/items/${encodeURIComponent(itemId)}/entry-bindings`), {
+        revision_id: revisionId
+      }),
+    fromBatch: (batchId: string) =>
+      write<S['WorkOrder']>(`${base}/from-batch`, { batch_id: batchId }),
+    manual: (body: S['ManualRequest'], key?: string) =>
+      write<S['WorkOrder']>(`${base}/manual`, body, key),
+    contexts: (body: S['ContextLookupRequest']) =>
+      write<S['ContentContexts']>('/api/v1/admin/content-production/contexts', body),
+    /**
+     * 上传原始文件，body 为固定分类的表单，key 为同次幂等键，options 为进度和取消设置
+     * @param body - 本次请求或响应载荷
+     * @param key - 同次上传的幂等键
+     * @param options - 当前上传进度与取消设置
+     * @returns 当前操作结果或完成状态
+     */
+    upload: (
+      body: FormData,
+      key = createIdempotencyKey(),
+      options: Pick<ApiRequestOptions, 'onUploadProgress' | 'signal'> = {}
+    ) =>
+      client.request<S['WorkOrder']>({
+        method: 'POST',
+        path: base,
+        body,
+        headers: { 'Idempotency-Key': key },
+        ...options
+      }),
+    command: <K extends WorkCommand>(
+      id: string,
+      action: K,
+      body: WorkCommandRequests[K],
+      key?: string
+    ) => write<S['CommandResult']>(path(id, `/${action}`), body, key),
+    correction: (id: string, itemId: string, body: S['CorrectionRequest'], key?: string) =>
+      write<S['CommandResult']>(
+        path(id, `/items/${encodeURIComponent(itemId)}/correction`),
+        body,
+        key,
+        'PUT'
+      ),
+    /** 确认保存后重新读取的单条义项及来源
+     * @param revisionId - 当前实际草稿版本
+     * @param entryId - 保存后服务端返回的本篇词条身份
+     * @param expectedVersion - 当前草稿编辑版本
+     * @returns 正式单条人工确认结果
+     */ confirmEntry: (revisionId: string, entryId: string, expectedVersion: number) =>
+      write<unknown>(
+        `/api/v1/admin/content/revisions/${encodeURIComponent(revisionId)}/entries/${encodeURIComponent(entryId)}/confirm`,
+        {
+          expected_version: expectedVersion,
+          manual_checked: true
+        } satisfies S['ManualEntryRequest']
+      ),
+    resume: (id: string, commandId: string) =>
+      write<S['CommandResult']>(
+        path(id, `/commands/${encodeURIComponent(commandId)}/resume`),
+        undefined
+      )
   }
+}

@@ -2,48 +2,49 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createApiClient } from './api-client'
 
-const /** 创建上传边界替身，保留真实客户端的认证、响应与取消处理
-   * @returns 当前操作结果或完成状态
-   */
-  transport = () => {
-    const xhr = {
-      open: vi.fn(),
-      setRequestHeader: vi.fn(),
-      send: vi.fn(),
-      withCredentials: false,
-      responseType: '',
-      response: new ArrayBuffer(0),
-      status: 200,
-      upload: {
-        onprogress: null as
-          ((event: { lengthComputable: boolean; loaded: number; total: number }) => void) | null
-      },
-      onload: null as (() => void) | null,
-      onerror: null as (() => void) | null,
-      onabort: null as (() => void) | null,
-      ontimeout: null as (() => void) | null,
-      getAllResponseHeaders: () => 'content-type: application/json\r\n',
-      /** 模拟浏览器确认请求已取消
-       * @returns 当前操作结果或完成状态
-       */
-      abort: vi.fn(() => xhr.onabort?.())
-    }
-    return {
-      xhr,
-      factory: () => xhr as unknown as XMLHttpRequest,
-      /**
-       * 返回 HTTP 响应，body 为实际响应载荷，status 为状态码
-       * @param body - 本次请求或响应载荷
-       * @param status - 服务端状态
-       * @returns 当前操作结果或完成状态
-       */
-      respond: (body: unknown, status = 200) => {
-        xhr.response = new TextEncoder().encode(JSON.stringify(body)).buffer as ArrayBuffer
-        xhr.status = status
-        xhr.onload?.()
-      }
+/**
+ * 创建上传边界替身，保留真实客户端的认证、响应与取消处理
+ * @returns 当前操作结果或完成状态
+ */
+const transport = () => {
+  const xhr = {
+    open: vi.fn(),
+    setRequestHeader: vi.fn(),
+    send: vi.fn(),
+    withCredentials: false,
+    responseType: '',
+    response: new ArrayBuffer(0),
+    status: 200,
+    upload: {
+      onprogress: null as
+        ((event: { lengthComputable: boolean; loaded: number; total: number }) => void) | null
+    },
+    onload: null as (() => void) | null,
+    onerror: null as (() => void) | null,
+    onabort: null as (() => void) | null,
+    ontimeout: null as (() => void) | null,
+    getAllResponseHeaders: () => 'content-type: application/json\r\n',
+    /** 模拟浏览器确认请求已取消
+     * @returns 当前操作结果或完成状态
+     */
+    abort: vi.fn(() => xhr.onabort?.())
+  }
+  return {
+    xhr,
+    factory: () => xhr as unknown as XMLHttpRequest,
+    /**
+     * 返回 HTTP 响应，body 为实际响应载荷，status 为状态码
+     * @param body - 本次请求或响应载荷
+     * @param status - 服务端状态
+     * @returns 当前操作结果或完成状态
+     */
+    respond: (body: unknown, status = 200) => {
+      xhr.response = new TextEncoder().encode(JSON.stringify(body)).buffer as ArrayBuffer
+      xhr.status = status
+      xhr.onload?.()
     }
   }
+}
 
 describe('认证文件上传进度', () => {
   it('传递真实进度且传输100%不会提前完成请求，保留认证和幂等头', async () => {

@@ -33,38 +33,39 @@ const readings = createShortReadingAdapter(client)
 const storageKey = 'juya.content-list.filters.v1'
 const types = { dialogue: '场景对话', word_card: '原词汇卡', short_reading: '短文阅读' }
 const statuses = { DRAFT: '草稿', PUBLISHED: '已发布', OFFLINE: '已下线' }
-const /** 恢复目录条件，校验类型与页码，避免旧条件变成隐藏的筛选
-   * @returns 已校验的目录筛选
-   */
-  restoreFilters = (): CatalogueFilters => {
-    const defaults: CatalogueFilters = {
-      page: 1,
-      pageSize: ADMIN_UI_DEFAULTS.pagination.pageSize,
-      query: '',
-      seriesId: '',
-      contentType: '',
-      status: ''
-    }
-    try {
-      const saved = JSON.parse(
-        globalThis.sessionStorage.getItem(storageKey) || '{}'
-      ) as Partial<CatalogueFilters>
-      return {
-        ...defaults,
-        page: Number.isInteger(saved.page) && Number(saved.page) > 0 ? Number(saved.page) : 1,
-        pageSize: ADMIN_UI_DEFAULTS.pagination.pageSizes.includes(Number(saved.pageSize))
-          ? Number(saved.pageSize)
-          : defaults.pageSize,
-        query: typeof saved.query === 'string' ? saved.query : '',
-        seriesId: typeof saved.seriesId === 'string' ? saved.seriesId : '',
-        contentType:
-          saved.contentType && Object.hasOwn(types, saved.contentType) ? saved.contentType : '',
-        status: saved.status && Object.hasOwn(statuses, saved.status) ? saved.status : ''
-      }
-    } catch {
-      return defaults
-    }
+/**
+ * 恢复目录条件，校验类型与页码，避免旧条件变成隐藏的筛选
+ * @returns 已校验的目录筛选
+ */
+const restoreFilters = (): CatalogueFilters => {
+  const defaults: CatalogueFilters = {
+    page: 1,
+    pageSize: ADMIN_UI_DEFAULTS.pagination.pageSize,
+    query: '',
+    seriesId: '',
+    contentType: '',
+    status: ''
   }
+  try {
+    const saved = JSON.parse(
+      globalThis.sessionStorage.getItem(storageKey) || '{}'
+    ) as Partial<CatalogueFilters>
+    return {
+      ...defaults,
+      page: Number.isInteger(saved.page) && Number(saved.page) > 0 ? Number(saved.page) : 1,
+      pageSize: ADMIN_UI_DEFAULTS.pagination.pageSizes.includes(Number(saved.pageSize))
+        ? Number(saved.pageSize)
+        : defaults.pageSize,
+      query: typeof saved.query === 'string' ? saved.query : '',
+      seriesId: typeof saved.seriesId === 'string' ? saved.seriesId : '',
+      contentType:
+        saved.contentType && Object.hasOwn(types, saved.contentType) ? saved.contentType : '',
+      status: saved.status && Object.hasOwn(statuses, saved.status) ? saved.status : ''
+    }
+  } catch {
+    return defaults
+  }
+}
 const filters = reactive(restoreFilters())
 if (typeof route.query.scene_id === 'string')
   Object.assign(filters, {
@@ -118,181 +119,182 @@ watch(
     pendingSeriesKey = createIdempotencyKey()
   }
 )
-const /** 读取服务端统一分页，取消旧查询并阻止迟到结果回写 */
-  loadScenes = async (): Promise<void> => {
-    const token = ++sequence
-    abort?.abort()
-    abort = new globalThis.AbortController()
-    loading.value = true
-    error.value = ''
-    try {
-      const result = await catalogue.list({ ...filters }, abort.signal)
-      if (disposed || token !== sequence) return
-      items.value = result.items
-      total.value = result.total
-      const groups = await Promise.all(
-        (['dialogue', 'word_card', 'short_reading'] as const).map(async (contentType) => {
-          const ids = result.items
-            .filter((row) => row.content_type === contentType)
-            .map((row) => row.id)
-          return ids.length
-            ? (await production.contexts({ content_type: contentType, content_ids: ids })).items
-            : []
-        })
-      )
-      if (!disposed && token === sequence) contexts.value = groups.flat()
-    } catch (failure) {
-      if (!disposed && token === sequence)
-        error.value = failure instanceof Error ? failure.message : '内容列表加载失败'
-    } finally {
-      if (!disposed && token === sequence) loading.value = false
-    }
-  }
-const /** 新筛选回到第一页，所有类型共享目录 */
-  search = (): void => {
-    filters.page = 1
-    void loadScenes()
-  }
-const /** 清除旧分类筛选并重新查询全部分类 */
-  clearSeries = (): void => {
-    filters.seriesId = ''
-    search()
-  }
-const /** 读取实际分类并打开单篇新建 */
-  openCreate = async (): Promise<void> => {
-    try {
-      series.value = await content.listSeries()
-      if (disposed) return
-      creating.value = true
-    } catch (failure) {
-      if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '分类加载失败')
-    }
-  }
-const /** 创建分类，失败重试复用相同身份 */
-  createSeries = async (): Promise<void> => {
-    if (creatingSeries.value || !newScene.seriesTitle.trim()) return
-    creatingSeries.value = true
-    try {
-      const value = await content.createSeries(
-        newScene.seriesTitle.trim(),
-        `series-${pendingSeriesKey}`,
-        pendingSeriesKey
-      )
-      if (disposed) return
-      series.value.push(value)
-      newScene.seriesId = value.id
-      newScene.seriesTitle = ''
-    } catch (failure) {
-      if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '分类创建失败')
-    } finally {
-      creatingSeries.value = false
-    }
-  }
-const /** 按所选模板创建草稿，纯阅读使用独立版本链路 */
-  createScene = async (): Promise<void> => {
-    if (creatingScene.value || !newScene.seriesId) return
-    creatingScene.value = true
-    try {
-      const context = await resolveWorkOrderContext(
-        production,
-        {
-          series_id: newScene.seriesId,
-          content_type: newScene.templateType as 'dialogue' | 'word_card' | 'short_reading'
-        },
-        pendingManualKey
-      )
-      if (!disposed)
-        await router.push({
-          name: 'content-work-item',
-          params: { id: context.orderId, itemId: context.itemId }
-        })
-    } catch (failure) {
-      if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '内容创建失败')
-    } finally {
-      creatingScene.value = false
-    }
-  }
-const /**
-   * 查看或编辑候选版本，不修改已经发布的快照
-   * @param row - 管理员选择的真实内容
-   */
-  edit = async (row: CatalogueItem): Promise<void> => {
-    try {
-      if (row.content_type === 'short_reading') {
-        if (!row.draft_revision_id)
-          await readings.createRevision(await readings.load(row.id), createIdempotencyKey())
-      } else if (!row.draft_revision_id)
-        await content.createRevision(row.id, row.published_revision_id)
-      const context = await resolveWorkOrderContext(production, {
-        content_type: row.content_type,
-        content_id: row.id,
-        series_id: row.series_id
+/** 读取服务端统一分页，取消旧查询并阻止迟到结果回写 */
+const loadScenes = async (): Promise<void> => {
+  const token = ++sequence
+  abort?.abort()
+  abort = new globalThis.AbortController()
+  loading.value = true
+  error.value = ''
+  try {
+    const result = await catalogue.list({ ...filters }, abort.signal)
+    if (disposed || token !== sequence) return
+    items.value = result.items
+    total.value = result.total
+    const groups = await Promise.all(
+      (['dialogue', 'word_card', 'short_reading'] as const).map(async (contentType) => {
+        const ids = result.items
+          .filter((row) => row.content_type === contentType)
+          .map((row) => row.id)
+        return ids.length
+          ? (await production.contexts({ content_type: contentType, content_ids: ids })).items
+          : []
       })
-      if (!disposed)
-        await router.push({
-          name: 'content-work-item',
-          params: { id: context.orderId, itemId: context.itemId }
-        })
-    } catch (failure) {
-      if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '内容打开失败')
-    }
+    )
+    if (!disposed && token === sequence) contexts.value = groups.flat()
+  } catch (failure) {
+    if (!disposed && token === sequence)
+      error.value = failure instanceof Error ? failure.message : '内容列表加载失败'
+  } finally {
+    if (!disposed && token === sequence) loading.value = false
   }
-const /**
-   * 打开已有历史，短文由独立编辑器展示版本
-   * @param row - 要查看版本的实际内容
-   */
-  openHistory = (row: CatalogueItem): void => {
+}
+/** 新筛选回到第一页，所有类型共享目录 */
+const search = (): void => {
+  filters.page = 1
+  void loadScenes()
+}
+/** 清除旧分类筛选并重新查询全部分类 */
+const clearSeries = (): void => {
+  filters.seriesId = ''
+  search()
+}
+/** 读取实际分类并打开单篇新建 */
+const openCreate = async (): Promise<void> => {
+  try {
+    series.value = await content.listSeries()
+    if (disposed) return
+    creating.value = true
+  } catch (failure) {
+    if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '分类加载失败')
+  }
+}
+/** 创建分类，失败重试复用相同身份 */
+const createSeries = async (): Promise<void> => {
+  if (creatingSeries.value || !newScene.seriesTitle.trim()) return
+  creatingSeries.value = true
+  try {
+    const value = await content.createSeries(
+      newScene.seriesTitle.trim(),
+      `series-${pendingSeriesKey}`,
+      pendingSeriesKey
+    )
+    if (disposed) return
+    series.value.push(value)
+    newScene.seriesId = value.id
+    newScene.seriesTitle = ''
+  } catch (failure) {
+    if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '分类创建失败')
+  } finally {
+    creatingSeries.value = false
+  }
+}
+/** 按所选模板创建草稿，纯阅读使用独立版本链路 */
+const createScene = async (): Promise<void> => {
+  if (creatingScene.value || !newScene.seriesId) return
+  creatingScene.value = true
+  try {
+    const context = await resolveWorkOrderContext(
+      production,
+      {
+        series_id: newScene.seriesId,
+        content_type: newScene.templateType as 'dialogue' | 'word_card' | 'short_reading'
+      },
+      pendingManualKey
+    )
+    if (!disposed)
+      await router.push({
+        name: 'content-work-item',
+        params: { id: context.orderId, itemId: context.itemId }
+      })
+  } catch (failure) {
+    if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '内容创建失败')
+  } finally {
+    creatingScene.value = false
+  }
+}
+/**
+ * 查看或编辑候选版本，不修改已经发布的快照
+ * @param row - 管理员选择的真实内容
+ */
+const edit = async (row: CatalogueItem): Promise<void> => {
+  try {
     if (row.content_type === 'short_reading') {
-      void router.push({
-        name: 'content-short-reading-edit',
-        params: { id: row.id },
-        query: { history: '1' }
+      if (!row.draft_revision_id)
+        await readings.createRevision(await readings.load(row.id), createIdempotencyKey())
+    } else if (!row.draft_revision_id)
+      await content.createRevision(row.id, row.published_revision_id)
+    const context = await resolveWorkOrderContext(production, {
+      content_type: row.content_type,
+      content_id: row.id,
+      series_id: row.series_id
+    })
+    if (!disposed)
+      await router.push({
+        name: 'content-work-item',
+        params: { id: context.orderId, itemId: context.itemId }
       })
-      return
-    }
-    historySceneId.value = row.id
-    historyOpened.value = true
+  } catch (failure) {
+    if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '内容打开失败')
   }
-const /**
-   * 经过明确确认下线内容，历史与收藏引用继续保留
-   * @param row - 已发布的目录记录
-   */
-  offline = async (row: CatalogueItem): Promise<void> => {
-    try {
-      await ElMessageBox.confirm(
-        `下线后用户将无法访问“${row.title_zh || row.title_en}”，是否继续？`,
-        '确认下线',
-        { cancelButtonText: '取消', confirmButtonText: '确认下线', type: 'warning' }
-      )
-      if (row.content_type === 'short_reading') await readings.offline(await readings.load(row.id))
-      else await content.offline(row.id, createIdempotencyKey())
-      await loadScenes()
-      ElMessage.success('内容已下线')
-    } catch (failure) {
-      if (failure !== 'cancel' && failure !== 'close')
-        ElMessage.error(failure instanceof Error ? failure.message : '下线失败')
-    }
+}
+/**
+ * 打开已有历史，短文由独立编辑器展示版本
+ * @param row - 要查看版本的实际内容
+ */
+const openHistory = (row: CatalogueItem): void => {
+  if (row.content_type === 'short_reading') {
+    void router.push({
+      name: 'content-short-reading-edit',
+      params: { id: row.id },
+      query: { history: '1' }
+    })
+    return
   }
-const /** 打开已有内容所属的发布范围，仍由服务端校验合格候选
-   * @param row - 所选目录内容与实际分类
-   */ openPublication = async (row: CatalogueItem): Promise<void> => {
-    try {
-      const context = await resolveWorkOrderContext(production, {
-        content_type: row.content_type,
-        content_id: row.id,
-        series_id: row.series_id
+  historySceneId.value = row.id
+  historyOpened.value = true
+}
+/**
+ * 经过明确确认下线内容，历史与收藏引用继续保留
+ * @param row - 已发布的目录记录
+ */
+const offline = async (row: CatalogueItem): Promise<void> => {
+  try {
+    await ElMessageBox.confirm(
+      `下线后用户将无法访问“${row.title_zh || row.title_en}”，是否继续？`,
+      '确认下线',
+      { cancelButtonText: '取消', confirmButtonText: '确认下线', type: 'warning' }
+    )
+    if (row.content_type === 'short_reading') await readings.offline(await readings.load(row.id))
+    else await content.offline(row.id, createIdempotencyKey())
+    await loadScenes()
+    ElMessage.success('内容已下线')
+  } catch (failure) {
+    if (failure !== 'cancel' && failure !== 'close')
+      ElMessage.error(failure instanceof Error ? failure.message : '下线失败')
+  }
+}
+/**
+ * 打开已有内容所属的发布范围，仍由服务端校验合格候选
+ * @param row - 所选目录内容与实际分类
+ */
+const openPublication = async (row: CatalogueItem): Promise<void> => {
+  try {
+    const context = await resolveWorkOrderContext(production, {
+      content_type: row.content_type,
+      content_id: row.id,
+      series_id: row.series_id
+    })
+    if (!disposed)
+      await router.push({
+        name: 'content-work-order',
+        params: { id: context.orderId },
+        query: { view: 'publication' }
       })
-      if (!disposed)
-        await router.push({
-          name: 'content-work-order',
-          params: { id: context.orderId },
-          query: { view: 'publication' }
-        })
-    } catch (failure) {
-      if (!disposed)
-        ElMessage.error(failure instanceof Error ? failure.message : '发布范围加载失败')
-    }
+  } catch (failure) {
+    if (!disposed) ElMessage.error(failure instanceof Error ? failure.message : '发布范围加载失败')
   }
+}
 onMounted(loadScenes)
 onBeforeUnmount(() => {
   disposed = true

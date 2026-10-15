@@ -10,25 +10,27 @@ const emit = defineEmits<{ 'update:modelValue': [value: number | null] }>()
 const previousLimit = ref<number>()
 const limited = computed(() => props.modelValue !== null && props.modelValue !== undefined)
 
-const /**
-   * 记住管理员输入或服务端返回的上限
-   * @param value - 当前人数上限，null 表示不限制
-   */ rememberLimit = (value: number | null | undefined): void => {
-    if (value !== null && value !== undefined && Number.isInteger(value) && value > 0)
-      previousLimit.value = value
-  }
+/**
+ * 记住管理员输入或服务端返回的上限
+ * @param value - 当前人数上限，null 表示不限制
+ */
+const rememberLimit = (value: number | null | undefined): void => {
+  if (value !== null && value !== undefined && Number.isInteger(value) && value > 0)
+    previousLimit.value = value
+}
 watch(() => props.modelValue, rememberLimit, { immediate: true, flush: 'sync' })
 
-const /**
-   * 切换人数限制，关闭仅改变草稿
-   * @param enabled - 开关提交的状态，true 表示启用上限
-   */ toggle = (enabled: string | number | boolean): void => {
-    if (props.disabled) return
-    emit(
-      'update:modelValue',
-      enabled === true ? Math.max(props.minimum, previousLimit.value ?? 1) : null
-    )
-  }
+/**
+ * 切换人数限制，关闭仅改变草稿
+ * @param enabled - 开关提交的状态，true 表示启用上限
+ */
+const toggle = (enabled: string | number | boolean): void => {
+  if (props.disabled) return
+  emit(
+    'update:modelValue',
+    enabled === true ? Math.max(props.minimum, previousLimit.value ?? 1) : null
+  )
+}
 </script>
 
 <template>

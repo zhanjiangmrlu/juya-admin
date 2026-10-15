@@ -68,29 +68,29 @@ watch(
   },
   { immediate: true }
 )
-const /**
-   * 提交已确认的容量命令。
-   * @returns 容量命令完成后的 Promise
-   */
-  confirm = async (): Promise<void> => {
-    if (capacity.value === undefined || !capacityValidation.value?.valid) return
-    try {
-      await editor.command('capacity', capacity.value)
-      confirmVisible.value = false
-      ElMessage.success('容量已更新')
-    } catch {
-      confirmVisible.value = false
-    }
+/**
+ * 提交已确认的容量命令。
+ * @returns 容量命令完成后的 Promise
+ */
+const confirm = async (): Promise<void> => {
+  if (capacity.value === undefined || !capacityValidation.value?.valid) return
+  try {
+    await editor.command('capacity', capacity.value)
+    confirmVisible.value = false
+    ElMessage.success('容量已更新')
+  } catch {
+    confirmVisible.value = false
   }
-const /** 复制真实活动版本后进入可编辑草稿 */
-  copy = async (): Promise<void> => {
-    try {
-      await editor.copy()
-      await router.push({ name: 'campaign-edit', params: { id: campaignId.value } })
-    } catch {
-      /* 保留真实错误 */
-    }
+}
+/** 复制真实活动版本后进入可编辑草稿 */
+const copy = async (): Promise<void> => {
+  try {
+    await editor.copy()
+    await router.push({ name: 'campaign-edit', params: { id: campaignId.value } })
+  } catch {
+    /* 保留真实错误 */
   }
+}
 </script>
 
 <template>

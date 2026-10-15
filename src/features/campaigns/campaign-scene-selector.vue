@@ -28,85 +28,87 @@ let sequence = 0
 let disposed = false
 let timer: ReturnType<typeof globalThis.setTimeout> | undefined
 
-const /** 按已发布标题查询可选内容 */
-  search = async (): Promise<void> => {
-    const request = ++sequence
-    loading.value = true
-    error.value = ''
-    try {
-      const result = await adapter.listScenes({
-        page: 1,
-        pageSize: 100,
-        query: query.value,
-        seriesId: '',
-        status: 'PUBLISHED'
-      })
-      if (disposed || request !== sequence) return
-      choices.value = result.items
-      for (const scene of result.items) selected.value[scene.id] = scene
-    } catch {
-      if (!disposed && request === sequence) error.value = '内容查询失败，请重试'
-    } finally {
-      if (!disposed && request === sequence) loading.value = false
-    }
+/** 按已发布标题查询可选内容 */
+const search = async (): Promise<void> => {
+  const request = ++sequence
+  loading.value = true
+  error.value = ''
+  try {
+    const result = await adapter.listScenes({
+      page: 1,
+      pageSize: 100,
+      query: query.value,
+      seriesId: '',
+      status: 'PUBLISHED'
+    })
+    if (disposed || request !== sequence) return
+    choices.value = result.items
+    for (const scene of result.items) selected.value[scene.id] = scene
+  } catch {
+    if (!disposed && request === sequence) error.value = '内容查询失败，请重试'
+  } finally {
+    if (!disposed && request === sequence) loading.value = false
   }
-const /**
-   * 切换选择，id 为服务端已发布场景编号
-   * @param id - 服务端已发布场景编号
-   */
-  toggle = (id: string): void => {
-    if (props.disabled) return
-    emit(
-      'update:modelValue',
-      props.modelValue.includes(id)
-        ? props.modelValue.filter((item) => item !== id)
-        : [...props.modelValue, id]
-    )
+}
+/**
+ * 切换选择，id 为服务端已发布场景编号
+ * @param id - 服务端已发布场景编号
+ */
+const toggle = (id: string): void => {
+  if (props.disabled) return
+  emit(
+    'update:modelValue',
+    props.modelValue.includes(id)
+      ? props.modelValue.filter((item) => item !== id)
+      : [...props.modelValue, id]
+  )
+}
+/**
+ * 移动已选场景，from/to 为原位置及目标顺序
+ * @param from - 原列表位置
+ * @param to - 新列表位置
+ */
+const move = (from: number, to: number): void => {
+  if (props.disabled || to < 0 || to >= props.modelValue.length) return
+  const ids = [...props.modelValue]
+  const [id] = ids.splice(from, 1)
+  if (id) ids.splice(to, 0, id)
+  emit('update:modelValue', ids)
+}
+/**
+ * 将拖动项目放到目标位置，index 为落点顺序
+ * @param index - 拖动落点位置
+ */
+const drop = (index: number): void => {
+  if (dragging.value !== null) move(dragging.value, index)
+  dragging.value = null
+}
+/**
+ * 只预览已发布固定版本，不进入可编辑草稿
+ * @param id - 管理员选择的场景编号
+ */
+const preview = async (id: string): Promise<void> => {
+  const request = ++previewSequence
+  previewOpened.value = true
+  previewContent.value = null
+  previewError.value = ''
+  try {
+    const scene = selected.value[id] ?? (await adapter.getScene(id))
+    if (!scene.publishedRevisionId) throw new Error('此内容尚无已发布版本')
+    const revision = await adapter.getRevision(scene.publishedRevisionId)
+    if (disposed || request !== previewSequence) return
+    previewRevisionId.value = revision.id
+    previewContent.value = revision.content
+  } catch (failure) {
+    if (!disposed && request === previewSequence)
+      previewError.value = failure instanceof Error ? failure.message : '已发布内容预览失败'
   }
-const /**
-   * 移动已选场景，from/to 为原位置及目标顺序
-   * @param from - 原列表位置
-   * @param to - 新列表位置
-   */
-  move = (from: number, to: number): void => {
-    if (props.disabled || to < 0 || to >= props.modelValue.length) return
-    const ids = [...props.modelValue]
-    const [id] = ids.splice(from, 1)
-    if (id) ids.splice(to, 0, id)
-    emit('update:modelValue', ids)
-  }
-const /**
-   * 将拖动项目放到目标位置，index 为落点顺序
-   * @param index - 拖动落点位置
-   */
-  drop = (index: number): void => {
-    if (dragging.value !== null) move(dragging.value, index)
-    dragging.value = null
-  }
-const /**
-   * 只预览已发布固定版本，不进入可编辑草稿
-   * @param id - 管理员选择的场景编号
-   */ preview = async (id: string): Promise<void> => {
-    const request = ++previewSequence
-    previewOpened.value = true
-    previewContent.value = null
-    previewError.value = ''
-    try {
-      const scene = selected.value[id] ?? (await adapter.getScene(id))
-      if (!scene.publishedRevisionId) throw new Error('此内容尚无已发布版本')
-      const revision = await adapter.getRevision(scene.publishedRevisionId)
-      if (disposed || request !== previewSequence) return
-      previewRevisionId.value = revision.id
-      previewContent.value = revision.content
-    } catch (failure) {
-      if (!disposed && request === previewSequence)
-        previewError.value = failure instanceof Error ? failure.message : '已发布内容预览失败'
-    }
-  }
-const /** 关闭只读预览并撤销迟到资源返回 */ closePreview = (): void => {
-    previewSequence++
-    previewContent.value = null
-  }
+}
+/** 关闭只读预览并撤销迟到资源返回 */
+const closePreview = (): void => {
+  previewSequence++
+  previewContent.value = null
+}
 watch(query, () => {
   globalThis.clearTimeout(timer)
   timer = globalThis.setTimeout(() => void search(), 250)

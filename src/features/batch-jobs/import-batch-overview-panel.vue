@@ -65,52 +65,54 @@ const stageRows = computed(() => [
   },
   { label: '校对与发布', result: '正常抽样与异常修正完成后，进入范围确认', status: '待人工确认' }
 ])
-const /** 从持久化批次恢复结果，切换批次或离页使旧请求失效 * @returns 当前操作结果或完成状态
-   */ load = async (): Promise<void> => {
-    request?.abort()
-    request = new AbortController()
-    const current = ++generation
-    busy.value = true
-    error.value = ''
-    batch.value = null
-    try {
-      const next = await adapter.load(identifier.value.trim(), request.signal)
-      if (current === generation) batch.value = next
-    } catch (failure) {
-      if (current === generation && !request.signal.aborted)
-        error.value = failure instanceof Error ? failure.message : '导入批次读取失败'
-    } finally {
-      if (current === generation) busy.value = false
-    }
+/** 从持久化批次恢复结果，切换批次或离页使旧请求失效 */
+const load = async (): Promise<void> => {
+  request?.abort()
+  request = new AbortController()
+  const current = ++generation
+  busy.value = true
+  error.value = ''
+  batch.value = null
+  try {
+    const next = await adapter.load(identifier.value.trim(), request.signal)
+    if (current === generation) batch.value = next
+  } catch (failure) {
+    if (current === generation && !request.signal.aborted)
+      error.value = failure instanceof Error ? failure.message : '导入批次读取失败'
+  } finally {
+    if (current === generation) busy.value = false
   }
-const /** 将批次编号保存在地址，离开页面后可继续恢复查看 * @returns 当前操作结果或完成状态
-   */ resume = async (): Promise<void> => {
-    if (!identifier.value.trim()) return
-    await router.replace({ query: { ...route.query, batch_id: identifier.value.trim() } })
+}
+/** 将批次编号保存在地址，离开页面后可继续恢复查看 */
+const resume = async (): Promise<void> => {
+  if (!identifier.value.trim()) return
+  await router.replace({ query: { ...route.query, batch_id: identifier.value.trim() } })
+  await load()
+}
+/** 进入当前批次实际导入流程，保留原文件预览与逐篇修正入口 */
+const openImport = (): void => {
+  void router.push({ path: '/content/import', query: { batch_id: identifier.value.trim() } })
+}
+/**
+ * 取消当前批次尚未开始的项目，已完成内容由服务端保留
+ * @returns 取消后刷新批次的完成状态
+ */
+const cancelUnstarted = async (): Promise<void> => {
+  if (!batch.value || cancelBusy.value) return
+  cancelBusy.value = true
+  error.value = ''
+  try {
+    await client.request({
+      method: 'POST',
+      path: `/api/v1/admin/content-imports/${encodeURIComponent(batch.value.id)}/cancel`
+    })
     await load()
+  } catch (failure) {
+    error.value = failure instanceof Error ? failure.message : '取消未开始项目失败'
+  } finally {
+    cancelBusy.value = false
   }
-const /** 进入当前批次实际导入流程，保留原文件预览与逐篇修正入口 * @returns 当前操作结果或完成状态
-   */ openImport = (): void => {
-    void router.push({ path: '/content/import', query: { batch_id: identifier.value.trim() } })
-  }
-const /** 取消当前批次尚未开始的项目，已完成内容由服务端保留
-   * @returns 取消后刷新批次的完成状态
-   */ cancelUnstarted = async (): Promise<void> => {
-    if (!batch.value || cancelBusy.value) return
-    cancelBusy.value = true
-    error.value = ''
-    try {
-      await client.request({
-        method: 'POST',
-        path: `/api/v1/admin/content-imports/${encodeURIComponent(batch.value.id)}/cancel`
-      })
-      await load()
-    } catch (failure) {
-      error.value = failure instanceof Error ? failure.message : '取消未开始项目失败'
-    } finally {
-      cancelBusy.value = false
-    }
-  }
+}
 watch(
   () => route.query.batch_id,
   (id) => {

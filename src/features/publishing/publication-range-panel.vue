@@ -69,41 +69,42 @@ const canFreeze = computed(
         )
     )
 )
-const /** 重新读取所有已校对候选的实际双版本与警告 */ prepare = async (): Promise<void> => {
-    if (
-      preparationBusy.value ||
-      controller.busy.value ||
-      !props.candidates.length ||
-      !adapter.available
-    )
-      return
-    const token = ++generation
-    preparationBusy.value = true
-    prepared.value = []
-    warnings.value = []
-    error.value = ''
-    controller.invalidate()
-    try {
-      const result = await adapter.prepare(props.candidates)
-      if (token === generation) prepared.value = result
-    } catch (failure) {
-      if (token === generation)
-        error.value = failure instanceof Error ? failure.message : '发布范围检查失败'
-    } finally {
-      if (token === generation) preparationBusy.value = false
-    }
+/** 重新读取所有已校对候选的实际双版本与警告 */
+const prepare = async (): Promise<void> => {
+  if (
+    preparationBusy.value ||
+    controller.busy.value ||
+    !props.candidates.length ||
+    !adapter.available
+  )
+    return
+  const token = ++generation
+  preparationBusy.value = true
+  prepared.value = []
+  warnings.value = []
+  error.value = ''
+  controller.invalidate()
+  try {
+    const result = await adapter.prepare(props.candidates)
+    if (token === generation) prepared.value = result
+  } catch (failure) {
+    if (token === generation)
+      error.value = failure instanceof Error ? failure.message : '发布范围检查失败'
+  } finally {
+    if (token === generation) preparationBusy.value = false
   }
-const /** 明确警告后冻结范围，恢复编号只存 URL 不保存敏感正文 */ freeze =
-    async (): Promise<void> => {
-      if (!canFreeze.value) return
-      await controller.freeze(
-        prepared.value.map((item) => ({ ...item.candidate, warning_codes: item.warningCodes }))
-      )
-      if (controller.range.value) {
-        recoveryToken.value = controller.range.value.token
-        await router.replace({ query: { ...route.query, range_token: recoveryToken.value } })
-      }
-    }
+}
+/** 明确警告后冻结范围，恢复编号只存 URL 不保存敏感正文 */
+const freeze = async (): Promise<void> => {
+  if (!canFreeze.value) return
+  await controller.freeze(
+    prepared.value.map((item) => ({ ...item.candidate, warning_codes: item.warningCodes }))
+  )
+  if (controller.range.value) {
+    recoveryToken.value = controller.range.value.token
+    await router.replace({ query: { ...route.query, range_token: recoveryToken.value } })
+  }
+}
 watch(
   () => JSON.stringify(props.candidates),
   () => {

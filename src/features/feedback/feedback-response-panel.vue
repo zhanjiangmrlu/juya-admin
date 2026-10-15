@@ -32,22 +32,22 @@ onBeforeUnmount(() => {
   current.value = null
 })
 
-const /**
-   * 发送当前模板及说明，失败保留输入；action 为处理、关闭或要求补充
-   * @param action - 本次选择的反馈处理命令
-   */
-  submit = async (action: 'resolve' | 'close' | 'supplement' | 'start'): Promise<void> => {
-    try {
-      if (action === 'start') await command.start()
-      else if (action === 'supplement') await command.requestSupplement(form.text)
-      else if (action === 'close') await command.close(form.text)
-      else await command.resolve({ template: form.template, note: form.text })
-      ElMessage.success('反馈处理结果已保存')
-      emit('updated')
-    } catch {
-      /* 命令控制器显示真实错误且保留草稿 */
-    }
+/**
+ * 发送当前模板及说明，失败保留输入；action 为处理、关闭或要求补充
+ * @param action - 本次选择的反馈处理命令
+ */
+const submit = async (action: 'resolve' | 'close' | 'supplement' | 'start'): Promise<void> => {
+  try {
+    if (action === 'start') await command.start()
+    else if (action === 'supplement') await command.requestSupplement(form.text)
+    else if (action === 'close') await command.close(form.text)
+    else await command.resolve({ template: form.template, note: form.text })
+    ElMessage.success('反馈处理结果已保存')
+    emit('updated')
+  } catch {
+    /* 命令控制器显示真实错误且保留草稿 */
   }
+}
 </script>
 
 <template>

@@ -9,15 +9,16 @@ import { useFeedbackNote } from './use-feedback-note'
 const props = defineProps<{ ticketId: string }>()
 const emit = defineEmits<{ updated: [] }>()
 const note = useFeedbackNote(createFeedbackAdapter(useAdminApiClient()), props.ticketId)
-const /** 保存管理员备注，失败保留原输入 */ save = async (): Promise<void> => {
-    try {
-      await note.submit()
-      ElMessage.success('内部备注已保存')
-      emit('updated')
-    } catch {
-      /* 控制器保留输入并展示错误 */
-    }
+/** 保存管理员备注，失败保留原输入 */
+const save = async (): Promise<void> => {
+  try {
+    await note.submit()
+    ElMessage.success('内部备注已保存')
+    emit('updated')
+  } catch {
+    /* 控制器保留输入并展示错误 */
   }
+}
 </script>
 <template>
   <div class="feedback-internal-note">

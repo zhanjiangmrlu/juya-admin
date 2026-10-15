@@ -93,169 +93,174 @@ let audioGeneration = 0
 let pageGeneration = 0
 let disposed = false
 
-const /** 加载同一场景并恢复工作单上下文 */
-  load = async (): Promise<void> => {
-    const generation = ++pageGeneration
-    const targetId = sceneId.value
-    revision.value = null
-    scene.value = null
-    controller.value = null
-    resetSceneContent(form, {})
-    state.value = 'loading'
-    error.value = ''
-    player.value?.stop()
-    audioGeneration++
-    try {
-      const loaded = await adapter.getScene(targetId)
-      if (disposed || generation !== pageGeneration) return
-      if (!route.query.work_order_id || route.query.stage !== 'audio') {
-        if (!loaded.draftRevisionId)
-          await adapter.createRevision(loaded.id, loaded.publishedRevisionId)
-        const context = await resolveWorkOrderContext(production, {
-          content_id: loaded.id,
-          series_id: loaded.seriesId,
-          content_type:
-            loaded.templateType === 'word_card' || loaded.templateType === 'vocabulary'
-              ? 'word_card'
-              : 'dialogue'
-        })
-        await router.replace(
-          route.query.stage === 'publish'
-            ? {
-                name: 'content-work-order',
-                params: { id: context.orderId },
-                query: { view: 'publication' }
+/** 加载同一场景并恢复工作单上下文 */
+const load = async (): Promise<void> => {
+  const generation = ++pageGeneration
+  const targetId = sceneId.value
+  revision.value = null
+  scene.value = null
+  controller.value = null
+  resetSceneContent(form, {})
+  state.value = 'loading'
+  error.value = ''
+  player.value?.stop()
+  audioGeneration++
+  try {
+    const loaded = await adapter.getScene(targetId)
+    if (disposed || generation !== pageGeneration) return
+    if (!route.query.work_order_id || route.query.stage !== 'audio') {
+      if (!loaded.draftRevisionId)
+        await adapter.createRevision(loaded.id, loaded.publishedRevisionId)
+      const context = await resolveWorkOrderContext(production, {
+        content_id: loaded.id,
+        series_id: loaded.seriesId,
+        content_type:
+          loaded.templateType === 'word_card' || loaded.templateType === 'vocabulary'
+            ? 'word_card'
+            : 'dialogue'
+      })
+      await router.replace(
+        route.query.stage === 'publish'
+          ? {
+              name: 'content-work-order',
+              params: { id: context.orderId },
+              query: { view: 'publication' }
+            }
+          : {
+              name: 'content-work-item',
+              params: { id: context.orderId, itemId: context.itemId },
+              query: {
+                section: ['entries', 'draft'].includes(String(route.query.stage))
+                  ? String(route.query.stage)
+                  : loaded.templateType === 'word_card' || loaded.templateType === 'vocabulary'
+                    ? 'entries'
+                    : route.query.stage === 'audio'
+                      ? 'audio'
+                      : 'content',
+                editor: 'scene'
               }
-            : {
-                name: 'content-work-item',
-                params: { id: context.orderId, itemId: context.itemId },
-                query: {
-                  section: ['entries', 'draft'].includes(String(route.query.stage))
-                    ? String(route.query.stage)
-                    : loaded.templateType === 'word_card' || loaded.templateType === 'vocabulary'
-                      ? 'entries'
-                      : route.query.stage === 'audio'
-                        ? 'audio'
-                        : 'content',
-                  editor: 'scene'
-                }
-              }
-        )
-        return
-      }
-      scene.value = loaded
-      if (!scene.value.draftRevisionId) throw new Error('该场景当前没有可编辑草稿，请先创建草稿')
-      const saved = await adapter.getRevision(scene.value.draftRevisionId)
-      if (disposed || generation !== pageGeneration) return
-      accept(saved)
-      state.value = 'ready'
-      await refreshImage()
-    } catch (failure) {
-      if (disposed || generation !== pageGeneration) return
-      error.value = message(failure)
-      state.value = 'error'
-    }
-  }
-const /** 应用服务端固定版本，刷新服务端生成的词库引用。
-   * @param value - 已保存版本
-   */
-  accept = (value: SceneRevision): void => {
-    revision.value = value
-    if (!controller.value) controller.value = createRevisionController(value.version, value.content)
-    else controller.value.acceptSavedVersion(value.version, value.content)
-    resetSceneContent(form, value.content)
-    form.template_type = wordCard.value ? 'word_card' : 'dialogue'
-    selectedAudioVersion.value = form.audio?.version_id ?? ''
-  }
-const /** 保存当前候选请求所依赖的草稿版本
-   * @returns 可用于请求候选的固定草稿，保存失败时为空
-   */
-  prepareCandidate = async (): Promise<SceneRevision | null> => {
-    if (dirty.value && !(await save())) return null
-    return revision.value
-  }
-const /** 保存结构化草稿，冲突时保留全部输入。
-   * @returns 是否保存成功
-   */
-  save = async (): Promise<boolean> => {
-    if (!revision.value || state.value !== 'ready' || hasConflict.value || assetsBusy.value)
-      return false
-    const generation = pageGeneration
-    state.value = 'saving'
-    error.value = ''
-    try {
-      const result = await adapter.saveRevision(
-        revision.value.id,
-        currentVersion.value,
-        normalizeSceneContent({ ...form })
+            }
       )
-      if (disposed || generation !== pageGeneration) return false
-      accept(result)
-      ElMessage.success('草稿已保存')
-      return true
-    } catch (failure) {
-      if (disposed || generation !== pageGeneration) return false
-      controller.value?.handleSaveFailure(failure)
-      error.value = message(failure)
-      return false
-    } finally {
-      if (generation === pageGeneration) state.value = 'ready'
-    }
-  }
-const /**
-   * 保存音频页输入后返回所属工作单
-   * @param single - 是否返回本篇修正
-   */ returnToWorkOrder = async (single: boolean): Promise<void> => {
-    const generation = pageGeneration
-    if (workspaceBusy.value || hasConflict.value || (dirty.value && !(await save()))) return
-    if (disposed || generation !== pageGeneration) return
-    await router.push({
-      name: single ? 'content-work-item' : 'content-work-order',
-      params: {
-        id: String(route.query.work_order_id),
-        ...(single ? { itemId: String(route.query.work_item_id) } : {})
-      },
-      query: single
-        ? {
-            section: String(route.query.return_section || 'content'),
-            issue: route.query.return_issue
-          }
-        : {}
-    })
-  }
-const /**
-   * 保存实际本篇输入后确认服务端稳定义项和来源
-   * @param section - 当前单词或语块区
-   * @param index - 管理员明确确认的本篇条目序号
-   */ confirmEntry = async (section: 'vocabulary' | 'chunks', index: number): Promise<void> => {
-    const generation = pageGeneration
-    if (!(await save()) || !revision.value) return
-    if (disposed || generation !== pageGeneration) return
-    const revisionId = revision.value.id
-    const entry = form[section][index]
-    if (!entry?.entry_id) {
-      error.value = '条目尚未生成稳定编号，请重新保存草稿'
       return
     }
-    state.value = 'saving'
-    try {
-      await client.request({
-        method: 'POST',
-        path: `/api/v1/admin/content/revisions/${encodeURIComponent(revisionId)}/entries/${encodeURIComponent(entry.entry_id)}/confirm`,
-        body: { expected_version: currentVersion.value, manual_checked: true }
-      })
-      const saved = await adapter.getRevision(revisionId)
-      if (disposed || generation !== pageGeneration) return
-      accept(saved)
-      ElMessage.success('本篇义项与来源已确认')
-    } catch (failure) {
-      if (disposed || generation !== pageGeneration) return
-      controller.value?.handleSaveFailure(failure)
-      error.value = message(failure)
-    } finally {
-      if (generation === pageGeneration) state.value = 'ready'
-    }
+    scene.value = loaded
+    if (!scene.value.draftRevisionId) throw new Error('该场景当前没有可编辑草稿，请先创建草稿')
+    const saved = await adapter.getRevision(scene.value.draftRevisionId)
+    if (disposed || generation !== pageGeneration) return
+    accept(saved)
+    state.value = 'ready'
+    await refreshImage()
+  } catch (failure) {
+    if (disposed || generation !== pageGeneration) return
+    error.value = message(failure)
+    state.value = 'error'
   }
+}
+/**
+ * 应用服务端固定版本，刷新服务端生成的词库引用。
+ * @param value - 已保存版本
+ */
+const accept = (value: SceneRevision): void => {
+  revision.value = value
+  if (!controller.value) controller.value = createRevisionController(value.version, value.content)
+  else controller.value.acceptSavedVersion(value.version, value.content)
+  resetSceneContent(form, value.content)
+  form.template_type = wordCard.value ? 'word_card' : 'dialogue'
+  selectedAudioVersion.value = form.audio?.version_id ?? ''
+}
+/**
+ * 保存当前候选请求所依赖的草稿版本
+ * @returns 可用于请求候选的固定草稿，保存失败时为空
+ */
+const prepareCandidate = async (): Promise<SceneRevision | null> => {
+  if (dirty.value && !(await save())) return null
+  return revision.value
+}
+/**
+ * 保存结构化草稿，冲突时保留全部输入。
+ * @returns 是否保存成功
+ */
+const save = async (): Promise<boolean> => {
+  if (!revision.value || state.value !== 'ready' || hasConflict.value || assetsBusy.value)
+    return false
+  const generation = pageGeneration
+  state.value = 'saving'
+  error.value = ''
+  try {
+    const result = await adapter.saveRevision(
+      revision.value.id,
+      currentVersion.value,
+      normalizeSceneContent({ ...form })
+    )
+    if (disposed || generation !== pageGeneration) return false
+    accept(result)
+    ElMessage.success('草稿已保存')
+    return true
+  } catch (failure) {
+    if (disposed || generation !== pageGeneration) return false
+    controller.value?.handleSaveFailure(failure)
+    error.value = message(failure)
+    return false
+  } finally {
+    if (generation === pageGeneration) state.value = 'ready'
+  }
+}
+/**
+ * 保存音频页输入后返回所属工作单
+ * @param single - 是否返回本篇修正
+ */
+const returnToWorkOrder = async (single: boolean): Promise<void> => {
+  const generation = pageGeneration
+  if (workspaceBusy.value || hasConflict.value || (dirty.value && !(await save()))) return
+  if (disposed || generation !== pageGeneration) return
+  await router.push({
+    name: single ? 'content-work-item' : 'content-work-order',
+    params: {
+      id: String(route.query.work_order_id),
+      ...(single ? { itemId: String(route.query.work_item_id) } : {})
+    },
+    query: single
+      ? {
+          section: String(route.query.return_section || 'content'),
+          issue: route.query.return_issue
+        }
+      : {}
+  })
+}
+/**
+ * 保存实际本篇输入后确认服务端稳定义项和来源
+ * @param section - 当前单词或语块区
+ * @param index - 管理员明确确认的本篇条目序号
+ */
+const confirmEntry = async (section: 'vocabulary' | 'chunks', index: number): Promise<void> => {
+  const generation = pageGeneration
+  if (!(await save()) || !revision.value) return
+  if (disposed || generation !== pageGeneration) return
+  const revisionId = revision.value.id
+  const entry = form[section][index]
+  if (!entry?.entry_id) {
+    error.value = '条目尚未生成稳定编号，请重新保存草稿'
+    return
+  }
+  state.value = 'saving'
+  try {
+    await client.request({
+      method: 'POST',
+      path: `/api/v1/admin/content/revisions/${encodeURIComponent(revisionId)}/entries/${encodeURIComponent(entry.entry_id)}/confirm`,
+      body: { expected_version: currentVersion.value, manual_checked: true }
+    })
+    const saved = await adapter.getRevision(revisionId)
+    if (disposed || generation !== pageGeneration) return
+    accept(saved)
+    ElMessage.success('本篇义项与来源已确认')
+  } catch (failure) {
+    if (disposed || generation !== pageGeneration) return
+    controller.value?.handleSaveFailure(failure)
+    error.value = message(failure)
+  } finally {
+    if (generation === pageGeneration) state.value = 'ready'
+  }
+}
 /** 刷新管理员学习原图。 */
 async function refreshImage(): Promise<void> {
   imageUrl.value = ''
@@ -443,14 +448,14 @@ async function preview(): Promise<void> {
   player.value?.stop()
   if (await save()) showPreview.value = true
 }
-const /**
-   * 将校对子组件的素材任务状态纳入全页编辑保护。
-   * @param section - 词汇或语块区
-   * @param value - 是否正在执行素材任务
-   */
-  setLexiconBusy = (section: 'vocabulary' | 'chunks', value: boolean): void => {
-    lexiconBusy[section] = value
-  }
+/**
+ * 将校对子组件的素材任务状态纳入全页编辑保护。
+ * @param section - 词汇或语块区
+ * @param value - 是否正在执行素材任务
+ */
+const setLexiconBusy = (section: 'vocabulary' | 'chunks', value: boolean): void => {
+  lexiconBusy[section] = value
+}
 /** 返回错误文案。
  * @param failure - 操作异常
  * @returns 用户可读错误

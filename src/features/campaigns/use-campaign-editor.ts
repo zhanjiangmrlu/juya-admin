@@ -208,27 +208,27 @@ export function useCampaignEditor(adapter: CampaignAdapter) {
       id
     )
   }
-  const /**
-     * 设置学习模式，days 为管理员选择的 3 或 5 天模式
-     * @param days - 管理员设置的天数
-     */
-    setDuration = (days: 3 | 5): void => {
-      draft.value.durationDays = days
-      if (!activationWindowCustomized.value) draft.value.activationWindowDays = days
-    }
-  const /**
-     * 设置自定义启动窗，days 为开通后允许首次开始的天数
-     * @param days - 管理员设置的天数
-     */
-    setActivationWindow = (days: number): void => {
-      draft.value.activationWindowDays = days
-      activationWindowCustomized.value = true
-    }
-  const /** 恢复与学习模式一致的默认启动窗 */
-    resetActivationWindow = (): void => {
-      activationWindowCustomized.value = false
-      draft.value.activationWindowDays = draft.value.durationDays
-    }
+  /**
+   * 设置学习模式，days 为管理员选择的 3 或 5 天模式
+   * @param days - 管理员设置的天数
+   */
+  const setDuration = (days: 3 | 5): void => {
+    draft.value.durationDays = days
+    if (!activationWindowCustomized.value) draft.value.activationWindowDays = days
+  }
+  /**
+   * 设置自定义启动窗，days 为开通后允许首次开始的天数
+   * @param days - 管理员设置的天数
+   */
+  const setActivationWindow = (days: number): void => {
+    draft.value.activationWindowDays = days
+    activationWindowCustomized.value = true
+  }
+  /** 恢复与学习模式一致的默认启动窗 */
+  const resetActivationWindow = (): void => {
+    activationWindowCustomized.value = false
+    draft.value.activationWindowDays = draft.value.durationDays
+  }
   return {
     activationWindowCustomized,
     setDuration,

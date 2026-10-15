@@ -64,47 +64,50 @@ watch(
     if (!disposed) void router.replace({ query: { ...route.query, import_phase: phase } })
   }
 )
-const /** 展开恢复工具后定位实际失败阶段 */
-  openRecovery = async (): Promise<void> => {
-    if (recoveryTools.value) recoveryTools.value.open = true
-    await nextTick()
-    stageRecovery.value?.focus()
+/** 展开恢复工具后定位实际失败阶段 */
+const openRecovery = async (): Promise<void> => {
+  if (recoveryTools.value) recoveryTools.value.open = true
+  await nextTick()
+  stageRecovery.value?.focus()
+}
+/** 加载分类与服务端规模策略 */
+const load = async (): Promise<void> => {
+  loadingError.value = ''
+  try {
+    const result = await content.listSeries()
+    if (disposed) return
+    series.value = result
+    if (adapter.available) limits.value = await adapter.limits()
+    if (recoverId.value && adapter.available) await controller.restore(recoverId.value)
+  } catch (failure) {
+    if (!disposed) loadingError.value = failure instanceof Error ? failure.message : '分类加载失败'
   }
-const /** 加载分类与服务端规模策略 */ load = async (): Promise<void> => {
-    loadingError.value = ''
-    try {
-      const result = await content.listSeries()
-      if (disposed) return
-      series.value = result
-      if (adapter.available) limits.value = await adapter.limits()
-      if (recoverId.value && adapter.available) await controller.restore(recoverId.value)
-    } catch (failure) {
-      if (!disposed)
-        loadingError.value = failure instanceof Error ? failure.message : '分类加载失败'
-    }
+}
+/**
+ * 选择导入包并执行服务端规模前置约束
+ * @param value - 管理员选择的原始文件
+ */
+const choose = (value: UploadFile): void => {
+  if (!value.raw) return
+  if (limits.value && value.raw.size > limits.value.maxBytes) {
+    loadingError.value = '文件超过当前服务允许的上传规模'
+    return
   }
-const /**
-   * 选择导入包并执行服务端规模前置约束
-   * @param value - 管理员选择的原始文件
-   */ choose = (value: UploadFile): void => {
-    if (!value.raw) return
-    if (limits.value && value.raw.size > limits.value.maxBytes) {
-      loadingError.value = '文件超过当前服务允许的上传规模'
-      return
-    }
-    file.value = value.raw
+  file.value = value.raw
+}
+/** 上传后将可恢复批次编号保存到地址 */
+const upload = async (): Promise<void> => {
+  if (!file.value || !context.seriesId || !adapter.available) return
+  await controller.upload(file.value, { ...context })
+  if (controller.batch.value) {
+    recoverId.value = controller.batch.value.id
+    await router.replace({ query: { ...route.query, batch_id: recoverId.value } })
   }
-const /** 上传后将可恢复批次编号保存到地址 */ upload = async (): Promise<void> => {
-    if (!file.value || !context.seriesId || !adapter.available) return
-    await controller.upload(file.value, { ...context })
-    if (controller.batch.value) {
-      recoverId.value = controller.batch.value.id
-      await router.replace({ query: { ...route.query, batch_id: recoverId.value } })
-    }
-  }
-const /** 恢复指定服务端批次 */ restore = async (): Promise<void> => {
-    if (recoverId.value.trim()) await controller.restore(recoverId.value.trim())
-  }
+}
+/** 恢复指定服务端批次 */
+const restore = async (): Promise<void> => {
+  if (recoverId.value.trim()) await controller.restore(recoverId.value.trim())
+}
 onMounted(load)
 onBeforeUnmount(() => {
   disposed = true

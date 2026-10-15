@@ -8,21 +8,21 @@ const route = useRoute(),
   router = useRouter()
 const adapter = createPublishAdapter(useAdminApiClient())
 const error = ref('')
-const /** 从旧版本发布深链恢复真实内容，再由单篇入口恢复工作单 */
-  restore = async (): Promise<void> => {
-    error.value = ''
-    try {
-      const preview = await adapter.preview(String(route.params.id))
-      if (!preview.sceneId) throw new Error('未找到此版本所属内容，请从内容列表恢复')
-      await router.replace({
-        name: 'content-scene-edit',
-        params: { id: preview.sceneId },
-        query: { stage: 'publish' }
-      })
-    } catch (failure) {
-      error.value = failure instanceof Error ? failure.message : '恢复失败，请重新加载'
-    }
+/** 从旧版本发布深链恢复真实内容，再由单篇入口恢复工作单 */
+const restore = async (): Promise<void> => {
+  error.value = ''
+  try {
+    const preview = await adapter.preview(String(route.params.id))
+    if (!preview.sceneId) throw new Error('未找到此版本所属内容，请从内容列表恢复')
+    await router.replace({
+      name: 'content-scene-edit',
+      params: { id: preview.sceneId },
+      query: { stage: 'publish' }
+    })
+  } catch (failure) {
+    error.value = failure instanceof Error ? failure.message : '恢复失败，请重新加载'
   }
+}
 onMounted(restore)
 </script>
 <template>

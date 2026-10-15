@@ -98,376 +98,378 @@ let resourceGeneration = 0
 let routeGeneration = 0
 let loadGeneration = 0
 let originalAbort: globalThis.AbortController | null = null
-const /** 捕获当前页面身份供异步完成时核对
-   * @returns 当前身份验证函数
-   */ capture = (): (() => boolean) => {
-    const token = routeGeneration,
-      orderId = id.value,
-      workItemId = itemId.value
-    return () => token === routeGeneration && orderId === id.value && workItemId === itemId.value
-  }
+/**
+ * 捕获当前页面身份供异步完成时核对
+ * @returns 当前身份验证函数
+ */
+const capture = (): (() => boolean) => {
+  const token = routeGeneration,
+    orderId = id.value,
+    workItemId = itemId.value
+  return () => token === routeGeneration && orderId === id.value && workItemId === itemId.value
+}
 onBeforeUnmount(() => {
   originalAbort?.abort()
   resourceGeneration++
   routeGeneration++
   loadGeneration++
 })
-const /** 刷新当前版本引用的实际媒体
+/** 刷新当前版本引用的实际媒体 */
+const resources = async (): Promise<void> => {
+  const generation = ++resourceGeneration
+  coverUrl.value = ''
+  audioUrl.value = ''
+  imageUrl.value = ''
+  const content = isReading.value ? reading.value : scene.value
+  const targets = [
+    { asset: content.cover_asset_id, target: coverUrl },
+    { asset: content.audio?.asset_id, target: audioUrl },
+    { asset: isReading.value ? null : scene.value.original_image_asset_id, target: imageUrl }
+  ]
+  await Promise.all(
+    targets.map(async ({ asset, target }) => {
+      if (!asset) return
+      try {
+        const signed = await media.signedUrl(asset)
+        if (generation === resourceGeneration) target.value = signed.url
+      } catch (failure) {
+        if (generation === resourceGeneration)
+          error.value = failure instanceof Error ? failure.message : '素材预览暂不可用，请刷新'
+      }
+    })
+  )
+}
+/**
+ * 读取不可变输入和当前候选，冲突时保留输入直到管理员主动重载
+ * @param replaceForm - 是否替换当前未保存输入
+ * @returns 是否已读取完整候选与身份绑定
+ */
+const load = async (replaceForm = true): Promise<boolean> => {
+  const active = capture(),
+    token = ++loadGeneration
+  const orderId = id.value,
+    workItemId = itemId.value
+  /**
+   * 判断异步操作仍属于当前页面身份
+   * @returns 当前操作是否有效
    */
-  resources = async (): Promise<void> => {
-    const generation = ++resourceGeneration
-    coverUrl.value = ''
-    audioUrl.value = ''
-    imageUrl.value = ''
-    const content = isReading.value ? reading.value : scene.value
-    const targets = [
-      { asset: content.cover_asset_id, target: coverUrl },
-      { asset: content.audio?.asset_id, target: audioUrl },
-      { asset: isReading.value ? null : scene.value.original_image_asset_id, target: imageUrl }
-    ]
-    await Promise.all(
-      targets.map(async ({ asset, target }) => {
-        if (!asset) return
-        try {
-          const signed = await media.signedUrl(asset)
-          if (generation === resourceGeneration) target.value = signed.url
-        } catch (failure) {
-          if (generation === resourceGeneration)
-            error.value = failure instanceof Error ? failure.message : '素材预览暂不可用，请刷新'
+  const current = (): boolean => active() && token === loadGeneration
+  try {
+    const [currentOrder, item] = await Promise.all([
+      adapter.get(orderId),
+      adapter.detail(orderId, workItemId)
+    ])
+    if (!active() || token !== loadGeneration) return false
+    const editor =
+      item.current?.template === 'short_reading'
+        ? 'reading'
+        : item.current?.template === 'word_card'
+          ? 'word-card'
+          : 'scene'
+    const targetSection =
+      item.current?.template === 'word_card' && !route.query.section
+        ? 'entries'
+        : route.query.section
+    if (item.current && (route.query.editor !== editor || targetSection !== route.query.section)) {
+      await router.replace({
+        query: { ...route.query, editor, ...(targetSection ? { section: targetSection } : {}) }
+      })
+      return true
+    }
+    order.value = currentOrder
+    detail.value = item
+    if (section.value === 'audio' && item.current?.template === 'dialogue' && item.content_id) {
+      await router.replace({
+        name: 'content-scene-edit',
+        params: { id: item.content_id },
+        query: {
+          stage: 'audio',
+          work_order_id: id.value,
+          work_item_id: itemId.value,
+          return_section: 'content',
+          return_issue: route.query.issue
         }
       })
-    )
-  }
-const /** 读取不可变输入和当前候选，冲突时保留输入直到管理员主动重载
-   * @param replaceForm - 是否替换当前未保存输入
-   * @returns 是否已读取完整候选与身份绑定
-   */
-  load = async (replaceForm = true): Promise<boolean> => {
-    const active = capture(),
-      token = ++loadGeneration
-    const orderId = id.value,
-      workItemId = itemId.value
-    const /** 判断异步操作仍属于当前页面身份
-       * @returns 当前操作是否有效
-       */ current = (): boolean => active() && token === loadGeneration
-    try {
-      const [currentOrder, item] = await Promise.all([
-        adapter.get(orderId),
-        adapter.detail(orderId, workItemId)
-      ])
-      if (!active() || token !== loadGeneration) return false
-      const editor =
-        item.current?.template === 'short_reading'
-          ? 'reading'
-          : item.current?.template === 'word_card'
-            ? 'word-card'
-            : 'scene'
-      const targetSection =
-        item.current?.template === 'word_card' && !route.query.section
-          ? 'entries'
-          : route.query.section
-      if (
-        item.current &&
-        (route.query.editor !== editor || targetSection !== route.query.section)
-      ) {
-        await router.replace({
-          query: { ...route.query, editor, ...(targetSection ? { section: targetSection } : {}) }
-        })
-        return true
-      }
-      order.value = currentOrder
-      detail.value = item
-      if (section.value === 'audio' && item.current?.template === 'dialogue' && item.content_id) {
-        await router.replace({
-          name: 'content-scene-edit',
-          params: { id: item.content_id },
-          query: {
-            stage: 'audio',
-            work_order_id: id.value,
-            work_item_id: itemId.value,
-            return_section: 'content',
-            return_issue: route.query.issue
-          }
-        })
-        return true
-      }
-      if (replaceForm) {
-        scene.value = normalizeSceneContent(
-          item.current?.template !== 'short_reading' ? item.current?.content || {} : {}
-        )
-        reading.value = normalizeShortReading(
-          item.current?.template === 'short_reading' ? item.current.content : {}
-        )
-        conflict.value = false
-        conflictReady.value = false
-        compared.value = false
-        resolved.value = []
-      }
-      const loadedBindings =
-        item.revision_id && item.current?.template !== 'short_reading'
-          ? await adapter.bindings(orderId, workItemId)
-          : null
-      if (!current()) return false
-      bindings.value = loadedBindings
-      if (!replaceForm) conflictReady.value = true
-      void resources()
-      await nextTick()
-      if (!current()) return false
-      if (focusedIssue.value) {
-        const label = issueFieldLabel(focusedIssue.value.location || [])
-        const input = Array.from(
-          editorRoot.value?.querySelectorAll<
-            globalThis.HTMLInputElement | globalThis.HTMLTextAreaElement
-          >('input,textarea') || []
-        ).find((element) => label && element.getAttribute('aria-label') === label)
-        const disclosure = input?.closest('details')
-        if (disclosure) disclosure.open = true
-        input?.focus()
-      }
       return true
-    } catch (failure) {
-      if (!current()) return false
-      conflictReady.value = false
-      error.value = failure instanceof Error ? failure.message : '内容加载失败'
-      return false
     }
-  }
-const /** 保存精确候选和原文问题确认，冲突不自动重试
-   * @returns 是否保存成功
-   */
-  save = async (): Promise<boolean> => {
-    if (
-      !order.value ||
-      !detail.value?.revision_id ||
-      !detail.value.candidate_hash ||
-      busy.value ||
-      hasMediaWork.value ||
-      conflict.value
-    )
-      return false
-    const active = capture()
-    busy.value = true
-    error.value = ''
-    try {
-      const current: WorkCandidate = isReading.value
-        ? {
-            template: 'short_reading',
-            content: {
-              ...reading.value,
-              audio: reading.value.audio
-                ? {
-                    ...reading.value.audio,
-                    listening_confirmed: reading.value.audio.listening_confirmed || false
-                  }
-                : null
-            }
-          }
-        : {
-            template: detail.value.current?.template === 'word_card' ? 'word_card' : 'dialogue',
-            content: scene.value as S['SceneContent']
-          }
-      await adapter.correction(id.value, itemId.value, {
-        expected_version: order.value.version,
-        expected_revision_id: detail.value.revision_id,
-        expected_edit_version: detail.value.edit_version!,
-        expected_content_version: detail.value.content_version!,
-        candidate_hash: detail.value.candidate_hash,
-        current,
-        original_compared: compared.value,
-        resolved_issue_ids: compared.value
-          ? resolved.value.filter((issueId) =>
-              detail.value?.issues?.some(
-                (issue) => issue.id === issueId && issue.acknowledgement_eligible
-              )
-            )
-          : []
-      })
-      if (!active()) return false
-      return await load()
-    } catch (failure) {
-      if (!active()) return false
-      conflict.value = isCorrectionConflict(failure)
-      if (conflict.value) {
-        conflictReady.value = false
-        await load(false)
-        if (!active()) return false
-        error.value = '当前候选已更新。输入已保留，请与刷新后的候选核对后重新编辑'
-      } else {
-        error.value =
-          failure instanceof ApiError && failure.code === 'MEANING_CHANGE_CONFIRMATION_REQUIRED'
-            ? '中文释义已修改，请在对应词条的“释义变化类型”中选择措辞修订或新义项；当前输入已保留'
-            : `${failure instanceof Error ? failure.message : '保存结果待核实'}。当前输入已保留，可修正后再次保存`
-      }
-      return false
-    } finally {
-      if (active()) busy.value = false
-    }
-  }
-const /** 对照新候选后明确保留本地输入，后续保存才发起写入 */ keepLocal = (): void => {
-    if (!conflictReady.value || busy.value) return
-    conflict.value = false
-    compared.value = false
-    resolved.value = []
-    error.value = '已保留本地输入，请完成核对后再次保存；尚未写入服务端'
-  }
-const /** 保存后只确认管理员点选的词条
-   * @param section - 单词或语块区
-   * @param index - 本篇被明确核对的行
-   */ confirmEntry = async (section: 'vocabulary' | 'chunks', index: number): Promise<void> => {
-    const active = capture()
-    if (!(await save()) || !active() || !detail.value?.revision_id) return
-    const entry = scene.value[section][index]
-    if (!entry?.entry_id) {
-      error.value = '当前词条身份未生成，请重新核对后保存'
-      return
-    }
-    busy.value = true
-    try {
-      await adapter.confirmEntry(
-        detail.value.revision_id,
-        entry.entry_id,
-        detail.value.edit_version!
+    if (replaceForm) {
+      scene.value = normalizeSceneContent(
+        item.current?.template !== 'short_reading' ? item.current?.content || {} : {}
       )
-      if (!active()) return
-      await load()
-    } catch (failure) {
-      if (!active()) return
-      error.value = failure instanceof Error ? failure.message : '本条确认失败，请重新核对'
-    } finally {
-      if (active()) busy.value = false
+      reading.value = normalizeShortReading(
+        item.current?.template === 'short_reading' ? item.current.content : {}
+      )
+      conflict.value = false
+      conflictReady.value = false
+      compared.value = false
+      resolved.value = []
     }
-  }
-const /** 上传并关联当前安全图片
-   * @param file - 管理员选择的图片文件
-   * @param target - 封面或场景学习图片
-   */
-  uploadImage = async (file: UploadFile, target: 'cover' | 'original' = 'cover'): Promise<void> => {
-    if (!file.raw || busy.value) return
-    const active = capture()
-    busy.value = true
-    try {
-      const asset = await media.uploadImage(file.raw)
-      if (!active()) return
-      if (isReading.value) reading.value.cover_asset_id = asset.id
-      else if (target === 'original') scene.value.original_image_asset_id = asset.id
-      else scene.value.cover_asset_id = asset.id
-      await resources()
-    } catch (failure) {
-      if (!active()) return
-      error.value = failure instanceof Error ? failure.message : '上传失败'
-    } finally {
-      if (active()) busy.value = false
+    const loadedBindings =
+      item.revision_id && item.current?.template !== 'short_reading'
+        ? await adapter.bindings(orderId, workItemId)
+        : null
+    if (!current()) return false
+    bindings.value = loadedBindings
+    if (!replaceForm) conflictReady.value = true
+    void resources()
+    await nextTick()
+    if (!current()) return false
+    if (focusedIssue.value) {
+      const label = issueFieldLabel(focusedIssue.value.location || [])
+      const input = Array.from(
+        editorRoot.value?.querySelectorAll<
+          globalThis.HTMLInputElement | globalThis.HTMLTextAreaElement
+        >('input,textarea') || []
+      ).find((element) => label && element.getAttribute('aria-label') === label)
+      const disclosure = input?.closest('details')
+      if (disclosure) disclosure.open = true
+      input?.focus()
     }
+    return true
+  } catch (failure) {
+    if (!current()) return false
+    conflictReady.value = false
+    error.value = failure instanceof Error ? failure.message : '内容加载失败'
+    return false
   }
-const /** 复用短文真实全文音频上传并重读工作单候选
-   * @param file - 管理员选择的全文音频
-   */
-  uploadAudio = async (file: UploadFile): Promise<void> => {
-    const active = capture()
-    if (!file.raw || !detail.value?.content_id || !(await save()) || !active()) return
-    busy.value = true
-    try {
-      const snapshot = await readings.load(detail.value.content_id)
-      if (!active()) return
-      await readings.uploadAudio(snapshot, file.raw, createIdempotencyKey())
-      if (!active()) return
-      await load()
-    } catch (failure) {
-      if (!active()) return
-      error.value = failure instanceof Error ? failure.message : '音频上传失败'
-    } finally {
-      if (active()) busy.value = false
-    }
-  }
-const /** 保存后前往复用的场景音频工具，并保留本工作单上下文
-   */
-  audioEditor = async (): Promise<void> => {
-    const active = capture()
-    if (!detail.value?.content_id || !(await save()) || !active()) return
-    await router.push({
-      name: 'content-scene-edit',
-      params: { id: detail.value.content_id },
-      query: {
-        stage: 'audio',
-        work_order_id: id.value,
-        work_item_id: itemId.value,
-        return_section: section.value,
-        return_issue: route.query.issue
-      }
+}
+/**
+ * 保存精确候选和原文问题确认，冲突不自动重试
+ * @returns 是否保存成功
+ */
+const save = async (): Promise<boolean> => {
+  if (
+    !order.value ||
+    !detail.value?.revision_id ||
+    !detail.value.candidate_hash ||
+    busy.value ||
+    hasMediaWork.value ||
+    conflict.value
+  )
+    return false
+  const active = capture()
+  busy.value = true
+  error.value = ''
+  try {
+    const current: WorkCandidate = isReading.value
+      ? {
+          template: 'short_reading',
+          content: {
+            ...reading.value,
+            audio: reading.value.audio
+              ? {
+                  ...reading.value.audio,
+                  listening_confirmed: reading.value.audio.listening_confirmed || false
+                }
+              : null
+          }
+        }
+      : {
+          template: detail.value.current?.template === 'word_card' ? 'word_card' : 'dialogue',
+          content: scene.value as S['SceneContent']
+        }
+    await adapter.correction(id.value, itemId.value, {
+      expected_version: order.value.version,
+      expected_revision_id: detail.value.revision_id,
+      expected_edit_version: detail.value.edit_version!,
+      expected_content_version: detail.value.content_version!,
+      candidate_hash: detail.value.candidate_hash,
+      current,
+      original_compared: compared.value,
+      resolved_issue_ids: compared.value
+        ? resolved.value.filter((issueId) =>
+            detail.value?.issues?.some(
+              (issue) => issue.id === issueId && issue.acknowledgement_eligible
+            )
+          )
+        : []
     })
-  }
-const /** 明确确认本篇词条与发音目标
-   */
-  confirmEntries = async (): Promise<void> => {
-    const active = capture()
-    if (!(await save()) || !active() || !order.value) return
-    busy.value = true
-    try {
-      await adapter.command(id.value, 'entry-confirmations', {
-        expected_version: order.value.version,
-        scope: 'selected',
-        selected_item_ids: [itemId.value],
-        manual_confirmed: true
-      })
-      if (!active()) return
-      await load()
-    } catch (failure) {
-      if (!active()) return
-      error.value = failure instanceof Error ? failure.message : '确认失败，请核对本篇词条'
-    } finally {
-      if (active()) busy.value = false
+    if (!active()) return false
+    return await load()
+  } catch (failure) {
+    if (!active()) return false
+    conflict.value = isCorrectionConflict(failure)
+    if (conflict.value) {
+      conflictReady.value = false
+      await load(false)
+      if (!active()) return false
+      error.value = '当前候选已更新。输入已保留，请与刷新后的候选核对后重新编辑'
+    } else {
+      error.value =
+        failure instanceof ApiError && failure.code === 'MEANING_CHANGE_CONFIRMATION_REQUIRED'
+          ? '中文释义已修改，请在对应词条的“释义变化类型”中选择措辞修订或新义项；当前输入已保留'
+          : `${failure instanceof Error ? failure.message : '保存结果待核实'}。当前输入已保留，可修正后再次保存`
     }
+    return false
+  } finally {
+    if (active()) busy.value = false
   }
-const /** 保存当前修正后回到同单实际准备结果，由管理员继续开始校对 */ listening =
-    async (): Promise<void> => {
-      const active = capture()
-      if (!(await save()) || !active()) return
-      await router.push({
-        name: 'content-work-order',
-        params: { id: id.value },
-        query: { view: 'overview' }
-      })
+}
+/** 对照新候选后明确保留本地输入，后续保存才发起写入 */
+const keepLocal = (): void => {
+  if (!conflictReady.value || busy.value) return
+  conflict.value = false
+  compared.value = false
+  resolved.value = []
+  error.value = '已保留本地输入，请完成核对后再次保存；尚未写入服务端'
+}
+/**
+ * 保存后只确认管理员点选的词条
+ * @param section - 单词或语块区
+ * @param index - 本篇被明确核对的行
+ */
+const confirmEntry = async (section: 'vocabulary' | 'chunks', index: number): Promise<void> => {
+  const active = capture()
+  if (!(await save()) || !active() || !detail.value?.revision_id) return
+  const entry = scene.value[section][index]
+  if (!entry?.entry_id) {
+    error.value = '当前词条身份未生成，请重新核对后保存'
+    return
+  }
+  busy.value = true
+  try {
+    await adapter.confirmEntry(detail.value.revision_id, entry.entry_id, detail.value.edit_version!)
+    if (!active()) return
+    await load()
+  } catch (failure) {
+    if (!active()) return
+    error.value = failure instanceof Error ? failure.message : '本条确认失败，请重新核对'
+  } finally {
+    if (active()) busy.value = false
+  }
+}
+/**
+ * 上传并关联当前安全图片
+ * @param file - 管理员选择的图片文件
+ * @param target - 封面或场景学习图片
+ */
+const uploadImage = async (
+  file: UploadFile,
+  target: 'cover' | 'original' = 'cover'
+): Promise<void> => {
+  if (!file.raw || busy.value) return
+  const active = capture()
+  busy.value = true
+  try {
+    const asset = await media.uploadImage(file.raw)
+    if (!active()) return
+    if (isReading.value) reading.value.cover_asset_id = asset.id
+    else if (target === 'original') scene.value.original_image_asset_id = asset.id
+    else scene.value.cover_asset_id = asset.id
+    await resources()
+  } catch (failure) {
+    if (!active()) return
+    error.value = failure instanceof Error ? failure.message : '上传失败'
+  } finally {
+    if (active()) busy.value = false
+  }
+}
+/**
+ * 复用短文真实全文音频上传并重读工作单候选
+ * @param file - 管理员选择的全文音频
+ */
+const uploadAudio = async (file: UploadFile): Promise<void> => {
+  const active = capture()
+  if (!file.raw || !detail.value?.content_id || !(await save()) || !active()) return
+  busy.value = true
+  try {
+    const snapshot = await readings.load(detail.value.content_id)
+    if (!active()) return
+    await readings.uploadAudio(snapshot, file.raw, createIdempotencyKey())
+    if (!active()) return
+    await load()
+  } catch (failure) {
+    if (!active()) return
+    error.value = failure instanceof Error ? failure.message : '音频上传失败'
+  } finally {
+    if (active()) busy.value = false
+  }
+}
+/** 保存后前往复用的场景音频工具，并保留本工作单上下文 */
+const audioEditor = async (): Promise<void> => {
+  const active = capture()
+  if (!detail.value?.content_id || !(await save()) || !active()) return
+  await router.push({
+    name: 'content-scene-edit',
+    params: { id: detail.value.content_id },
+    query: {
+      stage: 'audio',
+      work_order_id: id.value,
+      work_item_id: itemId.value,
+      return_section: section.value,
+      return_issue: route.query.issue
     }
-const /** 返回同一工作单的待处理问题
-   */
-  back = (): void => {
-    void router.push({ name: 'content-work-order', params: { id: id.value } })
-  }
-const /** 保存当前候选后切换同一工作单成员的职责页面
-   * @param target - 正文配对、元信息或本篇词条分区
-   */ editSection = async (target: string): Promise<void> => {
-    const active = capture()
-    if (
-      ((dirty.value || (compared.value && resolved.value.length)) && !(await save())) ||
-      !active()
-    )
-      return
-    await router.push({
-      name: 'content-work-item',
-      params: { id: id.value, itemId: itemId.value },
-      query: { ...route.query, section: target }
+  })
+}
+/** 明确确认本篇词条与发音目标 */
+const confirmEntries = async (): Promise<void> => {
+  const active = capture()
+  if (!(await save()) || !active() || !order.value) return
+  busy.value = true
+  try {
+    await adapter.command(id.value, 'entry-confirmations', {
+      expected_version: order.value.version,
+      scope: 'selected',
+      selected_item_ids: [itemId.value],
+      manual_confirmed: true
     })
+    if (!active()) return
+    await load()
+  } catch (failure) {
+    if (!active()) return
+    error.value = failure instanceof Error ? failure.message : '确认失败，请核对本篇词条'
+  } finally {
+    if (active()) busy.value = false
   }
-const /** 下载实际原始文件，忽略取消请求和离开篇目后的迟到响应 */ downloadOriginal =
-    async (): Promise<void> => {
-      const active = capture(),
-        requestController = new globalThis.AbortController()
-      try {
-        originalAbort?.abort()
-        originalAbort = requestController
-        const blob = await adapter.originalFile(id.value, requestController.signal)
-        if (requestController.signal.aborted || !active()) return
-        const url = globalThis.URL.createObjectURL(blob),
-          link = globalThis.document.createElement('a')
-        link.href = url
-        link.download = order.value?.source_mode === 'DOCX' ? 'original.docx' : 'original.zip'
-        link.click()
-        globalThis.URL.revokeObjectURL(url)
-      } catch (failure) {
-        if (!requestController.signal.aborted && active())
-          error.value = failure instanceof Error ? failure.message : '原文件下载失败'
-      }
-    }
+}
+/** 保存当前修正后回到同单实际准备结果，由管理员继续开始校对 */
+const listening = async (): Promise<void> => {
+  const active = capture()
+  if (!(await save()) || !active()) return
+  await router.push({
+    name: 'content-work-order',
+    params: { id: id.value },
+    query: { view: 'overview' }
+  })
+}
+/** 返回同一工作单的待处理问题 */
+const back = (): void => {
+  void router.push({ name: 'content-work-order', params: { id: id.value } })
+}
+/**
+ * 保存当前候选后切换同一工作单成员的职责页面
+ * @param target - 正文配对、元信息或本篇词条分区
+ */
+const editSection = async (target: string): Promise<void> => {
+  const active = capture()
+  if (((dirty.value || (compared.value && resolved.value.length)) && !(await save())) || !active())
+    return
+  await router.push({
+    name: 'content-work-item',
+    params: { id: id.value, itemId: itemId.value },
+    query: { ...route.query, section: target }
+  })
+}
+/** 下载实际原始文件，忽略取消请求和离开篇目后的迟到响应 */
+const downloadOriginal = async (): Promise<void> => {
+  const active = capture(),
+    requestController = new globalThis.AbortController()
+  try {
+    originalAbort?.abort()
+    originalAbort = requestController
+    const blob = await adapter.originalFile(id.value, requestController.signal)
+    if (requestController.signal.aborted || !active()) return
+    const url = globalThis.URL.createObjectURL(blob),
+      link = globalThis.document.createElement('a')
+    link.href = url
+    link.download = order.value?.source_mode === 'DOCX' ? 'original.docx' : 'original.zip'
+    link.click()
+    globalThis.URL.revokeObjectURL(url)
+  } catch (failure) {
+    if (!requestController.signal.aborted && active())
+      error.value = failure instanceof Error ? failure.message : '原文件下载失败'
+  }
+}
 watch(
   () => JSON.stringify([scene.value, reading.value]),
   () => {

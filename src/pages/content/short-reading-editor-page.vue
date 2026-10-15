@@ -57,342 +57,361 @@ let resourceGeneration = 0
 let disposed = false
 let createKey = createIdempotencyKey()
 let publishKey = ''
-const /**
-   * 显示安全错误并区分版本冲突
-   * @param failure - 当前操作异常
-   * @returns 当前操作结果或完成状态
-   */ fail = (failure: unknown): void => {
-    error.value = failure instanceof Error ? failure.message : '操作失败'
-    conflict.value = failure instanceof ApiError && failure.status === 409
-    publishVersion.value = null
+/**
+ * 显示安全错误并区分版本冲突
+ * @param failure - 当前操作异常
+ * @returns 当前操作结果或完成状态
+ */
+const fail = (failure: unknown): void => {
+  error.value = failure instanceof Error ? failure.message : '操作失败'
+  conflict.value = failure instanceof ApiError && failure.status === 409
+  publishVersion.value = null
+}
+/**
+ * 刷新受控素材 URL 并忽略离页返回
+ * @returns 当前操作结果或完成状态
+ */
+const refreshResources = async (): Promise<void> => {
+  const current = generation
+  const request = ++resourceGeneration
+  const cover = form.value.cover_asset_id
+  const asset = form.value.audio?.asset_id
+  const version = form.value.audio?.version_id
+  coverUrl.value = ''
+  audioUrl.value = ''
+  const results = await Promise.allSettled([
+    cover ? media.signedUrl(cover) : Promise.resolve(null),
+    asset ? media.signedUrl(asset) : Promise.resolve(null)
+  ])
+  if (
+    disposed ||
+    current !== generation ||
+    request !== resourceGeneration ||
+    cover !== form.value.cover_asset_id ||
+    asset !== form.value.audio?.asset_id ||
+    version !== form.value.audio?.version_id
+  )
+    return
+  coverUrl.value = results[0].status === 'fulfilled' ? (results[0].value?.url ?? '') : ''
+  audioUrl.value = results[1].status === 'fulfilled' ? (results[1].value?.url ?? '') : ''
+  if (results.some((result) => result.status === 'rejected'))
+    error.value = '部分素材暂不可试听，请刷新'
+}
+/**
+ * 加载独立短文当前草稿
+ * @returns 当前操作结果或完成状态
+ */
+const load = async (): Promise<void> => {
+  const current = ++generation
+  snapshot.value = null
+  audioUploadController?.abort()
+  pendingAudioFile.value = null
+  audioFile = null
+  busy.value = false
+  publishOpened.value = false
+  form.value = normalizeShortReading({})
+  error.value = ''
+  conflict.value = false
+  state.value = 'loading'
+  if (!adapter.available) {
+    state.value = 'ready'
+    return
   }
-const /** 刷新受控素材 URL 并忽略离页返回
-   * @returns 当前操作结果或完成状态
-   */ refreshResources = async (): Promise<void> => {
-    const current = generation
-    const request = ++resourceGeneration
-    const cover = form.value.cover_asset_id
-    const asset = form.value.audio?.asset_id
-    const version = form.value.audio?.version_id
-    coverUrl.value = ''
-    audioUrl.value = ''
-    const results = await Promise.allSettled([
-      cover ? media.signedUrl(cover) : Promise.resolve(null),
-      asset ? media.signedUrl(asset) : Promise.resolve(null)
-    ])
-    if (
-      disposed ||
-      current !== generation ||
-      request !== resourceGeneration ||
-      cover !== form.value.cover_asset_id ||
-      asset !== form.value.audio?.asset_id ||
-      version !== form.value.audio?.version_id
-    )
+  if (id.value === 'new') {
+    state.value = 'ready'
+    return
+  }
+  try {
+    const result = await adapter.load(id.value)
+    if (disposed || current !== generation) return
+    if (!route.query.history) {
+      if (result.status !== 'DRAFT') await adapter.createRevision(result, createIdempotencyKey())
+      const context = await resolveWorkOrderContext(createWorkOrderAdapter(client), {
+        content_id: result.id,
+        content_type: 'short_reading',
+        series_id: result.seriesId
+      })
+      await router.replace({
+        name: 'content-work-item',
+        params: { id: context.orderId, itemId: context.itemId },
+        query: { editor: 'reading' }
+      })
       return
-    coverUrl.value = results[0].status === 'fulfilled' ? (results[0].value?.url ?? '') : ''
-    audioUrl.value = results[1].status === 'fulfilled' ? (results[1].value?.url ?? '') : ''
-    if (results.some((result) => result.status === 'rejected'))
-      error.value = '部分素材暂不可试听，请刷新'
+    }
+    snapshot.value = result
+    form.value = normalizeShortReading({ ...result.content })
+    trialEnabled.value = result.trialEnabled
+    sortOrder.value = result.sortOrder ?? null
+    state.value = 'ready'
+    await refreshResources()
+  } catch (failure) {
+    if (!disposed && current === generation) {
+      fail(failure)
+      state.value = 'error'
+    }
   }
-const /** 加载独立短文当前草稿
-   * @returns 当前操作结果或完成状态
-   */ load = async (): Promise<void> => {
-    const current = ++generation
-    snapshot.value = null
-    audioUploadController?.abort()
+}
+/**
+ * 保存当前纯阅读草稿，冲突保留所有输入
+ * @returns 当前操作结果或完成状态
+ */
+const save = async (): Promise<boolean> => {
+  if (!adapter.available || busy.value || conflict.value || !editable.value) return false
+  const current = generation
+  busy.value = true
+  error.value = ''
+  try {
+    const signature = JSON.stringify([
+      snapshot.value?.revisionId,
+      snapshot.value?.editVersion,
+      form.value
+    ])
+    if (saveSignature !== signature) {
+      saveSignature = signature
+      saveKey = createIdempotencyKey()
+    }
+    const result = snapshot.value
+      ? await adapter.save(snapshot.value, form.value, saveKey)
+      : await adapter.create(String(route.query.series_id ?? ''), form.value, createKey)
+    if (disposed || current !== generation) return false
+    snapshot.value = result
+    form.value = normalizeShortReading({ ...result.content })
+    publishVersion.value = null
+    if (id.value === 'new') {
+      createKey = createIdempotencyKey()
+      await router.replace({ name: 'content-short-reading-edit', params: { id: result.id } })
+    }
+    ElMessage.success('短文草稿已保存')
+    return true
+  } catch (failure) {
+    if (!disposed && current === generation) fail(failure)
+    return false
+  } finally {
+    if (current === generation) busy.value = false
+  }
+}
+/**
+ * 上传选填安全封面
+ * @param file - 管理员选择的封面图
+ * @returns 当前操作结果或完成状态
+ */
+const uploadCover = async (file: UploadFile): Promise<void> => {
+  if (!file.raw || busy.value || !adapter.available) return
+  busy.value = true
+  const current = generation
+  try {
+    const asset = await media.uploadImage(file.raw)
+    if (disposed || current !== generation) return
+    form.value.cover_asset_id = asset.id
+    await refreshResources()
+  } catch (failure) {
+    if (!disposed && current === generation) fail(failure)
+  } finally {
+    if (current === generation) busy.value = false
+  }
+}
+/**
+ * 上传可选全文音频到当前独立短文
+ * @param file - 管理员选择的完整音频
+ * @returns 当前操作结果或完成状态
+ */
+const uploadAudio = async (file: UploadFile): Promise<void> => {
+  if (
+    !file.raw ||
+    !snapshot.value ||
+    busy.value ||
+    conflict.value ||
+    !editable.value ||
+    !adapter.audioAvailable
+  ) {
+    error.value = '请先保存短文草稿再上传音频'
+    return
+  }
+  pendingAudioFile.value = file
+  if (dirty.value && !(await save())) return
+  if (!snapshot.value) return
+  const uploadSnapshot = snapshot.value
+  const signature = JSON.stringify([
+    uploadSnapshot.id,
+    uploadSnapshot.revisionId,
+    uploadSnapshot.version,
+    uploadSnapshot.editVersion
+  ])
+  if (file.raw !== audioFile || audioSignature !== signature) {
+    audioFile = file.raw
+    audioSignature = signature
+    audioKey = createIdempotencyKey()
+  }
+  busy.value = true
+  const current = generation
+  error.value = ''
+  audioUploadProgress.value = 0
+  audioUploadController = new globalThis.AbortController()
+  try {
+    const result = await adapter.uploadAudio(
+      uploadSnapshot,
+      file.raw,
+      audioKey,
+      (value) => {
+        if (!disposed && current === generation) audioUploadProgress.value = value
+      },
+      audioUploadController.signal
+    )
+    if (disposed || current !== generation) return
+    snapshot.value = result
+    form.value = normalizeShortReading({ ...result.content })
     pendingAudioFile.value = null
     audioFile = null
-    busy.value = false
-    publishOpened.value = false
-    form.value = normalizeShortReading({})
-    error.value = ''
-    conflict.value = false
-    state.value = 'loading'
-    if (!adapter.available) {
-      state.value = 'ready'
-      return
-    }
-    if (id.value === 'new') {
-      state.value = 'ready'
-      return
-    }
-    try {
-      const result = await adapter.load(id.value)
-      if (disposed || current !== generation) return
-      if (!route.query.history) {
-        if (result.status !== 'DRAFT') await adapter.createRevision(result, createIdempotencyKey())
-        const context = await resolveWorkOrderContext(createWorkOrderAdapter(client), {
-          content_id: result.id,
-          content_type: 'short_reading',
-          series_id: result.seriesId
-        })
-        await router.replace({
-          name: 'content-work-item',
-          params: { id: context.orderId, itemId: context.itemId },
-          query: { editor: 'reading' }
-        })
-        return
-      }
-      snapshot.value = result
-      form.value = normalizeShortReading({ ...result.content })
-      trialEnabled.value = result.trialEnabled
-      sortOrder.value = result.sortOrder ?? null
-      state.value = 'ready'
-      await refreshResources()
-    } catch (failure) {
-      if (!disposed && current === generation) {
-        fail(failure)
-        state.value = 'error'
-      }
-    }
+    audioSignature = ''
+    await refreshResources()
+  } catch (failure) {
+    if (!disposed && current === generation) fail(failure)
+  } finally {
+    if (current === generation) busy.value = false
   }
-const /** 保存当前纯阅读草稿，冲突保留所有输入
-   * @returns 当前操作结果或完成状态
-   */ save = async (): Promise<boolean> => {
-    if (!adapter.available || busy.value || conflict.value || !editable.value) return false
-    const current = generation
-    busy.value = true
-    error.value = ''
-    try {
-      const signature = JSON.stringify([
-        snapshot.value?.revisionId,
-        snapshot.value?.editVersion,
-        form.value
-      ])
-      if (saveSignature !== signature) {
-        saveSignature = signature
-        saveKey = createIdempotencyKey()
-      }
-      const result = snapshot.value
-        ? await adapter.save(snapshot.value, form.value, saveKey)
-        : await adapter.create(String(route.query.series_id ?? ''), form.value, createKey)
-      if (disposed || current !== generation) return false
-      snapshot.value = result
-      form.value = normalizeShortReading({ ...result.content })
-      publishVersion.value = null
-      if (id.value === 'new') {
-        createKey = createIdempotencyKey()
-        await router.replace({ name: 'content-short-reading-edit', params: { id: result.id } })
-      }
-      ElMessage.success('短文草稿已保存')
-      return true
-    } catch (failure) {
-      if (!disposed && current === generation) fail(failure)
-      return false
-    } finally {
-      if (current === generation) busy.value = false
-    }
-  }
-const /**
-   * 上传选填安全封面
-   * @param file - 管理员选择的封面图
-   * @returns 当前操作结果或完成状态
-   */ uploadCover = async (file: UploadFile): Promise<void> => {
-    if (!file.raw || busy.value || !adapter.available) return
-    busy.value = true
-    const current = generation
-    try {
-      const asset = await media.uploadImage(file.raw)
-      if (disposed || current !== generation) return
-      form.value.cover_asset_id = asset.id
-      await refreshResources()
-    } catch (failure) {
-      if (!disposed && current === generation) fail(failure)
-    } finally {
-      if (current === generation) busy.value = false
-    }
-  }
-const /**
-   * 上传可选全文音频到当前独立短文
-   * @param file - 管理员选择的完整音频
-   * @returns 当前操作结果或完成状态
-   */ uploadAudio = async (file: UploadFile): Promise<void> => {
-    if (
-      !file.raw ||
-      !snapshot.value ||
-      busy.value ||
-      conflict.value ||
-      !editable.value ||
-      !adapter.audioAvailable
-    ) {
-      error.value = '请先保存短文草稿再上传音频'
-      return
-    }
-    pendingAudioFile.value = file
-    if (dirty.value && !(await save())) return
-    if (!snapshot.value) return
-    const uploadSnapshot = snapshot.value
-    const signature = JSON.stringify([
-      uploadSnapshot.id,
-      uploadSnapshot.revisionId,
-      uploadSnapshot.version,
-      uploadSnapshot.editVersion
-    ])
-    if (file.raw !== audioFile || audioSignature !== signature) {
-      audioFile = file.raw
-      audioSignature = signature
-      audioKey = createIdempotencyKey()
-    }
-    busy.value = true
-    const current = generation
-    error.value = ''
-    audioUploadProgress.value = 0
-    audioUploadController = new globalThis.AbortController()
-    try {
-      const result = await adapter.uploadAudio(
-        uploadSnapshot,
-        file.raw,
-        audioKey,
-        (value) => {
-          if (!disposed && current === generation) audioUploadProgress.value = value
-        },
-        audioUploadController.signal
-      )
-      if (disposed || current !== generation) return
-      snapshot.value = result
-      form.value = normalizeShortReading({ ...result.content })
-      pendingAudioFile.value = null
-      audioFile = null
-      audioSignature = ''
-      await refreshResources()
-    } catch (failure) {
-      if (!disposed && current === generation) fail(failure)
-    } finally {
-      if (current === generation) busy.value = false
-    }
-  }
-const /** 保存逐篇试读，不套用场景数量规则
-   * @returns 当前操作结果或完成状态
-   */ saveTrial = async (): Promise<void> => {
-    if (!snapshot.value || trialEnabled.value === null || busy.value || !adapter.available) return
-    busy.value = true
-    const current = generation
-    try {
-      const result = await adapter.trial(
-        snapshot.value.id,
-        trialEnabled.value,
-        snapshot.value.trialVersion
-      )
-      if (disposed || current !== generation || !snapshot.value) return
-      snapshot.value = {
-        ...snapshot.value,
-        version: result.version,
-        trialEnabled: result.enabled,
-        trialVersion: result.version
-      }
-      ElMessage.success('本篇试读配置已保存')
-    } catch (failure) {
-      if (!disposed && current === generation) fail(failure)
-    } finally {
-      if (current === generation) busy.value = false
-    }
-  }
-const /** 独立保存运营顺序，保留未保存正文输入 */ saveSort = async (): Promise<void> => {
-    if (
-      !snapshot.value ||
-      sortOrder.value === null ||
-      busy.value ||
-      conflict.value ||
-      !adapter.sortAvailable
+}
+/**
+ * 保存逐篇试读，不套用场景数量规则
+ * @returns 当前操作结果或完成状态
+ */
+const saveTrial = async (): Promise<void> => {
+  if (!snapshot.value || trialEnabled.value === null || busy.value || !adapter.available) return
+  busy.value = true
+  const current = generation
+  try {
+    const result = await adapter.trial(
+      snapshot.value.id,
+      trialEnabled.value,
+      snapshot.value.trialVersion
     )
+    if (disposed || current !== generation || !snapshot.value) return
+    snapshot.value = {
+      ...snapshot.value,
+      version: result.version,
+      trialEnabled: result.enabled,
+      trialVersion: result.version
+    }
+    ElMessage.success('本篇试读配置已保存')
+  } catch (failure) {
+    if (!disposed && current === generation) fail(failure)
+  } finally {
+    if (current === generation) busy.value = false
+  }
+}
+/** 独立保存运营顺序，保留未保存正文输入 */
+const saveSort = async (): Promise<void> => {
+  if (
+    !snapshot.value ||
+    sortOrder.value === null ||
+    busy.value ||
+    conflict.value ||
+    !adapter.sortAvailable
+  )
+    return
+  const current = generation
+  const signature = JSON.stringify([snapshot.value.id, snapshot.value.version, sortOrder.value])
+  if (sortSignature !== signature) {
+    sortSignature = signature
+    sortKey = createIdempotencyKey()
+  }
+  busy.value = true
+  try {
+    const result = await adapter.sort(
+      snapshot.value.id,
+      sortOrder.value,
+      snapshot.value.version,
+      sortKey
+    )
+    if (disposed || current !== generation || !snapshot.value) return
+    snapshot.value = {
+      ...snapshot.value,
+      version: result.version,
+      trialVersion: result.version,
+      sortOrder: result.sortOrder
+    }
+    sortOrder.value = result.sortOrder
+    sortSignature = ''
+    ElMessage.success('短文全局顺序已保存')
+  } catch (failure) {
+    if (!disposed && current === generation) fail(failure)
+  } finally {
+    if (current === generation) busy.value = false
+  }
+}
+/**
+ * 保存并检查这篇固定候选版本
+ * @returns 当前操作结果或完成状态
+ */
+const checkPublish = async (): Promise<void> => {
+  if (!snapshot.value || (dirty.value && !(await save()))) return
+  const current = generation
+  busy.value = true
+  try {
+    const result = await adapter.check(snapshot.value.revisionId)
+    if (disposed || current !== generation) return
+    if (!result.ready) {
+      error.value = result.errors.join('；')
       return
-    const current = generation
-    const signature = JSON.stringify([snapshot.value.id, snapshot.value.version, sortOrder.value])
-    if (sortSignature !== signature) {
-      sortSignature = signature
-      sortKey = createIdempotencyKey()
     }
-    busy.value = true
-    try {
-      const result = await adapter.sort(
-        snapshot.value.id,
-        sortOrder.value,
-        snapshot.value.version,
-        sortKey
-      )
-      if (disposed || current !== generation || !snapshot.value) return
-      snapshot.value = {
-        ...snapshot.value,
-        version: result.version,
-        trialVersion: result.version,
-        sortOrder: result.sortOrder
-      }
-      sortOrder.value = result.sortOrder
-      sortSignature = ''
-      ElMessage.success('短文全局顺序已保存')
-    } catch (failure) {
-      if (!disposed && current === generation) fail(failure)
-    } finally {
-      if (current === generation) busy.value = false
-    }
+    publishVersion.value = result.version
+    publishKey = createIdempotencyKey()
+    publishOpened.value = true
+  } catch (failure) {
+    if (!disposed && current === generation) fail(failure)
+  } finally {
+    if (current === generation) busy.value = false
   }
-const /** 保存并检查这篇固定候选版本
-   * @returns 当前操作结果或完成状态
-   */ checkPublish = async (): Promise<void> => {
-    if (!snapshot.value || (dirty.value && !(await save()))) return
-    const current = generation
-    busy.value = true
-    try {
-      const result = await adapter.check(snapshot.value.revisionId)
-      if (disposed || current !== generation) return
-      if (!result.ready) {
-        error.value = result.errors.join('；')
-        return
-      }
-      publishVersion.value = result.version
-      publishKey = createIdempotencyKey()
-      publishOpened.value = true
-    } catch (failure) {
-      if (!disposed && current === generation) fail(failure)
-    } finally {
-      if (current === generation) busy.value = false
-    }
+}
+/**
+ * 发布已通过检查的这篇固定版本
+ * @returns 当前操作结果或完成状态
+ */
+const publish = async (): Promise<void> => {
+  if (!snapshot.value || publishVersion.value === null || busy.value) return
+  const current = generation
+  busy.value = true
+  try {
+    const result = await adapter.publish(
+      snapshot.value.revisionId,
+      publishVersion.value,
+      publishKey
+    )
+    if (disposed || current !== generation) return
+    snapshot.value = result
+    publishOpened.value = false
+    publishVersion.value = null
+    ElMessage.success('短文版本已发布')
+  } catch (failure) {
+    if (!disposed && current === generation) fail(failure)
+  } finally {
+    if (current === generation) busy.value = false
   }
-const /** 发布已通过检查的这篇固定版本
-   * @returns 当前操作结果或完成状态
-   */ publish = async (): Promise<void> => {
-    if (!snapshot.value || publishVersion.value === null || busy.value) return
-    const current = generation
-    busy.value = true
-    try {
-      const result = await adapter.publish(
-        snapshot.value.revisionId,
-        publishVersion.value,
-        publishKey
-      )
-      if (disposed || current !== generation) return
-      snapshot.value = result
-      publishOpened.value = false
-      publishVersion.value = null
-      ElMessage.success('短文版本已发布')
-    } catch (failure) {
-      if (!disposed && current === generation) fail(failure)
-    } finally {
-      if (current === generation) busy.value = false
-    }
+}
+/**
+ * 从已发布版本建立可编辑的新候选
+ * @returns 当前操作结果或完成状态
+ */
+const createDraft = async (): Promise<void> => {
+  if (!snapshot.value || busy.value) return
+  const current = generation
+  busy.value = true
+  try {
+    const result = await adapter.createRevision(snapshot.value, createKey)
+    if (disposed || current !== generation) return
+    snapshot.value = result
+    form.value = normalizeShortReading({ ...result.content })
+    createKey = createIdempotencyKey()
+  } catch (failure) {
+    if (!disposed && current === generation) fail(failure)
+  } finally {
+    if (current === generation) busy.value = false
   }
-const /** 从已发布版本建立可编辑的新候选
-   * @returns 当前操作结果或完成状态
-   */ createDraft = async (): Promise<void> => {
-    if (!snapshot.value || busy.value) return
-    const current = generation
-    busy.value = true
-    try {
-      const result = await adapter.createRevision(snapshot.value, createKey)
-      if (disposed || current !== generation) return
-      snapshot.value = result
-      form.value = normalizeShortReading({ ...result.content })
-      createKey = createIdempotencyKey()
-    } catch (failure) {
-      if (!disposed && current === generation) fail(failure)
-    } finally {
-      if (current === generation) busy.value = false
-    }
-  }
-const /** 明确移除选填音频并撤销固定文件试听事实 */ removeAudio = (): void => {
-    form.value.audio = null
-    audioUrl.value = ''
-  }
+}
+/** 明确移除选填音频并撤销固定文件试听事实 */
+const removeAudio = (): void => {
+  form.value.audio = null
+  audioUrl.value = ''
+}
 watch(
   () =>
     JSON.stringify([

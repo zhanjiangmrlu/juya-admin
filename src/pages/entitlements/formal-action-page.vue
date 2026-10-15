@@ -74,53 +74,53 @@ const allowedOperations = computed(() =>
     Object.hasOwn(FORMAL_OPERATION_LABELS, value)
   )
 )
-const /**
-   * 加载正式权益详情。
-   * @param keepDraft - 是否保留目标操作与期限
-   * @returns 加载完成的 Promise
-   */
-  load = async (keepDraft = false): Promise<void> => {
-    const sequence = ++requestSequence
-    const id = entitlementId.value
-    detail.value = null
-    userIdentity.value = ''
-    confirmVisible.value = false
-    controller.value = useFormalEntitlementCommand(createFormalEntitlementAdapter(client))
-    if (!keepDraft) {
-      commandError.value = null
-      commandApiError.value = null
-      hadConflict.value = false
-    }
-    state.value = 'loading'
-    error.value = ''
-    apiError.value = null
-    try {
-      const result = await query.formal(id)
-      if (sequence !== requestSequence || id !== entitlementId.value) return
-      if (result.id !== id) throw new Error('权益详情与当前对象不一致')
-      detail.value = result
-      if (!keepDraft) {
-        form.operation =
-          allowedOperations.value.find((operation) => operation === route.query.action) ??
-          allowedOperations.value[0] ??
-          'RENEW'
-        form.term = FORMAL_TERMS.find((value) => value === detail.value?.term) ?? 'month_3'
-      }
-      state.value = 'ready'
-      void users
-        .getUserDetail(result.userId)
-        .then((user) => {
-          if (sequence === requestSequence)
-            userIdentity.value = `${user.nickname || '未设置昵称'} · 句芽号：${user.juya_number || user.user_id}`
-        })
-        .catch(() => undefined)
-    } catch (failure) {
-      if (sequence !== requestSequence || id !== entitlementId.value) return
-      apiError.value = failure instanceof ApiError ? failure : null
-      state.value = 'error'
-      error.value = '正式权益详情加载失败，请重试'
-    }
+/**
+ * 加载正式权益详情。
+ * @param keepDraft - 是否保留目标操作与期限
+ * @returns 加载完成的 Promise
+ */
+const load = async (keepDraft = false): Promise<void> => {
+  const sequence = ++requestSequence
+  const id = entitlementId.value
+  detail.value = null
+  userIdentity.value = ''
+  confirmVisible.value = false
+  controller.value = useFormalEntitlementCommand(createFormalEntitlementAdapter(client))
+  if (!keepDraft) {
+    commandError.value = null
+    commandApiError.value = null
+    hadConflict.value = false
   }
+  state.value = 'loading'
+  error.value = ''
+  apiError.value = null
+  try {
+    const result = await query.formal(id)
+    if (sequence !== requestSequence || id !== entitlementId.value) return
+    if (result.id !== id) throw new Error('权益详情与当前对象不一致')
+    detail.value = result
+    if (!keepDraft) {
+      form.operation =
+        allowedOperations.value.find((operation) => operation === route.query.action) ??
+        allowedOperations.value[0] ??
+        'RENEW'
+      form.term = FORMAL_TERMS.find((value) => value === detail.value?.term) ?? 'month_3'
+    }
+    state.value = 'ready'
+    void users
+      .getUserDetail(result.userId)
+      .then((user) => {
+        if (sequence === requestSequence)
+          userIdentity.value = `${user.nickname || '未设置昵称'} · 句芽号：${user.juya_number || user.user_id}`
+      })
+      .catch(() => undefined)
+  } catch (failure) {
+    if (sequence !== requestSequence || id !== entitlementId.value) return
+    apiError.value = failure instanceof ApiError ? failure : null
+    state.value = 'error'
+    error.value = '正式权益详情加载失败，请重试'
+  }
+}
 watch(
   [form, detail],
   () => {
@@ -142,67 +142,67 @@ watch(
   },
   { immediate: true }
 )
-const /**
-   * 获取正式权益服务端预览。
-   * @returns 服务端预览完成后的 Promise
-   */
-  preview = async (): Promise<void> => {
-    if (
-      state.value !== 'ready' ||
-      detail.value?.id !== entitlementId.value ||
-      !allowedOperations.value.includes(form.operation)
-    )
-      return
-    const sequence = requestSequence
-    commandError.value = null
-    commandApiError.value = null
-    hadConflict.value = false
-    try {
-      if (detail.value)
-        controller.value.setDraft({
-          operation: form.operation,
-          packageId: detail.value.packageId,
-          term: ['RENEW', 'GRANT', 'EXTEND'].includes(form.operation) ? form.term : null,
-          reason: confirmationReason.value.trim(),
-          userId: detail.value.userId
-        })
-      await controller.value.preview()
-      if (sequence !== requestSequence) return
-      confirmVisible.value = true
-    } catch {
-      /* 控制器显示错误 */
-    }
+/**
+ * 获取正式权益服务端预览。
+ * @returns 服务端预览完成后的 Promise
+ */
+const preview = async (): Promise<void> => {
+  if (
+    state.value !== 'ready' ||
+    detail.value?.id !== entitlementId.value ||
+    !allowedOperations.value.includes(form.operation)
+  )
+    return
+  const sequence = requestSequence
+  commandError.value = null
+  commandApiError.value = null
+  hadConflict.value = false
+  try {
+    if (detail.value)
+      controller.value.setDraft({
+        operation: form.operation,
+        packageId: detail.value.packageId,
+        term: ['RENEW', 'GRANT', 'EXTEND'].includes(form.operation) ? form.term : null,
+        reason: confirmationReason.value.trim(),
+        userId: detail.value.userId
+      })
+    await controller.value.preview()
+    if (sequence !== requestSequence) return
+    confirmVisible.value = true
+  } catch {
+    /* 控制器显示错误 */
   }
-const /**
-   * 确认正式权益命令。
-   * @param reason - 审计原因
-   * @returns 命令完成后的 Promise
-   */
-  confirm = async (reason: string): Promise<void> => {
-    if (
-      state.value !== 'ready' ||
-      detail.value?.id !== entitlementId.value ||
-      !allowedOperations.value.includes(form.operation)
-    )
-      return
-    const sequence = requestSequence
-    try {
-      await controller.value.submit(reason)
-      if (sequence !== requestSequence) return
+}
+/**
+ * 确认正式权益命令。
+ * @param reason - 审计原因
+ * @returns 命令完成后的 Promise
+ */
+const confirm = async (reason: string): Promise<void> => {
+  if (
+    state.value !== 'ready' ||
+    detail.value?.id !== entitlementId.value ||
+    !allowedOperations.value.includes(form.operation)
+  )
+    return
+  const sequence = requestSequence
+  try {
+    await controller.value.submit(reason)
+    if (sequence !== requestSequence) return
+    confirmVisible.value = false
+    ElMessage.success('正式权益状态已更新')
+    await load()
+  } catch {
+    if (sequence !== requestSequence) return
+    hadConflict.value = controller.value.hasConflict.value
+    commandError.value = controller.value.errorMessage.value
+    commandApiError.value = controller.value.apiError.value
+    if (hadConflict.value) {
       confirmVisible.value = false
-      ElMessage.success('正式权益状态已更新')
-      await load()
-    } catch {
-      if (sequence !== requestSequence) return
-      hadConflict.value = controller.value.hasConflict.value
-      commandError.value = controller.value.errorMessage.value
-      commandApiError.value = controller.value.apiError.value
-      if (hadConflict.value) {
-        confirmVisible.value = false
-        await load(true)
-      }
+      await load(true)
     }
   }
+}
 </script>
 
 <template>

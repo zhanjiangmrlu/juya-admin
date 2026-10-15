@@ -54,26 +54,27 @@ async function loadResources(): Promise<void> {
   if (results.some((result) => result.status === 'rejected'))
     resourceError.value = '部分资源暂不可预览，请保存草稿后刷新预览'
 }
-const /** 播放已经人工确认的独立句子文件
-   * @param row - 对话行
-   */
-  playRow = async (row: DialogueRow): Promise<void> => {
-    const audio = content.value.audio
-    if (
-      !audio ||
-      !row.slice_target_id ||
-      !row.slice_version ||
-      !urls.value[row.slice_version] ||
-      !row.timing_confirmed ||
-      row.audio_version_id !== audio.version_id
-    )
-      return
-    try {
-      await player.value?.play(row.id, urls.value[row.slice_version]!)
-    } catch {
-      ElMessage.warning('音频播放失败，请刷新签名后重试')
-    }
+/**
+ * 播放已经人工确认的独立句子文件
+ * @param row - 对话行
+ */
+const playRow = async (row: DialogueRow): Promise<void> => {
+  const audio = content.value.audio
+  if (
+    !audio ||
+    !row.slice_target_id ||
+    !row.slice_version ||
+    !urls.value[row.slice_version] ||
+    !row.timing_confirmed ||
+    row.audio_version_id !== audio.version_id
+  )
+    return
+  try {
+    await player.value?.play(row.id, urls.value[row.slice_version]!)
+  } catch {
+    ElMessage.warning('音频播放失败，请刷新签名后重试')
   }
+}
 /** 播放整段音频。 */
 async function playAll(): Promise<void> {
   const audio = content.value.audio
@@ -84,38 +85,40 @@ async function playAll(): Promise<void> {
     ElMessage.warning('音频播放失败')
   }
 }
-const /**
-   * 试听既有固定发音文件，只读取状态与资源版本
-   * @param entry - 本篇已保存词条
-   */ playEntry = async (entry: LexiconRow): Promise<void> => {
-    if (pronunciationBusy.value) return
-    const current = generation
-    pronunciationBusy.value = true
-    try {
-      let url = entry.audio_version_id ? urls.value[entry.audio_version_id] : ''
-      if (!url && entry.pronunciation_target_id && pronunciations.available) {
-        const target = entry.pronunciation_target_id
-        const status = await pronunciations.status(target)
-        if (current !== generation) return
-        if (status.target_id !== target || !status.resource_version)
-          throw new Error('本篇固定发音尚无可试听资源')
-        const preview = await pronunciations.preview(target, status.resource_version)
-        if (current !== generation) return
-        if (preview.resource_version !== status.resource_version)
-          throw new Error('发音资源版本已变化，请刷新预览')
-        url = preview.url
-      }
-      if (url && current === generation) await player.value?.play(entry.entry_id, url)
-    } catch (failure) {
-      if (current === generation)
-        ElMessage.warning(failure instanceof Error ? failure.message : '词条发音播放失败')
-    } finally {
-      pronunciationBusy.value = false
+/**
+ * 试听既有固定发音文件，只读取状态与资源版本
+ * @param entry - 本篇已保存词条
+ */
+const playEntry = async (entry: LexiconRow): Promise<void> => {
+  if (pronunciationBusy.value) return
+  const current = generation
+  pronunciationBusy.value = true
+  try {
+    let url = entry.audio_version_id ? urls.value[entry.audio_version_id] : ''
+    if (!url && entry.pronunciation_target_id && pronunciations.available) {
+      const target = entry.pronunciation_target_id
+      const status = await pronunciations.status(target)
+      if (current !== generation) return
+      if (status.target_id !== target || !status.resource_version)
+        throw new Error('本篇固定发音尚无可试听资源')
+      const preview = await pronunciations.preview(target, status.resource_version)
+      if (current !== generation) return
+      if (preview.resource_version !== status.resource_version)
+        throw new Error('发音资源版本已变化，请刷新预览')
+      url = preview.url
     }
+    if (url && current === generation) await player.value?.play(entry.entry_id, url)
+  } catch (failure) {
+    if (current === generation)
+      ElMessage.warning(failure instanceof Error ? failure.message : '词条发音播放失败')
+  } finally {
+    pronunciationBusy.value = false
   }
-const /** 暂停当前唯一播放器 */ pause = (): void => {
-    player.value?.pause()
-  }
+}
+/** 暂停当前唯一播放器 */
+const pause = (): void => {
+  player.value?.pause()
+}
 watch(() => [props.revisionId, props.content], loadResources, { deep: true, immediate: true })
 onMounted(() => {
   if (audioElement.value) player.value = createSegmentPlayer(audioElement.value)

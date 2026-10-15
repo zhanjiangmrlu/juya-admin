@@ -43,20 +43,22 @@ const authStore = useAuthStore()
 const publicationHeading = shallowRef<(WorkOrderPublicationHeading & { owner: symbol }) | null>(
   null
 )
-const /** 更新当前发布页的权威标题，并阻止旧页面清理新页面上下文
-   * @param owner - 发布页实例的独立身份
-   * @param heading - 当前路由已读取的阶段标题，空值仅清理同一实例
-   */ setPublicationHeading = (
-    owner: symbol,
-    heading: WorkOrderPublicationHeading | null
-  ): void => {
-    if (!heading) {
-      if (publicationHeading.value?.owner === owner) publicationHeading.value = null
-      return
-    }
-    if (heading.routePath !== route.fullPath) return
-    publicationHeading.value = { ...heading, owner }
+/**
+ * 更新当前发布页的权威标题，并阻止旧页面清理新页面上下文
+ * @param owner - 发布页实例的独立身份
+ * @param heading - 当前路由已读取的阶段标题，空值仅清理同一实例
+ */
+const setPublicationHeading = (
+  owner: symbol,
+  heading: WorkOrderPublicationHeading | null
+): void => {
+  if (!heading) {
+    if (publicationHeading.value?.owner === owner) publicationHeading.value = null
+    return
   }
+  if (heading.routePath !== route.fullPath) return
+  publicationHeading.value = { ...heading, owner }
+}
 provide(workOrderPublicationHeadingKey, setPublicationHeading)
 const currentPublicationHeading = computed(() =>
   route.name === 'content-work-order' &&
@@ -68,13 +70,14 @@ const currentPublicationHeading = computed(() =>
 )
 const isCollapsed = ref(globalThis.innerWidth < 768)
 const narrowViewport = globalThis.matchMedia?.('(max-width: 767px)')
-const /**
-   * 窄窗口自动折叠导航并保留手动切换入口
-   * @param event - 当前窗口的窄屏匹配状态
-   * @param event.matches - 是否进入窄屏布局
-   */ adaptNavigation = (event: { matches: boolean }): void => {
-    isCollapsed.value = event.matches
-  }
+/**
+ * 窄窗口自动折叠导航并保留手动切换入口
+ * @param event - 当前窗口的窄屏匹配状态
+ * @param event.matches - 是否进入窄屏布局
+ */
+const adaptNavigation = (event: { matches: boolean }): void => {
+  isCollapsed.value = event.matches
+}
 onMounted(() => narrowViewport?.addEventListener('change', adaptNavigation))
 onBeforeUnmount(() => narrowViewport?.removeEventListener('change', adaptNavigation))
 const activePageNumber = computed(() => {
@@ -183,17 +186,17 @@ const pageDescription = computed(() => {
   return ADMIN_DESIGN_DESCRIPTIONS[String(route.meta.pageNumber)] ?? '句芽英语 V1.5 · 单管理员后台'
 })
 
-const /**
-   * 从 Element Plus 菜单切换到无需业务上下文的页面
-   *
-   * @param path - 管理员选择的一级业务入口
-   * @returns 路由切换完成后的 Promise
-   */
-  navigateToPage = async (path: string): Promise<void> => {
-    const group = ADMIN_NAVIGATION_GROUPS.find((item) => item.path === path)
-    if (!group) return
-    await router.push(group.path === '/settings' ? '/settings/learning-modules' : group.path)
-  }
+/**
+ * 从 Element Plus 菜单切换到无需业务上下文的页面
+ *
+ * @param path - 管理员选择的一级业务入口
+ * @returns 路由切换完成后的 Promise
+ */
+const navigateToPage = async (path: string): Promise<void> => {
+  const group = ADMIN_NAVIGATION_GROUPS.find((item) => item.path === path)
+  if (!group) return
+  await router.push(group.path === '/settings' ? '/settings/learning-modules' : group.path)
+}
 
 /**
  * 切换管理端侧栏折叠状态

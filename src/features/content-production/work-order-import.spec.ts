@@ -7,29 +7,31 @@ import type { ProductionSchema as S } from './work-order-model'
 
 import WorkOrderImport from './work-order-import.vue'
 
-const /** 创建带有独立核对要求的待保存篇目
-   * @param itemId - 本篇稳定标识
-   * @param fields - 本场景需要覆盖的预览字段
-   * @returns 真实组件使用的导入预览篇目
-   */ pendingItem = (
-    itemId: string,
-    fields: Partial<S['ImportPreviewItem']> = {}
-  ): S['ImportPreviewItem'] => ({
-    item_id: itemId,
-    import_item_id: `${itemId}-row`,
-    import_content_id: `${itemId}-source`,
-    row_no: 2,
-    operation: 'CREATE',
-    status: 'PENDING',
-    candidate: { title_zh: itemId },
-    issues: [],
-    defaults: [],
-    resources: {},
-    entries: [],
-    source_snapshot: null,
-    result: null,
-    ...fields
-  })
+/**
+ * 创建带有独立核对要求的待保存篇目
+ * @param itemId - 本篇稳定标识
+ * @param fields - 本场景需要覆盖的预览字段
+ * @returns 真实组件使用的导入预览篇目
+ */
+const pendingItem = (
+  itemId: string,
+  fields: Partial<S['ImportPreviewItem']> = {}
+): S['ImportPreviewItem'] => ({
+  item_id: itemId,
+  import_item_id: `${itemId}-row`,
+  import_content_id: `${itemId}-source`,
+  row_no: 2,
+  operation: 'CREATE',
+  status: 'PENDING',
+  candidate: { title_zh: itemId },
+  issues: [],
+  defaults: [],
+  resources: {},
+  entries: [],
+  source_snapshot: null,
+  result: null,
+  ...fields
+})
 
 const preview = {
   work_order_id: 'one',

@@ -65,54 +65,55 @@ const allowedOperations = computed(() =>
     (value): value is LimitedEntitlementOperation => value in LIMITED_OPERATION_LABELS
   )
 )
-const /** 请求服务端真实前后状态后打开确认 */ preview = async (): Promise<void> => {
-    const sequence = requestSequence
-    try {
-      await controller.value.preview()
-      if (sequence === requestSequence) confirmVisible.value = true
-    } catch {
-      /* 控制器保留预览错误 */
-    }
+/** 请求服务端真实前后状态后打开确认 */
+const preview = async (): Promise<void> => {
+  const sequence = requestSequence
+  try {
+    await controller.value.preview()
+    if (sequence === requestSequence) confirmVisible.value = true
+  } catch {
+    /* 控制器保留预览错误 */
   }
-const /**
-   * 加载限时权益详情。
-   * @param keepDraft - 是否保留目标操作
-   * @returns 加载完成的 Promise
-   */
-  load = async (keepDraft = false): Promise<void> => {
-    const sequence = ++requestSequence
-    const id = entitlementId.value
-    detail.value = null
-    confirmVisible.value = false
-    if (controllerEntitlementId !== id) {
-      controller.value = useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client))
-      controllerEntitlementId = id
-    }
-    if (!keepDraft) {
-      commandError.value = null
-      commandApiError.value = null
-      hadConflict.value = false
-    }
-    state.value = 'loading'
-    error.value = ''
-    apiError.value = null
-    try {
-      const result = await query.limited(id)
-      if (sequence !== requestSequence || id !== entitlementId.value) return
-      if (result.id !== id) throw new Error('权益详情与当前对象不一致')
-      const user = await users.getUserDetail(result.userId)
-      if (sequence !== requestSequence || id !== entitlementId.value) return
-      userLabel.value = `${user.nickname || '未设置昵称'} · ${user.juya_number || '句芽号未提供'}`
-      detail.value = result
-      if (!keepDraft) operation.value = allowedOperations.value[0] ?? 'PAUSE'
-      state.value = 'ready'
-    } catch (failure) {
-      if (sequence !== requestSequence || id !== entitlementId.value) return
-      apiError.value = failure instanceof ApiError ? failure : null
-      state.value = 'error'
-      error.value = '限时权益详情加载失败，请重试'
-    }
+}
+/**
+ * 加载限时权益详情。
+ * @param keepDraft - 是否保留目标操作
+ * @returns 加载完成的 Promise
+ */
+const load = async (keepDraft = false): Promise<void> => {
+  const sequence = ++requestSequence
+  const id = entitlementId.value
+  detail.value = null
+  confirmVisible.value = false
+  if (controllerEntitlementId !== id) {
+    controller.value = useLimitedEntitlementCommand(createLimitedEntitlementAdapter(client))
+    controllerEntitlementId = id
   }
+  if (!keepDraft) {
+    commandError.value = null
+    commandApiError.value = null
+    hadConflict.value = false
+  }
+  state.value = 'loading'
+  error.value = ''
+  apiError.value = null
+  try {
+    const result = await query.limited(id)
+    if (sequence !== requestSequence || id !== entitlementId.value) return
+    if (result.id !== id) throw new Error('权益详情与当前对象不一致')
+    const user = await users.getUserDetail(result.userId)
+    if (sequence !== requestSequence || id !== entitlementId.value) return
+    userLabel.value = `${user.nickname || '未设置昵称'} · ${user.juya_number || '句芽号未提供'}`
+    detail.value = result
+    if (!keepDraft) operation.value = allowedOperations.value[0] ?? 'PAUSE'
+    state.value = 'ready'
+  } catch (failure) {
+    if (sequence !== requestSequence || id !== entitlementId.value) return
+    apiError.value = failure instanceof ApiError ? failure : null
+    state.value = 'error'
+    error.value = '限时权益详情加载失败，请重试'
+  }
+}
 watch([operation, detail], () => {
   if (!detail.value) return
   controller.value.setDraft({
@@ -130,40 +131,40 @@ watch(
   },
   { immediate: true }
 )
-const /**
-   * 确认限时权益命令。
-   * @param reason - 按接口要求填写的原因
-   * @returns 命令完成后的 Promise
-   */
-  confirm = async (reason: string): Promise<void> => {
-    if (
-      state.value !== 'ready' ||
-      detail.value?.id !== entitlementId.value ||
-      !allowedOperations.value.includes(operation.value)
-    )
-      return
-    const sequence = requestSequence
-    try {
-      commandError.value = null
-      commandApiError.value = null
-      hadConflict.value = false
-      await controller.value.submit(reason)
-      if (sequence !== requestSequence) return
+/**
+ * 确认限时权益命令。
+ * @param reason - 按接口要求填写的原因
+ * @returns 命令完成后的 Promise
+ */
+const confirm = async (reason: string): Promise<void> => {
+  if (
+    state.value !== 'ready' ||
+    detail.value?.id !== entitlementId.value ||
+    !allowedOperations.value.includes(operation.value)
+  )
+    return
+  const sequence = requestSequence
+  try {
+    commandError.value = null
+    commandApiError.value = null
+    hadConflict.value = false
+    await controller.value.submit(reason)
+    if (sequence !== requestSequence) return
+    confirmVisible.value = false
+    ElMessage.success('限时权益状态已更新')
+    await load()
+  } catch (failure) {
+    if (sequence !== requestSequence) return
+    hadConflict.value = failure instanceof ApiError && failure.status === 409
+    commandError.value =
+      controller.value.disabledReason.value ?? controller.value.errorMessage.value
+    commandApiError.value = controller.value.apiError.value
+    if (hadConflict.value) {
       confirmVisible.value = false
-      ElMessage.success('限时权益状态已更新')
-      await load()
-    } catch (failure) {
-      if (sequence !== requestSequence) return
-      hadConflict.value = failure instanceof ApiError && failure.status === 409
-      commandError.value =
-        controller.value.disabledReason.value ?? controller.value.errorMessage.value
-      commandApiError.value = controller.value.apiError.value
-      if (hadConflict.value) {
-        confirmVisible.value = false
-        await load(true)
-      }
+      await load(true)
     }
   }
+}
 </script>
 
 <template>

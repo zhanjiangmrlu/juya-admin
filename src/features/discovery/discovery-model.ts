@@ -16,17 +16,19 @@ export const LEARNING_MODULE_LABELS: Record<string, string> = {
   grammar: '语法'
 }
 
-export const /**
-   * 校验四类受控模块类型，能力准备由服务端再次校验
-   *
-   * @param modules - 学习模块配置
-   * @returns 配置校验结果
-   */
-  validateLearningModules = (modules: readonly LearningModuleConfig[]): ValidationResult => {
-    if (modules.some((module) => !Object.hasOwn(LEARNING_MODULE_LABELS, module.type)))
-      return invalid('MODULE_NOT_ALLOWED', '学习模块类型无效')
-    return valid()
-  }
+/**
+ * 校验四类受控模块类型，能力准备由服务端再次校验
+ *
+ * @param modules - 学习模块配置
+ * @returns 配置校验结果
+ */
+export const validateLearningModules = (
+  modules: readonly LearningModuleConfig[]
+): ValidationResult => {
+  if (modules.some((module) => !Object.hasOwn(LEARNING_MODULE_LABELS, module.type)))
+    return invalid('MODULE_NOT_ALLOWED', '学习模块类型无效')
+  return valid()
+}
 
 /**
  * 校验三个不重复的开放场景

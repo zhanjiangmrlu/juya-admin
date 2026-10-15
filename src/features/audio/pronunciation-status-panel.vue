@@ -17,57 +17,59 @@ const busy = ref(false)
 const error = ref('')
 const recoveryConfirmed = ref(false)
 let generation = 0
-const /** 清除旧目标的受控文件和确认输入 */ clear = (): void => {
-    generation++
-    state.value = null
-    url.value = ''
-    busy.value = false
-    recoveryConfirmed.value = false
-  }
-const /**
-   * 读取或预览固定资源，恢复仅限管理员明确选择的本地任务
-   * @param action - 状态读取、固定试听或本地恢复
-   */ run = async (action: 'status' | 'preview' | 'recover'): Promise<void> => {
-    if (!props.targetId || !adapter.available || busy.value || props.disabled) return
-    const token = ++generation
-    const target = props.targetId
-    busy.value = true
-    error.value = ''
-    url.value = ''
-    try {
-      if (action === 'preview') {
-        const version = state.value?.resource_version
-        if (!version || state.value?.target_id !== target) return
-        const preview = await adapter.preview(target, version)
-        if (token !== generation) return
-        if (preview.resource_version !== version)
-          throw new Error('发音文件版本已变化，请重新读取状态')
-        url.value = preview.url
-      } else {
-        if (action === 'recover') {
-          const task = state.value?.task
-          if (
-            !recoveryConfirmed.value ||
-            task?.status !== 'RECOVER' ||
-            state.value?.target_id !== target
-          )
-            return
-          const result = await adapter.recover(task.public_id)
-          if (result.paid_retry !== false) throw new Error('恢复回执未确认本地阶段，请重新读取')
-          recoveryConfirmed.value = false
-        }
-        const result = await adapter.status(target)
-        if (token !== generation) return
-        if (result.target_id !== target) throw new Error('发音状态不属于当前确认目标')
-        state.value = result
+/** 清除旧目标的受控文件和确认输入 */
+const clear = (): void => {
+  generation++
+  state.value = null
+  url.value = ''
+  busy.value = false
+  recoveryConfirmed.value = false
+}
+/**
+ * 读取或预览固定资源，恢复仅限管理员明确选择的本地任务
+ * @param action - 状态读取、固定试听或本地恢复
+ */
+const run = async (action: 'status' | 'preview' | 'recover'): Promise<void> => {
+  if (!props.targetId || !adapter.available || busy.value || props.disabled) return
+  const token = ++generation
+  const target = props.targetId
+  busy.value = true
+  error.value = ''
+  url.value = ''
+  try {
+    if (action === 'preview') {
+      const version = state.value?.resource_version
+      if (!version || state.value?.target_id !== target) return
+      const preview = await adapter.preview(target, version)
+      if (token !== generation) return
+      if (preview.resource_version !== version)
+        throw new Error('发音文件版本已变化，请重新读取状态')
+      url.value = preview.url
+    } else {
+      if (action === 'recover') {
+        const task = state.value?.task
+        if (
+          !recoveryConfirmed.value ||
+          task?.status !== 'RECOVER' ||
+          state.value?.target_id !== target
+        )
+          return
+        const result = await adapter.recover(task.public_id)
+        if (result.paid_retry !== false) throw new Error('恢复回执未确认本地阶段，请重新读取')
+        recoveryConfirmed.value = false
       }
-    } catch (failure) {
-      if (token === generation)
-        error.value = failure instanceof Error ? failure.message : '发音状态读取失败'
-    } finally {
-      if (token === generation) busy.value = false
+      const result = await adapter.status(target)
+      if (token !== generation) return
+      if (result.target_id !== target) throw new Error('发音状态不属于当前确认目标')
+      state.value = result
     }
+  } catch (failure) {
+    if (token === generation)
+      error.value = failure instanceof Error ? failure.message : '发音状态读取失败'
+  } finally {
+    if (token === generation) busy.value = false
   }
+}
 watch(() => [props.targetId, props.disabled], clear, { flush: 'sync' })
 onBeforeUnmount(clear)
 </script>

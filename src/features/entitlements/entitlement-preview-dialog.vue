@@ -89,11 +89,13 @@ const operationLabels: Record<string, string> = {
   EXTEND_START_DEADLINE: '延长启动截止',
   RESTORE_START_WINDOW: '恢复启动窗口'
 }
-const /** 显示当前权益种类的中文状态
-   * @param status - 服务端返回的前态或目标状态代码
-   * @returns 当前权益种类对应的业务状态文案
-   */ statusLabel = (status: string): string =>
-    props.contentKind === '活动' && status === 'ACTIVE' ? '学习中' : statusLabels[status] || status
+/**
+ * 显示当前权益种类的中文状态
+ * @param status - 服务端返回的前态或目标状态代码
+ * @returns 当前权益种类对应的业务状态文案
+ */
+const statusLabel = (status: string): string =>
+  props.contentKind === '活动' && status === 'ACTIVE' ? '学习中' : statusLabels[status] || status
 /** 根据权益种类命名真实确认动作 */
 const actualLabel = computed(() =>
   props.contentKind === '活动' && props.actualOperation === 'GRANT'
@@ -105,17 +107,18 @@ const invalid = computed(() =>
     ? !note.value.trim()
     : props.reasonRequired && reasonType.value === '其他' && !note.value.trim()
 )
-const /** 核对原因后发出当前预览的确认 */ confirm = (): void => {
-    if (invalid.value || props.submitting) return
-    emit(
-      'confirm',
-      props.reasonRequired
-        ? props.actualOperation === 'EXTEND'
-          ? note.value.trim()
-          : `${reasonType.value}${note.value.trim() ? `：${note.value.trim()}` : ''}`
-        : note.value.trim()
-    )
-  }
+/** 核对原因后发出当前预览的确认 */
+const confirm = (): void => {
+  if (invalid.value || props.submitting) return
+  emit(
+    'confirm',
+    props.reasonRequired
+      ? props.actualOperation === 'EXTEND'
+        ? note.value.trim()
+        : `${reasonType.value}${note.value.trim() ? `：${note.value.trim()}` : ''}`
+      : note.value.trim()
+  )
+}
 </script>
 <template>
   <ElDialog

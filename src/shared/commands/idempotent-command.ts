@@ -38,41 +38,45 @@ export function useIdempotentCommand<TInput, TResult>(
   let inputFingerprint: string | null = null
   let commandGeneration = 0
 
-  const /** 使用当前输入和幂等键执行命令,迟到结果不覆盖重置后的状态
-     * @returns 此请求真实返回的业务结果
-     */ executeCurrent = async (): Promise<TResult> => {
-      if (input.value === null) throw new Error('没有可重试的命令')
-      const generation = commandGeneration
-      state.value = 'submitting'
-      error.value = null
-      try {
-        const nextResult = await execute(input.value, idempotencyKey.value)
-        if (generation === commandGeneration) {
-          result.value = nextResult
-          state.value = 'success'
-        }
-        return nextResult
-      } catch (reason) {
-        if (generation === commandGeneration) {
-          error.value = reason
-          state.value = 'error'
-        }
-        throw reason
+  /**
+   * 使用当前输入和幂等键执行命令,迟到结果不覆盖重置后的状态
+   * @returns 此请求真实返回的业务结果
+   */
+  const executeCurrent = async (): Promise<TResult> => {
+    if (input.value === null) throw new Error('没有可重试的命令')
+    const generation = commandGeneration
+    state.value = 'submitting'
+    error.value = null
+    try {
+      const nextResult = await execute(input.value, idempotencyKey.value)
+      if (generation === commandGeneration) {
+        result.value = nextResult
+        state.value = 'success'
       }
+      return nextResult
+    } catch (reason) {
+      if (generation === commandGeneration) {
+        error.value = reason
+        state.value = 'error'
+      }
+      throw reason
     }
+  }
 
-  const /** 为新业务输入生成幂等键并隔离之前尚未结束的请求
-     * @param nextInput - 可选的新业务输入,空值表示清除待提交操作
-     * @returns 无返回值
-     */ reset = (nextInput?: TInput): void => {
-      commandGeneration++
-      idempotencyKey.value = createIdempotencyKey()
-      input.value = nextInput ?? null
-      inputFingerprint = nextInput === undefined ? null : fingerprintInput(nextInput)
-      result.value = null
-      error.value = null
-      state.value = 'idle'
-    }
+  /**
+   * 为新业务输入生成幂等键并隔离之前尚未结束的请求
+   * @param nextInput - 可选的新业务输入,空值表示清除待提交操作
+   * @returns 无返回值
+   */
+  const reset = (nextInput?: TInput): void => {
+    commandGeneration++
+    idempotencyKey.value = createIdempotencyKey()
+    input.value = nextInput ?? null
+    inputFingerprint = nextInput === undefined ? null : fingerprintInput(nextInput)
+    result.value = null
+    error.value = null
+    state.value = 'idle'
+  }
 
   /**
    * 提交业务输入，输入实质变化时自动开启新的幂等操作

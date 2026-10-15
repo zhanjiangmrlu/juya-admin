@@ -55,25 +55,25 @@ const queryAdapter = createEntitlementQueryAdapter(
     }
   })
 )
-const /**
-   * 加载服务端内容包分页。
-   * @param page - 页码
-   * @returns 加载完成的 Promise
-   */
-  loadPackages = async (page = 1): Promise<void> => {
-    packageState.value = 'loading'
-    packageError.value = null
-    try {
-      const result = await queryAdapter.packages(page, packagePageSize.value)
-      packages.value = result.items
-      packagePage.value = result.page
-      packageTotal.value = result.total
-      packageState.value = 'ready'
-    } catch (failure) {
-      packageError.value = failure instanceof ApiError ? failure : null
-      packageState.value = 'error'
-    }
+/**
+ * 加载服务端内容包分页。
+ * @param page - 页码
+ * @returns 加载完成的 Promise
+ */
+const loadPackages = async (page = 1): Promise<void> => {
+  packageState.value = 'loading'
+  packageError.value = null
+  try {
+    const result = await queryAdapter.packages(page, packagePageSize.value)
+    packages.value = result.items
+    packagePage.value = result.page
+    packageTotal.value = result.total
+    packageState.value = 'ready'
+  } catch (failure) {
+    packageError.value = failure instanceof ApiError ? failure : null
+    packageState.value = 'error'
   }
+}
 void loadPackages()
 const controller = useFormalEntitlementCommand(
   createFormalEntitlementAdapter(
@@ -101,42 +101,42 @@ watch(
   { deep: true, immediate: true }
 )
 
-const /**
-   * 请求服务端预览授予或续期结果并打开二次确认
-   *
-   * @returns 预览流程完成后的 Promise
-   */
-  handlePreview = async (): Promise<void> => {
-    if (!form.userId.trim() || !form.packageId.trim()) return
-    conflictMessage.value = null
-    conflictError.value = null
-    try {
-      await controller.preview()
-      isConfirmVisible.value = true
-    } catch {
-      // 控制器已提供安全错误文案，页面不重复弹出异常细节
-    }
+/**
+ * 请求服务端预览授予或续期结果并打开二次确认
+ *
+ * @returns 预览流程完成后的 Promise
+ */
+const handlePreview = async (): Promise<void> => {
+  if (!form.userId.trim() || !form.packageId.trim()) return
+  conflictMessage.value = null
+  conflictError.value = null
+  try {
+    await controller.preview()
+    isConfirmVisible.value = true
+  } catch {
+    // 控制器已提供安全错误文案，页面不重复弹出异常细节
   }
+}
 
-const /**
-   * 使用管理员填写的审计原因提交正式权益命令
-   *
-   * @param reason - 二次确认弹窗中的必填原因
-   * @returns 命令提交完成后的 Promise
-   */
-  handleConfirm = async (reason: string): Promise<void> => {
-    try {
-      await controller.submit(reason)
+/**
+ * 使用管理员填写的审计原因提交正式权益命令
+ *
+ * @param reason - 二次确认弹窗中的必填原因
+ * @returns 命令提交完成后的 Promise
+ */
+const handleConfirm = async (reason: string): Promise<void> => {
+  try {
+    await controller.submit(reason)
+    isConfirmVisible.value = false
+    ElMessage.success('正式权益操作已完成')
+  } catch {
+    if (controller.hasConflict.value) {
       isConfirmVisible.value = false
-      ElMessage.success('正式权益操作已完成')
-    } catch {
-      if (controller.hasConflict.value) {
-        isConfirmVisible.value = false
-        conflictMessage.value = controller.errorMessage.value
-        conflictError.value = controller.apiError.value
-      }
+      conflictMessage.value = controller.errorMessage.value
+      conflictError.value = controller.apiError.value
     }
   }
+}
 </script>
 
 <template>

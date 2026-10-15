@@ -206,43 +206,44 @@ export const METRIC_LABELS: Readonly<Record<string, string>> = {
   SCENE_COMPLETIONS: '场景完成'
 }
 
-export const /**
-   * 拒绝未知指标、非法数值和个人标识维度
-   *
-   * @param rows - 服务端统计行
-   * @returns 匿名汇总数据校验结果
-   */ validateAnalyticsRows = (
-    rows: readonly AnalyticsRow[]
-  ): {
-    message: string
-    valid: boolean
-  } => {
-    const allowed = new Set<string>(ANALYTICS_METRICS)
-    const personalPattern =
-      /user|wechat|openid|phone|mobile|email|nickname|juya|screenshot|trajectory|wx[_-]?id/i
-    if (rows.some((row) => !allowed.has(row.metric)))
-      return { message: '统计响应包含未知指标', valid: false }
-    if (
-      rows.some(
-        (row) =>
-          !anonymousDimensions.has(row.dimension.toUpperCase()) &&
-          (!/^(scene|short_reading|series|package|campaign):[\w-]{1,64}$/.test(row.dimension) ||
-            personalPattern.test(row.dimension))
-      )
+/**
+ * 拒绝未知指标、非法数值和个人标识维度
+ *
+ * @param rows - 服务端统计行
+ * @returns 匿名汇总数据校验结果
+ */
+export const validateAnalyticsRows = (
+  rows: readonly AnalyticsRow[]
+): {
+  message: string
+  valid: boolean
+} => {
+  const allowed = new Set<string>(ANALYTICS_METRICS)
+  const personalPattern =
+    /user|wechat|openid|phone|mobile|email|nickname|juya|screenshot|trajectory|wx[_-]?id/i
+  if (rows.some((row) => !allowed.has(row.metric)))
+    return { message: '统计响应包含未知指标', valid: false }
+  if (
+    rows.some(
+      (row) =>
+        !anonymousDimensions.has(row.dimension.toUpperCase()) &&
+        (!/^(scene|short_reading|series|package|campaign):[\w-]{1,64}$/.test(row.dimension) ||
+          personalPattern.test(row.dimension))
     )
-      return { message: '统计响应包含个人标识维度', valid: false }
-    if (
-      rows.some(
-        (row) =>
-          !Number.isSafeInteger(row.value) ||
-          row.value < 0 ||
-          !/^\d{4}-\d{2}-\d{2}$/.test(row.day) ||
-          dayjs(row.day).format('YYYY-MM-DD') !== row.day
-      )
+  )
+    return { message: '统计响应包含个人标识维度', valid: false }
+  if (
+    rows.some(
+      (row) =>
+        !Number.isSafeInteger(row.value) ||
+        row.value < 0 ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(row.day) ||
+        dayjs(row.day).format('YYYY-MM-DD') !== row.day
     )
-      return { message: '统计响应包含非法数值', valid: false }
-    return { message: '校验通过', valid: true }
-  }
+  )
+    return { message: '统计响应包含非法数值', valid: false }
+  return { message: '校验通过', valid: true }
+}
 
 /**
  * 按日、周或月汇总统计行

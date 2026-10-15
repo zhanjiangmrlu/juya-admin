@@ -56,63 +56,60 @@ watch(
   },
   { immediate: true }
 )
-const /**
-   * 保存活动编辑草稿。
-   * @returns 保存完成后的 Promise
-   */
-  save = async (): Promise<void> => {
-    if (!editor.draft.value.name.trim()) return
-    try {
-      const result = await editor.save()
-      ElMessage.success('活动已保存')
-      if (isNew.value) await router.replace({ name: 'campaign-edit', params: { id: result.id } })
-    } catch {
-      /* 页面保留草稿并展示错误 */
-    }
+/**
+ * 保存活动编辑草稿。
+ * @returns 保存完成后的 Promise
+ */
+const save = async (): Promise<void> => {
+  if (!editor.draft.value.name.trim()) return
+  try {
+    const result = await editor.save()
+    ElMessage.success('活动已保存')
+    if (isNew.value) await router.replace({ name: 'campaign-edit', params: { id: result.id } })
+  } catch {
+    /* 页面保留草稿并展示错误 */
   }
-const /**
-   * 打开活动操作确认。
-   * @param operation - 服务端允许的操作
-   * @returns 无返回值
-   */
-  ask = (operation: Exclude<CampaignOperation, 'capacity'> | 'copy'): void => {
-    validationError.value = ''
-    if (
-      operation === 'open' &&
-      (editor.draft.value.sceneIds.length !== editor.draft.value.durationDays ||
-        new Set(editor.draft.value.sceneIds).size !== editor.draft.value.durationDays)
-    ) {
-      validationError.value = `启用前需选择 ${editor.draft.value.durationDays} 个不同且可用的已发布场景`
-      return
-    }
-    pendingOperation.value = operation
-    confirmVisible.value = true
+}
+/**
+ * 打开活动操作确认。
+ * @param operation - 服务端允许的操作
+ * @returns 无返回值
+ */
+const ask = (operation: Exclude<CampaignOperation, 'capacity'> | 'copy'): void => {
+  validationError.value = ''
+  if (
+    operation === 'open' &&
+    (editor.draft.value.sceneIds.length !== editor.draft.value.durationDays ||
+      new Set(editor.draft.value.sceneIds).size !== editor.draft.value.durationDays)
+  ) {
+    validationError.value = `启用前需选择 ${editor.draft.value.durationDays} 个不同且可用的已发布场景`
+    return
   }
-const /**
-   * 执行已确认的活动操作。
-   * @returns 活动操作完成后的 Promise
-   */
-  confirm = async (): Promise<void> => {
-    try {
-      if (pendingOperation.value === 'copy') {
-        await editor.copy()
-        await editor.load(campaignId.value)
-      } else await editor.command(pendingOperation.value)
-      confirmVisible.value = false
-      ElMessage.success('活动状态已更新')
-    } catch {
-      confirmVisible.value = false
-    }
+  pendingOperation.value = operation
+  confirmVisible.value = true
+}
+/**
+ * 执行已确认的活动操作。
+ * @returns 活动操作完成后的 Promise
+ */
+const confirm = async (): Promise<void> => {
+  try {
+    if (pendingOperation.value === 'copy') {
+      await editor.copy()
+      await editor.load(campaignId.value)
+    } else await editor.command(pendingOperation.value)
+    confirmVisible.value = false
+    ElMessage.success('活动状态已更新')
+  } catch {
+    confirmVisible.value = false
   }
-const /** 保存草稿后读取真实可执行状态，再确认启用 */
-  saveAndEnable = async (): Promise<void> => {
-    await save()
-    if (
-      editor.state.value === 'success' &&
-      editor.server.value?.availableOperations.includes('open')
-    )
-      ask('open')
-  }
+}
+/** 保存草稿后读取真实可执行状态，再确认启用 */
+const saveAndEnable = async (): Promise<void> => {
+  await save()
+  if (editor.state.value === 'success' && editor.server.value?.availableOperations.includes('open'))
+    ask('open')
+}
 </script>
 
 <template>

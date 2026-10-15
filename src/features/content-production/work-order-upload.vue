@@ -31,55 +31,55 @@ onBeforeUnmount(() => {
   active = false
   uploadAbort?.abort()
 })
-const /** 选择原始文件，校验格式和服务端大小限制
-   * @param selected - 管理员选择的实际上传文件
-   */
-  choose = (selected: UploadFile): void => {
-    if (busy.value || !selected.raw) return
-    if (!selected.name.toLowerCase().endsWith(`.${props.kind}`)) {
-      error.value = `请选择 ${props.kind.toUpperCase()} 文件`
-      return
-    }
-    if (limits.value && selected.raw.size > limits.value.maxBytes) {
-      error.value = '文件超过当前服务允许的上传规模'
-      return
-    }
-    file.value = selected.raw
-    error.value = ''
-    uploadKey = createIdempotencyKey()
+/**
+ * 选择原始文件，校验格式和服务端大小限制
+ * @param selected - 管理员选择的实际上传文件
+ */
+const choose = (selected: UploadFile): void => {
+  if (busy.value || !selected.raw) return
+  if (!selected.name.toLowerCase().endsWith(`.${props.kind}`)) {
+    error.value = `请选择 ${props.kind.toUpperCase()} 文件`
+    return
   }
-const /** 创建工作单后立即保存可恢复地址
-   */
-  upload = async (): Promise<void> => {
-    if (!file.value || !props.seriesId || busy.value) return
-    busy.value = true
-    uploadProgress.value = null
-    uploadAbort = new globalThis.AbortController()
-    error.value = ''
-    try {
-      const body = new globalThis.FormData()
-      body.set('file', file.value)
-      body.set('series_id', props.seriesId)
-      body.set('content_type', props.contentType)
-      body.set('mode', props.kind.toUpperCase())
-      const order = await adapter.upload(body, uploadKey, {
-        signal: uploadAbort.signal,
-        onUploadProgress: (percentage) => {
-          if (active) uploadProgress.value = percentage
-        }
-      })
-      if (!active) return
-      await router.replace({
-        name: 'content-work-order',
-        params: { id: order.work_order_id },
-        query: { view: 'import', import_phase: 'validation' }
-      })
-    } catch (failure) {
-      error.value = failure instanceof Error ? failure.message : '上传失败，请重试本次文件'
-    } finally {
-      busy.value = false
-    }
+  if (limits.value && selected.raw.size > limits.value.maxBytes) {
+    error.value = '文件超过当前服务允许的上传规模'
+    return
   }
+  file.value = selected.raw
+  error.value = ''
+  uploadKey = createIdempotencyKey()
+}
+/** 创建工作单后立即保存可恢复地址 */
+const upload = async (): Promise<void> => {
+  if (!file.value || !props.seriesId || busy.value) return
+  busy.value = true
+  uploadProgress.value = null
+  uploadAbort = new globalThis.AbortController()
+  error.value = ''
+  try {
+    const body = new globalThis.FormData()
+    body.set('file', file.value)
+    body.set('series_id', props.seriesId)
+    body.set('content_type', props.contentType)
+    body.set('mode', props.kind.toUpperCase())
+    const order = await adapter.upload(body, uploadKey, {
+      signal: uploadAbort.signal,
+      onUploadProgress: (percentage) => {
+        if (active) uploadProgress.value = percentage
+      }
+    })
+    if (!active) return
+    await router.replace({
+      name: 'content-work-order',
+      params: { id: order.work_order_id },
+      query: { view: 'import', import_phase: 'validation' }
+    })
+  } catch (failure) {
+    error.value = failure instanceof Error ? failure.message : '上传失败，请重试本次文件'
+  } finally {
+    busy.value = false
+  }
+}
 onMounted(async () => {
   try {
     limits.value = await createContentPackageAdapter(client).limits()

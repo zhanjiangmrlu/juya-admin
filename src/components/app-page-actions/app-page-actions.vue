@@ -2,10 +2,10 @@
 import { onMounted, ref } from 'vue'
 
 const targetReady = ref(false)
-const /** 将页面操作放入布局底栏，独立挂载组件时保留原位置 */
-  attach = (): void => {
-    targetReady.value = !!globalThis.document.getElementById('admin-page-actions')
-  }
+/** 将页面操作放入布局底栏，独立挂载组件时保留原位置 */
+const attach = (): void => {
+  targetReady.value = !!globalThis.document.getElementById('admin-page-actions')
+}
 onMounted(attach)
 </script>
 

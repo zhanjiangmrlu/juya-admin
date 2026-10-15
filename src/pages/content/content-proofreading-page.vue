@@ -38,100 +38,97 @@ const busy = ref(false)
 const error = ref('')
 let generation = 0
 let disposed = false
-const /** 加载各发布状态下的当前可发布候选，草稿引用仍须核验实际修订状态 */ load =
-    async (): Promise<void> => {
-      if (busy.value) return
-      const sequence = ++generation
-      busy.value = true
-      error.value = ''
-      try {
-        const result = await content.listScenes({
-          page: page.value,
-          pageSize: 20,
-          query: query.value,
-          seriesId: '',
-          status: ''
-        })
-        const excludedRevisionIds = new Set<string>()
-        const scenes = (
-          await Promise.all(
-            result.items
-              .filter((scene) => scene.draftRevisionId)
-              .map(async (scene) => {
-                const revision = await content.getRevision(scene.draftRevisionId!)
-                if (!['DRAFT', 'REVIEWED', 'PUBLISH_READY'].includes(revision.status)) {
-                  excludedRevisionIds.add(revision.id)
-                  return null
-                }
-                return {
-                  contentType:
-                    scene.templateType === 'word_card' || scene.templateType === 'vocabulary'
-                      ? ('word_card' as const)
-                      : ('dialogue' as const),
-                  contentId: scene.id,
-                  revisionId: revision.id,
-                  version: revision.version,
-                  title:
-                    [revision.content.title_zh, revision.content.title_en, scene.title]
-                      .find(
-                        (title): title is string =>
-                          typeof title === 'string' && Boolean(title.trim())
-                      )
-                      ?.trim() || '未命名场景',
-                  content: revision.content
-                }
-              })
-          )
-        ).filter((row): row is NonNullable<typeof row> => row !== null)
-        let shortRows: CandidateRow[] = []
-        if (readings.available) {
-          const list = await client.request<{
-            items: { public_id: string; draft_revision_id: string | null }[]
-          }>({
-            method: 'GET',
-            path: '/api/v1/admin/content/short-readings',
-            query: { page: page.value, page_size: 20 }
+/** 加载各发布状态下的当前可发布候选，草稿引用仍须核验实际修订状态 */
+const load = async (): Promise<void> => {
+  if (busy.value) return
+  const sequence = ++generation
+  busy.value = true
+  error.value = ''
+  try {
+    const result = await content.listScenes({
+      page: page.value,
+      pageSize: 20,
+      query: query.value,
+      seriesId: '',
+      status: ''
+    })
+    const excludedRevisionIds = new Set<string>()
+    const scenes = (
+      await Promise.all(
+        result.items
+          .filter((scene) => scene.draftRevisionId)
+          .map(async (scene) => {
+            const revision = await content.getRevision(scene.draftRevisionId!)
+            if (!['DRAFT', 'REVIEWED', 'PUBLISH_READY'].includes(revision.status)) {
+              excludedRevisionIds.add(revision.id)
+              return null
+            }
+            return {
+              contentType:
+                scene.templateType === 'word_card' || scene.templateType === 'vocabulary'
+                  ? ('word_card' as const)
+                  : ('dialogue' as const),
+              contentId: scene.id,
+              revisionId: revision.id,
+              version: revision.version,
+              title:
+                [revision.content.title_zh, revision.content.title_en, scene.title]
+                  .find(
+                    (title): title is string => typeof title === 'string' && Boolean(title.trim())
+                  )
+                  ?.trim() || '未命名场景',
+              content: revision.content
+            }
           })
-          shortRows = await Promise.all(
-            list.items
-              .filter((item) => item.draft_revision_id)
-              .map(async (item) => {
-                const snapshot = await readings.load(item.public_id)
-                return {
-                  contentType: 'short_reading' as const,
-                  contentId: snapshot.id,
-                  revisionId: snapshot.revisionId,
-                  title: snapshot.content.title_zh || snapshot.content.title_en || '未命名短文',
-                  content: { ...snapshot.content },
-                  contentHash: snapshot.contentHash
-                }
-              })
-          )
-        }
-        if (disposed || sequence !== generation) return
-        const kept = rows.value.filter(
-          (row) =>
-            selected.value.includes(row.revisionId) && !excludedRevisionIds.has(row.revisionId)
-        )
-        rows.value = [
-          ...new Map(
-            [...kept, ...scenes, ...shortRows].map((row) => [row.revisionId, row])
-          ).values()
-        ]
-        approved.value = null
-      } catch (failure) {
-        if (!disposed && sequence === generation)
-          error.value = failure instanceof Error ? failure.message : '候选集合加载失败'
-      } finally {
-        if (sequence === generation) busy.value = false
-      }
+      )
+    ).filter((row): row is NonNullable<typeof row> => row !== null)
+    let shortRows: CandidateRow[] = []
+    if (readings.available) {
+      const list = await client.request<{
+        items: { public_id: string; draft_revision_id: string | null }[]
+      }>({
+        method: 'GET',
+        path: '/api/v1/admin/content/short-readings',
+        query: { page: page.value, page_size: 20 }
+      })
+      shortRows = await Promise.all(
+        list.items
+          .filter((item) => item.draft_revision_id)
+          .map(async (item) => {
+            const snapshot = await readings.load(item.public_id)
+            return {
+              contentType: 'short_reading' as const,
+              contentId: snapshot.id,
+              revisionId: snapshot.revisionId,
+              title: snapshot.content.title_zh || snapshot.content.title_en || '未命名短文',
+              content: { ...snapshot.content },
+              contentHash: snapshot.contentHash
+            }
+          })
+      )
     }
-const /**
-   * 记录服务端明确已完成的固定集合
-   * @param set - 服务端持久化校对结果
-   */ accept = (set: ProofreadingSet): void => {
-    approved.value = set
+    if (disposed || sequence !== generation) return
+    const kept = rows.value.filter(
+      (row) => selected.value.includes(row.revisionId) && !excludedRevisionIds.has(row.revisionId)
+    )
+    rows.value = [
+      ...new Map([...kept, ...scenes, ...shortRows].map((row) => [row.revisionId, row])).values()
+    ]
+    approved.value = null
+  } catch (failure) {
+    if (!disposed && sequence === generation)
+      error.value = failure instanceof Error ? failure.message : '候选集合加载失败'
+  } finally {
+    if (sequence === generation) busy.value = false
   }
+}
+/**
+ * 记录服务端明确已完成的固定集合
+ * @param set - 服务端持久化校对结果
+ */
+const accept = (set: ProofreadingSet): void => {
+  approved.value = set
+}
 watch(selected, () => {
   approved.value = null
 })

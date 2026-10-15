@@ -28,101 +28,102 @@ const form = reactive<{
 }>({ openScenes: ['', '', ''], previews: [] })
 let generation = 0
 let disposed = false
-const /** 加载权威配置与已发布内容选项，明确放弃本地未保存输入 */ load =
-    async (): Promise<void> => {
-      const token = ++generation
-      optionError.value = ''
-      try {
-        await controller.load()
-        if (disposed || token !== generation || !controller.draft.value) return
-        form.openScenes = [...controller.draft.value.openSceneIds]
-        form.previews = Object.entries(controller.draft.value.previewBySeries).map(
-          ([seriesId, sceneIds]) => ({ seriesId, sceneIds: [...sceneIds] })
-        )
-        const [categories, first] = await Promise.all([
-          content.listSeries(),
-          content.listScenes({
-            page: 1,
-            pageSize: 100,
-            query: '',
-            seriesId: '',
-            status: 'PUBLISHED'
-          })
-        ])
-        const all = [...first.items]
-        for (let page = 2; all.length < first.total; page++) {
-          const next = await content.listScenes({
-            page,
-            pageSize: 100,
-            query: '',
-            seriesId: '',
-            status: 'PUBLISHED'
-          })
-          if (!next.items.length) break
-          all.push(...next.items)
-        }
-        if (disposed || token !== generation) return
-        scenes.value = all
-        series.value = categories
-        await learning.load()
-      } catch (failure) {
-        if (!disposed && token === generation)
-          optionError.value = failure instanceof Error ? failure.message : '配置读取失败，请重试'
-      }
+/** 加载权威配置与已发布内容选项，明确放弃本地未保存输入 */
+const load = async (): Promise<void> => {
+  const token = ++generation
+  optionError.value = ''
+  try {
+    await controller.load()
+    if (disposed || token !== generation || !controller.draft.value) return
+    form.openScenes = [...controller.draft.value.openSceneIds]
+    form.previews = Object.entries(controller.draft.value.previewBySeries).map(
+      ([seriesId, sceneIds]) => ({ seriesId, sceneIds: [...sceneIds] })
+    )
+    const [categories, first] = await Promise.all([
+      content.listSeries(),
+      content.listScenes({
+        page: 1,
+        pageSize: 100,
+        query: '',
+        seriesId: '',
+        status: 'PUBLISHED'
+      })
+    ])
+    const all = [...first.items]
+    for (let page = 2; all.length < first.total; page++) {
+      const next = await content.listScenes({
+        page,
+        pageSize: 100,
+        query: '',
+        seriesId: '',
+        status: 'PUBLISHED'
+      })
+      if (!next.items.length) break
+      all.push(...next.items)
     }
-const /** 校验实际场景选择并保存配置，错误或冲突保留输入 */ save = async (): Promise<void> => {
-    if (!controller.draft.value || controller.state.value === 'saving' || learning.busy.value)
-      return
-    const open = validateOpenScenes(form.openScenes)
-    if (!open.valid) {
-      ElMessage.warning(open.message)
+    if (disposed || token !== generation) return
+    scenes.value = all
+    series.value = categories
+    await learning.load()
+  } catch (failure) {
+    if (!disposed && token === generation)
+      optionError.value = failure instanceof Error ? failure.message : '配置读取失败，请重试'
+  }
+}
+/** 校验实际场景选择并保存配置，错误或冲突保留输入 */
+const save = async (): Promise<void> => {
+  if (!controller.draft.value || controller.state.value === 'saving' || learning.busy.value) return
+  const open = validateOpenScenes(form.openScenes)
+  if (!open.valid) {
+    ElMessage.warning(open.message)
+    return
+  }
+  if (
+    new Set(form.previews.map((row) => row.seriesId)).size !== form.previews.length ||
+    form.previews.some((row) => !row.seriesId)
+  ) {
+    ElMessage.warning('请选择不重复的内容系列')
+    return
+  }
+  for (const row of form.previews) {
+    const checked = validatePreviewScenes(row.sceneIds, form.openScenes)
+    if (!checked.valid) {
+      ElMessage.warning(checked.message)
       return
     }
     if (
-      new Set(form.previews.map((row) => row.seriesId)).size !== form.previews.length ||
-      form.previews.some((row) => !row.seriesId)
+      row.sceneIds.some(
+        (id) => scenes.value.find((scene) => scene.id === id)?.seriesId !== row.seriesId
+      )
     ) {
-      ElMessage.warning('请选择不重复的内容系列')
+      ElMessage.warning('预览场景必须属于所选系列')
       return
     }
-    for (const row of form.previews) {
-      const checked = validatePreviewScenes(row.sceneIds, form.openScenes)
-      if (!checked.valid) {
-        ElMessage.warning(checked.message)
-        return
-      }
-      if (
-        row.sceneIds.some(
-          (id) => scenes.value.find((scene) => scene.id === id)?.seriesId !== row.seriesId
-        )
-      ) {
-        ElMessage.warning('预览场景必须属于所选系列')
-        return
-      }
-    }
-    try {
-      await controller.save({
-        learningModules: { ...controller.draft.value.learningModules },
-        openSceneIds: [...form.openScenes],
-        previewBySeries: Object.fromEntries(
-          form.previews.map((row) => [row.seriesId, [...row.sceneIds]])
-        )
-      })
-      if (
-        learning.snapshot.value &&
-        learning.profileEnabled.value !== learning.snapshot.value.profileCompletionEnabled
-      ) {
-        await learning.save()
-        if (learning.error.value) return
-      }
-      ElMessage.success('开放与预览配置已保存')
-    } catch {
-      /* 控制器显示真实错误并保留表单 */
-    }
   }
-const /** 添加待选择的系列预览，不生成内部编号 */ addPreview = (): void => {
-    form.previews.push({ seriesId: '', sceneIds: [] })
+  try {
+    await controller.save({
+      learningModules: { ...controller.draft.value.learningModules },
+      openSceneIds: [...form.openScenes],
+      previewBySeries: Object.fromEntries(
+        form.previews.map((row) => [row.seriesId, [...row.sceneIds]])
+      )
+    })
+    if (
+      learning.snapshot.value &&
+      learning.profileEnabled.value !== learning.snapshot.value.profileCompletionEnabled
+    ) {
+      await learning.save()
+      if (learning.error.value) return
+    }
+    ElMessage.success('开放与预览配置已保存')
+  } catch {
+    /* 控制器显示真实错误并保留表单 */
   }
+}
+/** 添加待选择的系列预览，不生成内部编号 */
+const addPreview = (): void => {
+  form.previews.push({ seriesId: '', sceneIds: [] })
+}
 onMounted(() => void load())
 onBeforeUnmount(() => {
   disposed = true

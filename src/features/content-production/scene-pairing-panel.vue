@@ -11,52 +11,55 @@ const props = defineProps<{ snapshot: Record<string, unknown> | null }>()
 const choices = reactive<Record<string, string>>({})
 const segments = computed(() => {
   const result: { id: string; text: string; locator: string; role: string }[] = []
-  const /** 收集解析器实际保留的正文段落，来源位置不从编辑后候选推断
-     * @param snapshot - 当前不可变文档或其原始子文档
-     * @param prefix - 多文档来源位置
-     */
-    append = (snapshot: Record<string, unknown> | null, prefix = ''): void => {
-      if (!snapshot) return
-      if (Array.isArray(snapshot.documents))
-        snapshot.documents.forEach((document, index) =>
-          append(document as Record<string, unknown>, `文档 ${index + 1} · `)
-        )
-      if (!Array.isArray(snapshot.blocks)) return
-      for (const block of snapshot.blocks as Record<string, unknown>[])
-        if (
-          typeof block.id === 'string' &&
-          typeof block.text === 'string' &&
-          ['english', 'chinese'].includes(String(block.role))
-        )
-          result.push({
-            id: `${prefix}${block.id}`,
-            text: block.text,
-            role: String(block.role),
-            locator: `${prefix}第 ${block.paragraph_index ?? block.id} 段`
-          })
-    }
+  /**
+   * 收集解析器实际保留的正文段落，来源位置不从编辑后候选推断
+   * @param snapshot - 当前不可变文档或其原始子文档
+   * @param prefix - 多文档来源位置
+   */
+  const append = (snapshot: Record<string, unknown> | null, prefix = ''): void => {
+    if (!snapshot) return
+    if (Array.isArray(snapshot.documents))
+      snapshot.documents.forEach((document, index) =>
+        append(document as Record<string, unknown>, `文档 ${index + 1} · `)
+      )
+    if (!Array.isArray(snapshot.blocks)) return
+    for (const block of snapshot.blocks as Record<string, unknown>[])
+      if (
+        typeof block.id === 'string' &&
+        typeof block.text === 'string' &&
+        ['english', 'chinese'].includes(String(block.role))
+      )
+        result.push({
+          id: `${prefix}${block.id}`,
+          text: block.text,
+          role: String(block.role),
+          locator: `${prefix}第 ${block.paragraph_index ?? block.id} 段`
+        })
+  }
   append(props.snapshot)
   return result
 })
 const chinese = computed(() => segments.value.filter((row) => row.role === 'chinese'))
-const /** 展示文本相同的保留段落位置，重复文本不猜配唯一来源
-   * @param text - 当前候选正文
-   * @param role - 原始英文或中文段落类型
-   * @returns 已知来源位置或待人工核对说明
-   */
-  location = (text: string, role: string): string => {
-    const matches = segments.value.filter(
-      (row) => row.role === role && row.text.trim() === text.trim()
-    )
-    return matches.length === 1 ? matches[0]!.locator : '来源待人工核对'
-  }
-const /** 把管理员明确选择的真实保留段落写入当前句子的中文字段
-   * @param row - 当前稳定句子身份及手工候选
-   */
-  pair = (row: DialogueRow): void => {
-    const selected = chinese.value.find((segment) => segment.id === choices[row.id])
-    if (selected) row.chinese = selected.text
-  }
+/**
+ * 展示文本相同的保留段落位置，重复文本不猜配唯一来源
+ * @param text - 当前候选正文
+ * @param role - 原始英文或中文段落类型
+ * @returns 已知来源位置或待人工核对说明
+ */
+const location = (text: string, role: string): string => {
+  const matches = segments.value.filter(
+    (row) => row.role === role && row.text.trim() === text.trim()
+  )
+  return matches.length === 1 ? matches[0]!.locator : '来源待人工核对'
+}
+/**
+ * 把管理员明确选择的真实保留段落写入当前句子的中文字段
+ * @param row - 当前稳定句子身份及手工候选
+ */
+const pair = (row: DialogueRow): void => {
+  const selected = chinese.value.find((segment) => segment.id === choices[row.id])
+  if (selected) row.chinese = selected.text
+}
 </script>
 <template>
   <AdminPanel title="结构化候选 · 可校正" class="scene-pairing-panel">

@@ -105,97 +105,99 @@ onBeforeUnmount(() => {
   globalThis.clearTimeout(pollTimer)
   emit('busy', false)
 })
-const /** 等待服务端已有任务，不自动重复提交收费任务 */ schedule = (): void => {
-    globalThis.clearTimeout(pollTimer)
-    if (!disposed && !props.dirty && props.kind === 'ASR_BOUNDARY')
-      pollTimer = globalThis.setTimeout(() => void restoreLatest(), 2000)
-  }
-const /**
-   * 展示已读取的固定候选，自动应用后只重载真实同源草稿
-   * @param value - 服务端持久化候选
-   * @param token - 本次读取的请求代次
-   */ receive = async (value: ProductionCandidate, token: number): Promise<void> => {
-    if (disposed || token !== sequence) return
-    result.value = value
-    identifier.value = value.id
-    selectedIndex.value = 0
-    rows.value = Array.isArray(value.candidate.results)
-      ? value.candidate.results.map((row) => ({ ...row, entryType: 'VOCABULARY', checked: false }))
-      : []
-    const appliedVersion = asr.value?.applied_edit_version
-    const key = `${value.id}:${appliedVersion}`
+/** 等待服务端已有任务，不自动重复提交收费任务 */
+const schedule = (): void => {
+  globalThis.clearTimeout(pollTimer)
+  if (!disposed && !props.dirty && props.kind === 'ASR_BOUNDARY')
+    pollTimer = globalThis.setTimeout(() => void restoreLatest(), 2000)
+}
+/**
+ * 展示已读取的固定候选，自动应用后只重载真实同源草稿
+ * @param value - 服务端持久化候选
+ * @param token - 本次读取的请求代次
+ */
+const receive = async (value: ProductionCandidate, token: number): Promise<void> => {
+  if (disposed || token !== sequence) return
+  result.value = value
+  identifier.value = value.id
+  selectedIndex.value = 0
+  rows.value = Array.isArray(value.candidate.results)
+    ? value.candidate.results.map((row) => ({ ...row, entryType: 'VOCABULARY', checked: false }))
+    : []
+  const appliedVersion = asr.value?.applied_edit_version
+  const key = `${value.id}:${appliedVersion}`
+  if (
+    props.kind === 'ASR_BOUNDARY' &&
+    value.status === 'READY' &&
+    appliedVersion &&
+    current.value &&
+    !props.disabled &&
+    !loadedRevisionKeys.has(key)
+  ) {
+    const saved = await content.getRevision(props.revisionId)
+    if (disposed || token !== sequence || props.dirty || props.disabled) return
+    const savedForm = normalizeSceneContent(saved.content)
     if (
-      props.kind === 'ASR_BOUNDARY' &&
-      value.status === 'READY' &&
-      appliedVersion &&
-      current.value &&
-      !props.disabled &&
-      !loadedRevisionKeys.has(key)
-    ) {
-      const saved = await content.getRevision(props.revisionId)
-      if (disposed || token !== sequence || props.dirty || props.disabled) return
-      const savedForm = normalizeSceneContent(saved.content)
-      if (
-        saved.id !== props.revisionId ||
-        saved.version < appliedVersion ||
-        saved.version < props.expectedVersion ||
-        savedForm.audio?.version_id !== props.form.audio?.version_id ||
-        savedForm.dialogue.length !== props.form.dialogue.length ||
-        !savedForm.dialogue.every((line, index) => line.id === props.form.dialogue[index]?.id) ||
-        !savedForm.dialogue.every((line) => value.candidate.sources[line.id] === line.english)
-      )
-        return
-      loadedRevisionKeys.add(key)
-      emit('saved', saved)
-    }
-    if (
-      value.stage_status !== 'FAILED' &&
-      ['PENDING', 'QUEUED', 'SUBMITTING', 'SUBMITTED', 'RUNNING'].includes(value.status)
+      saved.id !== props.revisionId ||
+      saved.version < appliedVersion ||
+      saved.version < props.expectedVersion ||
+      savedForm.audio?.version_id !== props.form.audio?.version_id ||
+      savedForm.dialogue.length !== props.form.dialogue.length ||
+      !savedForm.dialogue.every((line, index) => line.id === props.form.dialogue[index]?.id) ||
+      !savedForm.dialogue.every((line) => value.candidate.sources[line.id] === line.english)
     )
-      schedule()
+      return
+    loadedRevisionKeys.add(key)
+    emit('saved', saved)
   }
-const /** 恢复当前草稿实际自动任务与候选；404仅表示尚未创建 */ restoreLatest =
-    async (): Promise<void> => {
-      if (disposed || props.dirty || props.kind !== 'ASR_BOUNDARY') return
-      if (busy.value || props.disabled) {
-        schedule()
-        return
-      }
-      const token = ++sequence
-      automaticLoading.value = true
-      error.value = ''
-      try {
-        try {
-          const state = await adapter.production(props.revisionId)
-          if (disposed || token !== sequence) return
-          productionState.value = state
-        } catch (failure) {
-          if (!(failure instanceof ApiError && failure.status === 404)) throw failure
-          if (disposed || token !== sequence) return
-          productionState.value = null
-        }
-        try {
-          const value = await adapter.latest(props.revisionId, props.kind)
-          if (!candidateBelongsToRevision(value, props.revisionId))
-            throw new Error('自动任务不属于当前草稿，请重新读取')
-          await receive(value, token)
-        } catch (failure) {
-          if (!(failure instanceof ApiError && failure.status === 404)) throw failure
-          if (disposed || token !== sequence) return
-          result.value = null
-          if (
-            productionState.value &&
-            ['QUEUED', 'PENDING', 'RUNNING'].includes(productionState.value.status)
-          )
-            schedule()
-        }
-      } catch (failure) {
-        if (!disposed && token === sequence)
-          error.value = failure instanceof Error ? failure.message : '自动音频状态读取失败，请重试'
-      } finally {
-        if (token === sequence) automaticLoading.value = false
-      }
+  if (
+    value.stage_status !== 'FAILED' &&
+    ['PENDING', 'QUEUED', 'SUBMITTING', 'SUBMITTED', 'RUNNING'].includes(value.status)
+  )
+    schedule()
+}
+/** 恢复当前草稿实际自动任务与候选；404仅表示尚未创建 */
+const restoreLatest = async (): Promise<void> => {
+  if (disposed || props.dirty || props.kind !== 'ASR_BOUNDARY') return
+  if (busy.value || props.disabled) {
+    schedule()
+    return
+  }
+  const token = ++sequence
+  automaticLoading.value = true
+  error.value = ''
+  try {
+    try {
+      const state = await adapter.production(props.revisionId)
+      if (disposed || token !== sequence) return
+      productionState.value = state
+    } catch (failure) {
+      if (!(failure instanceof ApiError && failure.status === 404)) throw failure
+      if (disposed || token !== sequence) return
+      productionState.value = null
     }
+    try {
+      const value = await adapter.latest(props.revisionId, props.kind)
+      if (!candidateBelongsToRevision(value, props.revisionId))
+        throw new Error('自动任务不属于当前草稿，请重新读取')
+      await receive(value, token)
+    } catch (failure) {
+      if (!(failure instanceof ApiError && failure.status === 404)) throw failure
+      if (disposed || token !== sequence) return
+      result.value = null
+      if (
+        productionState.value &&
+        ['QUEUED', 'PENDING', 'RUNNING'].includes(productionState.value.status)
+      )
+        schedule()
+    }
+  } catch (failure) {
+    if (!disposed && token === sequence)
+      error.value = failure instanceof Error ? failure.message : '自动音频状态读取失败，请重试'
+  } finally {
+    if (token === sequence) automaticLoading.value = false
+  }
+}
 watch(
   () => [
     props.revisionId,
@@ -216,64 +218,66 @@ watch(
   { immediate: true, deep: true }
 )
 
-const /**
-   * 从固定任务读取候选，晚到的结果不覆盖新草稿
-   * @param id - 要恢复的服务端任务编号
-   */ read = async (id: string): Promise<void> => {
-    const token = ++sequence
-    const value = await adapter.get(id)
-    if (disposed || token !== sequence) return
-    if (value.id !== id) throw new Error('候选任务响应与请求编号不一致')
-    await receive(value, token)
-  }
-const /**
-   * 管理员明确创建、恢复或采纳；创建前保存，采纳保持固定版本
-   * @param action - 本次任务操作
-   * @param index - 明确采纳的单项结果序号
-   */ run = async (action: 'queue' | 'refresh' | 'adopt', index = -1): Promise<void> => {
-    if (busy.value || props.disabled) return
-    busy.value = true
-    error.value = ''
-    const revisionId = props.revisionId
-    try {
-      if (action === 'queue') {
-        const saved = await props.prepare()
-        if (!saved || disposed || revisionId !== props.revisionId) return
-        emit('busy', true)
-        const queued = await adapter.queue(saved.id, saved.version, props.kind)
-        if (disposed || revisionId !== props.revisionId) return
-        identifier.value = queued.candidate_id
-        origins.set(queued.candidate_id, saved.id)
-        result.value = null
-        rows.value = []
-        await read(identifier.value)
-      } else if (action === 'refresh') await read(identifier.value.trim())
-      else {
-        const row = rows.value[index]
-        if (
-          !row?.checked ||
-          !current.value ||
-          result.value?.status !== 'READY' ||
-          !validCandidateSelection(row, result.value.candidate.sources)
-        )
-          return
-        const token = sequence
-        emit('busy', true)
-        await adapter.adopt(result.value.id, index, row, props.expectedVersion, row.entryType)
-        const saved = await content.getRevision(revisionId)
-        if (disposed || revisionId !== props.revisionId || token !== sequence) return
-        result.value = null
-        rows.value = []
-        emit('saved', saved)
-      }
-    } catch (failure) {
-      if (!disposed && revisionId === props.revisionId)
-        error.value = failure instanceof Error ? failure.message : '任务未完成，请核对后重试'
-    } finally {
-      busy.value = false
-      emit('busy', false)
+/**
+ * 从固定任务读取候选，晚到的结果不覆盖新草稿
+ * @param id - 要恢复的服务端任务编号
+ */
+const read = async (id: string): Promise<void> => {
+  const token = ++sequence
+  const value = await adapter.get(id)
+  if (disposed || token !== sequence) return
+  if (value.id !== id) throw new Error('候选任务响应与请求编号不一致')
+  await receive(value, token)
+}
+/**
+ * 管理员明确创建、恢复或采纳；创建前保存，采纳保持固定版本
+ * @param action - 本次任务操作
+ * @param index - 明确采纳的单项结果序号
+ */
+const run = async (action: 'queue' | 'refresh' | 'adopt', index = -1): Promise<void> => {
+  if (busy.value || props.disabled) return
+  busy.value = true
+  error.value = ''
+  const revisionId = props.revisionId
+  try {
+    if (action === 'queue') {
+      const saved = await props.prepare()
+      if (!saved || disposed || revisionId !== props.revisionId) return
+      emit('busy', true)
+      const queued = await adapter.queue(saved.id, saved.version, props.kind)
+      if (disposed || revisionId !== props.revisionId) return
+      identifier.value = queued.candidate_id
+      origins.set(queued.candidate_id, saved.id)
+      result.value = null
+      rows.value = []
+      await read(identifier.value)
+    } else if (action === 'refresh') await read(identifier.value.trim())
+    else {
+      const row = rows.value[index]
+      if (
+        !row?.checked ||
+        !current.value ||
+        result.value?.status !== 'READY' ||
+        !validCandidateSelection(row, result.value.candidate.sources)
+      )
+        return
+      const token = sequence
+      emit('busy', true)
+      await adapter.adopt(result.value.id, index, row, props.expectedVersion, row.entryType)
+      const saved = await content.getRevision(revisionId)
+      if (disposed || revisionId !== props.revisionId || token !== sequence) return
+      result.value = null
+      rows.value = []
+      emit('saved', saved)
     }
+  } catch (failure) {
+    if (!disposed && revisionId === props.revisionId)
+      error.value = failure instanceof Error ? failure.message : '任务未完成，请核对后重试'
+  } finally {
+    busy.value = false
+    emit('busy', false)
   }
+}
 </script>
 
 <template>

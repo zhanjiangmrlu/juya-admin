@@ -7,37 +7,38 @@ import type { ProductionSchema as S } from './work-order-model'
 
 import { useImportProgress } from './use-import-progress'
 
-const /**
-   * 创建当前工作单的导入响应，status 为实际批次状态，id 为归属工作单
-   * @param status - 服务端状态
-   * @param id - 服务端工作单身份
-   * @returns 当前操作结果或完成状态
-   */
-  preview = (status = 'PENDING', id = 'one') =>
-    ({
-      work_order_id: id,
-      batch_id: `batch-${id}`,
-      status,
-      preview_hash: 'a',
-      preview_version: 1,
-      items: [],
-      batch_issues: [],
-      unreferenced_files: []
-    }) as S['ImportPreview']
+/**
+ * 创建当前工作单的导入响应，status 为实际批次状态，id 为归属工作单
+ * @param status - 服务端状态
+ * @param id - 服务端工作单身份
+ * @returns 当前操作结果或完成状态
+ */
+const preview = (status = 'PENDING', id = 'one') =>
+  ({
+    work_order_id: id,
+    batch_id: `batch-${id}`,
+    status,
+    preview_hash: 'a',
+    preview_version: 1,
+    items: [],
+    batch_issues: [],
+    unreferenced_files: []
+  }) as S['ImportPreview']
 
-const /** 创建真实生命周期作用域和可控接口，供读取状态与可见性场景验证
-   * @returns 当前操作结果或完成状态
-   */
-  setup = () => {
-    vi.useFakeTimers()
-    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
-    const read = vi.fn().mockResolvedValue(preview())
-    const stages = vi.fn().mockResolvedValue([{ stage: 'VALIDATE', status: 'QUEUED' }])
-    const ready = vi.fn().mockResolvedValue(undefined)
-    const scope = effectScope()
-    const model = scope.run(() => useImportProgress({ read, stages, ready }))!
-    return { model, read, stages, ready, scope }
-  }
+/**
+ * 创建真实生命周期作用域和可控接口，供读取状态与可见性场景验证
+ * @returns 当前操作结果或完成状态
+ */
+const setup = () => {
+  vi.useFakeTimers()
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+  const read = vi.fn().mockResolvedValue(preview())
+  const stages = vi.fn().mockResolvedValue([{ stage: 'VALIDATE', status: 'QUEUED' }])
+  const ready = vi.fn().mockResolvedValue(undefined)
+  const scope = effectScope()
+  const model = scope.run(() => useImportProgress({ read, stages, ready }))!
+  return { model, read, stages, ready, scope }
+}
 
 afterEach(() => {
   vi.useRealTimers()

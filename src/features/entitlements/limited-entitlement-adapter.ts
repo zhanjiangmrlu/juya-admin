@@ -47,114 +47,113 @@ export interface LimitedEntitlementAdapter {
   ): Promise<LimitedEntitlement>
 }
 
-export const /**
-   * 创建限时权益授予与状态命令适配器
-   *
-   * @param client - 统一 API 客户端
-   * @returns 限时权益命令适配器
-   */
-  createLimitedEntitlementAdapter = (client: ApiClient): LimitedEntitlementAdapter => {
-    return {
-      /**
-       * 查询真实限时权益前态与操作结果
-       * @param input - 当前权益及补救模式
-       * @returns 当前操作结果或完成状态
-       */ async preview(input) {
-        if (input.operation === 'GRANT') {
-          if (!input.userId || !input.campaignVersionId) throw new Error('请选择用户和活动')
-          const response = await client.request<GrantPreviewDto>({
-            method: 'POST',
-            path: '/api/v1/admin/limited-entitlements/preview-grant',
-            body: { user_id: input.userId, campaign_version_id: input.campaignVersionId }
-          })
-          if (response.before !== null || !isRecord(response.after) || response.after.id !== null)
-            throw new Error('授予预览响应格式不正确')
-          return {
-            before: null,
-            after: { ...parseLimitedFields(response.after), id: null },
-            actualOperation: requireString(response, 'actual_operation'),
-            expectedVersion: requireNumber(response, 'expected_version'),
-            expectedFingerprint: requireString(response, 'expected_fingerprint'),
-            previewedAt: requireString(response, 'previewed_at'),
-            campaignName: requireString(response, 'campaign_name'),
-            durationDays: requireNumber(response, 'duration_days'),
-            sceneIds:
-              Array.isArray(response.scene_ids) &&
-              response.scene_ids.every((id) => typeof id === 'string')
-                ? response.scene_ids
-                : undefined
-          }
-        }
-        if (!input.entitlementId) throw new Error('请选择已有权益')
-        const remedy =
-          input.operation === 'EXTEND_START_DEADLINE' || input.operation === 'RESTORE_START_WINDOW'
-        const response = await client.request<Record<string, unknown>>({
+/**
+ * 创建限时权益授予与状态命令适配器
+ *
+ * @param client - 统一 API 客户端
+ * @returns 限时权益命令适配器
+ */
+export const createLimitedEntitlementAdapter = (client: ApiClient): LimitedEntitlementAdapter => {
+  return {
+    /**
+     * 查询真实限时权益前态与操作结果
+     * @param input - 当前权益及补救模式
+     * @returns 当前操作结果或完成状态
+     */ async preview(input) {
+      if (input.operation === 'GRANT') {
+        if (!input.userId || !input.campaignVersionId) throw new Error('请选择用户和活动')
+        const response = await client.request<GrantPreviewDto>({
           method: 'POST',
-          path: `/api/v1/admin/limited-entitlements/${encodeURIComponent(input.entitlementId)}/preview-operation`,
-          body: remedy
-            ? { operation: 'REMEDY', mode: input.operation }
-            : { operation: input.operation }
+          path: '/api/v1/admin/limited-entitlements/preview-grant',
+          body: { user_id: input.userId, campaign_version_id: input.campaignVersionId }
         })
+        if (response.before !== null || !isRecord(response.after) || response.after.id !== null)
+          throw new Error('授予预览响应格式不正确')
         return {
-          before: parseLimitedEntitlement(response.before),
-          after: parseLimitedEntitlement(response.after),
+          before: null,
+          after: { ...parseLimitedFields(response.after), id: null },
           actualOperation: requireString(response, 'actual_operation'),
-          expectedVersion: requireNumber(response, 'expected_version')
+          expectedVersion: requireNumber(response, 'expected_version'),
+          expectedFingerprint: requireString(response, 'expected_fingerprint'),
+          previewedAt: requireString(response, 'previewed_at'),
+          campaignName: requireString(response, 'campaign_name'),
+          durationDays: requireNumber(response, 'duration_days'),
+          sceneIds:
+            Array.isArray(response.scene_ids) &&
+            response.scene_ids.every((id) => typeof id === 'string')
+              ? response.scene_ids
+              : undefined
         }
-      },
-      /**
-       * 根据操作类型调用对应限时权益命令接口
-       *
-       * @param input - 权益编号、开通字段、操作和可选原因
-       * @param idempotencyKey - 当前逻辑操作复用的幂等键
-       * @returns 服务端持久化后的限时权益
-       */
-      async execute(input, idempotencyKey) {
-        const request = toRequest(input)
-        const response = await client.request<unknown>({
-          body: request.body,
-          idempotencyKey,
-          method: 'POST',
-          path: request.path
-        })
-        return parseLimitedEntitlement(response)
       }
-    }
-  }
-
-const /**
-   * 将限时权益命令映射为真实接口路径和请求体
-   *
-   * @param input - 限时权益命令输入
-   * @returns API 请求路径和请求体
-   */
-  toRequest = (input: LimitedEntitlementCommandInput): { body?: unknown; path: string } => {
-    if (input.operation === 'GRANT') {
-      if (!input.userId || !input.campaignVersionId)
-        throw new Error('开通限时权益缺少用户或活动版本')
+      if (!input.entitlementId) throw new Error('请选择已有权益')
+      const remedy =
+        input.operation === 'EXTEND_START_DEADLINE' || input.operation === 'RESTORE_START_WINDOW'
+      const response = await client.request<Record<string, unknown>>({
+        method: 'POST',
+        path: `/api/v1/admin/limited-entitlements/${encodeURIComponent(input.entitlementId)}/preview-operation`,
+        body: remedy
+          ? { operation: 'REMEDY', mode: input.operation }
+          : { operation: input.operation }
+      })
       return {
-        body: {
-          campaign_version_id: input.campaignVersionId,
-          user_id: input.userId,
-          expected_fingerprint: input.expectedFingerprint,
-          ...(input.reason ? { reason: input.reason } : {})
-        },
-        path: '/api/v1/admin/limited-entitlements/commands/grant'
+        before: parseLimitedEntitlement(response.before),
+        after: parseLimitedEntitlement(response.after),
+        actualOperation: requireString(response, 'actual_operation'),
+        expectedVersion: requireNumber(response, 'expected_version')
       }
-    }
-    if (!input.entitlementId) throw new Error('限时权益操作缺少权益编号')
-    if (input.expectedVersion === undefined || !input.reason?.trim())
-      throw new Error('请先预览并填写操作原因')
-    const prepared = { reason: input.reason, expected_version: input.expectedVersion }
-    const basePath = `/api/v1/admin/limited-entitlements/${encodeURIComponent(input.entitlementId)}/commands`
-    if (input.operation === 'EXTEND_START_DEADLINE' || input.operation === 'RESTORE_START_WINDOW') {
-      return { body: { mode: input.operation, ...prepared }, path: `${basePath}/remedy` }
-    }
-    return {
-      body: prepared,
-      path: `${basePath}/${input.operation.toLowerCase()}`
+    },
+    /**
+     * 根据操作类型调用对应限时权益命令接口
+     *
+     * @param input - 权益编号、开通字段、操作和可选原因
+     * @param idempotencyKey - 当前逻辑操作复用的幂等键
+     * @returns 服务端持久化后的限时权益
+     */
+    async execute(input, idempotencyKey) {
+      const request = toRequest(input)
+      const response = await client.request<unknown>({
+        body: request.body,
+        idempotencyKey,
+        method: 'POST',
+        path: request.path
+      })
+      return parseLimitedEntitlement(response)
     }
   }
+}
+
+/**
+ * 将限时权益命令映射为真实接口路径和请求体
+ *
+ * @param input - 限时权益命令输入
+ * @returns API 请求路径和请求体
+ */
+const toRequest = (input: LimitedEntitlementCommandInput): { body?: unknown; path: string } => {
+  if (input.operation === 'GRANT') {
+    if (!input.userId || !input.campaignVersionId) throw new Error('开通限时权益缺少用户或活动版本')
+    return {
+      body: {
+        campaign_version_id: input.campaignVersionId,
+        user_id: input.userId,
+        expected_fingerprint: input.expectedFingerprint,
+        ...(input.reason ? { reason: input.reason } : {})
+      },
+      path: '/api/v1/admin/limited-entitlements/commands/grant'
+    }
+  }
+  if (!input.entitlementId) throw new Error('限时权益操作缺少权益编号')
+  if (input.expectedVersion === undefined || !input.reason?.trim())
+    throw new Error('请先预览并填写操作原因')
+  const prepared = { reason: input.reason, expected_version: input.expectedVersion }
+  const basePath = `/api/v1/admin/limited-entitlements/${encodeURIComponent(input.entitlementId)}/commands`
+  if (input.operation === 'EXTEND_START_DEADLINE' || input.operation === 'RESTORE_START_WINDOW') {
+    return { body: { mode: input.operation, ...prepared }, path: `${basePath}/remedy` }
+  }
+  return {
+    body: prepared,
+    path: `${basePath}/${input.operation.toLowerCase()}`
+  }
+}
 
 /**
  * 校验并映射限时权益接口响应
@@ -167,22 +166,24 @@ function parseLimitedEntitlement(source: unknown): LimitedEntitlement {
   return { ...parseLimitedFields(source), id: requireString(source, 'id') }
 }
 
-const /** 映射服务端权益共有状态及期限
-   * @param source - 服务端授予预览或持久化回执的字段对象
-   * @returns 不含权益编号的真实状态与期限
-   */ parseLimitedFields = (source: Record<string, unknown>): Omit<LimitedEntitlement, 'id'> => {
-    return {
-      activatedAt: nullableString(source, 'activated_at'),
-      campaignVersionId: requireString(source, 'campaign_version_id'),
-      expiresAt: nullableString(source, 'expires_at'),
-      grantedAt: requireString(source, 'granted_at'),
-      remedyCount: requireNumber(source, 'remedy_count'),
-      startDeadline: requireString(source, 'start_deadline'),
-      status: requireString(source, 'status'),
-      userId: requireString(source, 'user_id'),
-      version: requireNumber(source, 'version')
-    }
+/**
+ * 映射服务端权益共有状态及期限
+ * @param source - 服务端授予预览或持久化回执的字段对象
+ * @returns 不含权益编号的真实状态与期限
+ */
+const parseLimitedFields = (source: Record<string, unknown>): Omit<LimitedEntitlement, 'id'> => {
+  return {
+    activatedAt: nullableString(source, 'activated_at'),
+    campaignVersionId: requireString(source, 'campaign_version_id'),
+    expiresAt: nullableString(source, 'expires_at'),
+    grantedAt: requireString(source, 'granted_at'),
+    remedyCount: requireNumber(source, 'remedy_count'),
+    startDeadline: requireString(source, 'start_deadline'),
+    status: requireString(source, 'status'),
+    userId: requireString(source, 'user_id'),
+    version: requireNumber(source, 'version')
   }
+}
 
 /**
  * 读取可为空的字符串字段

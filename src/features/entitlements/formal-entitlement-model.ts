@@ -31,22 +31,22 @@ export const FORMAL_OPERATION_LABELS: Readonly<Record<FormalEntitlementOperation
   REVOKE: '撤销'
 }
 
-export const /**
-   * 根据当前正式权益状态和期限返回前端可展示的操作
-   *
-   * @param status - 当前正式权益状态
-   * @param term - 当前正式权益期限档位
-   * @returns 按业务优先级排列的可用操作数组
-   */
-  getFormalOperations = (
-    status: FormalEntitlementStatus,
-    term: FormalEntitlementTerm
-  ): readonly FormalEntitlementOperation[] => {
-    if (status === 'ACTIVE') {
-      return term === 'permanent' ? ['PAUSE', 'REVOKE'] : ['RENEW', 'EXTEND', 'PAUSE', 'REVOKE']
-    }
-    if (status === 'PAUSED') {
-      return term === 'permanent' ? ['RESUME', 'REVOKE'] : ['RENEW', 'EXTEND', 'RESUME', 'REVOKE']
-    }
-    return ['GRANT']
+/**
+ * 根据当前正式权益状态和期限返回前端可展示的操作
+ *
+ * @param status - 当前正式权益状态
+ * @param term - 当前正式权益期限档位
+ * @returns 按业务优先级排列的可用操作数组
+ */
+export const getFormalOperations = (
+  status: FormalEntitlementStatus,
+  term: FormalEntitlementTerm
+): readonly FormalEntitlementOperation[] => {
+  if (status === 'ACTIVE') {
+    return term === 'permanent' ? ['PAUSE', 'REVOKE'] : ['RENEW', 'EXTEND', 'PAUSE', 'REVOKE']
   }
+  if (status === 'PAUSED') {
+    return term === 'permanent' ? ['RESUME', 'REVOKE'] : ['RENEW', 'EXTEND', 'RESUME', 'REVOKE']
+  }
+  return ['GRANT']
+}

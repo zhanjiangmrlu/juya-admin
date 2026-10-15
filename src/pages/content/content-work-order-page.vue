@@ -201,448 +201,460 @@ onBeforeUnmount(() => {
   model.invalidate()
   setPublicationHeading?.(headingOwner, null)
 })
-const /** 切换当前工作单视图并保留地址上下文
-   * @param view - 当前业务视图
-   * @param phase - 导入校验、对应预览或结果阶段
-   */
-  go = (view: string, phase?: string): void => {
-    void router.replace({
-      name: 'content-work-order',
-      params: { id: id.value },
-      query: { view, ...(phase ? { import_phase: phase } : {}) }
-    })
+/**
+ * 切换当前工作单视图并保留地址上下文
+ * @param view - 当前业务视图
+ * @param phase - 导入校验、对应预览或结果阶段
+ */
+const go = (view: string, phase?: string): void => {
+  void router.replace({
+    name: 'content-work-order',
+    params: { id: id.value },
+    query: { view, ...(phase ? { import_phase: phase } : {}) }
+  })
+}
+/**
+ * 读取当前工作单全部成员，仅用于完整抽样和发布选择
+ * @param orderId - 本次读取的工作单
+ * @param current - 本次读取是否仍有效
+ */
+const loadMembers = async (orderId: string, current: () => boolean): Promise<void> => {
+  membersReady.value = false
+  allItems.value = []
+  if (!order.value || order.value.work_order_id !== orderId) return
+  const rows = await readWorkOrderMembers(adapter, order.value, current)
+  if (current() && rows) {
+    allItems.value = rows
+    membersReady.value = true
   }
-const /** 读取当前工作单全部成员，仅用于完整抽样和发布选择
-   * @param orderId - 本次读取的工作单
-   * @param current - 本次读取是否仍有效
+}
+/** 按地址读取工作单，每个异步分区均绑定本次路由与读取代次 */
+const load = async (): Promise<void> => {
+  const token = ++generation,
+    orderId = id.value,
+    view = tab.value
+  const range = route.query.range_token,
+    batch = route.query.batch_id
+  /**
+   * 判断异步操作仍属于当前页面身份
+   * @returns 当前操作是否有效
    */
-  loadMembers = async (orderId: string, current: () => boolean): Promise<void> => {
-    membersReady.value = false
-    allItems.value = []
-    if (!order.value || order.value.work_order_id !== orderId) return
-    const rows = await readWorkOrderMembers(adapter, order.value, current)
-    if (current() && rows) {
-      allItems.value = rows
-      membersReady.value = true
-    }
-  }
-const /** 按地址读取工作单，每个异步分区均绑定本次路由与读取代次 */
-  load = async (): Promise<void> => {
-    const token = ++generation,
-      orderId = id.value,
-      view = tab.value
-    const range = route.query.range_token,
-      batch = route.query.batch_id
-    const /** 判断异步操作仍属于当前页面身份
-       * @returns 当前操作是否有效
-       */ current = (): boolean =>
-        token === generation && orderId === id.value && view === tab.value
-    error.value = ''
-    headingReady.value = false
-    membersReady.value = false
-    try {
-      if (!orderId) {
-        if (range) {
-          const restored = await findWorkOrderRange(adapter, String(range))
-          if (!current()) return
-          if (restored)
-            await router.replace({
-              name: 'content-work-order',
-              params: { id: restored.work_order_id },
-              query: { view: 'publication' }
-            })
-          else legacyRange.value = true
-          return
-        }
-        if (batch) {
-          const restored = await adapter.fromBatch(String(batch))
-          if (!current()) return
+  const current = (): boolean => token === generation && orderId === id.value && view === tab.value
+  error.value = ''
+  headingReady.value = false
+  membersReady.value = false
+  try {
+    if (!orderId) {
+      if (range) {
+        const restored = await findWorkOrderRange(adapter, String(range))
+        if (!current()) return
+        if (restored)
           await router.replace({
             name: 'content-work-order',
             params: { id: restored.work_order_id },
-            query: { view }
+            query: { view: 'publication' }
           })
-          return
-        }
-        const result = await adapter.list(listPage.value, 20)
-        if (current()) list.value = result
+        else legacyRange.value = true
         return
       }
-      if (view === 'import') {
-        await importProgress.start(orderId)
+      if (batch) {
+        const restored = await adapter.fromBatch(String(batch))
+        if (!current()) return
+        await router.replace({
+          name: 'content-work-order',
+          params: { id: restored.work_order_id },
+          query: { view }
+        })
         return
       }
-      const loaded = await model.load(orderId)
-      if (!current() || !loaded || !order.value) return
-      headingReady.value = true
-      if (view === 'candidates') {
-        const result = await adapter.candidates(orderId)
-        if (!current()) return
-        const details = await Promise.all(
-          [...new Set(result.groups.map((group) => group.item_id))].map((itemId) =>
-            adapter.detail(orderId, itemId)
-          )
-        )
-        if (!current()) return
-        groups.value = result.groups
-        candidateDetails.value = details
-      }
-      if (['sampling', 'publication', 'overview', 'jobs'].includes(view))
-        await loadMembers(orderId, current)
-      if (view === 'jobs') {
-        const [result, stages] = await Promise.all([
-          adapter.usage(orderId),
-          adapter.phases(orderId)
-        ])
-        if (current()) {
-          usage.value = result
-          phases.value = stages
-        }
-      }
-    } catch (failure) {
-      if (current()) error.value = failure instanceof Error ? failure.message : '加载失败，请刷新'
-    }
-  }
-const /** 打开本批篇目的正确修正分区
-   * @param item - 当前工作单成员
-   * @param issue - 可选的具体待修正问题
-   */
-  edit = (item: WorkItem, issue?: S['WorkIssue']): void => {
-    void router.push({
-      name: 'content-work-item',
-      params: { id: id.value, itemId: item.item_id },
-      query: {
-        section: issueAction(issue?.correction_target || 'content').section,
-        issue: issue?.id
-      }
-    })
-  }
-const /** 通过服务端成员打开编辑，不使用全库回退
-   * @param itemId - 当前组或样本成员编号
-   */
-  editById = (itemId: string): void => {
-    void router.push({ name: 'content-work-item', params: { id: id.value, itemId } })
-  }
-const /** 执行命令并更新当前步骤
-   * @param action - 当前业务命令
-   * @param fields - 明确范围与确认信息
-   * @returns 是否执行成功
-   */
-  run = async <K extends WorkCommand>(
-    action: K,
-    fields: WorkCommandFields<K>
-  ): Promise<boolean> => {
-    const orderId = id.value,
-      view = tab.value,
-      token = generation
-    const ok = await model.run(action, fields)
-    if (orderId !== id.value || view !== tab.value || token !== generation) return false
-    const refreshedGeneration = generation + 1
-    if (ok) await load()
-    return ok && generation === refreshedGeneration && orderId === id.value && view === tab.value
-  }
-const /** 续办原服务端回执后重读当前视图的完整分区
-   * @param commandId - 当前工作单实际挂起的原命令编号
-   */ resume = async (commandId: string): Promise<void> => {
-    if (
-      busy.value ||
-      !order.value ||
-      order.value.work_order_id !== id.value ||
-      !order.value.pending_commands?.some((pending) => pending.command_id === commandId)
-    )
+      const result = await adapter.list(listPage.value, 20)
+      if (current()) list.value = result
       return
-    const orderId = id.value,
-      path = route.fullPath,
-      token = generation
-    error.value = ''
-    await model.resume(commandId)
-    if (token !== generation || orderId !== id.value || path !== route.fullPath) return
-    const receiptError = error.value
-    const refreshedGeneration = generation + 1
-    busy.value = true
+    }
+    if (view === 'import') {
+      await importProgress.start(orderId)
+      return
+    }
+    const loaded = await model.load(orderId)
+    if (!current() || !loaded || !order.value) return
+    headingReady.value = true
+    if (view === 'candidates') {
+      const result = await adapter.candidates(orderId)
+      if (!current()) return
+      const details = await Promise.all(
+        [...new Set(result.groups.map((group) => group.item_id))].map((itemId) =>
+          adapter.detail(orderId, itemId)
+        )
+      )
+      if (!current()) return
+      groups.value = result.groups
+      candidateDetails.value = details
+    }
+    if (['sampling', 'publication', 'overview', 'jobs'].includes(view))
+      await loadMembers(orderId, current)
+    if (view === 'jobs') {
+      const [result, stages] = await Promise.all([adapter.usage(orderId), adapter.phases(orderId)])
+      if (current()) {
+        usage.value = result
+        phases.value = stages
+      }
+    }
+  } catch (failure) {
+    if (current()) error.value = failure instanceof Error ? failure.message : '加载失败，请刷新'
+  }
+}
+/**
+ * 打开本批篇目的正确修正分区
+ * @param item - 当前工作单成员
+ * @param issue - 可选的具体待修正问题
+ */
+const edit = (item: WorkItem, issue?: S['WorkIssue']): void => {
+  void router.push({
+    name: 'content-work-item',
+    params: { id: id.value, itemId: item.item_id },
+    query: {
+      section: issueAction(issue?.correction_target || 'content').section,
+      issue: issue?.id
+    }
+  })
+}
+/**
+ * 通过服务端成员打开编辑，不使用全库回退
+ * @param itemId - 当前组或样本成员编号
+ */
+const editById = (itemId: string): void => {
+  void router.push({ name: 'content-work-item', params: { id: id.value, itemId } })
+}
+/**
+ * 执行命令并更新当前步骤
+ * @param action - 当前业务命令
+ * @param fields - 明确范围与确认信息
+ * @returns 是否执行成功
+ */
+const run = async <K extends WorkCommand>(
+  action: K,
+  fields: WorkCommandFields<K>
+): Promise<boolean> => {
+  const orderId = id.value,
+    view = tab.value,
+    token = generation
+  const ok = await model.run(action, fields)
+  if (orderId !== id.value || view !== tab.value || token !== generation) return false
+  const refreshedGeneration = generation + 1
+  if (ok) await load()
+  return ok && generation === refreshedGeneration && orderId === id.value && view === tab.value
+}
+/**
+ * 续办原服务端回执后重读当前视图的完整分区
+ * @param commandId - 当前工作单实际挂起的原命令编号
+ */
+const resume = async (commandId: string): Promise<void> => {
+  if (
+    busy.value ||
+    !order.value ||
+    order.value.work_order_id !== id.value ||
+    !order.value.pending_commands?.some((pending) => pending.command_id === commandId)
+  )
+    return
+  const orderId = id.value,
+    path = route.fullPath,
+    token = generation
+  error.value = ''
+  await model.resume(commandId)
+  if (token !== generation || orderId !== id.value || path !== route.fullPath) return
+  const receiptError = error.value
+  const refreshedGeneration = generation + 1
+  busy.value = true
+  try {
+    await load()
+    if (
+      generation === refreshedGeneration &&
+      orderId === id.value &&
+      path === route.fullPath &&
+      receiptError &&
+      !error.value
+    )
+      error.value = receiptError
+  } finally {
+    if (generation === refreshedGeneration && orderId === id.value && path === route.fullPath)
+      busy.value = false
+  }
+}
+/**
+ * 自动整理本批，推荐由管理员独立选择
+ * @param recommendations - 是否包含可选推荐
+ * @returns 是否已接受当前整理操作
+ */
+const organize = async (recommendations = false): Promise<boolean> => {
+  const token = generation
+  if (recommendations)
     try {
-      await load()
-      if (
-        generation === refreshedGeneration &&
-        orderId === id.value &&
-        path === route.fullPath &&
-        receiptError &&
-        !error.value
+      await ElMessageBox.confirm(
+        '对本批符合条件且尚无词表的篇目生成可选推荐，可能产生实际调用用量。',
+        '生成可选词条推荐',
+        { confirmButtonText: '生成推荐', cancelButtonText: '返回' }
       )
-        error.value = receiptError
-    } finally {
-      if (generation === refreshedGeneration && orderId === id.value && path === route.fullPath)
-        busy.value = false
+    } catch {
+      return false
     }
-  }
-const /** 自动整理本批，推荐由管理员独立选择
-   * @param recommendations - 是否包含可选推荐
-   * @returns 是否已接受当前整理操作
-   */
-  organize = async (recommendations = false): Promise<boolean> => {
-    const token = generation
-    if (recommendations)
-      try {
-        await ElMessageBox.confirm(
-          '对本批符合条件且尚无词表的篇目生成可选推荐，可能产生实际调用用量。',
-          '生成可选词条推荐',
-          { confirmButtonText: '生成推荐', cancelButtonText: '返回' }
-        )
-      } catch {
-        return false
-      }
-    if (token !== generation) return false
-    return run('organize', { include_recommendations: recommendations })
-  }
-const /** 从已保存草稿的设计入口继续必要整理，失败时保留原范围 */ enterProofreading =
-    async (): Promise<void> => {
-      if (
-        order.value?.pending_commands?.length ||
-        !order.value?.available_actions.includes('organize')
-      )
-        return
-      if (await organize()) go('overview')
-    }
-const /** 决定单个候选组，保存后重读版本和完整绑定
-   * @param group - 当前篇目的候选组
-   * @param decisions - 明确的逐结果选择
-   */
-  decide = async (group: CandidateGroup, decisions: CandidateDecision[]): Promise<void> => {
-    if (!decisions.length) return
-    if (
-      await run('candidate-decisions', {
-        scope: 'selected',
-        selected_item_ids: [group.item_id],
-        candidate_id: group.candidate_id,
-        expected_edit_version: group.expected_edit_version,
-        decisions
-      })
-    )
-      return
-  }
-const /** 放弃可选推荐并保留真实供应商状态
-   * @param group - 管理员放弃的可选推荐组
-   */
-  dismiss = async (group: CandidateGroup): Promise<void> => {
-    await run('candidate-dismissals', {
+  if (token !== generation) return false
+  return run('organize', { include_recommendations: recommendations })
+}
+/** 从已保存草稿的设计入口继续必要整理，失败时保留原范围 */
+const enterProofreading = async (): Promise<void> => {
+  if (order.value?.pending_commands?.length || !order.value?.available_actions.includes('organize'))
+    return
+  if (await organize()) go('overview')
+}
+/**
+ * 决定单个候选组，保存后重读版本和完整绑定
+ * @param group - 当前篇目的候选组
+ * @param decisions - 明确的逐结果选择
+ */
+const decide = async (group: CandidateGroup, decisions: CandidateDecision[]): Promise<void> => {
+  if (!decisions.length) return
+  if (
+    await run('candidate-decisions', {
       scope: 'selected',
       selected_item_ids: [group.item_id],
       candidate_id: group.candidate_id,
       expected_edit_version: group.expected_edit_version,
-      reason: '管理员选择放弃本次可选推荐'
+      decisions
     })
-  }
-const /** 读取实际样本及其签名媒体
-   * @param itemId - 本批成员编号
+  )
+    return
+}
+/**
+ * 放弃可选推荐并保留真实供应商状态
+ * @param group - 管理员放弃的可选推荐组
+ */
+const dismiss = async (group: CandidateGroup): Promise<void> => {
+  await run('candidate-dismissals', {
+    scope: 'selected',
+    selected_item_ids: [group.item_id],
+    candidate_id: group.candidate_id,
+    expected_edit_version: group.expected_edit_version,
+    reason: '管理员选择放弃本次可选推荐'
+  })
+}
+/**
+ * 读取实际样本及其签名媒体
+ * @param itemId - 本批成员编号
+ */
+const inspect = async (itemId: string): Promise<void> => {
+  const request = ++sampleGeneration
+  const orderId = id.value
+  const collectionHash = sampling.value?.collection_hash
+  sampleDetail.value = null
+  sampleMedia.value = []
+  error.value = ''
+  /**
+   * 验证请求仍属于当前工作单和集合
+   * @returns 是否允许写回本次请求
    */
-  inspect = async (itemId: string): Promise<void> => {
-    const request = ++sampleGeneration
-    const orderId = id.value
-    const collectionHash = sampling.value?.collection_hash
-    sampleDetail.value = null
-    sampleMedia.value = []
-    error.value = ''
-    const /** 验证请求仍属于当前工作单和集合
-       * @returns 是否允许写回本次请求
-       */ current = (): boolean =>
-        request === sampleGeneration &&
-        orderId === id.value &&
-        collectionHash === sampling.value?.collection_hash
-    try {
-      const detail = await adapter.detail(orderId, itemId)
-      if (!current()) return
-      if (
-        detail.item_id !== itemId ||
-        !sampling.value?.candidates.some(
-          (row) =>
-            row.revision_id === detail.revision_id && row.candidate_hash === detail.candidate_hash
-        )
+  const current = (): boolean =>
+    request === sampleGeneration &&
+    orderId === id.value &&
+    collectionHash === sampling.value?.collection_hash
+  try {
+    const detail = await adapter.detail(orderId, itemId)
+    if (!current()) return
+    if (
+      detail.item_id !== itemId ||
+      !sampling.value?.candidates.some(
+        (row) =>
+          row.revision_id === detail.revision_id && row.candidate_hash === detail.candidate_hash
       )
-        throw new Error('样本候选已变化，请刷新本批范围后重新检查')
-      sampleDetail.value = detail
-      const identity = sampleIdentity(detail)
-      const resources = await Promise.all(
-        sampleResources(detail).map(async (resource) => {
-          try {
-            const signed =
-              detail.current?.template === 'short_reading'
-                ? await media.signedUrl(resource.resourceId)
-                : await contentAdapter.signedResource(detail.revision_id!, resource.resourceId)
-            return { ...resource, url: signed.url }
-          } catch (failure) {
-            return {
-              ...resource,
-              error: failure instanceof Error ? failure.message : '资源签名暂不可用'
-            }
+    )
+      throw new Error('样本候选已变化，请刷新本批范围后重新检查')
+    sampleDetail.value = detail
+    const identity = sampleIdentity(detail)
+    const resources = await Promise.all(
+      sampleResources(detail).map(async (resource) => {
+        try {
+          const signed =
+            detail.current?.template === 'short_reading'
+              ? await media.signedUrl(resource.resourceId)
+              : await contentAdapter.signedResource(detail.revision_id!, resource.resourceId)
+          return { ...resource, url: signed.url }
+        } catch (failure) {
+          return {
+            ...resource,
+            error: failure instanceof Error ? failure.message : '资源签名暂不可用'
           }
-        })
-      )
-      if (current() && sampleDetail.value && sampleIdentity(sampleDetail.value) === identity)
-        sampleMedia.value = resources
-    } catch (failure) {
-      if (current()) error.value = failure instanceof Error ? failure.message : '样本资源加载失败'
-    }
-  }
-const /** 完成本篇检查后刷新精确样本哈希
-   * @param fields - 管理员明确检查动作
-   */
-  sampleAction = async (fields: WorkCommandFields<'sample-actions'>): Promise<void> => {
-    if (await run('sample-actions', fields)) {
-      if (fields.operation === 'complete') {
-        go('publication')
-        return
-      }
-      if (sampleDetail.value) await inspect(sampleDetail.value.item_id)
-    }
-  }
-const /** 续办真实待准备成员，或从已准备正常集合建立服务端抽样
-   */
-  startSampling = async (): Promise<void> => {
-    if (!canStartSampling.value) return
-    if (preparationItems.value.length) {
-      if (!canPrepare.value) return
-      const prepared = await run('organize', {
-        scope: 'selected',
-        selected_item_ids: preparationItems.value.map((item) => item.item_id),
-        include_recommendations: false
-      })
-      if (prepared)
-        error.value =
-          '已提交当前候选的必要准备。请查看实际进度，准备完成后再点击开始校对；尚未创建抽样集合'
-      return
-    }
-    sampleGeneration++
-    sampleDetail.value = null
-    sampleMedia.value = []
-    selected.value = []
-    if (!(await run('sampling', { scope: 'all' }))) return
-    go('sampling')
-  }
-const /** 预览选中的合格子集，未选异常保持草稿
-   */
-  previewPublication = async (): Promise<void> => {
-    if (
-      await run('publication-preview', {
-        scope: 'publishable',
-        ...(selected.value.length ? { selected_item_ids: selected.value } : {})
+        }
       })
     )
-      go('publication')
+    if (current() && sampleDetail.value && sampleIdentity(sampleDetail.value) === identity)
+      sampleMedia.value = resources
+  } catch (failure) {
+    if (current()) error.value = failure instanceof Error ? failure.message : '样本资源加载失败'
   }
-const /** 发布精确预览范围或仅重试原失败项
-   * @param retry - 是否重试失败子集
-   */
-  publish = async (retry: boolean): Promise<void> => {
-    if (!publication.value || !order.value) return
-    try {
-      if (!membersReady.value) throw new Error('成员范围读取不完整，请刷新权威状态并重新预览')
-      const selectedItemIds = publicationItemIds(
-        order.value,
-        publication.value,
-        allItems.value,
-        retry
-      )
-      await run(retry ? 'publication-retry' : 'publication-confirm', {
-        scope: 'selected',
-        selected_item_ids: selectedItemIds,
-        publication_token: publication.value.token,
-        range_version: publication.value.version,
-        collection_hash: publication.value.collection_hash,
-        manual_confirmed: true
-      })
-    } catch (failure) {
-      error.value = failure instanceof Error ? failure.message : '请刷新权威状态并重新预览'
-    }
-  }
-const /** 重试真正失败且可重试的原阶段
-   * @param item - 失败阶段所属篇目
-   * @param task - 服务端当前阶段事实
-   */
-  retry = async (item: WorkItem, task: S['WorkTask']): Promise<void> => {
-    if (
-      busy.value ||
-      !task.current ||
-      task.status !== 'FAILED' ||
-      task.error_code === 'PROVIDER_OUTCOME_UNKNOWN' ||
-      !task.retryable
-    )
-      return
-    if (task.stage.startsWith('PUBLICATION_RANGE_')) {
+}
+/**
+ * 完成本篇检查后刷新精确样本哈希
+ * @param fields - 管理员明确检查动作
+ */
+const sampleAction = async (fields: WorkCommandFields<'sample-actions'>): Promise<void> => {
+  if (await run('sample-actions', fields)) {
+    if (fields.operation === 'complete') {
       go('publication')
       return
     }
-    if (!item.revision_id || !item.edit_version) {
-      go('import', 'validation')
-      return
-    }
-    const token = generation
-    try {
-      await ElMessageBox.confirm(
-        '重试此失败步骤。涉及云端调用时可能产生额外用量，成功步骤将复用。',
-        '重试失败步骤',
-        { confirmButtonText: '确认重试', cancelButtonText: '返回' }
-      )
-    } catch {
-      return
-    }
-    if (token !== generation) return
-    await run('stage-retry', {
+    if (sampleDetail.value) await inspect(sampleDetail.value.item_id)
+  }
+}
+/** 续办真实待准备成员，或从已准备正常集合建立服务端抽样 */
+const startSampling = async (): Promise<void> => {
+  if (!canStartSampling.value) return
+  if (preparationItems.value.length) {
+    if (!canPrepare.value) return
+    const prepared = await run('organize', {
       scope: 'selected',
-      selected_item_ids: [item.item_id],
-      stage_id: task.stage_id,
-      expected_edit_version: item.edit_version || 1,
-      expected_fence: task.fencing_version,
-      input_hash: task.input_hash,
-      config_version: task.config_version,
-      manual_confirmed: true,
-      acknowledged_charged_retry: true
+      selected_item_ids: preparationItems.value.map((item) => item.item_id),
+      include_recommendations: false
     })
+    if (prepared)
+      error.value =
+        '已提交当前候选的必要准备。请查看实际进度，准备完成后再点击开始校对；尚未创建抽样集合'
+    return
   }
-const /** 确认草稿写入后进入持久导入结果
-   * @param fields - 明确选择、缺省确认和固定预览版本
-   * @param retryOnly - 是否只重试失败行
-   */ confirmImport = async (
-    fields: WorkCommandFields<'import-confirm'>,
-    retryOnly = false
-  ): Promise<void> => {
-    if (await run(retryOnly ? 'import-retry' : 'import-confirm', fields)) go('import', 'result')
+  sampleGeneration++
+  sampleDetail.value = null
+  sampleMedia.value = []
+  selected.value = []
+  if (!(await run('sampling', { scope: 'all' }))) return
+  go('sampling')
+}
+/** 预览选中的合格子集，未选异常保持草稿 */
+const previewPublication = async (): Promise<void> => {
+  if (
+    await run('publication-preview', {
+      scope: 'publishable',
+      ...(selected.value.length ? { selected_item_ids: selected.value } : {})
+    })
+  )
+    go('publication')
+}
+/**
+ * 发布精确预览范围或仅重试原失败项
+ * @param retry - 是否重试失败子集
+ */
+const publish = async (retry: boolean): Promise<void> => {
+  if (!publication.value || !order.value) return
+  try {
+    if (!membersReady.value) throw new Error('成员范围读取不完整，请刷新权威状态并重新预览')
+    const selectedItemIds = publicationItemIds(
+      order.value,
+      publication.value,
+      allItems.value,
+      retry
+    )
+    await run(retry ? 'publication-retry' : 'publication-confirm', {
+      scope: 'selected',
+      selected_item_ids: selectedItemIds,
+      publication_token: publication.value.token,
+      range_version: publication.value.version,
+      collection_hash: publication.value.collection_hash,
+      manual_confirmed: true
+    })
+  } catch (failure) {
+    error.value = failure instanceof Error ? failure.message : '请刷新权威状态并重新预览'
   }
-const /** 明确排除尚未保存的导入行
-   * @param itemId - 当前批次真实成员身份
-   */ excludeImport = async (itemId: string): Promise<void> => {
-    const token = generation
-    try {
-      await ElMessageBox.confirm('此行将明确排除，成功草稿保持原样。', '排除本批导入行', {
-        confirmButtonText: '确认排除',
-        cancelButtonText: '返回'
-      })
-    } catch {
-      return
-    }
-    if (token === generation)
-      await run('cancel', { scope: 'selected', selected_item_ids: [itemId] })
+}
+/**
+ * 重试真正失败且可重试的原阶段
+ * @param item - 失败阶段所属篇目
+ * @param task - 服务端当前阶段事实
+ */
+const retry = async (item: WorkItem, task: S['WorkTask']): Promise<void> => {
+  if (
+    busy.value ||
+    !task.current ||
+    task.status !== 'FAILED' ||
+    task.error_code === 'PROVIDER_OUTCOME_UNKNOWN' ||
+    !task.retryable
+  )
+    return
+  if (task.stage.startsWith('PUBLICATION_RANGE_')) {
+    go('publication')
+    return
   }
-const /** 下载当前工作单真实上传字节，忽略已取消下载的结果与异常 */ downloadOriginal =
-    async (): Promise<void> => {
-      const token = generation,
-        orderId = id.value,
-        requestController = new globalThis.AbortController()
-      try {
-        originalAbort?.abort()
-        originalAbort = requestController
-        const blob = await adapter.originalFile(orderId, requestController.signal)
-        if (requestController.signal.aborted || token !== generation || orderId !== id.value) return
-        const url = globalThis.URL.createObjectURL(blob),
-          link = globalThis.document.createElement('a')
-        link.href = url
-        link.download = order.value?.source_mode === 'DOCX' ? 'original.docx' : 'original.zip'
-        link.click()
-        globalThis.URL.revokeObjectURL(url)
-      } catch (failure) {
-        if (!requestController.signal.aborted && token === generation)
-          error.value = failure instanceof Error ? failure.message : '原文件下载失败'
-      }
-    }
+  if (!item.revision_id || !item.edit_version) {
+    go('import', 'validation')
+    return
+  }
+  const token = generation
+  try {
+    await ElMessageBox.confirm(
+      '重试此失败步骤。涉及云端调用时可能产生额外用量，成功步骤将复用。',
+      '重试失败步骤',
+      { confirmButtonText: '确认重试', cancelButtonText: '返回' }
+    )
+  } catch {
+    return
+  }
+  if (token !== generation) return
+  await run('stage-retry', {
+    scope: 'selected',
+    selected_item_ids: [item.item_id],
+    stage_id: task.stage_id,
+    expected_edit_version: item.edit_version || 1,
+    expected_fence: task.fencing_version,
+    input_hash: task.input_hash,
+    config_version: task.config_version,
+    manual_confirmed: true,
+    acknowledged_charged_retry: true
+  })
+}
+/**
+ * 确认草稿写入后进入持久导入结果
+ * @param fields - 明确选择、缺省确认和固定预览版本
+ * @param retryOnly - 是否只重试失败行
+ */
+const confirmImport = async (
+  fields: WorkCommandFields<'import-confirm'>,
+  retryOnly = false
+): Promise<void> => {
+  if (await run(retryOnly ? 'import-retry' : 'import-confirm', fields)) go('import', 'result')
+}
+/**
+ * 明确排除尚未保存的导入行
+ * @param itemId - 当前批次真实成员身份
+ */
+const excludeImport = async (itemId: string): Promise<void> => {
+  const token = generation
+  try {
+    await ElMessageBox.confirm('此行将明确排除，成功草稿保持原样。', '排除本批导入行', {
+      confirmButtonText: '确认排除',
+      cancelButtonText: '返回'
+    })
+  } catch {
+    return
+  }
+  if (token === generation) await run('cancel', { scope: 'selected', selected_item_ids: [itemId] })
+}
+/** 下载当前工作单真实上传字节，忽略已取消下载的结果与异常 */
+const downloadOriginal = async (): Promise<void> => {
+  const token = generation,
+    orderId = id.value,
+    requestController = new globalThis.AbortController()
+  try {
+    originalAbort?.abort()
+    originalAbort = requestController
+    const blob = await adapter.originalFile(orderId, requestController.signal)
+    if (requestController.signal.aborted || token !== generation || orderId !== id.value) return
+    const url = globalThis.URL.createObjectURL(blob),
+      link = globalThis.document.createElement('a')
+    link.href = url
+    link.download = order.value?.source_mode === 'DOCX' ? 'original.docx' : 'original.zip'
+    link.click()
+    globalThis.URL.revokeObjectURL(url)
+  } catch (failure) {
+    if (!requestController.signal.aborted && token === generation)
+      error.value = failure instanceof Error ? failure.message : '原文件下载失败'
+  }
+}
 watch(
   () => [id.value, tab.value, route.fullPath],
   () => {

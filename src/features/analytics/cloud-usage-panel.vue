@@ -15,33 +15,33 @@ const rows = ref<CloudUsageRow[]>([]),
   busy = ref(false)
 let request: AbortController | null = null
 let generation = 0
-const /** 从真实按日接口读取只读导入与用量汇总 * @returns 当前操作结果或完成状态
-   */ load = async (): Promise<void> => {
-    request?.abort()
-    request = new AbortController()
-    const current = ++generation
-    rows.value = []
-    imports.value = null
-    error.value = ''
-    busy.value = true
-    try {
-      const raw = await client.request<Record<string, unknown>>({
-        method: 'GET',
-        path: '/api/v1/admin/content/usage',
-        query: { period: props.period },
-        signal: request.signal
-      })
-      if (current !== generation) return
-      const result = mapCloudUsage(raw)
-      rows.value = result.rows
-      imports.value = result.importBatches
-    } catch (failure) {
-      if (current === generation && !request.signal.aborted)
-        error.value = failure instanceof Error ? failure.message : '用量汇总读取失败'
-    } finally {
-      if (current === generation) busy.value = false
-    }
+/** 从真实按日接口读取只读导入与用量汇总 */
+const load = async (): Promise<void> => {
+  request?.abort()
+  request = new AbortController()
+  const current = ++generation
+  rows.value = []
+  imports.value = null
+  error.value = ''
+  busy.value = true
+  try {
+    const raw = await client.request<Record<string, unknown>>({
+      method: 'GET',
+      path: '/api/v1/admin/content/usage',
+      query: { period: props.period },
+      signal: request.signal
+    })
+    if (current !== generation) return
+    const result = mapCloudUsage(raw)
+    rows.value = result.rows
+    imports.value = result.importBatches
+  } catch (failure) {
+    if (current === generation && !request.signal.aborted)
+      error.value = failure instanceof Error ? failure.message : '用量汇总读取失败'
+  } finally {
+    if (current === generation) busy.value = false
   }
+}
 watch(
   () => props.period,
   () => void load(),

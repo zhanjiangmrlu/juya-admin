@@ -15,27 +15,29 @@ const rows = computed(() =>
     .filter((item) => filter.value === 'all' || item.production_status === filter.value)
     .flatMap((item) => (item.issues || []).map((issue) => ({ item, issue })))
 )
-const /** 展示服务端具体问题位置
-   * @param locations - 原文和字段的真实位置
-   * @returns 可读位置
-   */ locationLabel = (locations: string[]): string =>
-    issueFieldLabel(locations) ||
-    locations
-      .map((location) =>
-        /^\d+$/.test(location)
-          ? `第 ${Number(location) + 1} 项`
-          : (
-              {
-                dialogue: '句子',
-                english: '英文',
-                chinese: '中文',
-                vocabulary: '词汇',
-                chunks: '语块'
-              } as Record<string, string>
-            )[location] || location
-      )
-      .join(' · ') ||
-    '篇目内容'
+/**
+ * 展示服务端具体问题位置
+ * @param locations - 原文和字段的真实位置
+ * @returns 可读位置
+ */
+const locationLabel = (locations: string[]): string =>
+  issueFieldLabel(locations) ||
+  locations
+    .map((location) =>
+      /^\d+$/.test(location)
+        ? `第 ${Number(location) + 1} 项`
+        : (
+            {
+              dialogue: '句子',
+              english: '英文',
+              chinese: '中文',
+              vocabulary: '词汇',
+              chunks: '语块'
+            } as Record<string, string>
+          )[location] || location
+    )
+    .join(' · ') ||
+  '篇目内容'
 </script>
 <template>
   <div class="work-overview">

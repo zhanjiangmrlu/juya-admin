@@ -42,34 +42,36 @@ watch(
 const rows = computed(() =>
   props.preview.items.filter((row) => selected.value.includes(row.item_id))
 )
-const /** 读取素材路径，保持上传包内真实映射
-   * @param value - 服务端资源描述
-   * @returns 可预览的包内路径
-   */
-  resourcePath = (value: unknown): string =>
-    value && typeof value === 'object' ? String((value as Record<string, unknown>).path || '') : ''
-const /** 提交明确选择与原预览版本
-   * @param retry - 是否仅重试失败行
-   */
-  confirm = (retry = false): void => {
-    const targets = retry ? rows.value.filter((row) => row.status === 'FAILED') : rows.value
-    const fields: Omit<S['ImportConfirmRequest'], 'expected_version'> = {
-      scope: 'selected',
-      selected_item_ids: targets.map((row) => row.item_id),
-      preview_hash: props.preview.preview_hash,
-      preview_version: props.preview.preview_version,
-      acknowledged_defaults: defaults.value,
-      confirmed_conflicts: targets
-        .filter((row) => compared.value.includes(row.item_id))
-        .flatMap((row) =>
-          row.issues.flatMap((issue) =>
-            (issue.location || []).map((field) => `${row.import_item_id}:${field}`)
-          )
+/**
+ * 读取素材路径，保持上传包内真实映射
+ * @param value - 服务端资源描述
+ * @returns 可预览的包内路径
+ */
+const resourcePath = (value: unknown): string =>
+  value && typeof value === 'object' ? String((value as Record<string, unknown>).path || '') : ''
+/**
+ * 提交明确选择与原预览版本
+ * @param retry - 是否仅重试失败行
+ */
+const confirm = (retry = false): void => {
+  const targets = retry ? rows.value.filter((row) => row.status === 'FAILED') : rows.value
+  const fields: Omit<S['ImportConfirmRequest'], 'expected_version'> = {
+    scope: 'selected',
+    selected_item_ids: targets.map((row) => row.item_id),
+    preview_hash: props.preview.preview_hash,
+    preview_version: props.preview.preview_version,
+    acknowledged_defaults: defaults.value,
+    confirmed_conflicts: targets
+      .filter((row) => compared.value.includes(row.item_id))
+      .flatMap((row) =>
+        row.issues.flatMap((issue) =>
+          (issue.location || []).map((field) => `${row.import_item_id}:${field}`)
         )
-    }
-    if (retry) emit('retry', fields)
-    else emit('confirm', fields)
+      )
   }
+  if (retry) emit('retry', fields)
+  else emit('confirm', fields)
+}
 const ready = computed(
   () =>
     rows.value.length > 0 &&
@@ -80,43 +82,47 @@ const ready = computed(
         (!row.issues.length || compared.value.includes(row.item_id))
     )
 )
-const /** 汇总已选篇目的差异确认项，保留逐篇确认状态 */
-  differenceRows = computed(() => rows.value.filter((row) => row.issues.length))
-const /** 展示原有默认素材确认项的名称
-   * @param value - 服务端返回的默认素材标识
-   * @returns 与原有确认控件一致的文案
-   */ defaultLabel = (value: string): string =>
-    value.includes('cover')
-      ? '确认使用默认封面'
-      : value.includes('audio')
-        ? '确认不配全文音频'
-        : '确认此单词无图片'
-const /** 解释现有禁用条件，仅用于提示，不参与保存校验 */
-  saveDisabledReasons = computed(() => {
-    const reasons: string[] = []
-    if (props.busy) reasons.push('正在处理，请稍候再保存')
-    if (!rows.value.length) reasons.push('请先在上方表格选择需要保存的篇目')
-    for (const row of rows.value) {
-      const title = row.candidate.title_zh || row.candidate.title_en || row.import_content_id
-      const errors = row.issues.filter((issue) => issue.severity === 'ERROR')
-      if (errors.length)
-        reasons.push(
-          `${title}：存在阻断问题（${errors.map((issue) => issue.message).join('；')}），请补充或修正源文件`
-        )
-      const missingDefaults = row.defaults.filter((value) => !defaults.value.includes(value))
-      if (missingDefaults.length)
-        reasons.push(`${title}：尚未确认默认素材：${missingDefaults.map(defaultLabel).join('、')}`)
-      if (row.issues.length && !compared.value.includes(row.item_id))
-        reasons.push(`${title}：尚未确认原文与表格差异`)
-    }
-    return reasons
-  })
-const /** 统计导入资料中已提供的词汇或语块
-   * @param entries - 此篇真实词表记录
-   * @param kind - 需要统计的词汇或语块类型
-   * @returns 本次词表记录数
-   */ entryCount = (entries: S['ImportPreviewItem']['entries'], kind: string): number =>
-    entries.filter((entry) => entry.entry_type === kind).length
+/** 汇总已选篇目的差异确认项，保留逐篇确认状态 */
+const differenceRows = computed(() => rows.value.filter((row) => row.issues.length))
+/**
+ * 展示原有默认素材确认项的名称
+ * @param value - 服务端返回的默认素材标识
+ * @returns 与原有确认控件一致的文案
+ */
+const defaultLabel = (value: string): string =>
+  value.includes('cover')
+    ? '确认使用默认封面'
+    : value.includes('audio')
+      ? '确认不配全文音频'
+      : '确认此单词无图片'
+/** 解释现有禁用条件，仅用于提示，不参与保存校验 */
+const saveDisabledReasons = computed(() => {
+  const reasons: string[] = []
+  if (props.busy) reasons.push('正在处理，请稍候再保存')
+  if (!rows.value.length) reasons.push('请先在上方表格选择需要保存的篇目')
+  for (const row of rows.value) {
+    const title = row.candidate.title_zh || row.candidate.title_en || row.import_content_id
+    const errors = row.issues.filter((issue) => issue.severity === 'ERROR')
+    if (errors.length)
+      reasons.push(
+        `${title}：存在阻断问题（${errors.map((issue) => issue.message).join('；')}），请补充或修正源文件`
+      )
+    const missingDefaults = row.defaults.filter((value) => !defaults.value.includes(value))
+    if (missingDefaults.length)
+      reasons.push(`${title}：尚未确认默认素材：${missingDefaults.map(defaultLabel).join('、')}`)
+    if (row.issues.length && !compared.value.includes(row.item_id))
+      reasons.push(`${title}：尚未确认原文与表格差异`)
+  }
+  return reasons
+})
+/**
+ * 统计导入资料中已提供的词汇或语块
+ * @param entries - 此篇真实词表记录
+ * @param kind - 需要统计的词汇或语块类型
+ * @returns 本次词表记录数
+ */
+const entryCount = (entries: S['ImportPreviewItem']['entries'], kind: string): number =>
+  entries.filter((entry) => entry.entry_type === kind).length
 const resourceLabels: Record<string, string> = {
   cover_path: '封面',
   audio_path: '整段音频',

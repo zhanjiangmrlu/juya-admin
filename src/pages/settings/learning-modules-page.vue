@@ -19,24 +19,25 @@ const descriptions: Record<string, string> = {
   grammar: '能力未完成时保持关闭'
 }
 let baseline = new Map<string, string>()
-const /** 读取服务端配置并建立已保存值，用于判断实际修改 */ load = async (): Promise<void> => {
-    await controller.load()
-    if (!controller.error.value)
-      baseline = new Map(controller.rows.value.map((row) => [row.type, JSON.stringify(row)]))
+/** 读取服务端配置并建立已保存值，用于判断实际修改 */
+const load = async (): Promise<void> => {
+  await controller.load()
+  if (!controller.error.value)
+    baseline = new Map(controller.rows.value.map((row) => [row.type, JSON.stringify(row)]))
+}
+/** 逐项保存独立版本，任何失败保留剩余输入并展示真实结果 */
+const save = async (): Promise<void> => {
+  if (controller.busy.value) return
+  const changed = controller.rows.value.filter(
+    (row) => baseline.get(row.type) !== JSON.stringify(row)
+  )
+  for (const row of changed) {
+    const saved = await controller.save(row.type)
+    if (!saved) return
+    baseline.set(saved.type, JSON.stringify(saved))
   }
-const /** 逐项保存独立版本，任何失败保留剩余输入并展示真实结果 */ save =
-    async (): Promise<void> => {
-      if (controller.busy.value) return
-      const changed = controller.rows.value.filter(
-        (row) => baseline.get(row.type) !== JSON.stringify(row)
-      )
-      for (const row of changed) {
-        const saved = await controller.save(row.type)
-        if (!saved) return
-        baseline.set(saved.type, JSON.stringify(saved))
-      }
-      ElMessage.success(changed.length ? '模块配置已保存' : '模块配置没有变更')
-    }
+  ElMessage.success(changed.length ? '模块配置已保存' : '模块配置没有变更')
+}
 onMounted(() => void load())
 onBeforeUnmount(controller.dispose)
 </script>

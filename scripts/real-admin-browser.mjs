@@ -91,89 +91,91 @@ page.on('requestfailed', (request) => {
   })
 })
 
-const /**
-   * 读取完当前页面响应后再刷新或继续下一项验收
-   * @returns 浏览器与安全响应记录的完成状态
-   */ settleResponses = () => settleResponseReads(page, responseReads)
+/**
+ * 读取完当前页面响应后再刷新或继续下一项验收
+ * @returns 浏览器与安全响应记录的完成状态
+ */
+const settleResponses = () => settleResponseReads(page, responseReads)
 
-const /**
-   * 记录恢复阶段的安全身份与状态，不保存完整响应或正文
-   * @param source - 读取、排队回执或后续状态回读
-   * @param row - 实际阶段响应
-   * @returns 允许进入联调报告的受限事实
-   */ stageFact = (source, row) => ({
-    source,
-    stage_id: /^[0-9A-HJKMNP-TV-Z]{26}$/.test(row.stage_id || row.public_id || '')
-      ? row.stage_id || row.public_id
+/**
+ * 记录恢复阶段的安全身份与状态，不保存完整响应或正文
+ * @param source - 读取、排队回执或后续状态回读
+ * @param row - 实际阶段响应
+ * @returns 允许进入联调报告的受限事实
+ */
+const stageFact = (source, row) => ({
+  source,
+  stage_id: /^[0-9A-HJKMNP-TV-Z]{26}$/.test(row.stage_id || row.public_id || '')
+    ? row.stage_id || row.public_id
+    : null,
+  status: ['FAILED', 'QUEUED', 'RUNNING', 'RETRY', 'SUCCEEDED', 'CANCELLED', 'UNKNOWN'].includes(
+    row.status
+  )
+    ? row.status
+    : 'UNCLASSIFIED',
+  attempt: Number.isSafeInteger(row.attempt) && row.attempt >= 0 ? row.attempt : null,
+  fencing_version:
+    Number.isSafeInteger(row.fencing_version) && row.fencing_version >= 0
+      ? row.fencing_version
       : null,
-    status: ['FAILED', 'QUEUED', 'RUNNING', 'RETRY', 'SUCCEEDED', 'CANCELLED', 'UNKNOWN'].includes(
-      row.status
-    )
-      ? row.status
-      : 'UNCLASSIFIED',
-    attempt: Number.isSafeInteger(row.attempt) && row.attempt >= 0 ? row.attempt : null,
-    fencing_version:
-      Number.isSafeInteger(row.fencing_version) && row.fencing_version >= 0
-        ? row.fencing_version
-        : null,
-    error_code:
-      typeof row.error_code === 'string' && /^[A-Z][A-Z0-9_]{0,99}$/.test(row.error_code)
-        ? row.error_code
-        : null
-  })
+  error_code:
+    typeof row.error_code === 'string' && /^[A-Z][A-Z0-9_]{0,99}$/.test(row.error_code)
+      ? row.error_code
+      : null
+})
 
-const /**
-   * 等待页面实际发出的业务请求，不拦截或模拟响应
-   * @param method - 被验收的 HTTP 方法
-   * @param pathname - 当前实体的固定请求路径
-   * @returns 与动作绑定的实际响应
-   */ responseFor = (method, pathname) =>
-    page.waitForResponse(
-      (response) =>
-        response.request().method() === method && new URL(response.url()).pathname === pathname
-    )
+/**
+ * 等待页面实际发出的业务请求，不拦截或模拟响应
+ * @param method - 被验收的 HTTP 方法
+ * @param pathname - 当前实体的固定请求路径
+ * @returns 与动作绑定的实际响应
+ */
+const responseFor = (method, pathname) =>
+  page.waitForResponse(
+    (response) =>
+      response.request().method() === method && new URL(response.url()).pathname === pathname
+  )
 
-const /**
-   * 记录当前明确验收动作；缺少种子时保留未执行状态
-   * @param name - 协调侧选择的验收场景
-   * @param action - 页面动作与实际结果断言
-   * @param available - 本次隔离种子是否支持该场景
-   * @returns 动作完成状态
-   */ run = async (name, action, available = true) => {
-    if (!requested.has(name)) return
-    activeCase = name
-    if (!available) {
-      results.cases.push({ name, status: 'NOT_RUN', reason: '缺少该场景的隔离种子' })
-      return
-    }
-    await action()
-    await settleResponses()
-    results.cases.push({ name, status: 'PASSED' })
-    await page.screenshot({ path: path.join(output, `${name}.png`), fullPage: true })
+/**
+ * 记录当前明确验收动作；缺少种子时保留未执行状态
+ * @param name - 协调侧选择的验收场景
+ * @param action - 页面动作与实际结果断言
+ * @param available - 本次隔离种子是否支持该场景
+ * @returns 动作完成状态
+ */
+const run = async (name, action, available = true) => {
+  if (!requested.has(name)) return
+  activeCase = name
+  if (!available) {
+    results.cases.push({ name, status: 'NOT_RUN', reason: '缺少该场景的隔离种子' })
+    return
   }
+  await action()
+  await settleResponses()
+  results.cases.push({ name, status: 'PASSED' })
+  await page.screenshot({ path: path.join(output, `${name}.png`), fullPage: true })
+}
 
-const /**
-   * 保存后刷新验证当前标题来自真实服务回读
-   * @param route - 当前草稿页面
-   * @param pathname - 固定修订保存接口
-   * @param title - 本次隔离草稿的新英文标题
-   * @returns 保存与刷新完成状态
-   */ saveTitle = async (route, pathname, title) => {
-    const editorUrl = new URL(route, baseUrl)
-    editorUrl.searchParams.set('stage', 'draft')
-    await page.goto(editorUrl.href)
-    const field = await editableTitle(
-      page,
-      editorUrl.pathname.startsWith('/content/short-readings/')
-    )
-    await field.fill(title)
-    const saved = responseFor('PUT', pathname)
-    await page.getByRole('button', { name: '保存草稿', exact: true }).click()
-    expect((await saved).status()).toBe(200)
-    await settleResponses()
-    await page.reload()
-    await expect(field).toHaveValue(title)
-  }
+/**
+ * 保存后刷新验证当前标题来自真实服务回读
+ * @param route - 当前草稿页面
+ * @param pathname - 固定修订保存接口
+ * @param title - 本次隔离草稿的新英文标题
+ * @returns 保存与刷新完成状态
+ */
+const saveTitle = async (route, pathname, title) => {
+  const editorUrl = new URL(route, baseUrl)
+  editorUrl.searchParams.set('stage', 'draft')
+  await page.goto(editorUrl.href)
+  const field = await editableTitle(page, editorUrl.pathname.startsWith('/content/short-readings/'))
+  await field.fill(title)
+  const saved = responseFor('PUT', pathname)
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
+  expect((await saved).status()).toBe(200)
+  await settleResponses()
+  await page.reload()
+  await expect(field).toHaveValue(title)
+}
 
 try {
   // 登录始终是所有场景的前置条件，凭据仅保留在进程和浏览器内存

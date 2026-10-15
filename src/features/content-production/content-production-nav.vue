@@ -10,12 +10,13 @@ const stages = computed(() =>
   PRODUCTION_STAGES.filter((item) => !props.hideAudio || item.stage !== 'audio')
 )
 const emit = defineEmits<{ select: [stage: ProductionStage] }>()
-const /** 切换明确选择的内容工作区，保存与版本保护由页面执行
-   * @param stage - 管理员选中的实际工作区
-   */
-  select = (stage: ProductionStage): void => {
-    if (!props.busy && stages.value.some((item) => item.stage === stage)) emit('select', stage)
-  }
+/**
+ * 切换明确选择的内容工作区，保存与版本保护由页面执行
+ * @param stage - 管理员选中的实际工作区
+ */
+const select = (stage: ProductionStage): void => {
+  if (!props.busy && stages.value.some((item) => item.stage === stage)) emit('select', stage)
+}
 </script>
 <template>
   <nav class="production-nav" aria-label="内容工作区">

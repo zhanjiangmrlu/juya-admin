@@ -11,13 +11,14 @@ import { useLearningModules } from './use-learning-modules'
 const emit = defineEmits<{ saved: [row: LearningModuleRow] }>()
 const adapter = createLearningModulesAdapter(useAdminApiClient())
 const controller = useLearningModules(adapter)
-const /**
-   * 单独保存模块后同步父页的启用值
-   * @param type - 固定模块类型
-   */ save = async (type: string): Promise<void> => {
-    const row = await controller.save(type)
-    if (row) emit('saved', row)
-  }
+/**
+ * 单独保存模块后同步父页的启用值
+ * @param type - 固定模块类型
+ */
+const save = async (type: string): Promise<void> => {
+  const row = await controller.save(type)
+  if (row) emit('saved', row)
+}
 onMounted(() => {
   if (adapter.available) void controller.load()
 })

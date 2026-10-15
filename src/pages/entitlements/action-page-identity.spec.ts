@@ -90,16 +90,18 @@ async function setup(kind: 'formal' | 'limited') {
   return { wrapper, router }
 }
 
-const /** 通过当前页面真实预览入口验证提交对象，正式页操作放在底栏
-   * @param wrapper - 已挂载的路由页面
-   * @param kind - 当前正式或限时权益页面
-   */ requestPreview = async (wrapper: VueWrapper, kind: 'formal' | 'limited'): Promise<void> => {
-    if (kind === 'formal') {
-      const button = wrapper.findAll('button').find((item) => /^获取.+预览$/.test(item.text()))
-      expect(button).toBeDefined()
-      await button!.trigger('click')
-    } else await wrapper.find('.submit').trigger('click')
-  }
+/**
+ * 通过当前页面真实预览入口验证提交对象，正式页操作放在底栏
+ * @param wrapper - 已挂载的路由页面
+ * @param kind - 当前正式或限时权益页面
+ */
+const requestPreview = async (wrapper: VueWrapper, kind: 'formal' | 'limited'): Promise<void> => {
+  if (kind === 'formal') {
+    const button = wrapper.findAll('button').find((item) => /^获取.+预览$/.test(item.text()))
+    expect(button).toBeDefined()
+    await button!.trigger('click')
+  } else await wrapper.find('.submit').trigger('click')
+}
 
 describe.each(['formal', 'limited'] as const)('%s action object identity', (kind) => {
   afterEach(() => vi.unstubAllGlobals())

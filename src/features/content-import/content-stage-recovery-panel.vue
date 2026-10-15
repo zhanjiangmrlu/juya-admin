@@ -20,15 +20,16 @@ const identifier = ref(props.stageId ?? String(route.query.stage_id || ''))
 const adapter = createContentStageAdapter(useAdminApiClient())
 const controller = useContentStage(adapter)
 let synchronizing = false
-const /** 恢复后显示服务端返回的新阶段编号 */ retry = async (): Promise<void> => {
-    await controller.retry()
-    if (controller.stage.value) {
-      synchronizing = true
-      identifier.value = controller.stage.value.public_id
-      synchronizing = false
-      if (!controller.error.value && controller.stage.value.status !== 'FAILED') emit('retried')
-    }
+/** 恢复后显示服务端返回的新阶段编号 */
+const retry = async (): Promise<void> => {
+  await controller.retry()
+  if (controller.stage.value) {
+    synchronizing = true
+    identifier.value = controller.stage.value.public_id
+    synchronizing = false
+    if (!controller.error.value && controller.stage.value.status !== 'FAILED') emit('retried')
   }
+}
 watch(
   identifier,
   () => {
@@ -46,22 +47,23 @@ watch(
   },
   { immediate: true }
 )
-const /** 从当前批次实际关联加载阶段选择列表 */ listStages = async (): Promise<void> => {
-    const token = ++listingGeneration
-    stages.value = []
-    listingError.value = ''
-    if (!props.batchId || !adapter.batchAvailable) return
-    listingBusy.value = true
-    try {
-      const result = await adapter.forBatch(props.batchId)
-      if (token === listingGeneration) stages.value = result
-    } catch (failure) {
-      if (token === listingGeneration)
-        listingError.value = failure instanceof Error ? failure.message : '阶段关联加载失败'
-    } finally {
-      if (token === listingGeneration) listingBusy.value = false
-    }
+/** 从当前批次实际关联加载阶段选择列表 */
+const listStages = async (): Promise<void> => {
+  const token = ++listingGeneration
+  stages.value = []
+  listingError.value = ''
+  if (!props.batchId || !adapter.batchAvailable) return
+  listingBusy.value = true
+  try {
+    const result = await adapter.forBatch(props.batchId)
+    if (token === listingGeneration) stages.value = result
+  } catch (failure) {
+    if (token === listingGeneration)
+      listingError.value = failure instanceof Error ? failure.message : '阶段关联加载失败'
+  } finally {
+    if (token === listingGeneration) listingBusy.value = false
   }
+}
 watch(
   () => props.batchId,
   () => {
@@ -70,10 +72,11 @@ watch(
   },
   { immediate: true }
 )
-const /** 从结果页进入当前批次的实际阶段选择 */ focus = (): void => {
-    anchor.value?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    void listStages()
-  }
+/** 从结果页进入当前批次的实际阶段选择 */
+const focus = (): void => {
+  anchor.value?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  void listStages()
+}
 defineExpose({ focus })
 const labels: Record<string, string> = {
   VALIDATE: '内容包校验',

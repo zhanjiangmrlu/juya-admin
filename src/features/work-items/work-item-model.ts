@@ -80,21 +80,22 @@ export function groupWorkItems(items: WorkItemDto[]): WorkItemGroups {
   }
 }
 
-export const /**
-   * 将服务端待办转换为页面展示文案和目标地址
-   *
-   * @param item - 单条服务端待办
-   * @returns 稳定的页面展示模型
-   */ toWorkItemViewModel = (item: WorkItemDto): WorkItemViewModel => {
-    return (
-      (Object.prototype.hasOwnProperty.call(itemPresentation, item.kind)
-        ? itemPresentation[item.kind]
-        : undefined) ?? {
-        actionLabel: '查看',
-        description: '请打开消息中心查看详情',
-        destination: '/work-items',
-        title: '待处理事项',
-        tone: 'info'
-      }
-    )
-  }
+/**
+ * 将服务端待办转换为页面展示文案和目标地址
+ *
+ * @param item - 单条服务端待办
+ * @returns 稳定的页面展示模型
+ */
+export const toWorkItemViewModel = (item: WorkItemDto): WorkItemViewModel => {
+  return (
+    (Object.prototype.hasOwnProperty.call(itemPresentation, item.kind)
+      ? itemPresentation[item.kind]
+      : undefined) ?? {
+      actionLabel: '查看',
+      description: '请打开消息中心查看详情',
+      destination: '/work-items',
+      title: '待处理事项',
+      tone: 'info'
+    }
+  )
+}

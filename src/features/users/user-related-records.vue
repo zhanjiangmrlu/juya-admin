@@ -23,24 +23,24 @@ const sections = ADMIN_RELATED_RECORD_SECTIONS.map((section) => ({
     ...(section.route ? [{ key: 'actions', label: '操作', width: 80, slot: 'actions' }] : [])
   ]
 }))
-const /**
-   * 格式化记录时间与操作人，保留无法解析的审计身份
-   * @param key - 记录字段名
-   * @param value - 服务端字段值或页码
-   * @param row - 当前业务记录，包含操作人账号名与原始审计标识
-   * @returns 可读字段文案
-   */
-  display = (key: string, value: unknown, row: Record<string, unknown>): string => {
-    if (key === 'actor_public_id') {
-      return formatAdminActor(value, row.actor_name)
-    }
-    if (key === 'reason' && (value === null || value === undefined || !String(value).trim()))
-      return '-'
-    if (value === null || value === undefined) return '—'
-    return key.endsWith('_at') || key === 'start_deadline'
-      ? dayjs(String(value)).format('YYYY-MM-DD HH:mm')
-      : String(value)
+/**
+ * 格式化记录时间与操作人，保留无法解析的审计身份
+ * @param key - 记录字段名
+ * @param value - 服务端字段值或页码
+ * @param row - 当前业务记录，包含操作人账号名与原始审计标识
+ * @returns 可读字段文案
+ */
+const display = (key: string, value: unknown, row: Record<string, unknown>): string => {
+  if (key === 'actor_public_id') {
+    return formatAdminActor(value, row.actor_name)
   }
+  if (key === 'reason' && (value === null || value === undefined || !String(value).trim()))
+    return '-'
+  if (value === null || value === undefined) return '—'
+  return key.endsWith('_at') || key === 'start_deadline'
+    ? dayjs(String(value)).format('YYYY-MM-DD HH:mm')
+    : String(value)
+}
 </script>
 
 <template>

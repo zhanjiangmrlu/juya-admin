@@ -24,23 +24,24 @@ const emit = defineEmits<{
   removeAudio: []
   listening: []
 }>()
-const /**
-   * 保留未修改段落的稳定编号，新段落交由服务端分配
-   * @param text - 管理员编辑的完整英文段落
-   */ updateParagraphs = (text: string): void => {
-    const next = text.split(/\n\s*\n/)
-    const used = new Set<number>()
-    const ids = next.map((paragraph) => {
-      const index = form.value.paragraphs_en.findIndex(
-        (previous, position) => previous === paragraph && !used.has(position)
-      )
-      if (index < 0) return globalThis.crypto.randomUUID()
-      used.add(index)
-      return form.value.paragraph_ids[index] || globalThis.crypto.randomUUID()
-    })
-    form.value.paragraphs_en = next
-    form.value.paragraph_ids = ids
-  }
+/**
+ * 保留未修改段落的稳定编号，新段落交由服务端分配
+ * @param text - 管理员编辑的完整英文段落
+ */
+const updateParagraphs = (text: string): void => {
+  const next = text.split(/\n\s*\n/)
+  const used = new Set<number>()
+  const ids = next.map((paragraph) => {
+    const index = form.value.paragraphs_en.findIndex(
+      (previous, position) => previous === paragraph && !used.has(position)
+    )
+    if (index < 0) return globalThis.crypto.randomUUID()
+    used.add(index)
+    return form.value.paragraph_ids[index] || globalThis.crypto.randomUUID()
+  })
+  form.value.paragraphs_en = next
+  form.value.paragraph_ids = ids
+}
 const paragraphs = computed({
   get: () => form.value.paragraphs_en.join('\n\n'),
   set: updateParagraphs
@@ -54,15 +55,16 @@ watch(
     audioPlayed.value = false
   }
 )
-const /**
-   * 写入管理员对实际固定音频的试听确认
-   * @param checked - 管理员主动勾选的确认状态
-   */ confirmAudio = (checked: boolean): void => {
-    if (!form.value.audio) return
-    form.value.audio.listening_confirmed = checked
-    form.value.audio.confirmed_asset_id = checked ? form.value.audio.asset_id : null
-    form.value.audio.confirmed_version_id = checked ? form.value.audio.version_id : null
-  }
+/**
+ * 写入管理员对实际固定音频的试听确认
+ * @param checked - 管理员主动勾选的确认状态
+ */
+const confirmAudio = (checked: boolean): void => {
+  if (!form.value.audio) return
+  form.value.audio.listening_confirmed = checked
+  form.value.audio.confirmed_asset_id = checked ? form.value.audio.asset_id : null
+  form.value.audio.confirmed_version_id = checked ? form.value.audio.version_id : null
+}
 const metadata: readonly [
   keyof Pick<
     ShortReadingContent,
