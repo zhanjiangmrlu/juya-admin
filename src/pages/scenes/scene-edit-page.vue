@@ -14,6 +14,7 @@ import {
 import SceneContentForm from '@/features/scenes/scene-content-form.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import { api, ApiError } from '@/services/http-client'
+import { registerLogoutGuard } from '@/services/logout-guard'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
 const route = useRoute(),
@@ -170,23 +171,33 @@ const leave = async (decision: 'continue' | 'save' | 'discard') => {
   resolveLeave?.(allow)
   resolveLeave = null
 }
-onBeforeRouteLeave((to) => {
-  if (to.path === '/login' || committedNavigation) return true
+let pendingLeave: Promise<boolean> | null = null
+/** 导航与退出登录共用同一份未保存确认
+ * @returns 是否明确允许离开
+ */
+const confirmLeaving = (): Promise<boolean> => {
   if (busy.value || uploading.value) {
     ElMessage.info('请等待当前操作完成')
-    return false
+    return Promise.resolve(false)
   }
-  if (!dirty.value) return true
+  if (!dirty.value) return Promise.resolve(true)
+  if (pendingLeave) return pendingLeave
   leaveOpen.value = true
-  return new Promise<boolean>((resolve) => {
+  pendingLeave = new Promise<boolean>((resolve) => {
     resolveLeave = resolve
+  }).finally(() => {
+    pendingLeave = null
   })
-})
+  return pendingLeave
+}
+const unregisterLogoutGuard = registerLogoutGuard(confirmLeaving)
+onBeforeRouteLeave((to) => (to.path === '/login' || committedNavigation ? true : confirmLeaving()))
 onMounted(() => {
   void load()
   window.addEventListener('beforeunload', beforeUnload)
 })
 onBeforeUnmount(() => {
+  unregisterLogoutGuard()
   window.removeEventListener('beforeunload', beforeUnload)
   resolveLeave?.(false)
 })

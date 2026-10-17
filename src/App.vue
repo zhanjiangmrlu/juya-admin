@@ -3,6 +3,7 @@ import { onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AppIcon from '@/components/app-icon/app-icon.vue'
+import { requestLogoutPermission } from '@/services/logout-guard'
 import { useAdminStore } from '@/stores/admin-store'
 const route = useRoute(),
   router = useRouter(),
@@ -18,13 +19,19 @@ const expired = () => {
   admin.clear()
   void router.replace({ path: '/login', query: { return: route.fullPath } })
 }
-/** 注销失败时保留会话并展示错误 */
+const logoutBusy = ref(false)
+/** 先确认离开，注销失败时保留会话并展示错误 */
 const logout = async () => {
+  if (logoutBusy.value) return
+  logoutBusy.value = true
   try {
+    if (!(await requestLogoutPermission())) return
     await admin.logout()
     await router.replace('/login')
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '退出失败，请重试'
+  } finally {
+    logoutBusy.value = false
   }
 }
 window.addEventListener('admin-session-expired', expired)
@@ -48,7 +55,7 @@ onBeforeUnmount(() => window.removeEventListener('admin-session-expired', expire
       </nav>
       <div class="sidebar-bottom">
         <p>{{ admin.identity.username }}</p>
-        <button type="button" class="text" @click="logout">退出登录</button>
+        <button type="button" class="text" :disabled="logoutBusy" @click="logout">退出登录</button>
         <p class="muted small">句芽英语 · 场景学习</p>
       </div>
     </aside>
