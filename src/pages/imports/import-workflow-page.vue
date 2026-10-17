@@ -568,6 +568,9 @@ onBeforeUnmount(() => {
               <strong>上传DOCX及配套资料</strong><span>一份或多份DOCX，另选图片与完整音频</span>
             </button>
           </div>
+          <p class="small muted">
+            完整音频支持 MP3 / M4A / WAV / AAC，ZIP 内也可直接放入 WAV 文件。
+          </p>
         </section>
       </template>
       <template v-else>

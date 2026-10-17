@@ -142,6 +142,7 @@ onBeforeUnmount(() => {
     <p class="muted small">
       每张卡片需要名称、场景图、完整音频、中英文对话和词汇；语块选填。文件限额由当前环境校验。
     </p>
+    <p class="muted small">完整音频支持 MP3 / M4A / WAV / AAC，上传后会检查音频并识别实际时长。</p>
     <div class="row file-actions">
       <label v-if="batch.mode === 'zip'" class="button-link"
         >选择ZIP<input
