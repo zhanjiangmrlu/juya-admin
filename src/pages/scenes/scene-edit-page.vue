@@ -268,8 +268,7 @@ onBeforeUnmount(() => {
     </div>
     <AppState :busy="loading" :error="loading ? '' : error" @retry="load" /><template
       v-if="!loading"
-      ><p v-if="error" class="notice error" role="alert">{{ error }}</p>
-      <div v-if="issues.length" id="publication-issues" class="notice error" role="alert">
+      ><div v-if="issues.length" id="publication-issues" class="notice error" role="alert">
         <strong>请先补充以下资料</strong>
         <ul>
           <li v-for="(issue, index) in issues" :key="index">{{ issue.message }}</li>

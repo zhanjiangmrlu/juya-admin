@@ -40,14 +40,15 @@ export const findSources = (dialogue: SceneContent['dialogue'], english: string)
   )
 }
 
-/** 保存时移除全空可选语块，半填项保留核对
+/** 复制完整编辑资料后移除全空可选语块，半填项保留核对
  * @param content 当前编辑资料
  * @returns 独立保存正文
  */
-export const prepareContent = (content: SceneContent): SceneContent => ({
-  ...JSON.parse(JSON.stringify(content)),
-  chunks: content.chunks?.filter((row) => row.english.trim() || row.chinese.trim()) || []
-})
+export const prepareContent = (content: SceneContent): SceneContent => {
+  const snapshot: SceneContent = JSON.parse(JSON.stringify(content))
+  snapshot.chunks = snapshot.chunks?.filter((row) => row.english.trim() || row.chinese.trim()) || []
+  return snapshot
+}
 
 /** 解析固定粘贴格式，text 为管理员核对的三列文本
  * @param text 人物、英文、中文以竖线分隔的文本

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { reactive } from 'vue'
 
 import { blankContent, findSources, prepareContent } from './editor-model'
 
@@ -20,6 +21,20 @@ describe('publication candidates', () => {
       { id: 'b', english: 'May I', chinese: '' }
     ]
     expect(prepareContent(content).chunks).toEqual([{ id: 'b', english: 'May I', chinese: '' }])
+    expect(content.chunks).toHaveLength(2)
+  })
+  it('prepares reactive chunks as an independent cloneable request snapshot', () => {
+    const content = reactive(blankContent())
+    content.chunks = [
+      { id: 'blank', english: ' ', chinese: '' },
+      { id: 'kept', english: 'get ready', chinese: '准备好' }
+    ]
+    const prepared = prepareContent(content)
+    expect(structuredClone(prepared).chunks).toEqual([
+      { id: 'kept', english: 'get ready', chinese: '准备好' }
+    ])
+    content.chunks[1]!.chinese = '后续修改'
+    expect(prepared.chunks[0]!.chinese).toBe('准备好')
     expect(content.chunks).toHaveLength(2)
   })
 })

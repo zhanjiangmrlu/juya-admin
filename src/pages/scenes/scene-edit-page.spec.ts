@@ -8,14 +8,14 @@ vi.mock('@/services/http-client', async (original) => {
 })
 import SceneEditPage from './scene-edit-page.vue'
 
-it('lets a committed publication return to the list while protecting in-flight writes', async () => {
+it('saves reactive chunks and publishes the saved preview before returning to the list', async () => {
   const content = {
     name: '在咖啡店点单',
     image_id: null,
     audio_id: null,
     dialogue: [],
     vocabulary: [],
-    chunks: []
+    chunks: [{ id: 'chunk-1', english: 'May I', chinese: '我可以' }]
   }
   const card = {
     id: 'card-1',
@@ -25,11 +25,19 @@ it('lets a committed publication return to the list while protecting in-flight w
     issues: [],
     display_name: content.name
   }
+  const writes: { path: string; body: unknown }[] = []
   network.mockImplementation(async (request: Request) => {
     if (request.url.endsWith('/media/configuration'))
       return Response.json({ image_limit_bytes: 100, audio_limit_bytes: 100 })
+    if (request.method !== 'GET')
+      writes.push({ path: new URL(request.url).pathname, body: await request.json() })
+    if (request.method === 'PUT') {
+      content.name = '在咖啡店点单（修订）'
+      card.draft_revision = 2
+      return Response.json(card)
+    }
     if (request.url.endsWith('/preview'))
-      return Response.json({ preview_id: 'preview-1', revision: 1, content, mode: 'draft' })
+      return Response.json({ preview_id: 'preview-1', revision: 2, content, mode: 'draft' })
     if (request.url.endsWith('/publish')) return Response.json({ ...card, status: 'published' })
     return Response.json(card)
   })
@@ -47,7 +55,12 @@ it('lets a committed publication return to the list while protecting in-flight w
       global: {
         plugins: [router],
         stubs: {
-          SceneContentForm: { template: '<div />' },
+          SceneDocxImport: { template: '<div />' },
+          SceneContentForm: {
+            props: ['modelValue'],
+            template:
+              '<input :value="modelValue.name" @input="$emit(\'update:modelValue\', { ...modelValue, name: $event.target.value })" />'
+          },
           ScenePreview: { template: '<button @click="$emit(\'publish\')">确认发布</button>' },
           ElDialog: { template: '<div />' }
         }
@@ -55,6 +68,14 @@ it('lets a committed publication return to the list while protecting in-flight w
     }
   )
   await flushPromises()
+  await wrapper.get('input').setValue('在咖啡店点单（修订）')
+  await wrapper
+    .findAll('button')
+    .find((button) => button.text() === '保存草稿')!
+    .trigger('click')
+  await flushPromises()
+  expect(wrapper.text()).toContain('草稿已保存')
+  expect(wrapper.findAll('[role="alert"]')).toHaveLength(0)
   await wrapper.get('button.primary').trigger('click')
   await flushPromises()
   await wrapper
@@ -64,6 +85,27 @@ it('lets a committed publication return to the list while protecting in-flight w
   await flushPromises()
   expect(router.currentRoute.value.path).toBe('/cards')
   expect(wrapper.text()).toContain('管理列表')
+  expect(writes).toEqual([
+    {
+      path: '/api/admin/v1/cards/card-1',
+      body: {
+        revision: 1,
+        content: {
+          name: '在咖啡店点单（修订）',
+          image_id: null,
+          audio_id: null,
+          dialogue: [],
+          vocabulary: [],
+          chunks: [{ id: 'chunk-1', english: 'May I', chinese: '我可以' }]
+        }
+      }
+    },
+    { path: '/api/admin/v1/cards/card-1/preview', body: { revision: 2 } },
+    {
+      path: '/api/admin/v1/cards/card-1/publish',
+      body: { revision: 2, preview_id: 'preview-1' }
+    }
+  ])
   wrapper.unmount()
 })
 
@@ -127,6 +169,9 @@ it('recovers a committed new card with its original key before saving subsequent
     .find((x) => x.text() === '保存草稿')!
     .trigger('click')
   await flushPromises()
+  expect(page.findAll('[role="alert"]')).toHaveLength(1)
+  expect(page.get('[role="alert"]').text()).toContain('网络连接中断')
+  expect(page.get('input').element.value).toBe('初稿名称')
   await page.get('input').setValue('修订后的名称')
   await page
     .findAll('button')
