@@ -28,3 +28,5 @@ Actual device behavior, independent deployment/rollback, mixed concurrency accep
 多卡DOCX实测使用同一文件中的两张正常卡、一张错列表格、一张超长标题。真实本地Worker逐卡解析，正常2张进入核对，错误2张显示原因且不可误选；确认后仅2张正常卡保存为草稿，原文件和逐卡结果保留。本次使用隔离SQLite、真实Redis/Celery及本地私有素材，尚不证明OSS或云端压测。
 
 ![DOCX逐卡结果](docx-partial-results.png)
+
+双窗口人工验证：一窗口持有发布前预览，另一窗口完成同卡下线；旧预览确认发布显示“资料已变化，请刷新后核对”。重新读取修订并预览后可成功重新发布。证据：offline-old-preview-rejected.png。此验证只操作本地合成资料。
