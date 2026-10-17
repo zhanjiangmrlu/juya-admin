@@ -33,6 +33,9 @@ const emit = defineEmits<{ select: [entry: ImportEntry, event: Event]; expand: [
           {{ entry.edit.content.name || '未命名资料' }}
         </button></label
       >
+      <p v-if="entry.item.source_zip_name" class="small muted">
+        来源：{{ entry.item.source_zip_name }} / {{ entry.item.source_folder }}
+      </p>
       <p>{{ importStates[entry.item.state] || '待核对' }}</p>
       <p v-if="entry.item.issues.length" class="small muted">{{ entry.item.issues[0]?.message }}</p>
       <small>{{

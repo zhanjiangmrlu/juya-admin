@@ -19,9 +19,13 @@ test('real admin login, private upload, immutable publication and stale editor c
   await page.getByRole('link', { name: '新建卡片' }).click()
   const name = `浏览器验收咖啡场景-${Date.now()}`
   await page.getByLabel('卡片名称', { exact: true }).fill(name)
-  await page.locator('input[type="file"]').nth(0).setInputFiles(`${fixtureDirectory}/scene.png`)
+  await page
+    .locator('input[type="file"][accept=".jpg,.jpeg,.png,.webp"]')
+    .setInputFiles(`${fixtureDirectory}/scene.png`)
   await expect(page.getByAltText('当前场景图')).toBeVisible()
-  await page.locator('input[type="file"]').nth(1).setInputFiles(`${fixtureDirectory}/dialogue.wav`)
+  await page
+    .locator('input[type="file"][accept=".mp3,.m4a,.wav,.aac"]')
+    .setInputFiles(`${fixtureDirectory}/dialogue.wav`)
   await expect(page.getByText('2 秒', { exact: false })).toBeVisible()
   await page.getByRole('button', { name: '＋ 添加一组对话' }).click()
   await page.getByLabel('人物', { exact: true }).fill('顾客')

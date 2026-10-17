@@ -1,107 +1,96 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
-import { api, ApiError } from '@/services/http-client'
+import { useImportUploads } from '@/composables/use-import-uploads'
+import { api } from '@/services/http-client'
 import { importErrors } from '@/shared/constants/import'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
 import type { ImportBatch, ImportFile, ImportUpload } from '@/shared/types/import'
-const props = defineProps<{ batch: ImportBatch; disabled?: boolean }>()
-const emit = defineEmits<{ refresh: []; uploading: [value: boolean] }>()
-const uploads = ref<ImportUpload[]>([]),
-  error = ref(''),
+const props = defineProps<{
+  batch: ImportBatch
+  disabled?: boolean
+  limits?: components['schemas']['UploadConfiguration'] | null
+}>()
+const emit = defineEmits<{
+  refresh: []
+  uploading: [value: boolean]
+  pending: [value: number]
+  changed: []
+}>()
+const error = ref(''),
   retrying = ref('')
-const controllers = new Map<string, AbortController>()
 const retryKeys = new Map<string, string>()
+/** 读取当前环境的单文件上限
+ * @param kind 文件在卡片中的用途
+ * @returns 允许的最大字节数
+ */
+const limit = (kind: ImportUpload['kind']) => {
+  const key =
+    kind === 'image'
+      ? 'image_limit_bytes'
+      : kind === 'audio'
+        ? 'audio_limit_bytes'
+        : 'archive_limit_bytes'
+  return props.limits?.[key] ?? Infinity
+}
+const { uploads, running, transferring, pendingCount, add, start, retryUpload, cancel, remove } =
+  useImportUploads(
+    () => props.batch.id,
+    limit,
+    () => emit('refresh')
+  )
 const serverFiles = computed(() =>
   props.batch.files.filter(
     (file) => !file.parent_id && !uploads.value.some((upload) => upload.accepted?.id === file.id)
   )
 )
-const transferring = computed(() => uploads.value.some((upload) => upload.busy))
-let alive = true
-/** 查询或传输同一文件，原响应未知时先查询接收凭证
- * @param upload 当前文件的稳定上传记录
+watch(transferring, (value) => emit('uploading', value))
+watch(pendingCount, (value) => emit('pending', value), { immediate: true })
+/** 选择资料先展示待上传清单，ZIP等待管理员明确开始
+ * @param event 本地文件选择事件
+ * @param kind 本次选择的资料用途
  */
-const send = async (upload: ImportUpload) => {
-  if (upload.busy) return
-  upload.busy = true
-  upload.error = ''
-  emit('uploading', true)
-  const controller = new AbortController()
-  controllers.set(upload.id, controller)
-  try {
-    if (upload.unknown) {
-      try {
-        const receipt = await api.request<components['schemas']['OperationResponse']>(
-          `/api/admin/v1/operations/${upload.key}`
-        )
-        upload.accepted = receipt.result as ImportFile
-        upload.unknown = false
-      } catch (reason) {
-        if (!(reason instanceof ApiError) || reason.status !== 404) throw reason
-      }
-    }
-    if (controller.signal.aborted)
-      throw new ApiError('upload_unknown', '传输已取消，可查询接收结果')
-    if (!upload.accepted) {
-      const form = new FormData()
-      form.append('file', upload.file)
-      upload.accepted = await api.upload<ImportFile>(
-        `/api/admin/v1/imports/${props.batch.id}/files?kind=${upload.kind}`,
-        form,
-        upload.key,
-        (value) => {
-          upload.percent = value
-        },
-        controller.signal
-      )
-      upload.unknown = false
-    }
-    if (alive) emit('refresh')
-  } catch (reason) {
-    upload.unknown =
-      !(reason instanceof ApiError) ||
-      !reason.status ||
-      reason.status >= 500 ||
-      reason.code === 'response_unknown'
-    if (alive) upload.error = reason instanceof Error ? reason.message : '上传失败，请重试本文件'
-  } finally {
-    controllers.delete(upload.id)
-    upload.busy = false
-    if (alive) emit('uploading', transferring.value)
-  }
-}
-/** 选择明确类型的文件，成功文件不随失败文件重传
- * @param event 文件输入框变更
- * @param kind 管理员选择的资料用途
- */
-const choose = async (event: Event, kind: ImportUpload['kind']) => {
-  const input = event.target as HTMLInputElement,
-    files = [...(input.files || [])]
+const choose = (event: Event, kind: ImportUpload['kind']) => {
+  const input = event.target as HTMLInputElement
+  add([...(input.files || [])], kind)
   input.value = ''
-  for (const file of files) {
-    const upload: ImportUpload = {
-      id: crypto.randomUUID(),
-      file,
-      kind,
-      key: crypto.randomUUID(),
-      percent: 0,
-      busy: false,
-      error: '',
-      unknown: false,
-      accepted: null
-    }
-    uploads.value.push(upload)
-    await send(uploads.value.at(-1)!)
-    if (!alive) return
-  }
+  emit('changed')
+  if (kind !== 'zip') void start()
 }
-/** 取消客户端传输，不删除已接受文件
- * @param id 本地上传记录编号
+/** 显示管理员可读的文件大小
+ * @param size 原始文件字节数
+ * @returns 带单位的大小
  */
-const cancel = (id: string) => {
-  controllers.get(id)?.abort()
+const sizeText = (size: number) =>
+  size < 1024
+    ? `${size} B`
+    : size < 1024 * 1024
+      ? `${(size / 1024).toFixed(1)} KB`
+      : `${(size / 1024 / 1024).toFixed(1)} MB`
+/** 汇总单ZIP及其素材任务的实际状态
+ * @param file 最新的源文件状态
+ * @returns 文件夹读取、素材检查或失败说明
+ */
+const statusText = (file: ImportFile | null) => {
+  if (!file) return '等待接收'
+  if (file.state === 'failed')
+    return importErrors[file.error_code || ''] || '处理失败，请修正或重试'
+  const progress = file.progress
+  if (file.state === 'processing')
+    return progress?.total
+      ? `正在解析 ${progress.processed}/${progress.total} 个卡片文件夹`
+      : '等待或正在读取资料'
+  const children = props.batch.files.filter((value) => value.parent_id === file.id)
+  const media = children.filter((value) => ['image', 'audio'].includes(value.kind))
+  if (media.some((value) => value.state === 'processing'))
+    return `检查素材 ${media.filter((value) => value.state !== 'processing').length}/${media.length}`
+  const failed =
+    children.some((value) => value.state === 'failed') ||
+    props.batch.items.some(
+      (item) => children.some((value) => value.id === item.source_file_id) && !item.readable
+    )
+  return `${progress?.total ? `已读取 ${progress.total} 个卡片文件夹` : '已读取'}${failed ? '（部分失败）' : ''}`
 }
 /** 重试服务器保留的失败文件，不重传其余成功资料
  * @param file 已接收且失败的文件
@@ -118,11 +107,11 @@ const retry = async (file: ImportFile) => {
       key
     })
     retryKeys.delete(file.id)
-    if (alive) emit('refresh')
+    emit('refresh')
   } catch (reason) {
-    if (alive) error.value = reason instanceof Error ? reason.message : '暂未确认重试结果'
+    error.value = reason instanceof Error ? reason.message : '暂未确认重试结果'
   } finally {
-    if (alive) retrying.value = ''
+    retrying.value = ''
   }
 }
 /** 显示来自最新批次的真实处理状态
@@ -131,10 +120,6 @@ const retry = async (file: ImportFile) => {
  */
 const acceptedFile = (upload: ImportUpload) =>
   props.batch.files.find((file) => file.id === upload.accepted?.id) || upload.accepted
-onBeforeUnmount(() => {
-  alive = false
-  for (const controller of controllers.values()) controller.abort()
-})
 </script>
 <template>
   <section class="panel import-upload">
@@ -145,10 +130,11 @@ onBeforeUnmount(() => {
     <p class="muted small">完整音频支持 MP3 / M4A / WAV / AAC，上传后会检查音频并识别实际时长。</p>
     <div class="row file-actions">
       <label v-if="batch.mode === 'zip'" class="button-link"
-        >选择ZIP<input
+        >选择ZIP（可多选）<input
+          multiple
           type="file"
           accept=".zip"
-          :disabled="disabled || transferring"
+          :disabled="disabled"
           @change="choose($event, 'zip')"
       /></label>
       <template v-else>
@@ -157,7 +143,7 @@ onBeforeUnmount(() => {
             type="file"
             multiple
             accept=".docx"
-            :disabled="disabled || transferring"
+            :disabled="disabled"
             @change="choose($event, 'docx')"
         /></label>
         <label class="button-link"
@@ -165,7 +151,7 @@ onBeforeUnmount(() => {
             type="file"
             multiple
             accept=".png,.jpg,.jpeg,.webp"
-            :disabled="disabled || transferring"
+            :disabled="disabled"
             @change="choose($event, 'image')"
         /></label>
         <label class="button-link"
@@ -173,7 +159,7 @@ onBeforeUnmount(() => {
             type="file"
             multiple
             accept=".mp3,.m4a,.wav,.aac"
-            :disabled="disabled || transferring"
+            :disabled="disabled"
             @change="choose($event, 'audio')"
         /></label>
       </template>
@@ -184,22 +170,52 @@ onBeforeUnmount(() => {
     <p v-else class="small muted">
       DOCX可有多个一级标题；只有明确同名的图片及音频会形成对应候选，仍需下一步核对。
     </p>
+    <p v-if="batch.mode === 'zip' && limits" class="small muted">
+      单ZIP最多 {{ sizeText(limits.archive_limit_bytes) }}，每批最多
+      {{ limits.import_card_limit }} 张卡片。
+    </p>
+    <div v-if="batch.mode === 'zip' && pendingCount" class="row queue-actions">
+      <span class="small">待上传或待确认 {{ pendingCount }} 个ZIP</span>
+      <button
+        type="button"
+        class="primary"
+        data-action="start-upload"
+        :disabled="disabled || running || !uploads.some((item) => item.queued)"
+        @click="start"
+      >
+        {{ running ? '正在上传…' : '开始上传' }}
+      </button>
+    </div>
     <ul class="file-list">
       <li v-for="upload in uploads" :key="upload.id">
-        <span>{{ upload.file.name }}</span>
-        <span v-if="upload.busy">上传中 {{ upload.percent }}%</span>
+        <span
+          >{{ upload.file.name
+          }}<small class="muted"> · {{ sizeText(upload.file.size) }}</small></span
+        >
+        <span v-if="upload.queued">待上传</span>
+        <span v-else-if="upload.busy">上传中 {{ upload.percent }}%</span>
         <span v-else-if="upload.error" class="error">{{ upload.error }}</span>
-        <span v-else>{{
-          acceptedFile(upload)?.state === 'ready'
-            ? '已读取'
-            : acceptedFile(upload)?.state === 'failed'
-              ? importErrors[acceptedFile(upload)?.error_code || ''] || '处理失败，请修正或重试'
-              : '正在读取资料'
-        }}</span>
+        <span v-else>{{ statusText(acceptedFile(upload)) }}</span>
+        <button
+          v-if="!upload.busy && !upload.accepted && !upload.unknown"
+          type="button"
+          class="text"
+          data-action="remove-upload"
+          @click="remove(upload)"
+        >
+          移除
+        </button>
         <button v-if="upload.busy" type="button" class="text" @click="cancel(upload.id)">
           取消本次上传
         </button>
-        <button v-else-if="upload.error" type="button" class="text" @click="send(upload)">
+        <button
+          v-else-if="upload.error && !upload.invalid"
+          type="button"
+          class="text"
+          data-action="retry-upload"
+          :disabled="disabled || running"
+          @click="retryUpload(upload)"
+        >
           {{ upload.unknown ? '查询／重试本文件' : '重试本文件' }}
         </button>
         <button
@@ -213,14 +229,10 @@ onBeforeUnmount(() => {
         </button>
       </li>
       <li v-for="file in serverFiles" :key="file.id">
-        <span>{{ file.name }}</span
-        ><span>{{
-          file.state === 'ready'
-            ? '已读取'
-            : file.state === 'failed'
-              ? importErrors[file.error_code || ''] || '处理失败，请修正或重试'
-              : '正在读取资料'
-        }}</span>
+        <span
+          >{{ file.name }}<small class="muted"> · {{ sizeText(file.size) }}</small></span
+        >
+        <span>{{ statusText(file) }}</span>
         <button
           v-if="file.state === 'failed'"
           type="button"
@@ -239,7 +251,10 @@ onBeforeUnmount(() => {
       class="notice error"
       role="alert"
     >
-      <strong>{{ file.name }}</strong>
+      <strong
+        >{{ batch.files.find((value) => value.id === file.parent_id)?.name }} /
+        {{ file.name }}</strong
+      >
       <p>
         {{
           importErrors[file.error_code || ''] || '此素材处理失败，可重试或更换文件；其他资料保留'
@@ -310,6 +325,7 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     gap: 18px;
+    flex-wrap: wrap;
     padding: 12px 0;
     border-bottom: 1px solid var(--line);
     font-size: 12px;

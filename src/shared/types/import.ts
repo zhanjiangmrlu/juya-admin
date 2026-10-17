@@ -31,4 +31,6 @@ export interface ImportUpload {
   error: string
   unknown: boolean
   accepted: ImportFile | null
+  queued: boolean
+  invalid: boolean
 }

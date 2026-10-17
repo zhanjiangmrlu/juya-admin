@@ -654,6 +654,8 @@ export interface components {
        * @constant
        */
       confirmed: true
+      /** Item Ids */
+      item_ids?: string[] | null
     }
     /** AdminLogin */
     AdminLogin: {
@@ -970,6 +972,7 @@ export interface components {
       error_code: string | null
       /** Parent Id */
       parent_id: string
+      progress?: components['schemas']['ImportProgress'] | null
     }
     /** ImportItemView */
     ImportItemView: {
@@ -990,6 +993,12 @@ export interface components {
       issues: components['schemas']['FieldIssue'][]
       /** Source File Id */
       source_file_id: string
+      /** Source Zip Id */
+      source_zip_id?: string | null
+      /** Source Zip Name */
+      source_zip_name?: string | null
+      /** Source Folder */
+      source_folder?: string | null
       /** Target Card Id */
       target_card_id: string | null
       /** Target Revision */
@@ -1004,6 +1013,18 @@ export interface components {
       job_id: string | null
       /** Error Code */
       error_code: string | null
+    }
+    /** ImportProgress */
+    ImportProgress: {
+      /**
+       * Phase
+       * @enum {string}
+       */
+      phase: 'reading' | 'parsing' | 'parsed'
+      /** Processed */
+      processed: number
+      /** Total */
+      total: number
     }
     /** ImportSpeechReference */
     ImportSpeechReference: {
@@ -5521,7 +5542,9 @@ export interface operations {
   }
   review_api_admin_v1_imports__batch_id__confirmation_get: {
     parameters: {
-      query?: never
+      query?: {
+        item_ids?: string[] | null
+      }
       header?: never
       path: {
         batch_id: string

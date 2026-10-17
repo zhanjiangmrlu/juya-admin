@@ -12,6 +12,7 @@ const props = defineProps<{
   busy: boolean
   saving: boolean
   polling: boolean
+  scope?: string[] | null
 }>()
 const emit = defineEmits<{ back: []; save: []; refresh: []; retry: [] }>()
 const counts = computed(() => ({
@@ -42,6 +43,7 @@ const counts = computed(() => ({
           v-for="entry in entries.filter(
             (entry) =>
               entry.edit.selected &&
+              (!scope || scope.includes(entry.item.id)) &&
               entry.item.readable &&
               !['saved', 'duplicate'].includes(entry.item.state)
           )"
@@ -66,6 +68,7 @@ const counts = computed(() => ({
         <thead>
           <tr>
             <th>卡片</th>
+            <th>来源ZIP／文件夹</th>
             <th>实际结果</th>
             <th>下一步</th>
           </tr>
@@ -73,6 +76,13 @@ const counts = computed(() => ({
         <tbody>
           <tr v-for="entry in entries" :key="entry.item.id">
             <td>{{ entry.edit.content.name }}</td>
+            <td>
+              {{
+                entry.item.source_zip_name
+                  ? `${entry.item.source_zip_name} / ${entry.item.source_folder}`
+                  : 'DOCX资料'
+              }}
+            </td>
             <td>
               {{
                 entry.item.state === 'failed'

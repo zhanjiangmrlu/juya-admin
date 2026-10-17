@@ -35,6 +35,7 @@ const batch = ref<ImportBatch | null>(null),
   loading = ref(true),
   busy = ref(false),
   uploading = ref(false),
+  pendingUploads = ref(0),
   editingMedia = ref(false),
   error = ref(''),
   notice = ref(''),
@@ -45,6 +46,7 @@ const batch = ref<ImportBatch | null>(null),
   leaveOpen = ref(false)
 const limits = ref<components['schemas']['UploadConfiguration'] | null>(null),
   confirmation = ref<ImportConfirmation | null>(null),
+  retryScope = ref<string[] | null>(null),
   conflictLatest = ref<ImportItem | null>(null)
 const staging = useImportStaging(() => batch.value?.id || '')
 const stagedSpeech = useWordPronunciation(async (wordId, live) => {
@@ -110,6 +112,22 @@ const counts = computed(() => ({
     (entry) => !entry.edit.selected && entry.item.state !== 'duplicate'
   ).length
 }))
+const summary = computed(() => ({
+  zips: batch.value?.files.filter((file) => file.kind === 'zip' && !file.parent_id).length || 0,
+  recognized: entries.value.filter((entry) => entry.item.readable).length,
+  complete: entries.value.filter(
+    (entry) => entry.item.readable && !entry.item.issues.length && entry.item.state !== 'duplicate'
+  ).length,
+  incomplete: entries.value.filter(
+    (entry) => entry.item.readable && entry.item.issues.length && entry.item.state !== 'duplicate'
+  ).length,
+  zipFailed:
+    batch.value?.files.filter(
+      (file) => file.kind === 'zip' && !file.parent_id && file.state === 'failed'
+    ).length || 0,
+  cardFailed: entries.value.filter((entry) => !entry.item.readable || entry.item.state === 'failed')
+    .length
+}))
 const exampleURL = `${(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')}/api/admin/v1/imports/example`
 const autosaves = new Map<string, ReturnType<typeof setTimeout>>()
 let alive = true,
@@ -122,6 +140,17 @@ let alive = true,
  * @param value 最新批次
  */
 const accept = (value: ImportBatch) => {
+  /** 为当前批次的上传及素材状态生成确认依据
+   * @param value 服务端已接收文件快照
+   * @returns 文件集合及状态指纹
+   */
+  const fileState = (value: ImportBatch | null) =>
+    JSON.stringify(value?.files.map((file) => [file.id, file.state, file.error_code]))
+  if (confirmation.value && fileState(batch.value) !== fileState(value) && !saving?.unknown) {
+    confirmation.value = null
+    saving = null
+    retryScope.value = null
+  }
   batch.value = value
   staging.merge(value)
   if (!activeId.value)
@@ -244,6 +273,7 @@ const startNew = async () => {
   staging.clear()
   activeId.value = ''
   confirmation.value = null
+  retryScope.value = null
   saving = null
   showResults.value = false
   step.value = 1
@@ -305,7 +335,14 @@ const switchEntry = (id: string) => {
 }
 /** 上传处理完成后形成明确名称的素材候选，再进入核对 */
 const review = async () => {
-  if (!batch.value || busy.value || uploading.value || editingMedia.value || processing.value)
+  if (
+    !batch.value ||
+    busy.value ||
+    uploading.value ||
+    pendingUploads.value ||
+    editingMedia.value ||
+    processing.value
+  )
     return
   busy.value = true
   error.value = ''
@@ -326,20 +363,32 @@ const review = async () => {
     if (alive) busy.value = false
   }
 }
-/** 所有核对修改落盘后生成绑定当前版本的确认范围 */
-const next = async () => {
-  if (!batch.value || busy.value || editingMedia.value || uploading.value) return
+/** 所有核对修改落盘后生成绑定当前版本的确认范围
+ * @param scope 仅重试失败时冻结的卡片范围，空值表示当前全部勾选项
+ */
+const next = async (scope: string[] | null = null) => {
+  if (
+    !batch.value ||
+    busy.value ||
+    editingMedia.value ||
+    uploading.value ||
+    pendingUploads.value ||
+    processing.value
+  )
+    return
   busy.value = true
   error.value = ''
   try {
     for (const timer of autosaves.values()) clearTimeout(timer)
     autosaves.clear()
     if (!(await staging.flush())) throw new Error('部分修改尚未暂存，请保留输入并重试或处理冲突')
+    const query = scope ? `?${new URLSearchParams(scope.map((id) => ['item_ids', id]))}` : ''
     const value = await api.request<ImportConfirmation>(
-      `/api/admin/v1/imports/${batch.value.id}/confirmation`
+      `/api/admin/v1/imports/${batch.value.id}/confirmation${query}`
     )
     if (!alive) return
     confirmation.value = value
+    retryScope.value = scope
     saving = null
     showResults.value = false
     step.value = 3
@@ -356,7 +405,11 @@ const save = async () => {
   error.value = ''
   saving ||= {
     key: crypto.randomUUID(),
-    body: { version: confirmation.value.version, confirmed: true },
+    body: {
+      version: confirmation.value.version,
+      confirmed: true,
+      ...(retryScope.value ? { item_ids: retryScope.value } : {})
+    },
     unknown: false
   }
   try {
@@ -399,6 +452,20 @@ const save = async () => {
     if (alive) busy.value = false
   }
 }
+/** 只为仍被选中的失败卡片重新生成保存确认 */
+const retryFailed = () => {
+  const ids = entries.value
+    .filter((entry) => entry.item.state === 'failed' && entry.edit.selected)
+    .map((entry) => entry.item.id)
+  if (ids.length) void next(ids)
+}
+/** 待上传内容变化后撤销过期确认，未知保存结果保留原操作 */
+const uploadsChanged = () => {
+  if (saving?.unknown) return
+  confirmation.value = null
+  retryScope.value = null
+  saving = null
+}
 /** 确认更新目标后，绑定最新目标修订并重新暂存
  * @param card 管理员已比较并确认的目标候选
  */
@@ -427,6 +494,7 @@ const clearTarget = () => {
 const backToReview = () => {
   step.value = 2
   confirmation.value = null
+  retryScope.value = null
 }
 /** 获取冲突版本供管理员明确选择，保留现有本地输入 */
 const inspectConflict = async () => {
@@ -452,6 +520,10 @@ const resolveConflict = (keepLocal: boolean) => {
  * @returns 是否可以离开
  */
 const confirmLeaving = (): Promise<boolean> => {
+  if (pendingUploads.value) {
+    ElMessage.info('请先上传或移除待上传的文件；接收结果未知的文件请先查询')
+    return Promise.resolve(false)
+  }
   if (uploading.value || editingMedia.value || busy.value) {
     ElMessage.info('请先完成或取消当前操作')
     return Promise.resolve(false)
@@ -481,7 +553,7 @@ const leave = async (choice: 'continue' | 'save' | 'discard') => {
  * @param event 原生离开事件
  */
 const beforeUnload = (event: BeforeUnloadEvent) => {
-  if (dirty.value || uploading.value || editingMedia.value) {
+  if (dirty.value || uploading.value || pendingUploads.value || editingMedia.value) {
     event.preventDefault()
     event.returnValue = ''
   }
@@ -563,8 +635,8 @@ onBeforeUnmount(() => {
           <h2>选择本批上传方式</h2>
           <div class="mode-options">
             <button type="button" :disabled="busy" @click="create('zip')">
-              <strong>上传ZIP</strong
-              ><span>一张卡片一个文件夹，包含内容、场景图和完整音频</span></button
+              <strong>上传ZIP（支持多选）</strong
+              ><span>一次选择多个ZIP，每个ZIP可含多张卡片；一张卡片一个文件夹</span></button
             ><button type="button" :disabled="busy" @click="create('docx')">
               <strong>上传DOCX及配套资料</strong><span>一份或多份DOCX，另选图片与完整音频</span>
             </button>
@@ -575,29 +647,45 @@ onBeforeUnmount(() => {
         </section>
       </template>
       <template v-else>
+        <p class="notice import-summary" role="status">
+          <span v-if="batch.mode === 'zip'">ZIP {{ summary.zips }} 个 · </span>
+          识别卡片 {{ summary.recognized }} 张 · 资料完整 {{ summary.complete }} 张 · 待补充
+          {{ summary.incomplete }} 张 ·
+          <span v-if="batch.mode === 'zip'">ZIP失败 {{ summary.zipFailed }} 个 · </span>
+          卡片失败 {{ summary.cardFailed }} 张 · 重复 {{ counts.skipped }} 张
+        </p>
         <div v-show="step === 1">
           <a :href="exampleURL" class="text example-link" download>下载填写示例</a
           ><ImportUploadPanel
             :key="batch.id"
             :batch="batch"
-            :disabled="busy"
+            :limits="limits"
+            :disabled="busy || savingItems"
+            @changed="uploadsChanged"
+            @pending="pendingUploads = $event"
             @refresh="poll"
             @uploading="uploading = $event"
           />
           <footer class="editor-actions">
             <span class="small muted">{{
-              processing
-                ? '正在读取资料，可稍后刷新'
-                : batch.items.some((item) => item.readable)
-                  ? '已读取的资料可进入核对'
-                  : '请先上传可读取的DOCX或ZIP'
+              pendingUploads
+                ? '请先上传或移除待上传文件，接收结果未知时先查询'
+                : processing
+                  ? '正在读取资料，可稍后刷新'
+                  : batch.items.some((item) => item.readable)
+                    ? '已读取的资料可进入核对'
+                    : '请先上传可读取的DOCX或ZIP'
             }}</span
             ><button type="button" :disabled="polling" @click="poll">刷新处理结果</button
             ><button
               type="button"
               class="primary"
               :disabled="
-                busy || uploading || processing || !batch.items.some((item) => item.readable)
+                busy ||
+                uploading ||
+                pendingUploads > 0 ||
+                processing ||
+                !batch.items.some((item) => item.readable)
               "
               @click="review"
             >
@@ -743,7 +831,7 @@ onBeforeUnmount(() => {
               class="primary"
               data-action="review-next"
               :disabled="busy || editingMedia || !selectedCount"
-              @click="next"
+              @click="next()"
             >
               核对完成，下一步
             </button>
@@ -754,6 +842,7 @@ onBeforeUnmount(() => {
           :entries="entries"
           :batch-id="batch.id"
           :confirmation="confirmation"
+          :scope="retryScope"
           :show-results="showResults"
           :busy="busy"
           :saving="savingItems"
@@ -761,7 +850,7 @@ onBeforeUnmount(() => {
           @back="backToReview"
           @save="save"
           @refresh="poll"
-          @retry="next"
+          @retry="retryFailed"
         />
       </template>
     </template>

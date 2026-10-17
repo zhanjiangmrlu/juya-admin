@@ -8,6 +8,10 @@ export const importStates: Record<string, string> = {
   failed: '保存未成功'
 }
 export const importErrors: Record<string, string> = {
+  archive_invalid: '压缩包无法读取，请重新打包；其他ZIP可以继续处理',
+  zip_folder_docx_count: '每个卡片文件夹应有且仅有一份内容DOCX',
+  import_media_source: '请选择当前ZIP同一卡片文件夹的素材，或单独上传补充资料',
+  import_selection_invalid: '重试范围已失效，请重新核对本次卡片',
   archive_member_limit: '此文件展开后超过限制，请压缩素材或拆分资料后重新上传',
   archive_member_invalid: '此包内文件无法读取，请修正文件并重新打包',
   docx_invalid: 'DOCX无法读取，请重新保存为标准DOCX文件',

@@ -8,9 +8,19 @@ import type { ImportBatch } from '@/shared/types/import'
 const content = defineModel<SceneContent>({ required: true })
 const props = defineProps<{ batch: ImportBatch; itemId: string; disabled?: boolean }>()
 const available = computed(() =>
-  props.batch.files.filter(
-    (file) => ['image', 'audio'].includes(file.kind) && file.media_id && file.state === 'ready'
-  )
+  props.batch.files.filter((file) => {
+    if (!['image', 'audio'].includes(file.kind) || !file.media_id || file.state !== 'ready')
+      return false
+    if (props.batch.mode !== 'zip') return true
+    const item = props.batch.items.find((value) => value.id === props.itemId)
+    const source = props.batch.files.find((value) => value.id === item?.source_file_id)
+    return (
+      !!source &&
+      file.parent_id === source.parent_id &&
+      file.name.slice(0, file.name.lastIndexOf('/')) ===
+        source.name.slice(0, source.name.lastIndexOf('/'))
+    )
+  })
 )
 /** 显示素材当前绑定，避免只按上传顺序猜配
  * @param id 已准备好素材的内部引用
@@ -28,7 +38,13 @@ const usedBy = (id: string) =>
 <template>
   <details v-if="available.length" class="panel asset-picker">
     <summary>从本次已上传资料选择对应素材</summary>
-    <p class="small muted">请选择对应图片和完整音频；不同名称或多份候选不会自动绑定。</p>
+    <p class="small muted">
+      {{
+        batch.mode === 'zip'
+          ? '仅展示当前ZIP同一卡片文件夹的资料；缺少素材可单独上传补充。'
+          : '请选择对应图片和完整音频；不同名称或多份候选不会自动绑定。'
+      }}
+    </p>
     <div class="asset-grid">
       <label
         v-for="file in available"
