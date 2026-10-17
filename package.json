@@ -1,13 +1,13 @@
 {
   "name": "juya-admin",
-  "version": "0.1.0",
+  "version": "1.5.0",
   "private": true,
   "description": "句芽英语内容与体验运营后台",
   "type": "module",
-  "packageManager": "pnpm@11.22.0",
+  "packageManager": "pnpm@11.25.0",
   "engines": {
     "node": ">=22.22.0 <23",
-    "pnpm": "11.22.0"
+    "pnpm": "11.25.0"
   },
   "scripts": {
     "build": "vite build",
@@ -16,7 +16,7 @@
     "dev": "vite",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "generate:api": "openapi-typescript openapi/admin-api.json -o src/shared/contracts/generated/admin-api.d.ts && prettier src/shared/contracts/generated/admin-api.d.ts --write",
+    "generate:api": "openapi-typescript openapi/admin.json -o src/shared/contracts/generated/admin-api.d.ts",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix --max-warnings=0",
     "lint:style": "stylelint \"**/*.{vue,css,scss}\" --max-warnings=0",
@@ -25,13 +25,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:production": "pnpm build && playwright test --config playwright.production.config.ts",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {
-    "@element-plus/icons-vue": "^2.3.2",
-    "dayjs": "^1.11.23",
-    "echarts": "6.0.0",
     "element-plus": "^2.14.6",
     "pinia": "3.0.4",
     "vue": "3.5.43",

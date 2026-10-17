@@ -1,135 +1,50 @@
-import { createRouter, createWebHistory, type RouteLocation, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 
-import { ADMIN_PAGE_DEFINITIONS } from '@/app/admin-navigation'
-
-const adminPageRoutes: RouteRecordRaw[] = ADMIN_PAGE_DEFINITIONS.map((page) => ({
-  ...(page.name === 'feedback-respond'
-    ? {
-        redirect: (to: RouteLocation) => ({
-          name: 'feedback-detail',
-          params: to.params,
-          query: to.query
-        })
-      }
-    : { component: resolveAdminPageComponent(page.name) }),
-  meta: {
-    capability: page.capability,
-    navigationPath: page.navigationPath,
-    pageNumber: page.pageNumber,
-    sensitive: page.sensitive ?? false,
-    title: page.title
+import { useAdminStore } from '@/stores/admin-store'
+const router = createRouter({
+  history: createWebHistory(),
+  scrollBehavior(to, from, saved) {
+    return saved || (to.path === from.path ? undefined : { top: 0 })
   },
-  name: page.name,
-  path: page.path.slice(1)
-}))
-
-/**
- * 将页面定义名称解析为对应的懒加载页面组件
- *
- * @param name - 管理端页面定义名称
- * @returns 对应页面的异步组件；缺失映射时阻止路由初始化
- */
-function resolveAdminPageComponent(
-  name: string
-): Exclude<RouteRecordRaw['component'], null | undefined> {
-  const pageComponents = {
-    analytics: () => import('@/pages/analytics/analytics-page.vue'),
-    'campaign-edit': () => import('@/pages/campaigns/campaign-edit-page.vue'),
-    'campaign-versions': () => import('@/pages/campaigns/campaign-version-page.vue'),
-    campaigns: () => import('@/pages/campaigns/campaign-list-page.vue'),
-    'contact-correction': () => import('@/pages/contacts/contact-correction-page.vue'),
-    'content-scenes': () => import('@/pages/content/content-list-page.vue'),
-    'content-import': () => import('@/pages/content/content-import-page.vue'),
-    'content-ocr': () => import('@/pages/content/retired-content-page.vue'),
-    'content-scene-audio': () => import('@/pages/content/audio-version-page.vue'),
-    'content-scene-edit': () => import('@/pages/content/scene-editor-page.vue'),
-    'content-scene-publish': () => import('@/pages/content/legacy-publish-page.vue'),
-    'content-discovery-config': () => import('@/pages/content/discovery-config-page.vue'),
-    'content-jobs': () => import('@/pages/content/content-work-order-page.vue'),
-    dashboard: () => import('@/pages/dashboard/dashboard-page.vue'),
-    entitlements: () => import('@/pages/entitlements/entitlement-center-page.vue'),
-    feedback: () => import('@/pages/feedback/feedback-list-page.vue'),
-    'feedback-detail': () => import('@/pages/feedback/feedback-detail-page.vue'),
-    'feedback-respond': () => import('@/pages/feedback/feedback-respond-page.vue'),
-    'formal-entitlement-action': () => import('@/pages/entitlements/formal-action-page.vue'),
-    'formal-entitlement-grant': () => import('@/pages/entitlements/formal-grant-page.vue'),
-    'limited-entitlement-action': () => import('@/pages/entitlements/limited-action-page.vue'),
-    'limited-entitlement-grant': () => import('@/pages/entitlements/limited-grant-page.vue'),
-    settings: () => import('@/pages/settings/settings-page.vue'),
-    'user-detail': () => import('@/pages/users/user-detail-page.vue'),
-    users: () => import('@/pages/users/user-list-page.vue'),
-    'work-items': () => import('@/pages/work-items/work-item-page.vue')
-  }
-  if (name in pageComponents) return pageComponents[name as keyof typeof pageComponents]
-  throw new Error(`管理端页面缺少实现：${name}`)
-}
-
-export const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    { path: '/login', component: () => import('@/pages/login/login-page.vue') },
+    { path: '/', redirect: '/cards' },
     {
-      component: () => import('@/pages/login/login-page.vue'),
-      meta: { public: true, title: '管理员登录' },
-      name: 'login',
-      path: '/login'
+      path: '/cards',
+      component: () => import('@/pages/scenes/scene-list-page.vue'),
+      meta: { title: '卡片管理' }
     },
     {
-      component: () => import('@/layouts/admin-layout/admin-layout.vue'),
-      path: '/',
-      redirect: { name: 'dashboard' },
-      children: [
-        ...adminPageRoutes,
-        {
-          name: 'content-work-order',
-          path: 'content/work-orders/:id',
-          component: () => import('@/pages/content/content-work-order-page.vue'),
-          meta: {
-            title: '内容生产工作单',
-            capability: 'content.edit',
-            navigationPath: '/content/scenes'
-          }
-        },
-        {
-          name: 'content-work-item',
-          path: 'content/work-orders/:id/items/:itemId',
-          component: () => import('@/pages/content/content-work-item-page.vue'),
-          meta: {
-            title: '正文对照与修正',
-            capability: 'content.edit',
-            navigationPath: '/content/scenes'
-          }
-        },
-        {
-          name: 'learning-modules',
-          path: 'settings/learning-modules',
-          component: () => import('@/pages/settings/learning-modules-page.vue'),
-          meta: {
-            title: '学习模块配置',
-            capability: 'settings.read',
-            navigationPath: '/settings'
-          }
-        },
-        {
-          name: 'content-proofreading',
-          path: 'content/proofreading',
-          component: () => import('@/pages/content/content-work-order-page.vue'),
-          meta: {
-            title: '内容抽样校对',
-            capability: 'content.edit',
-            navigationPath: '/content/scenes'
-          }
-        },
-        {
-          name: 'content-short-reading-edit',
-          path: 'content/short-readings/:id/edit',
-          component: () => import('@/pages/content/short-reading-editor-page.vue'),
-          meta: {
-            title: '短文阅读编辑',
-            capability: 'content.edit',
-            navigationPath: '/content/scenes'
-          }
-        }
-      ]
-    }
+      path: '/cards/:id',
+      component: () => import('@/pages/scenes/scene-edit-page.vue'),
+      meta: { title: '卡片编辑' }
+    },
+    {
+      path: '/users',
+      component: () => import('@/pages/users/user-list-page.vue'),
+      meta: { title: '用户管理' }
+    },
+    {
+      path: '/users/:id',
+      component: () => import('@/pages/users/user-detail-page.vue'),
+      meta: { title: '用户详情' }
+    },
+    {
+      path: '/statistics',
+      component: () => import('@/pages/statistics/statistics-page.vue'),
+      meta: { title: '数据统计' }
+    },
+    { path: '/:pathMatch(.*)*', redirect: '/cards' }
   ]
 })
+router.beforeEach(async (to) => {
+  if (to.path === '/login') return true
+  const admin = useAdminStore()
+  try {
+    if (!admin.checked) await admin.resume()
+  } catch {
+    return { path: '/login', query: { return: to.fullPath } }
+  }
+  return admin.identity ? true : { path: '/login', query: { return: to.fullPath } }
+})
+export default router

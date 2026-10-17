@@ -1,29 +1,22 @@
 import { defineConfig, devices } from '@playwright/test'
-
 export default defineConfig({
-  expect: { timeout: 5_000 },
+  testDir: './tests/e2e',
   fullyParallel: false,
-  reporter: [['list']],
-  retries: 0,
-  testDir: './tests',
-  testMatch: ['e2e/**/*.spec.ts', 'visual/admin-pages.visual.spec.ts'],
-  timeout: 30_000,
   workers: 1,
-  use: {
-    baseURL: 'http://127.0.0.1:4173',
-    screenshot: 'only-on-failure',
-    trace: 'retain-on-failure'
-  },
+  retries: 0,
+  timeout: 45000,
+  reporter: 'list',
+  use: { baseURL: 'http://127.0.0.1:4173', trace: 'off', screenshot: 'only-on-failure' },
   webServer: {
-    command: 'pnpm dev --host 127.0.0.1 --port 4173',
+    command: 'pnpm dev --port 4173',
+    url: 'http://127.0.0.1:4173/login',
     reuseExistingServer: true,
-    timeout: 120_000,
-    url: 'http://127.0.0.1:4173/login'
+    timeout: 30000
   },
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], viewport: { height: 800, width: 1280 } }
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } }
     }
   ]
 })

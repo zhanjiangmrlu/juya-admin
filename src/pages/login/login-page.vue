@@ -1,214 +1,101 @@
 <script setup lang="ts">
-import { Lock, Reading, User } from '@element-plus/icons-vue'
-import { reactive } from 'vue'
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { useAuthStore } from '@/features/auth/auth-store'
-
-const authStore = useAuthStore()
-const route = useRoute()
-const router = useRouter()
-const passwordForm = reactive({ password: '', username: '' })
-
-/**
- * 提交账号密码、进入原目标页并清除页面中的明文密码
- *
- * @returns 密码步骤完成后的 Promise
- */
-async function submitPassword(): Promise<void> {
+import AppIcon from '@/components/app-icon/app-icon.vue'
+import { useAdminStore } from '@/stores/admin-store'
+const admin = useAdminStore(),
+  router = useRouter(),
+  route = useRoute()
+const username = ref(''),
+  password = ref(''),
+  busy = ref(false),
+  error = ref('')
+/** 登录成功后恢复同站安全目标，失败保留输入 */
+const submit = async () => {
+  if (busy.value) return
+  busy.value = true
+  error.value = ''
   try {
-    await authStore.submitPassword({ ...passwordForm })
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
-    await router.replace(redirect)
-  } catch {
-    // 错误提示由 Store 统一提供
+    await admin.login({ username: username.value, password: password.value })
+    const target = String(route.query.return || '/cards')
+    await router.replace(
+      target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/login')
+        ? target
+        : '/cards'
+    )
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : '登录失败，请重试'
   } finally {
-    passwordForm.password = ''
+    busy.value = false
   }
 }
 </script>
-
 <template>
-  <main class="login-page">
-    <section class="brand" aria-label="句芽英语管理后台介绍">
-      <div class="brand-content">
-        <span class="logo"
-          ><ElIcon><Reading /></ElIcon
-        ></span>
-        <p class="eyebrow">JUYA ENGLISH</p>
-        <h1 class="brand-title">让内容与体验运营<br />清晰、有序、可追踪</h1>
-        <p class="brand-description">
-          句芽英语单管理员后台，覆盖用户、权益、反馈与内容生产全流程。
-        </p>
-      </div>
-    </section>
-
-    <section class="form-area">
-      <div class="form-card">
-        <div class="form-heading">
-          <p class="eyebrow">ADMIN CONSOLE</p>
-          <h2 class="form-title">登录管理后台</h2>
-          <p class="form-description">请使用管理员账号和密码继续</p>
-        </div>
-
-        <ElAlert
-          v-if="authStore.errorMessage"
-          :closable="false"
-          :title="authStore.errorMessage"
-          type="error"
-          show-icon
-        />
-
-        <ElForm
-          class="form"
-          label-position="top"
-          :model="passwordForm"
-          @submit.prevent="submitPassword"
-        >
-          <ElFormItem label="管理员账号" required>
-            <ElInput
-              v-model.trim="passwordForm.username"
-              :prefix-icon="User"
-              autocomplete="username"
-            />
-          </ElFormItem>
-          <ElFormItem label="密码" required>
-            <ElInput
-              v-model="passwordForm.password"
-              :prefix-icon="Lock"
-              autocomplete="current-password"
-              show-password
-              type="password"
-              @keyup.enter="submitPassword"
-            />
-          </ElFormItem>
-          <ElButton
-            class="submit"
-            :disabled="!passwordForm.username || !passwordForm.password"
-            :loading="authStore.status === 'loading'"
-            native-type="submit"
-            type="primary"
-          >
-            登录
-          </ElButton>
-        </ElForm>
-      </div>
-    </section>
+  <main class="login-shell">
+    <form class="login-box" @submit.prevent="submit">
+      <div class="brand"><AppIcon :size="28" /><strong>句芽英语</strong></div>
+      <h1>内容管理后台</h1>
+      <p class="muted">登录后管理场景卡片与用户学习数据</p>
+      <label class="field"
+        >管理员账号<input
+          v-model="username"
+          autocomplete="username"
+          required
+          :disabled="busy"
+          placeholder="请输入管理员账号" /></label
+      ><label class="field"
+        >密码<input
+          v-model="password"
+          type="password"
+          autocomplete="current-password"
+          required
+          :disabled="busy"
+          placeholder="请输入密码"
+      /></label>
+      <p v-if="error" class="notice error" role="alert">{{ error }}</p>
+      <button class="primary block" type="submit" :disabled="busy">
+        {{ busy ? '正在登录…' : '登录后台' }}
+      </button>
+    </form>
   </main>
 </template>
-
 <style scoped lang="scss">
-.login-page {
-  display: grid;
-  grid-template-columns: minmax(420px, 0.95fr) minmax(520px, 1.05fr);
+.login-shell {
   min-height: 100vh;
-  background: var(--juya-color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 32px;
 
-  .brand,
-  .form-area {
-    display: grid;
-    place-items: center;
-    padding: 64px;
-  }
-
-  .brand {
-    position: relative;
-    overflow: hidden;
-    background: var(--juya-color-sidebar);
-    color: #fff;
-  }
-
-  .brand::after {
-    position: absolute;
-    right: -120px;
-    bottom: -140px;
-    width: 380px;
-    height: 380px;
-    border: 1px solid rgb(255 255 255 / 12%);
-    border-radius: 50%;
-    box-shadow: 0 0 0 80px rgb(255 255 255 / 3%);
-    content: '';
-  }
-
-  .brand-content {
-    z-index: 1;
-    max-width: 520px;
-  }
-
-  .logo {
-    display: grid;
-    width: 56px;
-    height: 56px;
-    margin-bottom: 40px;
+  .login-box {
+    width: 410px;
+    padding: 40px;
+    background: var(--paper);
+    border: 1px solid var(--line);
     border-radius: 14px;
-    background: #f7f5eb;
-    color: var(--juya-color-sidebar);
-    font-size: 30px;
-    place-items: center;
-  }
-
-  .eyebrow {
-    margin: 0 0 12px;
-    color: #75ad98;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-  }
-
-  .brand-title {
-    margin: 0;
-    font-size: clamp(34px, 4vw, 52px);
-    line-height: 1.28;
-  }
-
-  .brand-description {
-    max-width: 440px;
-    margin: 28px 0 0;
-    color: rgb(255 255 255 / 68%);
-    font-size: 16px;
-    line-height: 1.8;
-  }
-
-  .form-card {
-    width: min(100%, 420px);
-  }
-
-  .form-heading {
-    margin-bottom: 32px;
-  }
-
-  .form-title {
-    margin: 0;
-    color: var(--juya-color-text-primary);
-    font-size: 30px;
-    line-height: 1.3;
-  }
-
-  .form-description {
-    margin: 10px 0 0;
-    color: var(--juya-color-text-secondary);
-  }
-
-  .form {
-    margin-top: 24px;
-  }
-
-  .submit {
-    width: 100%;
-    margin-top: 8px;
-  }
-}
-
-@media (width <= 900px) {
-  .login-page {
-    grid-template-columns: 1fr;
+    box-shadow: 0 14px 45px #2547330a;
 
     .brand {
-      display: none;
+      margin-bottom: 28px;
     }
 
-    .form-area {
-      padding: 32px;
+    h1 {
+      font-size: 26px;
+      margin-bottom: 10px;
+    }
+
+    .field {
+      margin-top: 22px;
+    }
+
+    .block {
+      margin-top: 28px;
+    }
+
+    .notice {
+      margin-top: 16px;
     }
   }
 }
