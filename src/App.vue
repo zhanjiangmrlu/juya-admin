@@ -3,12 +3,15 @@ import { onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AppIcon from '@/components/app-icon/app-icon.vue'
+import { installAudioFocus } from '@/services/audio-focus'
 import { requestLogoutPermission } from '@/services/logout-guard'
 import { useAdminStore } from '@/stores/admin-store'
 const route = useRoute(),
   router = useRouter(),
   admin = useAdminStore(),
   error = ref('')
+const releaseAudioFocus = installAudioFocus()
+onBeforeUnmount(releaseAudioFocus)
 const navigation = [
   { to: '/cards', label: '卡片管理', icon: 'cards' },
   { to: '/users', label: '用户管理', icon: 'users' },

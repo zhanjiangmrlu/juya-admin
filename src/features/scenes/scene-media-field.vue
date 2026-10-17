@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import { mediaURL } from '@/services/display'
 import { api } from '@/services/http-client'
+import { waitForMedia } from '@/services/media-processing'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
 const props = defineProps<{ kind: 'image' | 'audio'; modelValue?: string | null; limit: number }>()
@@ -14,7 +15,8 @@ const busy = ref(false),
   audio = ref<HTMLAudioElement | null>(null)
 let selected: File | null = null,
   key = '',
-  alive = true
+  alive = true,
+  accepted: components['schemas']['MediaMetadata'] | null = null
 const accept = computed(() =>
   props.kind === 'image' ? '.jpg,.jpeg,.png,.webp' : '.mp3,.m4a,.wav,.aac'
 )
@@ -26,23 +28,38 @@ const send = async () => {
   error.value = ''
   percent.value = 0
   try {
-    const form = new FormData()
-    form.append('file', selected)
-    let value = await api.upload<components['schemas']['MediaMetadata']>(
-      `/api/admin/v1/media?kind=${props.kind}`,
-      form,
-      key,
-      (value) => {
-        percent.value = value
-      }
-    )
-    while (alive && !['ready', 'failed'].includes(value.state)) {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      if (!alive) return
-      value = await api.request(`/api/admin/v1/media/${value.id}/status`)
+    if (!accepted) {
+      const form = new FormData()
+      form.append('file', selected)
+      accepted = await api.upload<components['schemas']['MediaMetadata']>(
+        `/api/admin/v1/media?kind=${props.kind}`,
+        form,
+        key,
+        (value) => {
+          percent.value = value
+        }
+      )
+    } else if (accepted.state === 'failed') {
+      accepted = await api.request(`/api/admin/v1/media/${accepted.id}/retry`, {
+        method: 'POST',
+        key: crypto.randomUUID()
+      })
     }
+    const value = await waitForMedia(
+      accepted!,
+      async () => {
+        const latest = await api.request<components['schemas']['MediaMetadata']>(
+          `/api/admin/v1/media/${accepted!.id}/status`
+        )
+        if (alive) accepted = latest
+        return latest
+      },
+      { active: () => alive }
+    )
     if (!alive) return
-    if (value.state !== 'ready') throw new Error(value.error || '素材处理失败，请重试')
+    accepted = value
+    if (value.state === 'failed') throw new Error(value.error || '素材处理失败，请重试或更换文件')
+    if (value.state !== 'ready') throw new Error('素材仍在处理，可稍后继续查询')
     metadata.value = value
     emit('update:modelValue', value.id)
   } catch (reason) {
@@ -67,6 +84,7 @@ const choose = (event: Event) => {
     return
   }
   selected = file
+  accepted = null
   key = crypto.randomUUID()
   void send()
 }
@@ -125,7 +143,7 @@ onBeforeUnmount(() => {
     <p v-if="error" class="notice error" role="alert">
       {{ error }}
       <button v-if="selected" type="button" class="text" :disabled="busy" @click="send">
-        重试上传
+        继续处理／查询
       </button>
     </p>
   </div>

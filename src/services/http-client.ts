@@ -135,16 +135,35 @@ export const createHttpClient = (
    * @param form 已选择文件表单
    * @param key 本次上传的固定幂等键
    * @param onProgress 字节进度回调
+   * @param signal 取消本次传输，取消后仍可用原键查询接收结果
    * @returns 素材处理状态
    */
   const upload = <T>(
     path: string,
     form: FormData,
     key: string,
-    onProgress: (percent: number) => void
+    onProgress: (percent: number) => void,
+    signal?: AbortSignal
   ): Promise<T> =>
     new Promise((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new ApiError('upload_unknown', '传输已取消，接收结果待确认'))
+        return
+      }
       const xhr = xhrFactory()
+      /** 请求结束后移除取消监听 */
+      const clean = () => {
+        signal?.removeEventListener('abort', cancel)
+      }
+      /** 只停止本次传输，已接收的服务端任务继续保留 */
+      const cancel = () => {
+        xhr.abort()
+      }
+      xhr.onabort = () => {
+        clean()
+        reject(new ApiError('upload_unknown', '传输已取消，接收结果待确认；可查询或重试同一文件'))
+      }
+      signal?.addEventListener('abort', cancel, { once: true })
       xhr.open('POST', new URL(path, baseUrl || location.origin).toString())
       xhr.withCredentials = true
       xhr.timeout = 120000
@@ -153,14 +172,23 @@ export const createHttpClient = (
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) onProgress(Math.floor((event.loaded / event.total) * 100))
       }
-      xhr.onerror = xhr.ontimeout = () =>
+      xhr.onerror = xhr.ontimeout = () => {
+        clean()
         reject(new ApiError('network_unknown', '上传响应未知，请重试以确认结果'))
+      }
       xhr.onload = () => {
+        clean()
         let result
         try {
           result = JSON.parse(xhr.responseText)
         } catch {
-          reject(new ApiError('invalid_response', '上传失败，请重试'))
+          reject(
+            new ApiError(
+              xhr.status >= 200 && xhr.status < 300 ? 'response_unknown' : 'upload_failed',
+              '上传接收结果待确认，请查询或重试同一文件',
+              xhr.status
+            )
+          )
           return
         }
         if (xhr.status >= 200 && xhr.status < 300) {

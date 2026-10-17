@@ -216,6 +216,7 @@ onActivated(() => {
     <ScenePreview
       v-if="preview"
       :content="preview.content"
+      :pronunciation="{ cardId: preview.card_id, reference: { version_id: preview.version_id } }"
       mode="published"
       @close="preview = null"
     /><ElDialog

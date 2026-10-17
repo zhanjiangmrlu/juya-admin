@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { components } from '@/shared/contracts/generated/admin-api'
+import type { ScenePronunciationContext } from '@/shared/types/scene-components'
 
 import SceneReader from './scene-reader.vue'
 defineProps<{
   content: components['schemas']['SceneContent']
   mode: 'draft' | 'published'
+  pronunciation?: ScenePronunciationContext
   busy?: boolean
   error?: string
 }>()
@@ -19,7 +21,9 @@ defineEmits<{ close: []; publish: [] }>()
     destroy-on-close
     :close-on-click-modal="false"
     @close="$emit('close')"
-    ><div class="preview-scroll"><SceneReader :content="content" /></div>
+    ><div class="preview-scroll">
+      <SceneReader :content="content" :pronunciation="pronunciation" />
+    </div>
     <template #footer
       ><p v-if="error" class="notice error" role="alert">{{ error }}</p>
       <div class="row preview-footer">

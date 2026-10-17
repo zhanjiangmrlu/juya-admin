@@ -2,10 +2,42 @@
 import { onBeforeUnmount, ref } from 'vue'
 
 import AppIcon from '@/components/app-icon/app-icon.vue'
-import { mediaURL } from '@/services/display'
+import { useWordPronunciation } from '@/composables/use-word-pronunciation'
+import { claimAudioFocus } from '@/services/audio-focus'
+import { mediaURL, queryURL } from '@/services/display'
+import { api } from '@/services/http-client'
+import { loadPronunciation } from '@/services/pronunciation-service'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
-const props = defineProps<{ content: components['schemas']['SceneContent'] }>()
+import type { SceneReaderProps } from '@/shared/types/scene-components'
+const props = defineProps<SceneReaderProps>()
+const speech = useWordPronunciation(async (wordId, active) => {
+  if (!props.pronunciation) throw new Error('请先保存资料后试听')
+  audio.value?.pause()
+  const { cardId, reference } = props.pronunciation
+  const path = `/api/admin/v1/cards/${encodeURIComponent(cardId)}/words/${encodeURIComponent(wordId)}/pronunciation`
+  const url = await loadPronunciation(
+    {
+      active,
+      pause: () => new Promise((resolve) => setTimeout(resolve, 1000)),
+      request: (method, path, reference) =>
+        api.request<components['schemas']['SpeechState']>(
+          method === 'GET' ? queryURL(path, reference) : path,
+          method === 'POST' ? { method, body: reference } : {}
+        )
+    },
+    path,
+    reference
+  )
+  if (!url.startsWith('/api/admin/v1/')) throw new Error('发音地址暂不可用')
+  return (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '') + url
+})
+/** 完整音频主动播放时终止词汇试听 */
+const fullPlay = () => {
+  speech.stop()
+  if (audio.value) claimAudioFocus(audio.value)
+}
+
 const translated = ref(false),
   audio = ref<HTMLAudioElement | null>(null),
   imageError = ref(false),
@@ -41,7 +73,10 @@ onBeforeUnmount(() => audio.value?.pause())
 </script>
 <template>
   <article class="scene-reader">
-    <h1>{{ content.name }}</h1>
+    <header class="scene-heading">
+      <h1>{{ content.name }}</h1>
+      <button type="button" class="small" disabled>收藏（预览）</button>
+    </header>
     <figure v-if="content.image_id">
       <button type="button" class="picture" aria-label="查看场景大图" @click="imageExpanded = true">
         <img
@@ -54,20 +89,16 @@ onBeforeUnmount(() => audio.value?.pause())
     </figure>
     <section v-if="content.audio_id" class="audio">
       <h2><AppIcon name="play" :size="18" />完整音频</h2>
-      <audio ref="audio" :src="mediaURL(content.audio_id)" controls preload="none" />
+      <audio
+        ref="audio"
+        :src="mediaURL(content.audio_id)"
+        controls
+        preload="none"
+        @play="fullPlay"
+      />
     </section>
     <section>
-      <div class="between">
-        <h2>场景对话</h2>
-        <button
-          type="button"
-          data-action="translation"
-          class="text small"
-          @click="translated = !translated"
-        >
-          {{ translated ? '收起译文' : '显示译文' }}
-        </button>
-      </div>
+      <h2>场景对话</h2>
       <div v-for="line in content.dialogue" :key="line.id" class="dialogue">
         <small>{{ line.speaker }}</small>
         <p class="english">
@@ -76,15 +107,59 @@ onBeforeUnmount(() => audio.value?.pause())
             ><template v-else>{{ part.text }}</template></template
           >
         </p>
-        <p v-if="translated" class="translation">{{ line.chinese }}</p>
+      </div>
+      <button
+        type="button"
+        data-action="translation"
+        class="text small"
+        @click="translated = !translated"
+      >
+        {{ translated ? '收起译文' : '显示译文' }}
+      </button>
+      <div v-if="translated" class="translation-section">
+        <h3>完整译文</h3>
+        <div v-for="line in content.dialogue" :key="line.id" class="translation-line">
+          <small>{{ line.speaker }}</small>
+          <p class="translation">{{ line.chinese }}</p>
+        </div>
       </div>
     </section>
     <section>
       <h2>重点词汇 <small>本句释义</small></h2>
       <div v-for="word in content.vocabulary" :key="word.id" class="word">
-        <strong>{{ word.english }}</strong
-        ><span v-if="word.phonetic" class="phonetic">{{ word.phonetic }}</span>
+        <button
+          type="button"
+          class="word-trigger"
+          :data-word="word.id"
+          :disabled="
+            !pronunciation ||
+            !word.id ||
+            (speech.current.value === word.id && speech.status.value === 'loading')
+          "
+          @click="word.id && speech.play(word.id)"
+        >
+          <strong>{{ word.english }}</strong
+          ><span class="voice-label">{{
+            speech.current.value === word.id && speech.status.value === 'loading'
+              ? '加载中…'
+              : speech.current.value === word.id && speech.status.value === 'playing'
+                ? '播放中'
+                : '试听'
+          }}</span>
+        </button>
+        <span v-if="word.phonetic" class="phonetic">{{ word.phonetic }}</span>
         <p>{{ word.meaning }}</p>
+        <p v-if="word.source" class="source">
+          {{ content.dialogue?.find((line) => line.id === word.source?.line_id)?.english }}
+        </p>
+        <button
+          v-if="speech.current.value === word.id && speech.error.value"
+          type="button"
+          class="text small voice-error"
+          @click="word.id && speech.play(word.id)"
+        >
+          {{ speech.error.value }}
+        </button>
       </div>
     </section>
     <section v-if="content.chunks?.length">
@@ -94,6 +169,7 @@ onBeforeUnmount(() => audio.value?.pause())
         <p>{{ chunk.chinese }}</p>
       </div>
     </section>
+    <button type="button" class="preview-completion" disabled>已完成学习（预览）</button>
     <div class="preview-note">只读预览 · 不计学习或打卡</div>
     <ElDialog v-model="imageExpanded" title="场景大图" width="min(90vw, 1000px)" append-to-body
       ><img :src="mediaURL(content.image_id)" :alt="content.name" class="full-image"
@@ -110,6 +186,18 @@ onBeforeUnmount(() => audio.value?.pause())
   color: var(--ink);
   font-size: 14px;
   overflow-wrap: anywhere;
+
+  .scene-heading {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .preview-completion {
+    width: 100%;
+    margin-top: 28px;
+  }
 
   h1 {
     font-size: 22px;
@@ -190,11 +278,59 @@ onBeforeUnmount(() => audio.value?.pause())
     }
   }
 
+  .translation-section {
+    margin-top: 14px;
+    padding: 16px;
+    background: var(--soft);
+    border-radius: 8px;
+
+    h3 {
+      font-size: 13px;
+      margin: 0 0 14px;
+    }
+
+    small {
+      font-size: 11px;
+      color: var(--muted);
+    }
+  }
+
+  .translation-line + .translation-line {
+    margin-top: 14px;
+  }
+
   .translation {
     font-size: 13px;
     color: var(--muted);
     margin-top: 6px;
     line-height: 1.9;
+  }
+
+  .word-trigger {
+    padding: 0;
+    border: 0;
+    background: none;
+    display: flex;
+    gap: 14px;
+    color: var(--ink);
+    text-align: left;
+  }
+
+  .voice-label {
+    font-size: 11px;
+    color: var(--green);
+  }
+
+  .voice-error {
+    font-size: 11px;
+    color: var(--danger);
+  }
+
+  .source {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.8;
+    white-space: pre-wrap;
   }
 
   .word {

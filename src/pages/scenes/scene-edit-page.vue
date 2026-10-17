@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import AppState from '@/components/app-state/app-state.vue'
+import { useWordPronunciation } from '@/composables/use-word-pronunciation'
 import {
   blankContent,
   type CardPreview,
@@ -13,8 +14,10 @@ import {
 } from '@/features/scenes/editor-model'
 import SceneContentForm from '@/features/scenes/scene-content-form.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
+import { queryURL } from '@/services/display'
 import { api, ApiError } from '@/services/http-client'
 import { registerLogoutGuard } from '@/services/logout-guard'
+import { loadPronunciation } from '@/services/pronunciation-service'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
 const route = useRoute(),
@@ -32,6 +35,37 @@ const preview = ref<CardPreview | null>(null),
   publishError = ref(''),
   leaveOpen = ref(false)
 const dirty = computed(() => JSON.stringify(content.value) !== baseline.value)
+const draftSpeech = useWordPronunciation(async (wordId, active) => {
+  if (!(await save()) || !saved.value || !active()) throw new Error('请先保存资料后试听')
+  const path = `/api/admin/v1/cards/${encodeURIComponent(saved.value.id)}/words/${encodeURIComponent(wordId)}/pronunciation`
+  const url = await loadPronunciation(
+    {
+      active,
+      pause: () => new Promise((resolve) => setTimeout(resolve, 1000)),
+      request: (method, path, reference) =>
+        api.request<components['schemas']['SpeechState']>(
+          method === 'GET' ? queryURL(path, reference) : path,
+          method === 'POST' ? { method, body: reference } : {}
+        )
+    },
+    path,
+    { revision: saved.value.draft_revision }
+  )
+  if (!url.startsWith('/api/admin/v1/')) throw new Error('发音地址暂不可用')
+  return (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '') + url
+})
+const pronunciationState = computed(() => ({
+  current: draftSpeech.current.value,
+  status: draftSpeech.status.value,
+  error: draftSpeech.error.value
+}))
+watch(
+  content,
+  () => {
+    if (dirty.value) draftSpeech.stop()
+  },
+  { deep: true }
+)
 let saving: { fingerprint: string; run: () => Promise<CardView> } | null = null,
   publishing: (() => Promise<CardView>) | null = null,
   resolveLeave: ((allow: boolean) => void) | null = null
@@ -226,7 +260,10 @@ onBeforeUnmount(() => {
       <SceneContentForm
         v-model="content"
         :limits="limits"
+        :pronunciation="pronunciationState"
+        :save-before-pronounce="dirty || !saved"
         :disabled="busy"
+        @pronounce="draftSpeech.play"
         @uploading="uploading = $event"
       />
       <footer class="editor-actions">
@@ -242,6 +279,9 @@ onBeforeUnmount(() => {
     ><ScenePreview
       v-if="preview"
       :content="preview.content"
+      :pronunciation="
+        saved ? { cardId: saved.id, reference: { revision: preview.revision } } : undefined
+      "
       mode="draft"
       :busy="busy"
       :error="publishError"

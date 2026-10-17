@@ -107,3 +107,56 @@ it('treats a truncated success response as unknown instead of inventing saved da
     client.request('/api/admin/v1/cards', { method: 'POST', body: { content: { name: 'Coffee' } } })
   ).rejects.toMatchObject({ code: 'response_unknown' })
 })
+
+it('cancels upload transport while retaining the same key to recover a possibly accepted file', async () => {
+  const headers: Record<string, string>[] = []
+  const sockets: { onabort?: () => void; onload?: () => void; abort: () => void }[] = []
+  const client = createHttpClient(
+    'https://admin-api.example',
+    fetch,
+    () => {},
+    () => {
+      const sent: Record<string, string> = {}
+      headers.push(sent)
+      const xhr = {
+        upload: {},
+        open: () => {},
+        setRequestHeader: (key: string, value: string) => {
+          sent[key] = value
+        },
+        send: () => {},
+        abort: () => {
+          xhr.onabort?.()
+        },
+        onabort: undefined as (() => void) | undefined,
+        onload: undefined as (() => void) | undefined,
+        status: 201,
+        responseText: '{"id":"accepted"}'
+      }
+      sockets.push(xhr)
+      return xhr as unknown as XMLHttpRequest
+    }
+  )
+  const controller = new AbortController()
+  const pending = client.upload(
+    '/api/admin/v1/imports/batch/files?kind=docx',
+    new FormData(),
+    'same-upload-key',
+    () => {},
+    controller.signal
+  )
+  controller.abort()
+  await expect(pending).rejects.toMatchObject({ code: 'upload_unknown' })
+  const retried = client.upload(
+    '/api/admin/v1/imports/batch/files?kind=docx',
+    new FormData(),
+    'same-upload-key',
+    () => {}
+  )
+  sockets[1]!.onload?.()
+  await expect(retried).resolves.toEqual({ id: 'accepted' })
+  expect(headers.map((item) => item['Idempotency-Key'])).toEqual([
+    'same-upload-key',
+    'same-upload-key'
+  ])
+})

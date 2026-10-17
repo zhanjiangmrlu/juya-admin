@@ -3,13 +3,19 @@ import { ElMessageBox } from 'element-plus'
 import { ref } from 'vue'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
+import type { WordPronunciationState } from '@/shared/types/scene-components'
 
 import { parseDialogue, type SceneContent } from './editor-model'
 import SceneMediaField from './scene-media-field.vue'
 import SceneWordSource from './scene-word-source.vue'
 const content = defineModel<SceneContent>({ required: true })
-defineProps<{ limits: components['schemas']['UploadConfiguration'] | null; disabled?: boolean }>()
-const emit = defineEmits<{ uploading: [value: boolean] }>()
+defineProps<{
+  limits: components['schemas']['UploadConfiguration'] | null
+  disabled?: boolean
+  pronunciation?: WordPronunciationState
+  saveBeforePronounce?: boolean
+}>()
+const emit = defineEmits<{ uploading: [value: boolean]; pronounce: [id: string] }>()
 const pasted = ref(''),
   pasteOpen = ref(false),
   pasteError = ref(''),
@@ -219,11 +225,36 @@ const applyPaste = () => {
           /></label>
         </div>
         <label class="field"
-          >音标（选填）<input
-            v-model="word.phonetic"
-            maxlength="300"
-            placeholder="仅用于展示" /></label
-        ><SceneWordSource
+          >音标（选填）<input v-model="word.phonetic" maxlength="300" placeholder="仅用于展示"
+        /></label>
+        <button
+          v-if="pronunciation"
+          type="button"
+          class="text small"
+          :disabled="
+            !word.id ||
+            !word.english.trim() ||
+            (pronunciation.current === word.id && pronunciation.status === 'loading')
+          "
+          @click="word.id && emit('pronounce', word.id)"
+        >
+          {{
+            pronunciation.current === word.id && pronunciation.status === 'loading'
+              ? '正在准备发音…'
+              : pronunciation.current === word.id && pronunciation.status === 'playing'
+                ? '重新试听'
+                : saveBeforePronounce
+                  ? '保存并试听'
+                  : '试听发音'
+          }}
+        </button>
+        <p
+          v-if="pronunciation && pronunciation.current === word.id && pronunciation.error"
+          class="notice error"
+        >
+          {{ pronunciation.error }}
+        </p>
+        <SceneWordSource
           :dialogue="content.dialogue"
           :word="word"
           @select="word.source = $event"
@@ -232,6 +263,15 @@ const applyPaste = () => {
             v-model="word.pronunciation_issue"
             type="checkbox"
           />读音待核对（勾选后保留草稿，暂不发布）</label
+        >
+        <label v-if="word.pronunciation_issue || word.pronunciation_text" class="field"
+          >朗读文字（选填）<input
+            v-model="word.pronunciation_text"
+            maxlength="300"
+            placeholder="需要调整读音时填写英文朗读文字"
+          /><small class="muted"
+            >留空按词汇英文朗读；音标只用于展示。核对正确后再取消“读音待核对”。</small
+          ></label
         >
       </div>
       <button type="button" :disabled="content.vocabulary.length >= 100" @click="addWord">

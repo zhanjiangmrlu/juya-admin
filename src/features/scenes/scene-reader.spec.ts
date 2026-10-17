@@ -32,6 +32,11 @@ describe('read-only publication preview', () => {
     expect(page.text()).not.toContain('两杯茶')
     await page.get('[data-action="translation"]').trigger('click')
     expect(page.text()).toContain('两杯茶')
+    expect(page.findAll('.dialogue .translation')).toHaveLength(0)
+    expect(page.findAll('.translation-section .translation')).toHaveLength(1)
+    expect(page.text().indexOf('收起译文')).toBeGreaterThan(
+      page.text().indexOf('tea <img src=x> tea')
+    )
     expect(page.find('[data-action="complete"]').exists()).toBe(false)
     expect(page.find('[data-action="favorite"]').exists()).toBe(false)
   })
