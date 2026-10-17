@@ -14,6 +14,7 @@ const releaseAudioFocus = installAudioFocus()
 onBeforeUnmount(releaseAudioFocus)
 const navigation = [
   { to: '/cards', label: '卡片管理', icon: 'cards' },
+  { to: '/imports', label: '批量导入', icon: 'upload' },
   { to: '/users', label: '用户管理', icon: 'users' },
   { to: '/statistics', label: '数据统计', icon: 'chart' }
 ]

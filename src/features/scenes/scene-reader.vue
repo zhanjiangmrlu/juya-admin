@@ -14,8 +14,12 @@ const props = defineProps<SceneReaderProps>()
 const speech = useWordPronunciation(async (wordId, active) => {
   if (!props.pronunciation) throw new Error('请先保存资料后试听')
   audio.value?.pause()
-  const { cardId, reference } = props.pronunciation
-  const path = `/api/admin/v1/cards/${encodeURIComponent(cardId)}/words/${encodeURIComponent(wordId)}/pronunciation`
+  const context = props.pronunciation,
+    { reference } = context
+  const prefix = context.import
+    ? `/api/admin/v1/imports/${encodeURIComponent(context.import.batchId)}/items/${encodeURIComponent(context.import.itemId)}`
+    : `/api/admin/v1/cards/${encodeURIComponent(context.cardId)}`
+  const path = `${prefix}/words/${encodeURIComponent(wordId)}/pronunciation`
   const url = await loadPronunciation(
     {
       active,

@@ -10,6 +10,11 @@ const router = createRouter({
     { path: '/login', component: () => import('@/pages/login/login-page.vue') },
     { path: '/', redirect: '/cards' },
     {
+      path: '/imports',
+      component: () => import('@/pages/imports/import-workflow-page.vue'),
+      meta: { title: '批量导入' }
+    },
+    {
       path: '/cards',
       component: () => import('@/pages/scenes/scene-list-page.vue'),
       meta: { title: '卡片管理' }

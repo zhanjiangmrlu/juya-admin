@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import { mediaURL } from '@/services/display'
-import { api } from '@/services/http-client'
+import { api, ApiError } from '@/services/http-client'
 import { waitForMedia } from '@/services/media-processing'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -10,12 +10,15 @@ const props = defineProps<{ kind: 'image' | 'audio'; modelValue?: string | null;
 const emit = defineEmits<{ 'update:modelValue': [value: string]; busy: [value: boolean] }>()
 const busy = ref(false),
   percent = ref(0),
+  cancelled = ref(false),
   error = ref(''),
   metadata = ref<components['schemas']['MediaMetadata'] | null>(null),
   audio = ref<HTMLAudioElement | null>(null)
 let selected: File | null = null,
   key = '',
   alive = true,
+  receiptUnknown = false,
+  controller: AbortController | null = null,
   accepted: components['schemas']['MediaMetadata'] | null = null
 const accept = computed(() =>
   props.kind === 'image' ? '.jpg,.jpeg,.png,.webp' : '.mp3,.m4a,.wav,.aac'
@@ -27,7 +30,21 @@ const send = async () => {
   emit('busy', true)
   error.value = ''
   percent.value = 0
+  cancelled.value = false
+  controller = new AbortController()
   try {
+    if (!accepted && receiptUnknown) {
+      try {
+        const receipt = await api.request<components['schemas']['OperationResponse']>(
+          `/api/admin/v1/operations/${key}`
+        )
+        accepted = receipt.result as components['schemas']['MediaMetadata']
+        receiptUnknown = false
+      } catch (reason) {
+        if (!(reason instanceof ApiError) || reason.status !== 404) throw reason
+        receiptUnknown = false
+      }
+    }
     if (!accepted) {
       const form = new FormData()
       form.append('file', selected)
@@ -37,7 +54,8 @@ const send = async () => {
         key,
         (value) => {
           percent.value = value
-        }
+        },
+        controller.signal
       )
     } else if (accepted.state === 'failed') {
       accepted = await api.request(`/api/admin/v1/media/${accepted.id}/retry`, {
@@ -54,15 +72,24 @@ const send = async () => {
         if (alive) accepted = latest
         return latest
       },
-      { active: () => alive }
+      { active: () => alive && !cancelled.value }
     )
     if (!alive) return
+    if (cancelled.value) throw new Error('已停止等待，接收的素材仍会处理，可继续查询')
     accepted = value
     if (value.state === 'failed') throw new Error(value.error || '素材处理失败，请重试或更换文件')
     if (value.state !== 'ready') throw new Error('素材仍在处理，可稍后继续查询')
     metadata.value = value
     emit('update:modelValue', value.id)
   } catch (reason) {
+    if (
+      !accepted &&
+      (!(reason instanceof ApiError) ||
+        !reason.status ||
+        reason.status >= 500 ||
+        reason.code === 'response_unknown')
+    )
+      receiptUnknown = true
     if (alive) error.value = reason instanceof Error ? reason.message : '上传失败，请重试'
   } finally {
     if (alive) {
@@ -70,6 +97,11 @@ const send = async () => {
       emit('busy', false)
     }
   }
+}
+/** 停止本地传输或等待，保留原素材、接收编号与操作标识 */
+const cancel = () => {
+  cancelled.value = true
+  controller?.abort()
 }
 /** 选择新素材前校验当前环境限制
  * @param event 文件选择事件
@@ -85,6 +117,7 @@ const choose = (event: Event) => {
   }
   selected = file
   accepted = null
+  receiptUnknown = false
   key = crypto.randomUUID()
   void send()
 }
@@ -103,6 +136,7 @@ watch(
 )
 onBeforeUnmount(() => {
   alive = false
+  controller?.abort()
   audio.value?.pause()
 })
 </script>
@@ -140,9 +174,25 @@ onBeforeUnmount(() => {
           : 'MP3 / M4A / WAV / AAC，上传一份完整对话音频'
       }}<br />最大 {{ Math.floor(limit / 1024 / 1024) }} MB
     </p>
+    <button
+      v-if="busy"
+      type="button"
+      class="text small"
+      data-action="cancel-upload"
+      @click="cancel"
+    >
+      {{ percent < 100 ? '取消本次上传' : '停止等待' }}
+    </button>
     <p v-if="error" class="notice error" role="alert">
       {{ error }}
-      <button v-if="selected" type="button" class="text" :disabled="busy" @click="send">
+      <button
+        v-if="selected"
+        type="button"
+        class="text"
+        data-action="recover-upload"
+        :disabled="busy"
+        @click="send"
+      >
         继续处理／查询
       </button>
     </p>

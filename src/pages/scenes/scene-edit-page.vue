@@ -13,6 +13,7 @@ import {
   type SceneContent
 } from '@/features/scenes/editor-model'
 import SceneContentForm from '@/features/scenes/scene-content-form.vue'
+import SceneDocxImport from '@/features/scenes/scene-docx-import.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import { queryURL } from '@/services/display'
 import { api, ApiError } from '@/services/http-client'
@@ -29,6 +30,7 @@ const limits = ref<components['schemas']['UploadConfiguration'] | null>(null),
   loading = ref(true),
   busy = ref(false),
   uploading = ref(false),
+  readingDocx = ref(false),
   error = ref(''),
   issues = ref<{ field?: string; message?: string }[]>([])
 const preview = ref<CardPreview | null>(null),
@@ -111,7 +113,7 @@ const load = async () => {
  * @returns 是否保存成功
  */
 const save = async () => {
-  if (busy.value || uploading.value) return false
+  if (busy.value || uploading.value || readingDocx.value) return false
   if (saved.value && !dirty.value) return true
   busy.value = true
   error.value = ''
@@ -190,7 +192,7 @@ const publish = async () => {
  * @param event 浏览器离开事件
  */
 const beforeUnload = (event: BeforeUnloadEvent) => {
-  if (dirty.value || uploading.value) {
+  if (dirty.value || uploading.value || readingDocx.value) {
     event.preventDefault()
     event.returnValue = ''
   }
@@ -210,7 +212,7 @@ let pendingLeave: Promise<boolean> | null = null
  * @returns 是否明确允许离开
  */
 const confirmLeaving = (): Promise<boolean> => {
-  if (busy.value || uploading.value) {
+  if (busy.value || uploading.value || readingDocx.value) {
     ElMessage.info('请等待当前操作完成')
     return Promise.resolve(false)
   }
@@ -257,11 +259,18 @@ onBeforeUnmount(() => {
           <li v-for="(issue, index) in issues" :key="index">{{ issue.message }}</li>
         </ul>
       </div>
+      <SceneDocxImport
+        :content="content"
+        :disabled="busy || uploading"
+        @apply="content = $event"
+        @busy="readingDocx = $event"
+      />
       <SceneContentForm
         v-model="content"
         :limits="limits"
         :pronunciation="pronunciationState"
         :save-before-pronounce="dirty || !saved"
+        :pronunciation-disabled="busy || uploading || readingDocx"
         :disabled="busy"
         @pronounce="draftSpeech.play"
         @uploading="uploading = $event"
@@ -270,9 +279,14 @@ onBeforeUnmount(() => {
         <span class="muted small">{{
           uploading ? '素材正在处理，请稍候' : dirty ? '有未保存修改' : saved ? '草稿已保存' : ''
         }}</span
-        ><button type="button" :disabled="busy || uploading" @click="save">
+        ><button type="button" :disabled="busy || uploading || readingDocx" @click="save">
           {{ busy ? '正在处理…' : '保存草稿' }}</button
-        ><button type="button" class="primary" :disabled="busy || uploading" @click="openPreview">
+        ><button
+          type="button"
+          class="primary"
+          :disabled="busy || uploading || readingDocx"
+          @click="openPreview"
+        >
           预览并发布
         </button>
       </footer></template

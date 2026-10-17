@@ -14,6 +14,8 @@ defineProps<{
   disabled?: boolean
   pronunciation?: WordPronunciationState
   saveBeforePronounce?: boolean
+  saveBeforePronounceLabel?: string
+  pronunciationDisabled?: boolean
 }>()
 const emit = defineEmits<{ uploading: [value: boolean]; pronounce: [id: string] }>()
 const pasted = ref(''),
@@ -232,6 +234,7 @@ const applyPaste = () => {
           type="button"
           class="text small"
           :disabled="
+            pronunciationDisabled ||
             !word.id ||
             !word.english.trim() ||
             (pronunciation.current === word.id && pronunciation.status === 'loading')
@@ -244,7 +247,7 @@ const applyPaste = () => {
               : pronunciation.current === word.id && pronunciation.status === 'playing'
                 ? '重新试听'
                 : saveBeforePronounce
-                  ? '保存并试听'
+                  ? saveBeforePronounceLabel || '保存并试听'
                   : '试听发音'
           }}
         </button>
