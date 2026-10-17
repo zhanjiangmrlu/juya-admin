@@ -133,6 +133,7 @@ const poll = async () => {
   const id = batch.value.id,
     run = ++pollRun
   polling.value = true
+  notice.value = ''
   try {
     for (let count = 0; count < 20 && alive && run === pollRun; count++) {
       const value = await api.request<ImportBatch>(`/api/admin/v1/imports/${id}`)
