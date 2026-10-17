@@ -114,16 +114,28 @@ const load = async () => {
  */
 const save = async () => {
   if (busy.value || uploading.value || readingDocx.value) return false
-  if (saved.value && !dirty.value) return true
+  if (saved.value && !dirty.value && !saving) return true
   busy.value = true
   error.value = ''
   issues.value = []
   try {
-    const body = saved.value
+    let body = saved.value
       ? { revision: saved.value.draft_revision, content: prepareContent(content.value) }
       : { content: prepareContent(content.value) }
-    const fingerprint = JSON.stringify(body)
-    if (!saving || saving.fingerprint !== fingerprint)
+    let fingerprint = JSON.stringify(body)
+    if (saving && saving.fingerprint !== fingerprint) {
+      // 先收尾已提交但回执未知的原操作，再用返回修订保存当前输入
+      const wanted = prepareContent(content.value)
+      const recovered = await saving.run()
+      saved.value = recovered
+      baseline.value = JSON.stringify(recovered.content)
+      preview.value = null
+      saving = null
+      content.value = wanted
+      body = { revision: recovered.draft_revision, content: wanted }
+      fingerprint = JSON.stringify(body)
+    }
+    if (!saving)
       saving = {
         fingerprint,
         run: api.operation<CardView>(
@@ -140,7 +152,11 @@ const save = async () => {
     return true
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '保存失败，请重试'
-    if (reason instanceof ApiError) issues.value = reason.details
+    if (reason instanceof ApiError) {
+      issues.value = reason.details
+      if (reason.status >= 400 && reason.status < 500 && ![408, 429].includes(reason.status))
+        saving = null
+    }
     return false
   } finally {
     busy.value = false
