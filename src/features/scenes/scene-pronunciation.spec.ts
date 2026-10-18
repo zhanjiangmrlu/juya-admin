@@ -48,6 +48,7 @@ it('pauses full audio without losing its position and ignores a late previous wo
       pronunciation: { cardId: 'card', reference: { revision: 2 } },
       content: {
         name: 'test',
+        title_en: '',
         image_id: null,
         audio_id: 'full',
         dialogue: [],

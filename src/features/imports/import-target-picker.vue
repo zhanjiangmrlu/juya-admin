@@ -2,6 +2,7 @@
 import { onBeforeUnmount, ref } from 'vue'
 
 import SceneReader from '@/features/scenes/scene-reader.vue'
+import SceneTitle from '@/features/scenes/scene-title.vue'
 import { mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
 
@@ -79,7 +80,7 @@ onBeforeUnmount(() => {
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>
     <template v-if="!chosen">
       <form class="row target-search" @submit.prevent="find(1)">
-        <input v-model="search" aria-label="搜索更新目标" placeholder="按卡片名称查找" /><button
+        <input v-model="search" aria-label="搜索更新目标" placeholder="搜索中文或英文标题" /><button
           :disabled="busy"
           type="submit"
         >
@@ -100,7 +101,10 @@ onBeforeUnmount(() => {
           v-if="card.display_thumbnail_id"
           :src="mediaURL(card.display_thumbnail_id)"
           alt="目标缩略图"
-        /><span>{{ card.display_name || card.content.name || '未命名草稿' }}</span
+        /><span
+          ><SceneTitle
+            :name="card.display_name || card.content.name"
+            :title-en="card.display_title_en" /></span
         ><button type="button" :disabled="busy" @click="select(card.id)">选择并核对差异</button>
       </div>
       <div v-if="total" class="row">
@@ -114,7 +118,10 @@ onBeforeUnmount(() => {
     </template>
     <template v-else>
       <div class="between target-search">
-        <strong>将更新：{{ chosen.content.name || '未命名草稿' }}</strong
+        <strong
+          >将更新：<SceneTitle
+            :name="chosen.content.name"
+            :title-en="chosen.content.title_en" /></strong
         ><button type="button" @click="reset">重新选择</button>
       </div>
       <div class="comparison">

@@ -25,6 +25,12 @@ let key = '',
   receiptUnknown = false,
   controller: AbortController | null = null
 const accepted = ref<components['schemas']['MediaMetadata'] | null>(null)
+const needsPlayback = computed(
+  () =>
+    props.kind === 'audio' &&
+    metadata.value?.content_type?.startsWith('audio/') &&
+    !metadata.value.playback_id
+)
 const accept = computed(() =>
   props.kind === 'image' ? '.jpg,.jpeg,.png,.webp' : '.mp3,.m4a,.wav,.aac'
 )
@@ -105,6 +111,51 @@ const send = async () => {
     }
   }
 }
+/** 处理历史音频的播放副本，保留原素材引用及已发布版本的可读性 */
+const prepareLegacy = async () => {
+  if (!props.modelValue || busy.value) return
+  busy.value = true
+  cancelled.value = false
+  error.value = ''
+  emit('busy', true)
+  try {
+    const id = props.modelValue
+    const initial = await api.request<components['schemas']['MediaMetadata']>(
+      `/api/admin/v1/media/${id}/retry`,
+      {
+        method: 'POST',
+        key: crypto.randomUUID()
+      }
+    )
+    accepted.value = initial
+    metadata.value = initial
+    const latest = await waitForMedia(
+      initial,
+      async () => {
+        const value = await api.request<components['schemas']['MediaMetadata']>(
+          `/api/admin/v1/media/${id}/status`
+        )
+        if (alive) {
+          accepted.value = value
+          metadata.value = value
+        }
+        return value
+      },
+      { active: () => alive && !cancelled.value }
+    )
+    if (!alive) return
+    metadata.value = latest
+    if (latest.state === 'failed') throw new Error(latest.error || '兼容处理失败，请重试')
+    if (latest.state !== 'ready') throw new Error('音频仍在处理，可稍后继续查询')
+  } catch (reason) {
+    if (alive) error.value = reason instanceof Error ? reason.message : '兼容处理失败，请重试'
+  } finally {
+    if (alive) {
+      busy.value = false
+      emit('busy', false)
+    }
+  }
+}
 /** 停止本地传输或等待，保留原素材、接收编号与操作标识 */
 const cancel = () => {
   cancelled.value = true
@@ -166,14 +217,33 @@ onBeforeUnmount(() => {
         }}<span v-if="metadata?.duration"> · {{ Math.round(metadata.duration) }} 秒</span>
       </p>
     </div>
-    <p v-else-if="kind === 'audio'" class="small muted">未上传完整音频</p>
+    <div v-if="needsPlayback" class="notice">
+      <p>历史音频需兼容处理后才能重新发布；处理期间已发布内容仍可访问。</p>
+      <button
+        type="button"
+        data-action="prepare-legacy-audio"
+        :disabled="busy"
+        @click="prepareLegacy"
+      >
+        兼容处理／继续查询
+      </button>
+    </div>
+    <p v-if="!modelValue && kind === 'audio'" class="small muted">未上传完整音频</p>
     <p v-if="selected" class="small">
       {{ selected.name }} · {{ (selected.size / 1024 / 1024).toFixed(2) }} MB{{
         busy && modelValue ? ' · 待替换，旧文件仍有效' : ''
       }}
     </p>
     <AppUploadProgress v-if="busy && !accepted" :progress="progress" />
-    <p v-else-if="busy" role="status">上传完成，正在校验{{ kind === 'audio' ? '音频' : '图片' }}</p>
+    <p v-else-if="busy" role="status">
+      {{
+        accepted?.processing_stage === 'converting'
+          ? '已上传，正在兼容处理为 MP3'
+          : kind === 'audio'
+            ? '上传完成，正在校验音频'
+            : '上传完成，正在校验图片'
+      }}
+    </p>
     <label class="upload-button"
       ><input type="file" :accept="accept" :disabled="busy || !limit" @change="choose" /><span>{{
         busy && accepted
@@ -193,7 +263,7 @@ onBeforeUnmount(() => {
       {{
         kind === 'image'
           ? 'PNG / JPEG / WebP 静态图片，自动生成缩略图'
-          : 'MP3 / M4A / WAV / AAC，上传一份完整对话音频'
+          : 'MP3 / M4A / WAV / AAC，上传一份完整对话音频；原件保留并兼容处理为 MP3'
       }}<br />最大 {{ Math.floor(limit / 1024 / 1024) }} MB
     </p>
     <button

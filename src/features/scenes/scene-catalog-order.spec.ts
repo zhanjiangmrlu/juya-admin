@@ -11,6 +11,7 @@ it('pages the global snapshot and saves a cross-page move without dropping hidde
   const values = Array.from({ length: 21 }, (_, index) => ({
     id: `c${index + 1}`,
     name: `卡片${index + 1}`,
+    title_en: '',
     image_id: null
   }))
   let saved: { card_ids: string[] } | null = null
@@ -69,13 +70,13 @@ it('keeps a rejected temporary order and rebases new publications before another
       items:
         reads === 1
           ? [
-              { id: 'one', name: 'First', image_id: null },
-              { id: 'two', name: 'Second', image_id: null }
+              { id: 'one', name: 'First', title_en: '', image_id: null },
+              { id: 'two', name: 'Second', title_en: '', image_id: null }
             ]
           : [
-              { id: 'one', name: 'First', image_id: null },
-              { id: 'two', name: 'Second', image_id: null },
-              { id: 'three', name: 'New', image_id: null }
+              { id: 'one', name: 'First', title_en: '', image_id: null },
+              { id: 'two', name: 'Second', title_en: '', image_id: null },
+              { id: 'three', name: 'New', title_en: '', image_id: null }
             ]
     }
   })
@@ -99,11 +100,14 @@ it('keeps a rejected temporary order and rebases new publications before another
     await page.get('[aria-label="上移 Second"]').trigger('click')
     await page.get('[data-action="save-order"]').trigger('click')
     await flushPromises()
-    expect(page.findAll('.catalog-name').map((item) => item.text())).toEqual(['Second', 'First'])
+    expect(page.findAll('.catalog-name .chinese').map((item) => item.text())).toEqual([
+      'Second',
+      'First'
+    ])
     expect(page.text()).toContain('已发布卡片或顺序已变化')
     await page.get('[data-action="refresh-order"]').trigger('click')
     await flushPromises()
-    expect(page.findAll('.catalog-name').map((item) => item.text())).toEqual([
+    expect(page.findAll('.catalog-name .chinese').map((item) => item.text())).toEqual([
       'Second',
       'First',
       'New'
@@ -119,15 +123,15 @@ it('uses the latest official order when refresh has no local changes to preserve
   request.mockResolvedValueOnce({
     version: 'one',
     items: [
-      { id: 'one', name: 'First', image_id: null },
-      { id: 'two', name: 'Second', image_id: null }
+      { id: 'one', name: 'First', title_en: '', image_id: null },
+      { id: 'two', name: 'Second', title_en: '', image_id: null }
     ]
   })
   request.mockResolvedValueOnce({
     version: 'two',
     items: [
-      { id: 'two', name: 'Second', image_id: null },
-      { id: 'one', name: 'First', image_id: null }
+      { id: 'two', name: 'Second', title_en: '', image_id: null },
+      { id: 'one', name: 'First', title_en: '', image_id: null }
     ]
   })
   const router = createRouter({
@@ -141,7 +145,10 @@ it('uses the latest official order when refresh has no local changes to preserve
     await flushPromises()
     await page.get('[data-action="refresh-order"]').trigger('click')
     await flushPromises()
-    expect(page.findAll('.catalog-name').map((item) => item.text())).toEqual(['Second', 'First'])
+    expect(page.findAll('.catalog-name .chinese').map((item) => item.text())).toEqual([
+      'Second',
+      'First'
+    ])
     expect(page.text()).toContain('当前已保存顺序')
   } finally {
     page.unmount()

@@ -11,6 +11,7 @@ import SceneCardActions from '@/features/scenes/scene-card-actions.vue'
 import SceneCatalogOrder from '@/features/scenes/scene-catalog-order.vue'
 import SceneImagePreview from '@/features/scenes/scene-image-preview.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
+import SceneTitle from '@/features/scenes/scene-title.vue'
 import { dateText, mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
 
@@ -437,10 +438,11 @@ onBeforeUnmount(() => {
         发布记录暂未获取<button type="button" class="text" @click="loadBatches()">重新获取</button>
       </p>
       <form class="filters" @submit.prevent="filter({ search })">
-        <input v-model="search" aria-label="搜索卡片名称" placeholder="搜索卡片名称" /><button
-          type="submit"
-        >
-          <AppIcon name="search" :size="16" />搜索</button
+        <input
+          v-model="search"
+          aria-label="搜索中文或英文标题"
+          placeholder="搜索中文或英文标题"
+        /><button type="submit"><AppIcon name="search" :size="16" />搜索</button
         ><select
           :value="status"
           aria-label="发布状态"
@@ -508,7 +510,11 @@ onBeforeUnmount(() => {
                     /><span v-else>查看场景图</span></button
                   ><span v-else class="small muted">暂无场景图</span>
                   <div>
-                    <span class="name">{{ card.display_name || '未命名草稿' }}</span>
+                    <SceneTitle
+                      class="name"
+                      :name="card.display_name"
+                      :title-en="card.display_title_en"
+                    />
                   </div>
                 </div>
               </td>
@@ -593,7 +599,12 @@ onBeforeUnmount(() => {
       :show-close="!actionBusy"
       @close="confirmation = null"
       ><template v-if="confirmation"
-        ><h3>{{ confirmation.card.display_name || '未命名草稿' }}</h3>
+        ><h3>
+          <SceneTitle
+            :name="confirmation.card.display_name"
+            :title-en="confirmation.card.display_title_en"
+          />
+        </h3>
         <p class="impact">
           {{
             confirmation.kind === 'delete'

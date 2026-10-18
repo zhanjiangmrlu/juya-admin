@@ -4,11 +4,40 @@ import { describe, expect, it } from 'vitest'
 import SceneReader from './scene-reader.vue'
 
 describe('read-only publication preview', () => {
+  it('shows both saved titles and independently hides missing vocabulary fields', () => {
+    const page = mount(SceneReader, {
+      props: {
+        content: {
+          name: '戏剧社',
+          title_en: 'Choosing a Play!',
+          dialogue: [],
+          vocabulary: [
+            {
+              id: 'word',
+              english: 'drama',
+              meaning: '',
+              phonetic: '',
+              pronunciation_text: '',
+              pronunciation_issue: false
+            }
+          ],
+          chunks: []
+        }
+      }
+    })
+    expect(page.text()).toContain('Choosing a Play!')
+    expect(page.text()).toContain('戏剧社')
+    expect(page.text()).toContain('drama')
+    expect(page.find('.word .meaning').exists()).toBe(false)
+    expect(page.find('.word .phonetic').exists()).toBe(false)
+    page.unmount()
+  })
   it('escapes dialogue, highlights only the confirmed occurrence and never offers learner actions', async () => {
     const page = mount(SceneReader, {
       props: {
         content: {
           name: '点茶',
+          title_en: '',
           dialogue: [
             { id: 'one', speaker: 'A', english: 'tea <img src=x> tea', chinese: '两杯茶' }
           ],

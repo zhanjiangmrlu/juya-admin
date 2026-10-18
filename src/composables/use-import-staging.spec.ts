@@ -22,6 +22,7 @@ const batch = {
       revision: 1,
       content: {
         name: 'Initial',
+        title_en: '',
         image_id: null,
         audio_id: null,
         dialogue: [],

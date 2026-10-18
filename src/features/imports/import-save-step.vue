@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import SceneTitle from '@/features/scenes/scene-title.vue'
 import { importErrors, importStates } from '@/shared/constants/import'
 
 import type { ImportConfirmation, ImportEntry } from '@/shared/types/import'
@@ -49,7 +50,10 @@ const counts = computed(() => ({
           )"
           :key="entry.item.id"
         >
-          <strong>{{ entry.edit.content.name || '未命名草稿' }}</strong
+          <strong
+            ><SceneTitle
+              :name="entry.edit.content.name"
+              :title-en="entry.edit.content.title_en" /></strong
           ><span
             >{{ entry.edit.target_card_id || entry.item.saved_card_id ? '更新草稿' : '新增草稿' }} ·
             {{ entry.item.issues.length ? '仍待补充' : '资料完整' }}</span
@@ -75,7 +79,9 @@ const counts = computed(() => ({
         </thead>
         <tbody>
           <tr v-for="entry in entries" :key="entry.item.id">
-            <td>{{ entry.edit.content.name }}</td>
+            <td>
+              <SceneTitle :name="entry.edit.content.name" :title-en="entry.edit.content.title_en" />
+            </td>
             <td>
               {{
                 entry.item.source_zip_name

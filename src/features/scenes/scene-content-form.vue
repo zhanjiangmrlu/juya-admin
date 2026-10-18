@@ -107,8 +107,23 @@ const applyPaste = () => {
     <section id="field-basic" class="panel">
       <h2>1. 基本资料</h2>
       <label class="field"
-        >卡片名称<input v-model="content.name" maxlength="160" placeholder="例如：在咖啡店点单"
+        >中文标题<input
+          v-model="content.name"
+          aria-label="中文标题"
+          maxlength="160"
+          placeholder="例如：在咖啡店点单"
       /></label>
+      <small v-if="!content.name?.trim()" class="muted">待补充中文标题</small>
+      <label class="field"
+        >英文标题<input
+          v-model="content.title_en"
+          aria-label="英文标题"
+          maxlength="300"
+          placeholder="例如：Ordering Coffee"
+      /></label>
+      <small v-if="!content.title_en?.trim()" class="muted"
+        >待补充英文标题，草稿可先保存，发布前需补齐</small
+      >
       <p v-if="!limits" class="notice error">暂未获取上传限制，请重试加载页面</p>
       <div class="media-grid">
         <SceneMediaField
@@ -186,7 +201,7 @@ const applyPaste = () => {
     </section>
     <section id="field-vocabulary" class="panel">
       <h2>3. 重点词汇</h2>
-      <p class="section-help">填写本句释义，并确认对应原句中的具体片段</p>
+      <p class="section-help">本句释义与音标独立选填，请确认对应原句中的具体片段</p>
       <div v-for="(word, index) in content.vocabulary" :key="word.id" class="entry">
         <div class="between">
           <strong>词汇 {{ index + 1 }}</strong>
@@ -223,7 +238,7 @@ const applyPaste = () => {
               maxlength="300"
               @input="word.source = null" /></label
           ><label class="field"
-            >本句中文释义<input v-model="word.meaning" maxlength="2000"
+            >本句中文释义（选填）<input v-model="word.meaning" maxlength="2000"
           /></label>
         </div>
         <label class="field"

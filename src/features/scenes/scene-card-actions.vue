@@ -5,6 +5,8 @@ import { api, ApiError } from '@/services/http-client'
 
 import type { CardView } from '@/features/scenes/editor-model'
 import type { components } from '@/shared/contracts/generated/admin-api'
+
+import SceneTitle from './scene-title.vue'
 type Batch = components['schemas']['ActionBatchView']
 type Selection = components['schemas']['ActionSelection']
 const props = defineProps<{ action: 'offline' | 'delete'; cardIds: string[]; batchId?: string }>()
@@ -292,7 +294,7 @@ onBeforeUnmount(() => {
       </p>
       <ul>
         <li v-for="item in result.items" :key="item.id">
-          {{ item.name || '未命名卡片' }} · {{ reason(item) }}
+          <SceneTitle :name="item.name" :title-en="item.title_en" /> · {{ reason(item) }}
         </li>
       </ul>
       <button
@@ -318,7 +320,7 @@ onBeforeUnmount(() => {
       </p>
       <ul>
         <li v-for="card in cards" :key="card.id">
-          {{ card.display_name || '未命名草稿' }} ·
+          <SceneTitle :name="card.display_name" :title-en="card.display_title_en" /> ·
           {{ card.status === 'published' ? '已发布' : card.status === 'draft' ? '草稿' : '已下线'
           }}{{ eligible.includes(card) ? '' : ' · 当前状态不适用，跳过' }}
         </li>

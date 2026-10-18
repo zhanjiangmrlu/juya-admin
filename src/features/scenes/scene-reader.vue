@@ -10,6 +10,7 @@ import type { components } from '@/shared/contracts/generated/admin-api'
 import type { SceneReaderProps } from '@/shared/types/scene-components'
 
 import SceneAudio from './scene-audio.vue'
+import SceneTitle from './scene-title.vue'
 const props = defineProps<SceneReaderProps>()
 const speech = useWordPronunciation(async (wordId, active) => {
   if (!props.pronunciation) throw new Error('请先保存资料后试听')
@@ -84,7 +85,7 @@ onBeforeUnmount(() => audio.value?.stop())
 <template>
   <article class="scene-reader">
     <header class="scene-heading">
-      <h1>{{ content.name }}</h1>
+      <h1><SceneTitle :name="content.name" :title-en="content.title_en" /></h1>
       <button type="button" class="small" disabled>收藏（预览）</button>
     </header>
     <figure v-if="content.image_id">
@@ -152,7 +153,7 @@ onBeforeUnmount(() => audio.value?.stop())
           }}</span>
         </button>
         <span v-if="word.phonetic" class="phonetic">{{ word.phonetic }}</span>
-        <p>{{ word.meaning }}</p>
+        <p v-if="word.meaning" class="meaning">{{ word.meaning }}</p>
         <p v-if="word.source" class="source">
           {{ content.dialogue?.find((line) => line.id === word.source?.line_id)?.english }}
         </p>

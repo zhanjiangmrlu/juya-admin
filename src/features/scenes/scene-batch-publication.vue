@@ -8,6 +8,8 @@ import { publicationErrors } from '@/shared/constants/publication'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
 import type { BatchPublicationProps, PublicationCheck } from '@/shared/types/publication'
+
+import SceneTitle from './scene-title.vue'
 const props = withDefaults(defineProps<BatchPublicationProps>(), { cardIds: () => [] })
 const emit = defineEmits<{ close: [batchId: string | null] }>()
 const checks = ref<PublicationCheck[]>([]),
@@ -319,7 +321,7 @@ onBeforeUnmount(() => {
         </thead>
         <tbody>
           <tr v-for="item in result.items" :key="item.id">
-            <td>{{ item.name }}</td>
+            <td><SceneTitle :name="item.name" :title-en="item.title_en" /></td>
             <td>
               {{
                 item.state === 'succeeded'
@@ -370,15 +372,26 @@ onBeforeUnmount(() => {
             :class="{ active: preview?.id === check.id }"
             @click="activeId = check.id"
           >
-            {{ check.name }}
+            <SceneTitle
+              :name="check.name"
+              :title-en="check.preview?.content.title_en ?? check.card?.content.title_en"
+            />
           </button>
           <div v-for="check in blocked" :key="check.id" class="blocked-card">
-            <strong>{{ check.name }}</strong>
+            <strong
+              ><SceneTitle
+                :name="check.name"
+                :title-en="check.preview?.content.title_en ?? check.card?.content.title_en"
+            /></strong>
             <p>{{ check.reason }}</p>
             <RouterLink :to="`/cards/${check.id}`">补充资料</RouterLink>
           </div>
           <p v-for="check in unchanged" :key="check.id" class="unchanged-card">
-            {{ check.name }} · 无需重复发布
+            <SceneTitle
+              :name="check.name"
+              :title-en="check.preview?.content.title_en ?? check.card?.content.title_en"
+            />
+            · 无需重复发布
           </p>
         </div>
         <div class="review-preview">

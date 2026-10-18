@@ -79,3 +79,28 @@ it.each(['image', 'audio'] as const)(
     page.unmount()
   }
 )
+
+it('prepares a legacy audio reference explicitly without uploading or replacing its identity', async () => {
+  request.mockImplementation(async (path: string) => ({
+    id: 'legacy',
+    state: 'ready',
+    content_type: 'audio/wav',
+    playback_id: path.endsWith('/retry') ? 'playback' : null,
+    playback_content_type: path.endsWith('/retry') ? 'audio/mpeg' : null
+  }))
+  const page = mount(SceneMediaField, {
+    props: { kind: 'audio', modelValue: 'legacy', limit: 10000 },
+    global: { stubs: { SceneAudio: { template: '<div />', methods: { stop: () => {} } } } }
+  })
+  await flushPromises()
+  expect(page.text()).toContain('历史音频需兼容处理后才能重新发布')
+  await page.get('[data-action="prepare-legacy-audio"]').trigger('click')
+  await flushPromises()
+  expect(request).toHaveBeenCalledWith(
+    '/api/admin/v1/media/legacy/retry',
+    expect.objectContaining({ method: 'POST' })
+  )
+  expect(page.emitted('update:modelValue')).toBeUndefined()
+  expect(page.find('[data-action="prepare-legacy-audio"]').exists()).toBe(false)
+  page.unmount()
+})

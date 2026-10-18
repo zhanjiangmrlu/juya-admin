@@ -20,7 +20,15 @@ const item = (id: string, state: string): ImportItem => ({
   id,
   revision: 1,
   state,
-  content: { name: id, image_id: null, audio_id: null, dialogue: [], vocabulary: [], chunks: [] },
+  content: {
+    name: id,
+    title_en: '',
+    image_id: null,
+    audio_id: null,
+    dialogue: [],
+    vocabulary: [],
+    chunks: []
+  },
   selected: true,
   readable: true,
   thumbnail_id: null,

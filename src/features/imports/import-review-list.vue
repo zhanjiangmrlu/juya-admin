@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SceneTitle from '@/features/scenes/scene-title.vue'
 import { mediaURL } from '@/services/display'
 import { importStates } from '@/shared/constants/import'
 
@@ -42,16 +43,20 @@ const emit = defineEmits<{ select: [entry: ImportEntry, event: Event]; expand: [
             ['saved', 'duplicate', 'saving'].includes(entry.item.state)
           "
           :aria-label="`选择 ${entry.edit.content.name}`"
-          @change="emit('select', entry, $event)"
-        /><img
+          @change="emit('select', entry, $event)" /><img
           v-if="entry.item.thumbnail_id"
           :src="mediaURL(entry.item.thumbnail_id)"
           alt="核对缩略图"
-          loading="lazy"
-        /><button type="button" class="text" @click="emit('expand', entry.item.id)">
-          {{ entry.edit.content.name || '未命名资料' }}
-        </button></label
-      >
+          loading="lazy" /><button
+          type="button"
+          class="text"
+          @click="emit('expand', entry.item.id)"
+        >
+          <SceneTitle
+            :name="entry.edit.content.name"
+            :title-en="entry.edit.content.title_en"
+          /></button
+      ></label>
       <p v-if="entry.item.source_zip_name" class="small muted">
         来源：{{ sourceName(entry) }} / {{ entry.item.source_folder }}
       </p>

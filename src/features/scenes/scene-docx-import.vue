@@ -3,6 +3,7 @@ import { onBeforeUnmount, ref } from 'vue'
 
 import AppUploadProgress from '@/components/app-upload-progress/app-upload-progress.vue'
 import SceneReader from '@/features/scenes/scene-reader.vue'
+import SceneTitle from '@/features/scenes/scene-title.vue'
 import { api, ApiError } from '@/services/http-client'
 import { importErrors } from '@/shared/constants/import'
 
@@ -17,7 +18,8 @@ const candidate = ref<SceneContent | null>(null),
   busy = ref(false),
   progress = ref<UploadProgress>({ loaded: 0, total: null, percent: null }),
   error = ref(''),
-  selectedName = ref('')
+  selectedName = ref(''),
+  candidateIssues = ref<components['schemas']['FieldIssue'][]>([])
 let file: File | null = null,
   createKey = '',
   uploadKey = '',
@@ -96,6 +98,9 @@ const read = async () => {
         if (value.items.length !== 1 || !value.items[0]?.readable)
           throw new Error('单卡DOCX必须恰好一张卡片，多卡请改用批量导入')
         const content = value.items[0].content
+        candidateIssues.value = (value.items[0].issues || []).filter(
+          (issue) => issue.field === 'title_en'
+        )
         candidate.value = {
           ...content,
           dialogue: content.dialogue || [],
@@ -142,11 +147,13 @@ const cancel = () => {
   controller?.abort()
   error.value = '已停止等待，可继续查询本文件；当前输入未被替换'
 }
-/** 明确确认后仅替换三组文本，保留此刻的手工名称和素材 */
+/** 明确核对后替换双标题和三组文本，保留当前图片与音频引用 */
 const apply = () => {
   if (!candidate.value) return
   emit('apply', {
     ...props.content,
+    name: candidate.value.name.trim(),
+    title_en: candidate.value.title_en.trim(),
     dialogue: candidate.value.dialogue,
     vocabulary: candidate.value.vocabulary,
     chunks: candidate.value.chunks
@@ -164,7 +171,7 @@ onBeforeUnmount(() => {
       <div>
         <h2>从DOCX读取文本</h2>
         <p class="small muted">
-          只生成对话、词汇和语块候选；确认替换后仍需保存草稿。名称、图片和音频保留。
+          读取中英文标题、对话、词汇和语块；核对并确认替换后仍需保存草稿。图片和音频保留。
         </p>
       </div>
       <label class="button-link"
@@ -195,15 +202,34 @@ onBeforeUnmount(() => {
           content.vocabulary.length
         }}个→{{ candidate.vocabulary.length }}个、语块{{ content.chunks.length }}个→{{
           candidate.chunks.length
-        }}个。手工名称和素材保留。
+        }}个及中英文标题。图片和音频保留；请核对标题后确认。
       </p>
+      <div class="candidate-titles">
+        <label
+          >核对中文标题<input v-model="candidate.name" aria-label="核对中文标题" maxlength="160"
+        /></label>
+        <label
+          >核对英文标题<input
+            v-model="candidate.title_en"
+            aria-label="核对英文标题"
+            maxlength="300"
+        /></label>
+        <p v-for="issue in candidateIssues" :key="issue.code" class="notice error" role="alert">
+          {{ issue.message }}
+        </p>
+        <p v-if="!candidate.title_en.trim()" class="muted">
+          待补充英文标题，可暂存草稿，补齐后再发布。
+        </p>
+      </div>
       <div class="docx-comparison">
         <section>
           <h3>当前编辑内容</h3>
           <SceneReader :content="content" />
         </section>
         <section>
-          <h3>DOCX读取候选：{{ candidate.name }}</h3>
+          <h3>
+            DOCX读取候选：<SceneTitle :name="candidate.name" :title-en="candidate.title_en" />
+          </h3>
           <SceneReader :content="candidate" />
         </section>
       </div>
@@ -216,7 +242,7 @@ onBeforeUnmount(() => {
           :disabled="disabled"
           @click="apply"
         >
-          确认替换对话、词汇及语块
+          确认替换标题及文本
         </button></template
       ></ElDialog
     >
@@ -229,7 +255,7 @@ onBeforeUnmount(() => {
     line-height: 1.8;
   }
 
-  label {
+  .button-link {
     position: relative;
 
     input {
@@ -252,6 +278,19 @@ onBeforeUnmount(() => {
     font-size: 13px;
     padding: 14px;
     background: var(--soft);
+  }
+}
+</style>
+
+<style scoped lang="scss">
+.candidate-titles {
+  margin: 16px 0;
+  display: grid;
+  gap: 12px;
+
+  label {
+    display: grid;
+    gap: 6px;
   }
 }
 </style>

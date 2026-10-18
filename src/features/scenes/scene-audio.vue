@@ -17,6 +17,12 @@ const reading = ref(true),
   ready = ref(false),
   error = ref(''),
   attempt = ref(0)
+const format = computed(
+  () =>
+    ({ 'audio/mpeg': 'MP3', 'audio/mp4': 'M4A', 'audio/wav': 'WAV', 'audio/aac': 'AAC' })[
+      current.value?.content_type || ''
+    ] || ''
+)
 const source = computed(() =>
   props.mediaId ? `${mediaURL(props.mediaId)}?load=${attempt.value}` : ''
 )
@@ -102,11 +108,21 @@ defineExpose({ stop })
         已上传 · {{ current?.original_name || '历史音频（原文件名未记录）'
         }}<span v-if="current?.duration"> · {{ durationText(current.duration) }}</span>
       </p>
+      <p v-if="format" class="muted">原格式：{{ format }}</p>
       <p v-if="current?.state === 'failed'" role="alert">
-        文件校验失败 · {{ current.error || '请重新上传或选择其他文件' }}
+        音频处理失败 · {{ current.error || '请重新上传或选择其他文件' }}
       </p>
-      <p v-else-if="current && current.state !== 'ready'" role="status">上传完成，正在校验音频</p>
+      <p v-else-if="current && current.state !== 'ready'" role="status">
+        {{
+          current.processing_stage === 'converting'
+            ? '已上传，正在兼容处理为 MP3'
+            : '已上传，正在校验音频'
+        }}
+      </p>
       <template v-else>
+        <p v-if="current?.playback_content_type === 'audio/mpeg'" class="muted">
+          MP3 播放资源已就绪
+        </p>
         <p v-if="!ready && !error" role="status">
           {{ reading ? '正在读取音频资料' : '时长读取中' }}
         </p>

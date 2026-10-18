@@ -13,6 +13,7 @@ export type CardPreview = components['schemas']['CardPreview']
  */
 export const blankContent = (): SceneContent => ({
   name: '',
+  title_en: '',
   image_id: null,
   audio_id: null,
   dialogue: [],

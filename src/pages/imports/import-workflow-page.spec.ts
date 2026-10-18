@@ -16,6 +16,7 @@ it('restores a batch, persists review changes and only saves actual cards after 
     revision: 1,
     content: {
       name: 'Original',
+      title_en: '',
       image_id: null,
       audio_id: null,
       dialogue: [],

@@ -9,6 +9,8 @@ import { api, ApiError } from '@/services/http-client'
 import { registerLogoutGuard } from '@/services/logout-guard'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
+
+import SceneTitle from './scene-title.vue'
 const page = ref(1),
   positions = ref<Record<string, number>>({})
 const emit = defineEmits<{ close: [] }>()
@@ -286,7 +288,9 @@ onBeforeUnmount(() => {
           :src="mediaURL(item.thumbnail_id)"
           alt=""
           loading="lazy"
-        /><strong class="catalog-name">{{ item.name }}</strong>
+        /><strong class="catalog-name"
+          ><SceneTitle :name="item.name" :title-en="item.title_en"
+        /></strong>
         <div class="row">
           <input
             v-model.number="positions[item.id]"

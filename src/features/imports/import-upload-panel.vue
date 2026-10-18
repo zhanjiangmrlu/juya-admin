@@ -119,6 +119,8 @@ const statusText = (file: ImportFile | null) => {
   if (!file) return '等待接收'
   if (file.state === 'failed')
     return importErrors[file.error_code || ''] || '处理失败，请修正或重试'
+  if (file.processing_stage === 'converting') return '已上传，正在兼容处理为 MP3'
+  if (file.processing_stage === 'validating') return '已上传，正在校验文件'
   const progress = file.progress
   if (file.state === 'processing')
     return progress?.total
@@ -230,7 +232,7 @@ const acceptedFile = (upload: ImportUpload) =>
       一张卡片一个文件夹，每个文件夹一份内容DOCX、一张图和一份完整音频。
     </p>
     <p v-else class="small muted">
-      DOCX可有多个一级标题；只有明确同名的图片及音频会形成对应候选，仍需下一步核对。
+      DOCX可有多个一级标题，每个一级标题下、首个内容小标题前填写“英文标题：英文名称”；仅明确同名素材形成候选，仍需核对。音标与本句释义独立选填。
     </p>
     <div v-if="batch.mode === 'zip' && pendingCount" class="row queue-actions">
       <span class="small">待上传或待确认 {{ pendingCount }} 个ZIP</span>

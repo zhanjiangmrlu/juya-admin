@@ -42,6 +42,7 @@ it('only offers media in the current ZIP and exact card folder', () => {
       itemId: 'item',
       modelValue: {
         name: '卡片',
+        title_en: '',
         image_id: null,
         audio_id: null,
         dialogue: [],

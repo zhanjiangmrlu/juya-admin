@@ -12,6 +12,7 @@ import SceneBatchPublication from './scene-batch-publication.vue'
 it('allows a fresh review after a confirmed rejection instead of claiming acceptance is unknown', async () => {
   const content = {
     name: 'One',
+    title_en: '',
     image_id: null,
     audio_id: null,
     dialogue: [],
@@ -53,6 +54,7 @@ it('requires reviewed confirmation and submits only the latest eligible cards', 
   const submitted: unknown[] = []
   const content = {
     name: 'One',
+    title_en: '',
     image_id: null,
     audio_id: null,
     dialogue: [],

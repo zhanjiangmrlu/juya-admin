@@ -11,6 +11,7 @@ import SceneEditPage from './scene-edit-page.vue'
 it('saves reactive chunks and publishes the saved preview before returning to the list', async () => {
   const content = {
     name: '在咖啡店点单',
+    title_en: '',
     image_id: null,
     audio_id: null,
     dialogue: [],
@@ -92,6 +93,7 @@ it('saves reactive chunks and publishes the saved preview before returning to th
         revision: 1,
         content: {
           name: '在咖啡店点单（修订）',
+          title_en: '',
           image_id: null,
           audio_id: null,
           dialogue: [],
