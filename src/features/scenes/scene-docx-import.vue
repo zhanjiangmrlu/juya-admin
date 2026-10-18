@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from 'vue'
 
+import AppUploadProgress from '@/components/app-upload-progress/app-upload-progress.vue'
 import SceneReader from '@/features/scenes/scene-reader.vue'
 import { api, ApiError } from '@/services/http-client'
 import { importErrors } from '@/shared/constants/import'
@@ -8,12 +9,13 @@ import { importErrors } from '@/shared/constants/import'
 import type { SceneContent } from '@/features/scenes/editor-model'
 import type { components } from '@/shared/contracts/generated/admin-api'
 import type { ImportBatch, ImportFile } from '@/shared/types/import'
+import type { UploadProgress } from '@/shared/types/media'
 const props = defineProps<{ content: SceneContent; disabled?: boolean }>()
 const emit = defineEmits<{ apply: [content: SceneContent]; busy: [value: boolean] }>()
 const candidate = ref<SceneContent | null>(null),
   open = ref(false),
   busy = ref(false),
-  percent = ref(0),
+  progress = ref<UploadProgress>({ loaded: 0, total: null, percent: null }),
   error = ref(''),
   selectedName = ref('')
 let file: File | null = null,
@@ -76,7 +78,7 @@ const read = async () => {
         form,
         uploadKey,
         (value) => {
-          percent.value = value
+          progress.value = value
         },
         controller.signal
       )
@@ -131,7 +133,7 @@ const choose = (event: Event) => {
   accepted = null
   unknownCreate = unknownUpload = false
   candidate.value = null
-  percent.value = 0
+  progress.value = { loaded: 0, total: null, percent: null }
   void read()
 }
 /** 停止客户端等待，保留已接收文件供继续查询 */
@@ -166,7 +168,7 @@ onBeforeUnmount(() => {
         </p>
       </div>
       <label class="button-link"
-        >{{ busy ? `正在读取 ${percent}%` : '选择单卡DOCX'
+        >{{ busy ? '正在处理资料…' : '选择单卡DOCX'
         }}<input type="file" accept=".docx" :disabled="disabled || busy" @change="choose"
       /></label>
     </div>
@@ -174,6 +176,8 @@ onBeforeUnmount(() => {
       {{ selectedName }}
       <button v-if="busy" type="button" class="text" @click="cancel">取消／停止等待</button>
     </p>
+    <AppUploadProgress v-if="busy && !accepted" :progress="progress" />
+    <p v-else-if="busy" role="status">上传完成，正在读取资料</p>
     <p v-if="error" class="notice error" role="alert">
       {{ error
       }}<button type="button" class="text" :disabled="busy || disabled" @click="read">

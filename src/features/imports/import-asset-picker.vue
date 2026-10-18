@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import SceneAudio from '@/features/scenes/scene-audio.vue'
 import { mediaURL } from '@/services/display'
 
 import type { SceneContent } from '@/features/scenes/editor-model'
@@ -58,8 +59,7 @@ const usedBy = (id: string) =>
           :src="mediaURL(file.media_id)"
           :alt="file.name"
           loading="lazy"
-        /><audio v-else :src="mediaURL(file.media_id)" controls preload="none" />
-        <span>{{ file.name }}</span
+        /><SceneAudio v-else :key="file.id" :media-id="file.media_id" /> <span>{{ file.name }}</span
         ><small v-if="usedBy(file.media_id!)" class="muted"
           >同时用于：{{ usedBy(file.media_id!) }}</small
         >

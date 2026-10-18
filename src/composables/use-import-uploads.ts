@@ -21,7 +21,7 @@ export const useImportUploads = (
   const controllers = new Map<string, AbortController>()
   const transferring = computed(() => uploads.value.some((item) => item.busy))
   const pendingCount = computed(
-    () => uploads.value.filter((item) => item.queued || item.unknown).length
+    () => uploads.value.filter((item) => item.queued || (item.unknown && !item.cancelled)).length
   )
   let alive = true
   /** 接收同一文件，网络结果未知时先查询原操作凭证
@@ -43,6 +43,10 @@ export const useImportUploads = (
           item.unknown = false
         } catch (reason) {
           if (!(reason instanceof ApiError) || reason.status !== 404) throw reason
+          if (item.cancelled) {
+            item.error = '传输已取消，接收结果待确认；尚无回执，可稍后再次查询'
+            return
+          }
         }
       }
       if (controller.signal.aborted && !item.accepted)
@@ -54,8 +58,9 @@ export const useImportUploads = (
           `/api/admin/v1/imports/${batchId()}/files?kind=${item.kind}`,
           form,
           item.key,
-          (percent) => {
-            item.percent = percent
+          (progress) => {
+            item.progress = progress
+            item.percent = progress.percent
           },
           controller.signal
         )
@@ -107,7 +112,9 @@ export const useImportUploads = (
         file,
         kind,
         key: crypto.randomUUID(),
-        percent: 0,
+        percent: null,
+        progress: { loaded: 0, total: null, percent: null },
+        cancelled: false,
         busy: false,
         error,
         unknown: false,
@@ -122,6 +129,7 @@ export const useImportUploads = (
    */
   const retryUpload = (item: ImportUpload) => {
     if (item.busy || item.accepted || item.invalid) return
+    if (item.cancelled && !item.unknown) return
     item.queued = true
     void start()
   }
@@ -129,6 +137,8 @@ export const useImportUploads = (
    * @param id 当前传输文件的本地引用
    */
   const cancel = (id: string) => {
+    const item = uploads.value.find((value) => value.id === id)
+    if (item) item.cancelled = true
     controllers.get(id)?.abort()
   }
   /** 只移除未接收且不存在未知结果的本地资料

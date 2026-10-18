@@ -9,6 +9,9 @@ import type { CardView, SceneContent } from '@/features/scenes/editor-model'
 import type { components } from '@/shared/contracts/generated/admin-api'
 const props = defineProps<{ content: SceneContent; suggestedId?: string | null }>()
 const emit = defineEmits<{ close: []; confirm: [card: CardView] }>()
+const page = ref(1),
+  totalPages = ref(0),
+  total = ref(0)
 const search = ref(props.content.name),
   rows = ref<CardView[]>([]),
   chosen = ref<CardView | null>(null),
@@ -16,15 +19,23 @@ const search = ref(props.content.name),
   busy = ref(false),
   error = ref('')
 let alive = true
-/** 按管理员填写的名称搜索，名称一致也不自动合并 */
-const find = async () => {
+/**
+ * 按管理员填写的名称搜索，名称一致也不自动合并
+ * @param targetPage 需要读取的搜索结果页码
+ */
+const find = async (targetPage = 1) => {
   busy.value = true
   error.value = ''
   try {
-    const result = await api.request<components['schemas']['Page_CardView_']>(
-      queryURL('/api/admin/v1/cards', { search: search.value, limit: 20 })
+    const result = await api.request<components['schemas']['AdminCardPage']>(
+      queryURL('/api/admin/v1/cards', { search: search.value, limit: 10, page: targetPage })
     )
-    if (alive) rows.value = result.items
+    if (alive) {
+      rows.value = result.items
+      page.value = result.page
+      totalPages.value = result.total_pages
+      total.value = result.total
+    }
   } catch (reason) {
     if (alive) error.value = reason instanceof Error ? reason.message : '暂未获取已有卡片'
   } finally {
@@ -67,7 +78,7 @@ onBeforeUnmount(() => {
     <p class="notice">更新只保存到目标卡片的候选稿，发布前不会改变学习端内容和学习成绩。</p>
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>
     <template v-if="!chosen">
-      <form class="row target-search" @submit.prevent="find">
+      <form class="row target-search" @submit.prevent="find(1)">
         <input v-model="search" aria-label="搜索更新目标" placeholder="按卡片名称查找" /><button
           :disabled="busy"
           type="submit"
@@ -91,6 +102,11 @@ onBeforeUnmount(() => {
           alt="目标缩略图"
         /><span>{{ card.display_name || card.content.name || '未命名草稿' }}</span
         ><button type="button" :disabled="busy" @click="select(card.id)">选择并核对差异</button>
+      </div>
+      <div v-if="total" class="row">
+        <span>共{{ total }}条 · 第{{ page }}/{{ totalPages }}页</span
+        ><button :disabled="busy || page <= 1" @click="find(page - 1)">上一页</button
+        ><button :disabled="busy || page >= totalPages" @click="find(page + 1)">下一页</button>
       </div>
       <p v-if="!rows.length" class="small muted">
         请输入名称查找，再明确选择更新目标；同名不代表同一张卡片。

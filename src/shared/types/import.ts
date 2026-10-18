@@ -1,5 +1,6 @@
 import type { SceneContent } from '@/features/scenes/editor-model'
 import type { components } from '@/shared/contracts/generated/admin-api'
+import type { UploadProgress } from '@/shared/types/media'
 
 export type ImportBatch = components['schemas']['ImportBatchView']
 export type ImportItem = components['schemas']['ImportItemView']
@@ -26,7 +27,9 @@ export interface ImportUpload {
   file: File
   kind: 'zip' | 'docx' | 'image' | 'audio'
   key: string
-  percent: number
+  percent: number | null
+  progress: UploadProgress
+  cancelled: boolean
   busy: boolean
   error: string
   unknown: boolean

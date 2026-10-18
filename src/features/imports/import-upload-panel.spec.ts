@@ -68,6 +68,27 @@ const accepted = (name: string): ImportFile => ({
 beforeEach(() => {
   vi.clearAllMocks()
 })
+it('accepts dropped ZIPs and shows byte progress separately from server parsing', async () => {
+  let progress:
+    ((value: { loaded: number; total: number | null; percent: number | null }) => void) | undefined
+  upload.mockImplementation((_path, _form, _key, report) => {
+    progress = report
+    return new Promise(() => {})
+  })
+  const page = panel()
+  await page
+    .get('[data-action="zip-drop"]')
+    .trigger('drop', { dataTransfer: { files: [new File(['zip'], '拖拽.zip')] } })
+  expect(page.text()).toContain('拖拽.zip')
+  await page.get('[data-action="start-upload"]').trigger('click')
+  progress?.({ loaded: 1, total: 2, percent: 50 })
+  await flushPromises()
+  expect(page.get('progress').attributes('value')).toBe('50')
+  progress?.({ loaded: 2, total: 2, percent: 100 })
+  await flushPromises()
+  expect(page.text()).toContain('上传完成，等待服务器确认')
+  expect(page.text()).not.toContain('已发布')
+})
 afterEach(() => {
   for (const page of pages.splice(0)) page.unmount()
 })
@@ -213,4 +234,30 @@ it('accepts a confirmed receipt even when cancellation happens during the receip
   expect(page.text()).not.toContain('查询／重试本文件')
   expect(upload).toHaveBeenCalledTimes(1)
   expect(page.emitted('refresh')).toHaveLength(1)
+})
+
+it('keeps a cancelled transfer unknown after an early missing receipt and never retransmits it', async () => {
+  upload.mockImplementationOnce(
+    (_path, _body, _key, _progress, signal: AbortSignal) =>
+      new Promise((_resolve, reject) => {
+        signal.addEventListener('abort', () =>
+          reject(new ApiError('upload_unknown', '传输已取消，接收结果待确认'))
+        )
+      })
+  )
+  request.mockRejectedValueOnce(new ApiError('missing', '未找到', 404))
+  const page = panel()
+  await choose(page, ['one.zip'])
+  await page.get('[data-action="start-upload"]').trigger('click')
+  await page
+    .findAll('button')
+    .find((button) => button.text() === '取消本次上传')!
+    .trigger('click')
+  await flushPromises()
+  await page.get('[data-action="retry-upload"]').trigger('click')
+  await flushPromises()
+  expect(upload).toHaveBeenCalledTimes(1)
+  expect(page.text()).toContain('接收结果待确认')
+  expect(page.find('[data-action="retry-upload"]').exists()).toBe(true)
+  expect(page.emitted('pending')?.at(-1)).toEqual([0])
 })

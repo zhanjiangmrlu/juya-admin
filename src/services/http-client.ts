@@ -1,4 +1,5 @@
 import type { components } from '@/shared/contracts/generated/admin-api'
+import type { UploadProgress } from '@/shared/types/media'
 
 /** 保存服务端安全错误与未知请求状态 */
 export class ApiError extends Error {
@@ -142,7 +143,7 @@ export const createHttpClient = (
     path: string,
     form: FormData,
     key: string,
-    onProgress: (percent: number) => void,
+    onProgress: (progress: UploadProgress) => void,
     signal?: AbortSignal
   ): Promise<T> =>
     new Promise((resolve, reject) => {
@@ -170,7 +171,12 @@ export const createHttpClient = (
       xhr.setRequestHeader('X-CSRF-Token', csrf)
       xhr.setRequestHeader('Idempotency-Key', key)
       xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) onProgress(Math.floor((event.loaded / event.total) * 100))
+        const total = event.lengthComputable && event.total > 0 ? event.total : null
+        onProgress({
+          loaded: event.loaded,
+          total,
+          percent: total === null ? null : Math.min(100, Math.floor((event.loaded / total) * 100))
+        })
       }
       xhr.onerror = xhr.ontimeout = () => {
         clean()

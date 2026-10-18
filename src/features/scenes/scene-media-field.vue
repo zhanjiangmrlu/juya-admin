@@ -1,89 +1,96 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
+import AppUploadProgress from '@/components/app-upload-progress/app-upload-progress.vue'
 import { mediaURL } from '@/services/display'
 import { api, ApiError } from '@/services/http-client'
 import { waitForMedia } from '@/services/media-processing'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
+import type { UploadProgress } from '@/shared/types/media'
+
+import SceneAudio from './scene-audio.vue'
 const props = defineProps<{ kind: 'image' | 'audio'; modelValue?: string | null; limit: number }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string]; busy: [value: boolean] }>()
 const busy = ref(false),
-  percent = ref(0),
+  percent = ref<number | null>(null),
+  progress = ref<UploadProgress>({ loaded: 0, total: null, percent: null }),
   cancelled = ref(false),
   error = ref(''),
   metadata = ref<components['schemas']['MediaMetadata'] | null>(null),
-  audio = ref<HTMLAudioElement | null>(null)
-let selected: File | null = null,
-  key = '',
+  audio = ref<InstanceType<typeof SceneAudio> | null>(null)
+const selected = ref<File | null>(null)
+let key = '',
   alive = true,
   receiptUnknown = false,
-  controller: AbortController | null = null,
-  accepted: components['schemas']['MediaMetadata'] | null = null
+  controller: AbortController | null = null
+const accepted = ref<components['schemas']['MediaMetadata'] | null>(null)
 const accept = computed(() =>
   props.kind === 'image' ? '.jpg,.jpeg,.png,.webp' : '.mp3,.m4a,.wav,.aac'
 )
 /** 上传成功且处理完成才替换原素材，失败可复用原请求键 */
 const send = async () => {
-  if (!selected || busy.value) return
+  if (!selected.value || busy.value) return
   busy.value = true
   emit('busy', true)
   error.value = ''
-  percent.value = 0
+  percent.value = null
+  progress.value = { loaded: 0, total: null, percent: null }
   cancelled.value = false
   controller = new AbortController()
   try {
-    if (!accepted && receiptUnknown) {
+    if (!accepted.value && receiptUnknown) {
       try {
         const receipt = await api.request<components['schemas']['OperationResponse']>(
           `/api/admin/v1/operations/${key}`
         )
-        accepted = receipt.result as components['schemas']['MediaMetadata']
+        accepted.value = receipt.result as components['schemas']['MediaMetadata']
         receiptUnknown = false
       } catch (reason) {
         if (!(reason instanceof ApiError) || reason.status !== 404) throw reason
         receiptUnknown = false
       }
     }
-    if (!accepted) {
+    if (!accepted.value) {
       const form = new FormData()
-      form.append('file', selected)
-      accepted = await api.upload<components['schemas']['MediaMetadata']>(
+      form.append('file', selected.value)
+      accepted.value = await api.upload<components['schemas']['MediaMetadata']>(
         `/api/admin/v1/media?kind=${props.kind}`,
         form,
         key,
         (value) => {
-          percent.value = value
+          progress.value = value
+          percent.value = value.percent
         },
         controller.signal
       )
-    } else if (accepted.state === 'failed') {
-      accepted = await api.request(`/api/admin/v1/media/${accepted.id}/retry`, {
+    } else if (accepted.value.state === 'failed') {
+      accepted.value = await api.request(`/api/admin/v1/media/${accepted.value.id}/retry`, {
         method: 'POST',
         key: crypto.randomUUID()
       })
     }
     const value = await waitForMedia(
-      accepted!,
+      accepted.value!,
       async () => {
         const latest = await api.request<components['schemas']['MediaMetadata']>(
-          `/api/admin/v1/media/${accepted!.id}/status`
+          `/api/admin/v1/media/${accepted.value!.id}/status`
         )
-        if (alive) accepted = latest
+        if (alive) accepted.value = latest
         return latest
       },
       { active: () => alive && !cancelled.value }
     )
     if (!alive) return
     if (cancelled.value) throw new Error('已停止等待，接收的素材仍会处理，可继续查询')
-    accepted = value
+    accepted.value = value
     if (value.state === 'failed') throw new Error(value.error || '素材处理失败，请重试或更换文件')
     if (value.state !== 'ready') throw new Error('素材仍在处理，可稍后继续查询')
     metadata.value = value
     emit('update:modelValue', value.id)
   } catch (reason) {
     if (
-      !accepted &&
+      !accepted.value &&
       (!(reason instanceof ApiError) ||
         !reason.status ||
         reason.status >= 500 ||
@@ -115,8 +122,8 @@ const choose = (event: Event) => {
     error.value = `文件不能超过 ${Math.floor(props.limit / 1024 / 1024)} MB`
     return
   }
-  selected = file
-  accepted = null
+  selected.value = file
+  accepted.value = null
   receiptUnknown = false
   key = crypto.randomUUID()
   void send()
@@ -124,11 +131,15 @@ const choose = (event: Event) => {
 watch(
   () => props.modelValue,
   async (id) => {
+    metadata.value = null
     if (id) {
       try {
-        metadata.value = await api.request(`/api/admin/v1/media/${id}/status`)
+        const value = await api.request<components['schemas']['MediaMetadata']>(
+          `/api/admin/v1/media/${id}/status`
+        )
+        if (alive && props.modelValue === id) metadata.value = value
       } catch {
-        metadata.value = null
+        if (alive && props.modelValue === id) metadata.value = null
       }
     }
   },
@@ -137,34 +148,45 @@ watch(
 onBeforeUnmount(() => {
   alive = false
   controller?.abort()
-  audio.value?.pause()
+  audio.value?.stop()
 })
 </script>
 <template>
   <div class="media-field">
     <p class="field-title">{{ kind === 'image' ? '场景图片' : '完整音频' }}</p>
     <div v-if="modelValue" class="current">
-      <img v-if="kind === 'image'" :src="mediaURL(modelValue)" alt="当前场景图" /><audio
+      <img v-if="kind === 'image'" :src="mediaURL(modelValue)" alt="当前场景图" /><SceneAudio
         v-else
         ref="audio"
-        :src="mediaURL(modelValue)"
-        preload="none"
-        controls
+        :media-id="modelValue"
+        :metadata="metadata"
       />
       <p class="small muted">
         {{ metadata?.original_name || (kind === 'image' ? '场景图片' : '完整音频')
         }}<span v-if="metadata?.duration"> · {{ Math.round(metadata.duration) }} 秒</span>
       </p>
     </div>
+    <p v-else-if="kind === 'audio'" class="small muted">未上传完整音频</p>
+    <p v-if="selected" class="small">
+      {{ selected.name }} · {{ (selected.size / 1024 / 1024).toFixed(2) }} MB{{
+        busy && modelValue ? ' · 待替换，旧文件仍有效' : ''
+      }}
+    </p>
+    <AppUploadProgress v-if="busy && !accepted" :progress="progress" />
+    <p v-else-if="busy" role="status">上传完成，正在校验{{ kind === 'audio' ? '音频' : '图片' }}</p>
     <label class="upload-button"
       ><input type="file" :accept="accept" :disabled="busy || !limit" @change="choose" /><span>{{
-        busy
-          ? percent < 100
-            ? `上传中 ${percent}%`
-            : '正在检查素材…'
-          : modelValue
-            ? '更换文件'
-            : '选择文件'
+        busy && accepted
+          ? '正在检查素材…'
+          : busy
+            ? percent === null || percent < 100
+              ? percent === null
+                ? '正在上传'
+                : `上传中 ${percent}%`
+              : '正在检查素材…'
+            : modelValue
+              ? '更换文件'
+              : '选择文件'
       }}</span></label
     >
     <p class="help">
@@ -181,7 +203,7 @@ onBeforeUnmount(() => {
       data-action="cancel-upload"
       @click="cancel"
     >
-      {{ percent < 100 ? '取消本次上传' : '停止等待' }}
+      {{ percent === null || percent < 100 ? '取消本次上传' : '停止等待' }}
     </button>
     <p v-if="error" class="notice error" role="alert">
       {{ error }}

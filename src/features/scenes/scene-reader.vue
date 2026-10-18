@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 
-import AppIcon from '@/components/app-icon/app-icon.vue'
 import { useWordPronunciation } from '@/composables/use-word-pronunciation'
-import { claimAudioFocus } from '@/services/audio-focus'
 import { mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
 import { loadPronunciation } from '@/services/pronunciation-service'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
 import type { SceneReaderProps } from '@/shared/types/scene-components'
+
+import SceneAudio from './scene-audio.vue'
 const props = defineProps<SceneReaderProps>()
 const speech = useWordPronunciation(async (wordId, active) => {
   if (!props.pronunciation) throw new Error('请先保存资料后试听')
-  audio.value?.pause()
+  audio.value?.stop()
   const context = props.pronunciation,
     { reference } = context
   const prefix = context.import
@@ -39,11 +39,10 @@ const speech = useWordPronunciation(async (wordId, active) => {
 /** 完整音频主动播放时终止词汇试听 */
 const fullPlay = () => {
   speech.stop()
-  if (audio.value) claimAudioFocus(audio.value)
 }
 
 const translated = ref(false),
-  audio = ref<HTMLAudioElement | null>(null),
+  audio = ref<InstanceType<typeof SceneAudio> | null>(null),
   imageError = ref(false),
   imageExpanded = ref(false)
 /** 只展示已确认的高亮，不通过 HTML 插值解释正文
@@ -73,7 +72,14 @@ const segments = (line: components['schemas']['Dialogue']) => {
   result.push({ text: line.english.slice(cursor), highlight: false })
   return result
 }
-onBeforeUnmount(() => audio.value?.pause())
+watch(
+  () => props.content.audio_id,
+  () => {
+    audio.value?.stop()
+    speech.stop()
+  }
+)
+onBeforeUnmount(() => audio.value?.stop())
 </script>
 <template>
   <article class="scene-reader">
@@ -92,14 +98,8 @@ onBeforeUnmount(() => audio.value?.pause())
       </button>
     </figure>
     <section v-if="content.audio_id" class="audio">
-      <h2><AppIcon name="play" :size="18" />完整音频</h2>
-      <audio
-        ref="audio"
-        :src="mediaURL(content.audio_id)"
-        controls
-        preload="none"
-        @play="fullPlay"
-      />
+      <h2>完整音频</h2>
+      <SceneAudio ref="audio" :media-id="content.audio_id" @play="fullPlay" />
     </section>
     <section>
       <h2>场景对话</h2>

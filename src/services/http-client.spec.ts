@@ -58,7 +58,7 @@ describe('independent admin credentials', () => {
 
 it('reports upload bytes, uses CSRF, and keeps the same key for an upload retry', async () => {
   const sent: Record<string, string> = {}
-  const progress: number[] = []
+  const progress: unknown[] = []
   const xhr = {
     upload: {
       onprogress: null as
@@ -75,6 +75,7 @@ it('reports upload bytes, uses CSRF, and keeps the same key for an upload retry'
     onerror: null,
     send: () => {
       xhr.upload.onprogress?.({ lengthComputable: true, loaded: 50, total: 100 })
+      xhr.upload.onprogress?.({ lengthComputable: false, loaded: 75, total: 0 })
       xhr.onload?.()
     }
   }
@@ -95,7 +96,10 @@ it('reports upload bytes, uses CSRF, and keeps the same key for an upload retry'
   expect(sent['X-CSRF-Token']).toBe('csrf-upload')
   expect(sent['Idempotency-Key']).toBe('fixed-upload-operation')
   expect(xhr.withCredentials).toBe(true)
-  expect(progress).toEqual([50])
+  expect(progress).toEqual([
+    { loaded: 50, total: 100, percent: 50 },
+    { loaded: 75, total: null, percent: null }
+  ])
 })
 
 it('treats a truncated success response as unknown instead of inventing saved data', async () => {

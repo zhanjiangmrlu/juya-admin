@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, onActivated, onBeforeUnmount, onDeactivated, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, ref, watch } from 'vue'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
 import { useResource } from '@/composables/use-resource'
 import SceneBatchPublication from '@/features/scenes/scene-batch-publication.vue'
+import SceneCardActions from '@/features/scenes/scene-card-actions.vue'
 import SceneCatalogOrder from '@/features/scenes/scene-catalog-order.vue'
+import SceneImagePreview from '@/features/scenes/scene-image-preview.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import { dateText, mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
@@ -24,17 +27,34 @@ const route = useRoute(),
   search = ref(String(route.query.search || ''))
 const status = computed(() => String(route.query.status || 'all')),
   page = computed(() => Number(route.query.page || 1))
-const { data, busy, error, refresh } = useResource(() =>
-  api.request<components['schemas']['Page_CardView_']>(
+const focusedCard = ref('')
+let listingGeneration = 0
+const { data, busy, error, refresh } = useResource(async () => {
+  const run = ++listingGeneration,
+    requested = route.fullPath
+  const value = await api.request<components['schemas']['AdminCardPage']>(
     queryURL('/api/admin/v1/cards', {
       search: route.query.search || '',
       status: status.value,
       page: page.value,
       batch_id: route.query.batch_id,
-      limit: route.query.batch_id ? 50 : 20
+      anchor_id: route.query.focus,
+      limit: 10
     })
   )
-)
+  if (run !== listingGeneration || requested !== route.fullPath || route.path !== '/cards')
+    return value
+  if (route.query.focus) focusedCard.value = String(route.query.focus)
+  if (value.page !== page.value || route.query.focus)
+    await router.replace({ query: { ...route.query, page: value.page, focus: undefined } })
+  return value
+})
+const image = ref<CardView | null>(null),
+  actionOpen = ref(false),
+  actionKind = ref<'offline' | 'delete'>('offline'),
+  actionIds = ref<string[]>([]),
+  actionBatch = ref(''),
+  managementBatches = ref<components['schemas']['ActionBatchView'][]>([])
 const preview = ref<components['schemas']['PublishedPreview'] | null>(null),
   actionError = ref(''),
   actionBusy = ref(false),
@@ -49,11 +69,131 @@ let pending: (() => Promise<unknown>) | null = null
 let alive = true,
   historyTimer: ReturnType<typeof setTimeout> | null = null,
   historyChecks = 0
+let managementTimer: ReturnType<typeof setTimeout> | null = null,
+  managementGeneration = 0,
+  managementChecks = 0
+const canSort = computed(
+  () => status.value === 'published' && !route.query.search && !route.query.batch_id
+)
+/** 进入全局排序前清空普通列表选择 */
+const enterSorting = () => {
+  clearSelection()
+  sorting.value = true
+}
+/** 版本失效时关闭原图并刷新当前列表 */
+const imageInvalid = () => {
+  image.value = null
+  void refresh()
+  ElMessage.info('卡片资料已变化，请重新查看')
+}
+/** 接收管理批次结果后刷新同一查询上下文 */
+const actionChanged = () => {
+  selected.value = []
+  void refresh()
+  void loadManagement()
+}
+/** 关闭确认保留原选择，关闭结果后可从最近操作恢复 */
+const closeActions = () => {
+  actionOpen.value = false
+  void loadManagement()
+}
+const hasPendingAction = ref(!!sessionStorage.getItem('juya-pending-card-actions'))
+/** 清空当前页选择并给出可见反馈 */
+const clearSelection = () => {
+  if (selected.value.length) {
+    selected.value = []
+    ElMessage.info('选择已清空')
+  }
+}
+/** 离开列表时停止管理结果跟踪并忽略迟到响应 */
+const stopManagement = () => {
+  managementGeneration++
+  if (managementTimer) clearTimeout(managementTimer)
+  managementTimer = null
+}
+/** 跟踪同一管理员的未完成操作，关闭弹窗后仍按真实结果刷新列表
+ * @param automatic 是否由后台查询触发，保留逐步放慢的查询间隔
+ */
+const loadManagement = async (automatic = false) => {
+  if (!alive || route.path !== '/cards') return
+  stopManagement()
+  const run = managementGeneration
+  if (!automatic) managementChecks = 0
+  hasPendingAction.value = !!sessionStorage.getItem('juya-pending-card-actions')
+  try {
+    const value = await api.request<components['schemas']['ActionBatchView'][]>(
+      '/api/admin/v1/card-action-batches'
+    )
+    if (!alive || run !== managementGeneration || route.path !== '/cards') return
+    const changed = JSON.stringify(value) !== JSON.stringify(managementBatches.value)
+    managementBatches.value = value
+    if (changed) void refresh()
+  } catch {
+    if (!alive || run !== managementGeneration || route.path !== '/cards') return
+    actionError.value = '最近管理操作暂未获取，请刷新重试'
+  }
+  if (
+    managementBatches.value.some((batch) =>
+      batch.items.some((item) => ['queued', 'running', 'retry'].includes(item.state))
+    )
+  ) {
+    const delay = Math.min(1500 * 2 ** Math.floor(managementChecks++ / 5), 10000)
+    managementTimer = setTimeout(() => {
+      void loadManagement(true)
+    }, delay)
+  }
+}
+/** 打开冻结范围的管理确认或已有结果
+ * @param kind 下线或删除动作
+ * @param id 已接受批次，空值表示当前页选择
+ */
+const openActions = (kind: 'offline' | 'delete', id = '') => {
+  actionKind.value = kind
+  actionIds.value = [...selected.value]
+  actionBatch.value = id
+  actionOpen.value = true
+}
+watch(data, (value) => {
+  if (value)
+    selected.value = selected.value.filter((id) => value.items.some((card) => card.id === id))
+})
+watch(
+  data,
+  () => {
+    if (focusedCard.value) {
+      document
+        .querySelector(`[data-card-id="${CSS.escape(focusedCard.value)}"]`)
+        ?.scrollIntoView?.({ block: 'center' })
+      focusedCard.value = ''
+    }
+  },
+  { flush: 'post' }
+)
+let listContext = JSON.stringify([
+  route.query.search,
+  route.query.status,
+  route.query.page,
+  route.query.batch_id
+])
+watch(
+  () => route.fullPath,
+  () => {
+    if (route.path !== '/cards') return
+    const next = JSON.stringify([
+      route.query.search,
+      route.query.status,
+      route.query.page,
+      route.query.batch_id
+    ])
+    if (next !== listContext) clearSelection()
+    listContext = next
+  }
+)
 const allSelected = computed(
   () =>
     !!data.value?.items.length && data.value.items.every((card) => selected.value.includes(card.id))
 )
-/** 选择明确卡片，跨页累计最多五十张
+/** 选择当前页可见卡片
  * @param id 当前卡片编号
  * @param event 管理员的勾选动作
  */
@@ -148,7 +288,7 @@ const closeSorting = () => {
  * @param values 需要覆盖的筛选值
  */
 const filter = (values: Record<string, string | number | undefined>) => {
-  if (!Object.hasOwn(values, 'page')) selected.value = []
+  clearSelection()
   return router.replace({ query: { ...route.query, ...values, page: values.page || 1 } })
 }
 /** 打开当前发布快照
@@ -199,16 +339,31 @@ watch(
     }
   }
 )
-onActivated(() => {
-  void refresh()
+let listPosition: { path: string; left: number; top: number } | null = null
+onBeforeRouteLeave(() => {
+  listPosition = { path: route.fullPath, left: window.scrollX, top: window.scrollY }
+})
+onActivated(async () => {
+  const position = listPosition
   void loadBatches()
+  void loadManagement()
+  await refresh()
+  await nextTick()
+  if (position?.path === route.fullPath && route.path === '/cards')
+    window.scrollTo(position.left, position.top)
 })
 onDeactivated(() => {
+  preview.value = null
+  image.value = null
+  batchOpen.value = false
+  actionOpen.value = false
   if (historyTimer) clearTimeout(historyTimer)
+  stopManagement()
 })
 onBeforeUnmount(() => {
   alive = false
   if (historyTimer) clearTimeout(historyTimer)
+  stopManagement()
 })
 </script>
 <template>
@@ -225,7 +380,14 @@ onBeforeUnmount(() => {
         <RouterLink class="button-link" to="/imports"
           ><AppIcon name="upload" :size="17" />批量导入</RouterLink
         >
-        <button v-if="!sorting" type="button" @click="sorting = true">调整顺序</button
+        <button
+          v-if="!sorting"
+          type="button"
+          :disabled="!canSort"
+          :title="canSort ? '调整全局已发布顺序' : '请筛选已发布并清除名称和本次导入条件'"
+          @click="enterSorting"
+        >
+          调整顺序</button
         ><RouterLink class="button-link primary" to="/cards/new"
           ><AppIcon name="cards" :size="17" />新建卡片</RouterLink
         >
@@ -240,11 +402,29 @@ onBeforeUnmount(() => {
         </button>
       </p>
       <div v-if="selected.length" class="selection-bar between">
-        <span>已选 {{ selected.length }} 张（最多50张，可跨页选择）</span>
+        <span>已选择 {{ selected.length }} 张（仅本页）</span>
         <div class="row">
           <button type="button" class="text" @click="selected = []">清空选择</button
+          ><button type="button" @click="openActions('offline')">批量下线</button
+          ><button type="button" class="danger" @click="openActions('delete')">批量删除</button
           ><button type="button" class="primary" @click="openBatch()">批量发布</button>
         </div>
+      </div>
+      <div v-if="managementBatches.length || hasPendingAction" class="batch-history">
+        <button v-if="hasPendingAction" type="button" @click="openActions('delete')">
+          查询待确认管理操作
+        </button>
+        <details v-if="managementBatches.length">
+          <summary>最近批量管理操作</summary>
+          <div v-for="value in managementBatches" :key="value.id" class="between">
+            <span
+              >{{ dateText(value.created_at) }} · 批量{{
+                value.action === 'delete' ? '删除' : '下线'
+              }}
+              · {{ value.items.length }}张</span
+            ><button @click="openActions(value.action, value.id)">查看结果</button>
+          </div>
+        </details>
       </div>
       <details v-if="batches.length" class="batch-history">
         <summary>最近批量发布</summary>
@@ -289,6 +469,7 @@ onBeforeUnmount(() => {
                 <input
                   type="checkbox"
                   :checked="allSelected"
+                  :indeterminate="selected.length > 0 && !allSelected"
                   aria-label="选择本页卡片"
                   @change="selectPage"
                 />
@@ -301,7 +482,7 @@ onBeforeUnmount(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="card in data.items" :key="card.id">
+            <tr v-for="card in data.items" :key="card.id" :data-card-id="card.id">
               <td class="select-cell">
                 <input
                   type="checkbox"
@@ -312,12 +493,20 @@ onBeforeUnmount(() => {
               </td>
               <td>
                 <div class="row">
-                  <img
-                    v-if="card.display_thumbnail_id"
-                    :src="mediaURL(card.display_thumbnail_id)"
-                    class="thumbnail"
-                    alt=""
-                  />
+                  <button
+                    v-if="card.display_image_id"
+                    type="button"
+                    class="thumbnail-button"
+                    :aria-label="`查看 ${card.display_name} 场景大图`"
+                    @click.stop="image = card"
+                  >
+                    <img
+                      v-if="card.display_thumbnail_id"
+                      :src="mediaURL(card.display_thumbnail_id)"
+                      class="thumbnail"
+                      alt=""
+                    /><span v-else>查看场景图</span></button
+                  ><span v-else class="small muted">暂无场景图</span>
                   <div>
                     <span class="name">{{ card.display_name || '未命名草稿' }}</span>
                   </div>
@@ -365,15 +554,25 @@ onBeforeUnmount(() => {
           </tbody>
         </table>
       </div>
-      <div v-if="data && data.total > 20" class="pagination">
-        <span>共 {{ data.total }} 张</span
+      <div v-if="data && !error" class="pagination">
+        <span>共 {{ data.total }} 条</span
         ><button :disabled="page <= 1 || busy" @click="filter({ page: page - 1 })">上一页</button
-        ><span>第 {{ page }} 页</span
-        ><button :disabled="page * 20 >= data.total || busy" @click="filter({ page: page + 1 })">
+        ><span v-if="data.total">第 {{ data.page }} / {{ data.total_pages }} 页</span
+        ><span v-else>暂无卡片</span
+        ><button :disabled="page >= data.total_pages || busy" @click="filter({ page: page + 1 })">
           下一页
         </button>
       </div>
     </div>
+    <SceneImagePreview v-if="image" :card="image" @close="image = null" @invalid="imageInvalid" />
+    <SceneCardActions
+      v-if="actionOpen"
+      :action="actionKind"
+      :card-ids="actionIds"
+      :batch-id="actionBatch || undefined"
+      @close="closeActions"
+      @changed="actionChanged"
+    />
     <SceneBatchPublication
       v-if="batchOpen"
       :card-ids="selected"
@@ -449,6 +648,12 @@ onBeforeUnmount(() => {
   background: var(--green);
   color: #fff;
   font-weight: 600;
+}
+
+.thumbnail-button {
+  padding: 0;
+  border: 0;
+  background: none;
 }
 
 .thumbnail {

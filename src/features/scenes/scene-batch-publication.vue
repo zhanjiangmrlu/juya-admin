@@ -275,6 +275,10 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <ElDialog
+    class="batch-publication-dialog"
+    header-class="publication-header"
+    body-class="publication-body"
+    footer-class="publication-footer"
     :model-value="true"
     :title="result ? '批量发布结果' : '逐卡核对并批量发布'"
     width="min(1100px, 95vw)"
@@ -423,12 +427,17 @@ onBeforeUnmount(() => {
 
 .batch-review {
   display: grid;
-  grid-template-columns: minmax(190px, 1fr) minmax(375px, 2fr);
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: minmax(190px, 1fr) minmax(0, 2fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 24px;
-  max-height: 60vh;
+  overflow: hidden;
 }
 
 .review-list {
+  min-height: 0;
+  min-width: 0;
   overflow: auto;
   border-right: 1px solid var(--line);
   padding-right: 18px;
@@ -448,6 +457,8 @@ onBeforeUnmount(() => {
 }
 
 .review-preview {
+  min-height: 0;
+  min-width: 0;
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -468,6 +479,7 @@ onBeforeUnmount(() => {
 
 .review-confirm {
   display: flex;
+  flex-shrink: 0;
   gap: 9px;
   align-items: center;
   margin-top: 24px;
@@ -487,5 +499,41 @@ onBeforeUnmount(() => {
 
 .result-actions {
   margin-top: 20px;
+}
+
+@media (width <= 800px) {
+  .batch-review {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(80px, 0.4fr) minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .review-list {
+    padding-right: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+</style>
+<style lang="scss">
+.batch-publication-dialog {
+  display: flex;
+  flex-direction: column;
+  height: min(860px, calc(100dvh - 48px));
+  max-height: calc(100dvh - 48px);
+  margin: 24px auto;
+
+  > .publication-header,
+  > .publication-footer {
+    flex-shrink: 0;
+  }
+
+  > .publication-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: auto;
+  }
 }
 </style>

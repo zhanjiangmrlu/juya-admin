@@ -9,6 +9,8 @@ import { api, ApiError } from '@/services/http-client'
 import { registerLogoutGuard } from '@/services/logout-guard'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
+const page = ref(1),
+  positions = ref<Record<string, number>>({})
 const emit = defineEmits<{ close: [] }>()
 const items = ref<components['schemas']['OrderedCard'][]>([]),
   version = ref(''),
@@ -19,6 +21,25 @@ const loading = ref(true),
   notice = ref(''),
   unknown = ref(false),
   leaveOpen = ref(false)
+const pageCount = computed(() => Math.ceil(items.value.length / 10))
+const visibleItems = computed(() => items.value.slice((page.value - 1) * 10, page.value * 10))
+/** 将页内索引换算成完整已发布集合的位置
+ * @param index 当前页内从零开始的位置
+ * @returns 全局从零开始的位置
+ */
+const globalIndex = (index: number) => (page.value - 1) * 10 + index
+/** 按管理员明确填写的全局位置移动
+ * @param id 当前移动的稳定卡片
+ */
+const moveTo = (id: string) => {
+  const target = positions.value[id]
+  if (!Number.isInteger(target) || target! < 1 || target! > items.value.length) {
+    error.value = `请输入1至${items.value.length}的全局位置`
+    return
+  }
+  error.value = ''
+  move(id, target! - 1)
+}
 const dirty = computed(
   () => JSON.stringify(items.value.map((item) => item.id)) !== JSON.stringify(baseline.value)
 )
@@ -44,6 +65,8 @@ const accept = (value: components['schemas']['CatalogOrder'], preserve: boolean)
   items.value = preserve
     ? [...retained, ...value.items.filter((item) => !retainedIds.has(item.id))]
     : value.items
+  page.value = Math.min(page.value, Math.max(1, Math.ceil(items.value.length / 10)))
+  positions.value = {}
   baseline.value = value.items.map((item) => item.id)
   version.value = value.version
   pending = null
@@ -243,10 +266,10 @@ onBeforeUnmount(() => {
     <AppState :busy="loading" :empty="!loading && !items.length" empty-title="暂无已发布卡片" />
     <ol v-if="items.length" class="catalog-list">
       <li
-        v-for="(item, index) in items"
+        v-for="(item, index) in visibleItems"
         :key="item.id"
         @dragover.prevent
-        @drop.prevent="move(dragging, index)"
+        @drop.prevent="move(dragging, globalIndex(index))"
       >
         <button
           type="button"
@@ -257,7 +280,7 @@ onBeforeUnmount(() => {
           @dragend="dragging = ''"
         >
           ⠿</button
-        ><span class="rank">{{ index + 1 }}</span
+        ><span class="rank">{{ globalIndex(index) + 1 }}</span
         ><img
           v-if="item.thumbnail_id"
           :src="mediaURL(item.thumbnail_id)"
@@ -265,24 +288,50 @@ onBeforeUnmount(() => {
           loading="lazy"
         /><strong class="catalog-name">{{ item.name }}</strong>
         <div class="row">
+          <input
+            v-model.number="positions[item.id]"
+            type="number"
+            min="1"
+            :max="items.length"
+            :placeholder="String(globalIndex(index) + 1)"
+            :aria-label="`${item.name} 移动到全局位置`"
+            :disabled="saving || loading || unknown"
+          /><button
+            :data-move="item.id"
+            :disabled="saving || loading || unknown"
+            @click="moveTo(item.id)"
+          >
+            移动到第N位
+          </button>
           <button
             type="button"
-            :disabled="index === 0 || saving || loading || unknown"
+            :disabled="globalIndex(index) === 0 || saving || loading || unknown"
             :aria-label="`上移 ${item.name}`"
-            @click="move(item.id, index - 1)"
+            @click="move(item.id, globalIndex(index) - 1)"
           >
             ↑</button
           ><button
             type="button"
-            :disabled="index === items.length - 1 || saving || loading || unknown"
+            :disabled="globalIndex(index) === items.length - 1 || saving || loading || unknown"
             :aria-label="`下移 ${item.name}`"
-            @click="move(item.id, index + 1)"
+            @click="move(item.id, globalIndex(index) + 1)"
           >
             ↓
           </button>
         </div>
       </li>
     </ol>
+    <div class="row">
+      <button :disabled="page <= 1 || saving || loading || unknown" @click="page--">上一页</button
+      ><span v-if="pageCount">第{{ page }}/{{ pageCount }}页</span
+      ><button
+        data-action="next-order-page"
+        :disabled="page >= pageCount || saving || loading || unknown"
+        @click="page++"
+      >
+        下一页
+      </button>
+    </div>
     <footer class="between">
       <span class="small muted"
         >共 {{ items.length }} 张 · {{ dirty ? '有未保存顺序' : '当前已保存顺序' }}</span
@@ -366,6 +415,10 @@ onBeforeUnmount(() => {
   .catalog-name {
     flex: 1;
     font-size: 14px;
+  }
+
+  input[type='number'] {
+    width: 75px;
   }
 
   .rank {

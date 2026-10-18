@@ -3,7 +3,26 @@ import { mediaURL } from '@/services/display'
 import { importStates } from '@/shared/constants/import'
 
 import type { ImportEntry } from '@/shared/types/import'
-defineProps<{ entries: ImportEntry[]; activeId?: string; busy: boolean; dirtyIds: string[] }>()
+const props = defineProps<{
+  entries: ImportEntry[]
+  activeId?: string
+  busy: boolean
+  dirtyIds: string[]
+}>()
+/** 为同名但不同来源包显示本批顺序，避免管理员混淆
+ * @param entry 当前卡片及其来源包
+ * @returns 可读来源名称
+ */
+const sourceName = (entry: ImportEntry) => {
+  const sources = [
+    ...new Map(
+      props.entries
+        .filter((value) => value.item.source_zip_name === entry.item.source_zip_name)
+        .map((value) => [value.item.source_zip_id, value.item.source_zip_name])
+    ).keys()
+  ]
+  return `${entry.item.source_zip_name}${sources.length > 1 ? `（第${sources.indexOf(entry.item.source_zip_id) + 1}包）` : ''}`
+}
 const emit = defineEmits<{ select: [entry: ImportEntry, event: Event]; expand: [id: string] }>()
 </script>
 <template>
@@ -34,7 +53,7 @@ const emit = defineEmits<{ select: [entry: ImportEntry, event: Event]; expand: [
         </button></label
       >
       <p v-if="entry.item.source_zip_name" class="small muted">
-        来源：{{ entry.item.source_zip_name }} / {{ entry.item.source_folder }}
+        来源：{{ sourceName(entry) }} / {{ entry.item.source_folder }}
       </p>
       <p>{{ importStates[entry.item.state] || '待核对' }}</p>
       <p v-if="entry.item.issues.length" class="small muted">{{ entry.item.issues[0]?.message }}</p>

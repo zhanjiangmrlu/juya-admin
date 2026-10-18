@@ -7,6 +7,58 @@ vi.mock('@/services/http-client', async (importOriginal) => ({
   api: { request }
 }))
 import SceneCatalogOrder from './scene-catalog-order.vue'
+it('pages the global snapshot and saves a cross-page move without dropping hidden cards', async () => {
+  const values = Array.from({ length: 21 }, (_, index) => ({
+    id: `c${index + 1}`,
+    name: `卡片${index + 1}`,
+    image_id: null
+  }))
+  let saved: { card_ids: string[] } | null = null
+  request.mockImplementation(async (_path, options) => {
+    if (options?.method === 'PUT') saved = options.body
+    return { version: 'version', items: values }
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/cards', component: SceneCatalogOrder }]
+  })
+  await router.push('/cards')
+  await router.isReady()
+  const page = mount({ template: '<RouterView/>' }, { global: { plugins: [router] } })
+  await flushPromises()
+  expect(page.findAll('.catalog-name')).toHaveLength(10)
+  await page.get('[aria-label="卡片1 移动到全局位置"]').setValue(21)
+  await page.get('[data-move="c1"]').trigger('click')
+  await page.get('[data-action="next-order-page"]').trigger('click')
+  await page.get('[data-action="save-order"]').trigger('click')
+  await flushPromises()
+  expect(saved).toMatchObject({
+    card_ids: [
+      'c2',
+      'c3',
+      'c4',
+      'c5',
+      'c6',
+      'c7',
+      'c8',
+      'c9',
+      'c10',
+      'c11',
+      'c12',
+      'c13',
+      'c14',
+      'c15',
+      'c16',
+      'c17',
+      'c18',
+      'c19',
+      'c20',
+      'c21',
+      'c1'
+    ]
+  })
+  page.unmount()
+})
 it('keeps a rejected temporary order and rebases new publications before another explicit save', async () => {
   let reads = 0
   request.mockImplementation(async (path: string, options?: { method?: string }) => {

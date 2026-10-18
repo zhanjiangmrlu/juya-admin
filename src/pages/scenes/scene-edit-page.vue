@@ -196,7 +196,8 @@ const publish = async () => {
     accept(card)
     ElMessage.success('场景卡已发布')
     committedNavigation = true
-    await router.push(back.value)
+    const destination = router.resolve(back.value)
+    await router.push({ path: destination.path, query: { ...destination.query, focus: card.id } })
   } catch (reason) {
     publishError.value = reason instanceof Error ? reason.message : '发布失败，草稿已保留'
   } finally {

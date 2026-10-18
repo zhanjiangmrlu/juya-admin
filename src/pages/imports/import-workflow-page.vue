@@ -311,7 +311,10 @@ watch(
   },
   { deep: true }
 )
-watch(activeId, () => stagedSpeech.stop())
+watch(activeId, () => {
+  stagedSpeech.stop()
+  showPreview.value = false
+})
 watch(editingMedia, (value) => {
   if (!value && active.value) schedule(active.value)
 })
@@ -788,6 +791,7 @@ onBeforeUnmount(() => {
                   </button>
                 </p>
                 <ImportAssetPicker
+                  :key="active.item.id"
                   v-model="active.edit.content"
                   :batch="batch"
                   :item-id="active.item.id"
@@ -891,7 +895,7 @@ onBeforeUnmount(() => {
       <div class="conflict-content">
         <section>
           <h3>服务器最新暂存</h3>
-          <SceneReader :content="conflictLatest.content" />
+          <SceneReader :key="conflictLatest.id" :content="conflictLatest.content" />
         </section>
         <section>
           <h3>本地待保存输入</h3>
