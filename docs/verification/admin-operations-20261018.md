@@ -77,3 +77,11 @@
 ![逐卡管理结果](admin-operations-result.png)
 
 ![跨页全局排序](admin-operations-order.png)
+
+## 测试环境部署完成
+
+2026-10-18：前端 `2c52cd8` 与管理后端 `47fae39` 已部署到测试环境，兼容迁移 `0012` 已确认完成。前端发布号 `20261018T124123-2c52cd864225-9da5d8`，管理 API／Worker／dispatcher 发布号 `20261018T091633-47fae395569e-232880`。
+
+发布时重新通过前端 59 项测试、完整检查与构建；后端 CI 真实 MySQL／Redis 157 项通过。公网 HTML 及 4 份入口静态资源与当前构建逐字节一致，两个测试 API 均返回 HTTP 200／ready。新 Worker 中 9 项独立临时数据库及素材回归通过；后台三个服务 healthy、无重启／OOM，小程序三个服务身份与启动时间保持不变。
+
+本轮未对共享业务资料执行下线、删除或重新导入操作，未重新执行完整线上浏览器业务流程，生产环境继续暂缓。后端机器证据位于 `docs/verification/admin-test-deployment-20261018.json`。
