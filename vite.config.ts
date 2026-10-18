@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
     server: {
       host: '127.0.0.1',
       port: 5173,
+      allowedHosts: mode === 'local-share' ? ['dev-admin.juyayingyu.com'] : [],
       proxy: { '/api': { target: env.VITE_DEV_API_PROXY_TARGET || 'http://127.0.0.1:8001' } }
     }
   }
