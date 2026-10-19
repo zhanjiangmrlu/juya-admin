@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-19",
+  "environment": "test",
+  "project": "juya-admin",
+  "frontend_commit": "ab83cdcbd2868f5e8c96723c005f021317ebe125",
+  "frontend_release": "20261019T143809-ab83cdcbd286-df16f7",
+  "previous_release": "20261018T145937-6bedc86e1a19-10dac7",
+  "site_url": "https://test-admin.juyayingyu.com",
+  "checks": {
+    "quality": "passed",
+    "unit_tests": 71,
+    "test_build": "passed",
+    "public_assets_checked": 30,
+    "all_public_asset_bytes_match_release": true,
+    "browser": {
+      "environment": "test",
+      "source_commit": "ab83cdcbd2868f5e8c96723c005f021317ebe125",
+      "login": true,
+      "editor": true,
+      "card_list": true,
+      "imports": true,
+      "users": true,
+      "user_detail": true,
+      "statistics_match_live_api": true,
+      "responsive_and_icons": true,
+      "logout": true,
+      "api_target": ["test-admin-api.juyayingyu.com"],
+      "business_writes": 0,
+      "runtime_errors": 0,
+      "server_errors": 0
+    },
+    "existing_runtime_containers_unchanged": 9
+  },
+  "backend_deployed": false,
+  "miniapp_deployed": false,
+  "production_deployed": false
+}

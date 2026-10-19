@@ -13,3 +13,5 @@ Node.js22.22+（22系列）、pnpm11.25.0。复制 `.env.example` 配置本地�
 修订14的页面截图、80状态映射、验证范围与已知差异见 [界面验收记录](docs/verification/figma-rev14/verification.md)。本地浏览器回归可通过 `JUYA_E2E_BASE_URL` 指定已启动的后台预览，通过 `JUYA_E2E_CHANNEL=chrome` 使用已安装 Chrome；未指定时沿用 Playwright Chromium。导入测试另需 `JUYA_IMPORT_VERIFY_DIR` 指向隔离夹具目录；每次使用新数据库或独立内容的 ZIP，避免被真实去重规则跳过。
 
 外网实时分享已切换到本工作树，使用 `https://dev-admin.juyayingyu.com`，继续使用原本地分享账号和数据。保存本地前端源码后可实时更新，详见 [域名实时访问说明](docs/verification/figma-rev14/local-share.md)。4188隔离预览账号与该域名账号不通用。
+
+修订14后台已部署到 [测试站点](https://test-admin.juyayingyu.com)，实际发布提交、静态资源核对及上线后浏览器验收见 [测试部署记录](docs/verification/figma-rev14/test-deployment-20261019.md)。
