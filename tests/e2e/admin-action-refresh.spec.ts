@@ -97,7 +97,10 @@ for (const action of ['offline', 'delete'] as const) {
       rmSync(`${root}/hold-actions`)
       if (action === 'offline') await expect(page.locator('tbody tr')).toContainText('已下线')
       else await expect(page.locator('tbody tr')).toHaveCount(0)
-      await page.screenshot({ path: `test-results/action-refresh-${action}.png` })
+      await page.screenshot({
+        animations: 'disabled',
+        path: `test-results/action-refresh-${action}.png`
+      })
     } finally {
       rmSync(`${root}/hold-actions`, { force: true })
     }

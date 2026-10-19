@@ -66,7 +66,11 @@ test('three ZIPs can be selected, removed, appended, reviewed and saved as three
   await expect(page.locator('.review-list tr[data-item-id]')).toHaveCount(3)
   for (const name of ['first.zip', 'second.zip', 'third.zip'])
     await expect(page.locator('.review-list')).toContainText(name)
-  await page.screenshot({ path: 'test-results/multi-zip-review.png', fullPage: true })
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'test-results/multi-zip-review.png',
+    fullPage: true
+  })
   await page
     .locator('.review-list tr[data-item-id]')
     .filter({ hasText: '多ZIP甲' })
@@ -84,8 +88,17 @@ test('three ZIPs can be selected, removed, appended, reviewed and saved as three
     .getByRole('button', { name: '展开核对' })
     .click()
   await expect(page.getByLabel('中文标题', { exact: true })).toHaveValue('多ZIP甲-已核对')
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'test-results/multi-zip-expanded.png',
+    fullPage: true
+  })
   await save(page, 3)
-  await page.screenshot({ path: 'test-results/multi-zip-results.png', fullPage: true })
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'test-results/multi-zip-results.png',
+    fullPage: true
+  })
   await page.locator('[data-action="import-cards"]').click()
   await expect(page.getByRole('row')).toHaveCount(4)
   await expect(page.locator('tbody')).toContainText('草稿')
@@ -121,7 +134,11 @@ test('bad ZIP and bad folder do not block readable cards; incomplete audio saves
   await expect(page.locator('.import-summary')).toContainText('待补充 1 张')
   await save(page, 2)
   await expect(page.locator('.result-summary')).toContainText('无法读取 1')
-  await page.screenshot({ path: 'test-results/multi-zip-partial.png', fullPage: true })
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'test-results/multi-zip-partial.png',
+    fullPage: true
+  })
   const batchId = new URL(page.url()).searchParams.get('batch')
   const batch = await (await page.request.get(`/api/admin/v1/imports/${batchId}`)).json()
   const missing = batch.items.find(

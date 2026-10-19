@@ -341,6 +341,10 @@ onBeforeUnmount(() => {
 .editor-page {
   max-width: none;
 
+  :deep(.content-fields) {
+    max-width: 1088px;
+  }
+
   .back-link {
     display: block;
     font-size: 12px;

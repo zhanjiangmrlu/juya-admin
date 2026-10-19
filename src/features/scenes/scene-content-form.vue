@@ -261,7 +261,7 @@ const applyPaste = () => {
             >本句中文释义（选填）<input v-model="word.meaning" maxlength="2000"
           /></label>
         </div>
-        <label class="field"
+        <label class="field word-phonetic"
           >音标（选填）<input v-model="word.phonetic" maxlength="300" placeholder="仅用于展示"
         /></label>
         <button
@@ -474,7 +474,7 @@ const applyPaste = () => {
   }
 }
 
-.entry {
+:where(.entry) {
   margin: 20px 0;
   padding: 20px;
   border: 1px solid var(--line);
@@ -576,8 +576,120 @@ const applyPaste = () => {
   margin-top: 12px;
 }
 
-.two-columns .field {
-  margin-top: 8px;
+.vocabulary-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.7fr) auto;
+  gap: 12px 16px;
+  padding: 16px 20px;
+  margin: 16px 0;
+
+  > .between {
+    grid-column: 1 / -1;
+  }
+
+  > .two-columns {
+    display: contents;
+  }
+
+  .field {
+    margin: 0;
+    font-size: 12px;
+
+    input {
+      margin-top: 6px;
+      min-height: 40px;
+    }
+  }
+
+  > .field {
+    grid-column: 1 / -1;
+  }
+
+  > .word-phonetic {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  > button {
+    grid-column: 4;
+    grid-row: 2;
+    align-self: end;
+    min-height: 40px;
+  }
+
+  > p,
+  > .check-field {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  > :deep(.word-source) {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 12px;
+  }
+
+  :deep(.word-source button) {
+    min-height: 28px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
+  > .between button {
+    min-height: 28px;
+    padding: 2px 6px;
+  }
+}
+
+.chunk-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 16px 20px;
+  margin: 12px 0;
+
+  > .two-columns {
+    display: contents;
+  }
+
+  > .between {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: end;
+
+    > strong {
+      display: none;
+    }
+  }
+
+  .field {
+    margin: 0;
+    font-size: 12px;
+  }
+
+  .field:first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .field:last-child {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  input {
+    min-height: 40px;
+    margin-top: 6px;
+  }
+
+  button {
+    min-height: 40px;
+    padding: 5px;
+  }
+
+  .row {
+    gap: 4px;
+  }
 }
 
 @media (width <= 1100px) {

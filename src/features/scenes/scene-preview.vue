@@ -5,7 +5,7 @@ import type { ScenePronunciationContext } from '@/shared/types/scene-components'
 import SceneReader from './scene-reader.vue'
 defineProps<{
   content: components['schemas']['SceneContent']
-  mode: 'draft' | 'published'
+  mode: 'draft' | 'published' | 'import'
   pronunciation?: ScenePronunciationContext
   busy?: boolean
   error?: string
@@ -16,7 +16,13 @@ defineEmits<{ close: []; publish: [] }>()
   <ElDialog
     class="scene-preview"
     :model-value="true"
-    :title="mode === 'published' ? '已发布内容 · 只读查看' : '发布前预览'"
+    :title="
+      mode === 'import'
+        ? '导入核对预览 · 尚未保存为卡片草稿'
+        : mode === 'published'
+          ? '已发布内容 · 只读查看'
+          : '发布前预览'
+    "
     width="516px"
     align-center
     destroy-on-close
@@ -36,7 +42,9 @@ defineEmits<{ close: []; publish: [] }>()
       ><p v-if="error" class="notice error" role="alert">{{ error }}</p>
       <div class="row preview-footer">
         <button type="button" :disabled="busy" @click="$emit('close')">
-          {{ mode === 'published' ? '关闭预览' : '返回修改' }}</button
+          {{
+            mode === 'import' ? '返回核对' : mode === 'published' ? '关闭预览' : '返回修改'
+          }}</button
         ><button
           v-if="mode === 'draft'"
           type="button"
@@ -52,10 +60,18 @@ defineEmits<{ close: []; publish: [] }>()
 </template>
 <style lang="scss">
 .scene-preview:where(.el-dialog) {
+  display: flex;
+  flex-direction: column;
+  height: min(905px, calc(100dvh - 80px));
   padding: 0;
   border-radius: 16px;
   overflow: hidden;
   max-height: calc(100dvh - 80px);
+
+  [class~='el-dialog__header'],
+  [class~='el-dialog__footer'] {
+    flex-shrink: 0;
+  }
 
   [class~='el-dialog__header'] {
     padding: 22px;
@@ -75,13 +91,17 @@ defineEmits<{ close: []; publish: [] }>()
   }
 
   [class~='el-dialog__body'] {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
     padding: 0;
     max-height: none;
     background: var(--bg);
   }
 
   .preview-scroll {
-    max-height: calc(100dvh - 217px);
+    height: 100%;
+    min-height: 0;
     overflow: auto;
     scrollbar-gutter: stable;
     padding: 20px 0;

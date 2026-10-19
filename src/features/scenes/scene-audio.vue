@@ -99,6 +99,7 @@ const retry = () => {
 }
 /** 主音频由用户主动播放时抢占其他试听 */
 const play = () => {
+  playbackError.value = ''
   playing.value = true
   if (audio.value) claimAudioFocus(audio.value)
   emit('play')

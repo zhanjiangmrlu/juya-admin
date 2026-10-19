@@ -54,7 +54,11 @@ test('real admin login, private upload, immutable publication and stale editor c
   await page.getByRole('button', { name: '预览并发布', exact: true }).click()
   await expect(page.getByRole('dialog', { name: '发布前预览' })).toBeVisible()
   await expect(page.getByRole('dialog', { name: '发布前预览' })).toContainText('我可以……吗？')
-  await page.screenshot({ path: 'test-results/publication-preview.png', fullPage: true })
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'test-results/publication-preview.png',
+    fullPage: true
+  })
   await page.getByRole('button', { name: '确认发布', exact: true }).click()
   await expect(page.getByRole('heading', { name: '卡片管理', exact: true })).toBeVisible()
   const row = page.getByRole('row').filter({ hasText: name })
@@ -86,9 +90,17 @@ test('real admin login, private upload, immutable publication and stale editor c
       .getByRole('heading', { name: `${name} Ordering Coffee`, exact: true })
   ).toBeVisible()
   await page.getByRole('button', { name: '关闭预览', exact: true }).click()
-  await page.screenshot({ path: 'test-results/card-management.png', fullPage: true })
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'test-results/card-management.png',
+    fullPage: true
+  })
   await page.getByRole('link', { name: '数据统计', exact: true }).click()
   await expect(page.locator('.metric-value')).toHaveCount(3)
-  await page.screenshot({ path: 'test-results/overview.png', fullPage: true })
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'test-results/overview.png',
+    fullPage: true
+  })
   expect(errors).toEqual([])
 })

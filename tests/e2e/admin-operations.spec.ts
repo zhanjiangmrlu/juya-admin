@@ -152,7 +152,11 @@ test('server pagination, scoped batch operations, versioned image and global ord
   await row.locator('.thumbnail-button').click()
   await expect(page.getByRole('dialog')).toContainText('场景大图')
   await page.getByRole('button', { name: '放大场景图' }).click()
-  await page.screenshot({ path: 'test-results/admin-image-preview.png', fullPage: true })
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'test-results/admin-image-preview.png',
+    fullPage: true
+  })
   await page.getByRole('button', { name: '关闭大图' }).click()
   expect(page.url()).toBe(before)
   await expect(row.locator('input[type=checkbox]')).toBeChecked()
@@ -165,7 +169,11 @@ test('server pagination, scoped batch operations, versioned image and global ord
   await expect(confirm).toBeEnabled()
   await confirm.click()
   await expect(page.getByRole('dialog')).toContainText('成功 1 张')
-  await page.screenshot({ path: 'test-results/admin-action-result.png', fullPage: true })
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'test-results/admin-action-result.png',
+    fullPage: true
+  })
   await page.getByRole('button', { name: '关闭结果' }).click()
   await expect(page.locator('.pagination')).toContainText('共 23 张')
   await page.goto('/cards?status=published')
@@ -179,7 +187,11 @@ test('server pagination, scoped batch operations, versioned image and global ord
     .fill(String(order.items.length))
   await page.locator('[data-move]').first().click()
   await page.getByRole('button', { name: '下一页', exact: true }).click()
-  await page.screenshot({ path: 'test-results/admin-global-order.png', fullPage: true })
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'test-results/admin-global-order.png',
+    fullPage: true
+  })
   await page.getByRole('button', { name: '保存顺序', exact: true }).click()
   await expect(page.locator('.catalog-order')).toHaveCount(0)
   const saved = await (await page.request.get('/api/admin/v1/catalog-order')).json()

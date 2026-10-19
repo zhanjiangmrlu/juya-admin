@@ -13,6 +13,7 @@ import ImportSaveStep from '@/features/imports/import-save-step.vue'
 import ImportTargetPicker from '@/features/imports/import-target-picker.vue'
 import ImportUploadPanel from '@/features/imports/import-upload-panel.vue'
 import SceneContentForm from '@/features/scenes/scene-content-form.vue'
+import ScenePreview from '@/features/scenes/scene-preview.vue'
 import SceneReader from '@/features/scenes/scene-reader.vue'
 import { dateText, queryURL } from '@/services/display'
 import { api, ApiError } from '@/services/http-client'
@@ -937,30 +938,20 @@ onBeforeUnmount(() => {
       @close="targetOpen = false"
       @confirm="target"
     />
-    <ElDialog
+    <ScenePreview
       v-if="showPreview && active"
-      :model-value="true"
-      title="导入核对预览 · 尚未保存为卡片草稿"
-      class="scene-preview"
-      width="516px"
-      align-center
+      mode="import"
+      :content="active.edit.content"
+      :pronunciation="
+        batch
+          ? {
+              import: { batchId: batch.id, itemId: active.item.id },
+              reference: { revision: active.item.revision }
+            }
+          : undefined
+      "
       @close="showPreview = false"
-      ><SceneReader
-        phone
-        :content="active.edit.content"
-        :pronunciation="
-          batch
-            ? {
-                import: { batchId: batch.id, itemId: active.item.id },
-                reference: { revision: active.item.revision }
-              }
-            : undefined
-        "
-        @close="showPreview = false"
-      /><template #footer
-        ><button type="button" @click="showPreview = false">返回核对</button></template
-      ></ElDialog
-    >
+    />
     <ElDialog
       v-if="conflictLatest && active"
       :model-value="true"
