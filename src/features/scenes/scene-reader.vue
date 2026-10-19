@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
 
+import AppIcon from '@/components/app-icon/app-icon.vue'
 import { useWordPronunciation } from '@/composables/use-word-pronunciation'
 import { mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
@@ -12,6 +13,7 @@ import type { SceneReaderProps } from '@/shared/types/scene-components'
 import SceneAudio from './scene-audio.vue'
 import SceneTitle from './scene-title.vue'
 const props = defineProps<SceneReaderProps>()
+const emit = defineEmits<{ close: [] }>()
 const speech = useWordPronunciation(async (wordId, active) => {
   if (!props.pronunciation) throw new Error('请先保存资料后试听')
   audio.value?.stop()
@@ -83,10 +85,20 @@ watch(
 onBeforeUnmount(() => audio.value?.stop())
 </script>
 <template>
-  <article class="scene-reader">
+  <article class="scene-reader" :class="{ phone }">
+    <div v-if="phone" class="reader-nav">
+      <button type="button" aria-label="返回预览前页面" @click="emit('close')">
+        <AppIcon name="back" :size="22" /></button
+      ><span>场景预览</span
+      ><span class="miniapp-capsule" aria-hidden="true">••• <span>◉</span></span>
+    </div>
     <header class="scene-heading">
-      <h1><SceneTitle :name="content.name" :title-en="content.title_en" /></h1>
-      <button type="button" class="small" disabled>收藏（预览）</button>
+      <h1>
+        <SceneTitle :name="content.name" :title-en="content.title_en" :show-missing="false" />
+      </h1>
+      <button type="button" class="favorite-preview" disabled>
+        <AppIcon name="heart" :size="19" />收藏（预览）
+      </button>
     </header>
     <figure v-if="content.image_id">
       <button type="button" class="picture" aria-label="查看场景大图" @click="imageExpanded = true">
@@ -95,15 +107,18 @@ onBeforeUnmount(() => audio.value?.stop())
           :src="mediaURL(content.image_id)"
           :alt="content.name"
           @error="imageError = true"
-        /><span v-else>图片暂不可用，点击查看大图</span>
+        /><span v-else>图片暂不可用</span>
+        <span class="picture-copy"
+          ><strong>Start with the scene.</strong><span>点击场景卡，查看完整图片。</span
+          ><span class="button-link">放大场景卡</span></span
+        >
       </button>
     </figure>
     <section v-if="content.audio_id" class="audio">
-      <h2>完整音频</h2>
-      <SceneAudio ref="audio" :media-id="content.audio_id" @play="fullPlay" />
+      <SceneAudio ref="audio" :media-id="content.audio_id" variant="preview" @play="fullPlay" />
     </section>
     <section>
-      <h2>场景对话</h2>
+      <h2 class="reading-heading"><span>The conversation</span><small>场景对话</small></h2>
       <div v-for="line in content.dialogue" :key="line.id" class="dialogue">
         <small>{{ line.speaker }}</small>
         <p class="english">
@@ -130,7 +145,9 @@ onBeforeUnmount(() => audio.value?.stop())
       </div>
     </section>
     <section>
-      <h2>重点词汇 <small>本句释义</small></h2>
+      <h2 class="reading-heading">
+        <span>Words in context</span><small>重点词汇 · 本句释义</small>
+      </h2>
       <div v-for="word in content.vocabulary" :key="word.id" class="word">
         <button
           type="button"
@@ -144,7 +161,7 @@ onBeforeUnmount(() => audio.value?.stop())
           @click="word.id && speech.play(word.id)"
         >
           <strong>{{ word.english }}</strong
-          ><span class="voice-label">{{
+          ><AppIcon name="speaker" :size="15" /><span class="voice-label">{{
             speech.current.value === word.id && speech.status.value === 'loading'
               ? '加载中…'
               : speech.current.value === word.id && speech.status.value === 'playing'
@@ -168,7 +185,7 @@ onBeforeUnmount(() => audio.value?.stop())
       </div>
     </section>
     <section v-if="content.chunks?.length">
-      <h2>语块</h2>
+      <h2 class="reading-heading"><span>Useful expressions</span><small>语块</small></h2>
       <div v-for="chunk in content.chunks" :key="chunk.id" class="word">
         <strong>{{ chunk.english }}</strong>
         <p>{{ chunk.chinese }}</p>
@@ -182,194 +199,289 @@ onBeforeUnmount(() => audio.value?.stop())
   </article>
 </template>
 <style scoped lang="scss">
-.scene-reader {
-  width: 375px;
+:where(.scene-reader) {
+  width: 390px;
   max-width: 100%;
   margin: auto;
-  background: var(--paper);
-  padding: 24px;
+  background: var(--bg);
+  padding: 20px;
   color: var(--ink);
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 1.8;
   overflow-wrap: anywhere;
 
-  .scene-heading {
+  .reader-nav {
     display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    justify-content: space-between;
-  }
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 32px;
+    height: 36px;
+    font-size: 16px;
+    font-weight: 500;
 
-  .preview-completion {
-    width: 100%;
-    margin-top: 28px;
-  }
-
-  h1 {
-    font-size: 22px;
-    margin-bottom: 24px;
-    line-height: 1.5;
-  }
-
-  h2 {
-    font-size: 18px;
-    margin: 0 0 14px;
-
-    small {
-      font-size: 11px;
-      color: var(--muted);
-      font-weight: 400;
+    button {
+      padding: 0;
+      border: 0;
+      background: none;
+      min-height: 36px;
     }
+
+    .miniapp-capsule {
+      margin-left: auto;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 0 12px;
+      height: 29px;
+      font-size: 13px;
+
+      span {
+        margin-left: 12px;
+        padding-left: 12px;
+        border-left: 1px solid var(--line);
+      }
+    }
+  }
+
+  .scene-heading {
+    position: relative;
+    margin-bottom: 28px;
+
+    h1 {
+      font-size: 22px;
+      line-height: 1.5;
+      font-weight: 500;
+      width: 100%;
+    }
+  }
+
+  :deep(.scene-title) {
+    .chinese {
+      padding-right: 100px;
+      font-weight: 600;
+    }
+
+    .english {
+      font-family: Fraunces, serif;
+      font-size: 22px;
+      color: var(--ink);
+      line-height: 1.5;
+      margin-top: 14px;
+    }
+  }
+
+  .favorite-preview {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-height: 32px;
+    padding: 0;
+    font-size: 12px;
+    border: 0;
+    background: none;
+    color: #78867a;
+    opacity: 1;
   }
 
   figure {
     margin: 0;
+  }
 
-    .picture {
+  .picture {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+    padding: 16px;
+    min-height: 174px;
+    text-align: left;
+    border-radius: 16px;
+
+    img {
       display: block;
-      width: 100%;
-      padding: 0;
-      border: 0;
-      border-radius: 8px;
-      overflow: hidden;
+      width: 92px;
+      height: 140px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
 
-      img {
-        display: block;
-        width: 100%;
-        height: auto;
+    .picture-copy {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+
+      strong {
+        font-family: Fraunces, serif;
+        font-size: 23px;
+        font-weight: 400;
+        line-height: 1.4;
+      }
+
+      > span:not(:where(.button-link)) {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .button-link {
+        justify-self: start;
+        font-size: 13px;
+        min-height: 40px;
+        font-weight: 400;
       }
     }
   }
 
   section {
-    margin-top: 28px;
+    margin-top: 36px;
   }
 
-  .audio {
-    padding: 16px;
-    background: var(--soft);
-    border-radius: 10px;
+  .reading-heading {
+    margin: 0 0 24px;
 
-    h2 {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 13px;
+    span {
+      display: block;
+      font-family: Fraunces, serif;
+      font-size: 27px;
+      font-weight: 400;
+      line-height: 1.35;
     }
 
-    audio {
-      width: 100%;
-      height: 38px;
+    small {
+      display: block;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--muted);
+      margin-top: 5px;
     }
   }
 
   .dialogue {
-    padding: 0 0 20px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding-bottom: 20px;
 
     small {
-      color: var(--muted);
-      font-size: 11px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      background: var(--soft);
+      font-size: 12px;
     }
 
     .english {
-      font-size: 16px;
-      line-height: 1.85;
+      font-size: 17px;
+      line-height: 1.9;
     }
 
     mark {
-      background: #e3edda;
-      color: var(--green);
-      border-radius: 3px;
-      padding: 1px 0;
+      background: #ddefd8;
+      color: var(--ink);
+      font-weight: 700;
+      border-radius: 4px;
+      padding: 1px 2px;
     }
   }
 
   .translation-section {
-    margin-top: 14px;
-    padding: 16px;
-    background: var(--soft);
-    border-radius: 8px;
+    margin-top: 16px;
+    padding: 18px;
+    border-radius: 12px;
+    background: #f1f5e9;
 
     h3 {
-      font-size: 13px;
-      margin: 0 0 14px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 16px;
     }
 
-    small {
-      font-size: 11px;
-      color: var(--muted);
+    .translation-line {
+      display: flex;
+      gap: 12px;
+      margin-top: 14px;
+      font-size: 14px;
+
+      small {
+        color: var(--muted);
+      }
     }
-  }
-
-  .translation-line + .translation-line {
-    margin-top: 14px;
-  }
-
-  .translation {
-    font-size: 13px;
-    color: var(--muted);
-    margin-top: 6px;
-    line-height: 1.9;
-  }
-
-  .word-trigger {
-    padding: 0;
-    border: 0;
-    background: none;
-    display: flex;
-    gap: 14px;
-    color: var(--ink);
-    text-align: left;
-  }
-
-  .voice-label {
-    font-size: 11px;
-    color: var(--green);
-  }
-
-  .voice-error {
-    font-size: 11px;
-    color: var(--danger);
-  }
-
-  .source {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.8;
-    white-space: pre-wrap;
   }
 
   .word {
-    padding: 14px 0;
+    margin-top: 24px;
+    padding-bottom: 20px;
     border-bottom: 1px solid var(--line);
 
-    strong {
-      font-size: 17px;
+    .word-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--ink);
+      min-height: 30px;
+      font-size: 20px;
+      text-align: left;
+
+      strong {
+        font-weight: 500;
+      }
     }
 
-    p {
-      margin-top: 5px;
-      font-size: 13px;
+    > strong,
+    .phonetic {
+      font-size: 20px;
     }
 
     .phonetic {
+      margin-left: 10px;
+    }
+
+    .meaning,
+    > p {
+      font-size: 16px;
+      margin-top: 8px;
+    }
+
+    .source {
       color: var(--muted);
-      font-size: 12px;
-      display: block;
-      margin: 3px 0;
+    }
+
+    .voice-label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .voice-error {
+      color: var(--red);
     }
   }
 
+  .preview-completion {
+    width: 100%;
+    margin-top: 28px;
+    min-height: 46px;
+    background: transparent;
+    color: #78867a;
+    opacity: 1;
+  }
+
   .preview-note {
-    margin: 32px 0 8px;
-    color: var(--muted);
-    font-size: 11px;
+    font-size: 12px;
     text-align: center;
+    color: var(--muted);
+    padding-top: 10px;
   }
 }
 
 .full-image {
   display: block;
-  width: 100%;
-  height: auto;
+  max-width: 100%;
+  max-height: 78vh;
+  object-fit: contain;
+  margin: auto;
 }
 </style>

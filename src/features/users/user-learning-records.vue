@@ -3,7 +3,8 @@ import { onMounted, ref } from 'vue'
 
 import AppState from '@/components/app-state/app-state.vue'
 import { useResource } from '@/composables/use-resource'
-import { dateText, queryURL } from '@/services/display'
+import SceneTitle from '@/features/scenes/scene-title.vue'
+import { dateText, mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -65,12 +66,12 @@ onMounted(() => {
 })
 </script>
 <template>
-  <section class="panel">
+  <section class="learning-records">
     <div class="tabs">
       <button type="button" :class="{ active: tab === 'learned' }" @click="switchTab('learned')">
-        已学卡片</button
+        已学卡片 {{ learned.data.value?.total ?? '' }}</button
       ><button type="button" :class="{ active: tab === 'checkins' }" @click="switchTab('checkins')">
-        打卡记录
+        打卡记录 {{ checkins.data.value?.total ?? '' }}
       </button>
     </div>
     <div v-show="tab === 'learned'">
@@ -87,27 +88,31 @@ onMounted(() => {
           <thead>
             <tr>
               <th>场景卡片</th>
-              <th>首次完成</th>
-              <th>最近学习</th>
-              <th>可用状态</th>
+              <th>状态／首次完成／最近学习</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="card in learned.data.value.items" :key="card.id">
               <td>
-                <strong>{{ card.name }}</strong>
+                <div class="learned-card">
+                  <img
+                    v-if="card.thumbnail_id"
+                    :src="mediaURL(card.thumbnail_id)"
+                    alt=""
+                  /><SceneTitle :name="card.name" :title-en="card.title_en" :show-missing="false" />
+                </div>
               </td>
-              <td>{{ dateText(card.first_completed_at) }}</td>
-              <td>{{ dateText(card.last_completed_at) }}</td>
               <td>
-                {{
+                <span class="badge" :class="{ offline: !card.available }">{{
                   card.available
-                    ? '可学习'
+                    ? '已发布'
                     : card.unavailable_reason === 'deleted'
                       ? '已删除'
-                      : '暂不可用'
-                }}
+                      : '已下线'
+                }}</span>
+                <p>首次：{{ dateText(card.first_completed_at) }}</p>
+                <p>最近：{{ dateText(card.last_completed_at) }}</p>
               </td>
               <td>
                 <button
@@ -116,7 +121,7 @@ onMounted(() => {
                   class="text"
                   @click="emit('preview', card.id)"
                 >
-                  查看当前发布版</button
+                  查看发布内容</button
                 ><span v-else class="muted small">成绩保留</span>
               </td>
             </tr>
@@ -170,7 +175,11 @@ onMounted(() => {
             <AppState :busy="dayBusy" :error="dayError" @retry="expand(record.date)" />
             <div v-for="card in day?.items" :key="card.id" class="between day-card">
               <div>
-                {{ card.name }}<small class="muted"> · {{ dateText(card.completed_at) }}</small>
+                <SceneTitle
+                  :name="card.name"
+                  :title-en="card.title_en"
+                  :show-missing="false"
+                /><small class="muted">{{ dateText(card.completed_at) }}</small>
               </div>
               <button
                 v-if="card.available"
@@ -244,6 +253,63 @@ onMounted(() => {
   .day-card {
     padding-top: 14px;
     font-size: 13px;
+  }
+}
+</style>
+
+<style scoped lang="scss">
+.learning-records {
+  .tabs {
+    margin-bottom: 16px;
+  }
+
+  table {
+    table-layout: fixed;
+
+    th:first-child {
+      width: 41%;
+    }
+
+    th:nth-child(2) {
+      width: 37%;
+    }
+
+    th:last-child {
+      width: 22%;
+    }
+
+    td {
+      font-size: 13px;
+      padding-top: 22px;
+      padding-bottom: 22px;
+    }
+
+    p {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+  }
+
+  .learned-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+
+    img {
+      width: 48px;
+      height: 72px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+  }
+
+  .checkin {
+    padding: 0 20px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--paper);
+    margin-top: 12px;
   }
 }
 </style>

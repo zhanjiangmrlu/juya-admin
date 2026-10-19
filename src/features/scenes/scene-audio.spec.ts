@@ -7,6 +7,39 @@ vi.mock('@/services/http-client', async (original) => ({
 }))
 import SceneAudio from './scene-audio.vue'
 
+it('uses real playback, seeking and rate changes in the preview player', async () => {
+  request.mockResolvedValue({
+    id: 'preview',
+    kind: 'audio',
+    state: 'ready',
+    duration: 61,
+    original_name: '完整对话.mp3'
+  })
+  const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+  const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+  const page = mount(SceneAudio, { props: { mediaId: 'preview', variant: 'preview' } })
+  await flushPromises()
+  const element = page.get('audio')
+  Object.defineProperty(element.element, 'duration', { configurable: true, value: 61 })
+  await element.trigger('loadedmetadata')
+  const toggle = page.find('button[aria-label="播放完整音频"]')
+  expect(toggle.exists()).toBe(true)
+  await toggle.trigger('click')
+  expect(play).toHaveBeenCalledOnce()
+  await element.trigger('play')
+  Object.defineProperty(element.element, 'paused', { configurable: true, value: false })
+  pause.mockClear()
+  await page.get('button[aria-label="暂停完整音频"]').trigger('click')
+  expect(pause).toHaveBeenCalledOnce()
+  await page.get('input[aria-label="完整音频播放进度"]').setValue('20')
+  expect(element.element.currentTime).toBe(20)
+  await page.get('select[aria-label="完整音频倍速"]').setValue('1.5')
+  expect(element.element.playbackRate).toBe(1.5)
+  page.unmount()
+  play.mockRestore()
+  pause.mockRestore()
+})
+
 it('retains the uploaded fact on client load failure and stops the previous card audio', async () => {
   request.mockResolvedValue({
     id: 'a',

@@ -271,7 +271,8 @@ onBeforeUnmount(() => {
   <ElDialog
     :model-value="true"
     :title="`批量${verb}`"
-    width="min(700px,95vw)"
+    width="860px"
+    align-center
     :close-on-click-modal="false"
     :show-close="!busy"
     @close="emit('close')"

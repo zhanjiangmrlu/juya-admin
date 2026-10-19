@@ -27,7 +27,7 @@ const router = createRouter({
     {
       path: '/users',
       component: () => import('@/pages/users/user-list-page.vue'),
-      meta: { title: '用户管理' }
+      meta: { title: '用户列表' }
     },
     {
       path: '/users/:id',

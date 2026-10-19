@@ -49,7 +49,10 @@ it('uses the published version for vocabulary audition from a user record withou
     }
   })
   await flushPromises()
-  await page.get('section + section + button').trigger('click')
+  await page
+    .findAll('button')
+    .find((button) => button.text() === '查看记录卡片')!
+    .trigger('click')
   await flushPromises()
   expect(page.findComponent({ name: 'ScenePreview' }).props()).toMatchObject({
     mode: 'published',

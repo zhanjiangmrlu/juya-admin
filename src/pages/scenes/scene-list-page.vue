@@ -368,19 +368,16 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
-  <div>
-    <div class="page-heading between">
+  <div class="card-list-page">
+    <div v-if="!sorting" class="page-heading between">
       <div>
         <RouterLink v-if="route.query.from === 'statistics'" to="/statistics" class="back-link"
           >‹ 返回数据统计</RouterLink
         >
         <h1>卡片管理</h1>
-        <p>管理场景资料，确认预览后发布到学习端</p>
+        <p>双语标题与当前发布状态同步至用户端。</p>
       </div>
       <div class="row">
-        <RouterLink class="button-link" to="/imports"
-          ><AppIcon name="upload" :size="17" />批量导入</RouterLink
-        >
         <button
           v-if="!sorting"
           type="button"
@@ -389,71 +386,82 @@ onBeforeUnmount(() => {
           @click="enterSorting"
         >
           调整顺序</button
+        ><RouterLink class="button-link" to="/imports">批量导入</RouterLink
         ><RouterLink class="button-link primary" to="/cards/new"
-          ><AppIcon name="cards" :size="17" />新建卡片</RouterLink
+          ><AppIcon name="plus" />新建卡片</RouterLink
         >
       </div>
     </div>
     <SceneCatalogOrder v-if="sorting" @close="closeSorting" />
-    <div v-else class="panel">
+    <div v-else class="card-list-content">
       <p v-if="route.query.batch_id" class="notice between">
         <span>本次导入 · 只显示本批已保存的卡片</span
         ><button type="button" class="text" @click="filter({ batch_id: undefined })">
           清除本次导入筛选
         </button>
       </p>
-      <div v-if="selected.length" class="selection-bar between">
-        <span>已选择 {{ selected.length }} 张（仅本页）</span>
-        <div class="row">
-          <button type="button" class="text" @click="selected = []">清空选择</button
-          ><button type="button" @click="openActions('offline')">批量下线</button
-          ><button type="button" class="danger" @click="openActions('delete')">批量删除</button
-          ><button type="button" class="primary" @click="openBatch()">批量发布</button>
-        </div>
-      </div>
-      <div v-if="managementBatches.length || hasPendingAction" class="batch-history">
-        <button v-if="hasPendingAction" type="button" @click="openActions('delete')">
-          查询待确认管理操作
-        </button>
-        <details v-if="managementBatches.length">
-          <summary>最近批量管理操作</summary>
-          <div v-for="value in managementBatches" :key="value.id" class="between">
-            <span
-              >{{ dateText(value.created_at) }} · 批量{{
-                value.action === 'delete' ? '删除' : '下线'
-              }}
-              · {{ value.items.length }}张</span
-            ><button @click="openActions(value.action, value.id)">查看结果</button>
-          </div>
-        </details>
-      </div>
-      <details v-if="batches.length" class="batch-history">
-        <summary>最近批量发布</summary>
-        <div v-for="batch in batches" :key="batch.id" class="between">
-          <span class="small">{{ dateText(batch.created_at) }} · {{ batchSummary(batch) }}</span
-          ><button type="button" class="text small" @click="openBatch(batch.id)">查看结果</button>
-        </div>
-      </details>
-      <p v-if="historyError" class="notice error">
-        发布记录暂未获取<button type="button" class="text" @click="loadBatches()">重新获取</button>
-      </p>
-      <form class="filters" @submit.prevent="filter({ search })">
+      <form class="filters card-filters" @submit.prevent="filter({ search })">
         <input
           v-model="search"
+          type="search"
           aria-label="搜索中文或英文标题"
           placeholder="搜索中文或英文标题"
-        /><button type="submit"><AppIcon name="search" :size="16" />搜索</button
-        ><select
-          :value="status"
-          aria-label="发布状态"
-          @change="filter({ status: ($event.target as HTMLSelectElement).value })"
-        >
-          <option value="all">全部状态</option>
-          <option value="published">已发布</option>
-          <option value="draft">草稿</option>
-          <option value="offline">已下线</option></select
-        ><button type="button" class="text" :disabled="busy" @click="refresh">刷新</button>
+        />
+        <button type="submit" class="search-submit">搜索</button>
+        <div class="segments" aria-label="发布状态">
+          <button
+            v-for="item in [
+              { value: 'all', label: '全部' },
+              { value: 'published', label: '已发布' },
+              { value: 'draft', label: '草稿' },
+              { value: 'offline', label: '已下线' }
+            ]"
+            :key="item.value"
+            type="button"
+            :aria-pressed="status === item.value"
+            @click="filter({ status: item.value })"
+          >
+            {{ item.label }}
+          </button>
+        </div>
       </form>
+      <div v-if="data?.items.length" class="selection-bar">
+        <label class="page-selection"
+          ><input
+            type="checkbox"
+            :checked="allSelected"
+            :indeterminate="selected.length > 0 && !allSelected"
+            aria-label="选择本页卡片"
+            @change="selectPage"
+          />选择本页</label
+        >
+        <span>已选择 {{ selected.length }} 张</span>
+        <div class="row">
+          <button type="button" class="small" :disabled="!selected.length" @click="openBatch()">
+            批量发布
+          </button>
+          <button
+            type="button"
+            class="small"
+            :disabled="!selected.length"
+            @click="openActions('offline')"
+          >
+            批量下线
+          </button>
+          <button
+            type="button"
+            class="small"
+            :disabled="!selected.length"
+            @click="openActions('delete')"
+          >
+            批量删除
+          </button>
+          <button v-if="selected.length" type="button" class="text small" @click="selected = []">
+            取消选择
+          </button>
+        </div>
+        <small>仅本页选择，不跨页累计</small>
+      </div>
       <p v-if="actionError && !confirmation" class="notice error" role="alert">{{ actionError }}</p>
       <AppState
         :busy="busy"
@@ -467,19 +475,10 @@ onBeforeUnmount(() => {
         <table>
           <thead>
             <tr>
-              <th class="select-cell">
-                <input
-                  type="checkbox"
-                  :checked="allSelected"
-                  :indeterminate="selected.length > 0 && !allSelected"
-                  aria-label="选择本页卡片"
-                  @change="selectPage"
-                />
-              </th>
+              <th class="select-cell">选</th>
               <th>场景卡片</th>
               <th>状态</th>
-              <th>资料</th>
-              <th>更新时间</th>
+              <th>最近修改</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -509,12 +508,19 @@ onBeforeUnmount(() => {
                       alt=""
                     /><span v-else>查看场景图</span></button
                   ><span v-else class="small muted">暂无场景图</span>
-                  <div>
+                  <div class="card-title-cell">
                     <SceneTitle
                       class="name"
                       :name="card.display_name"
                       :title-en="card.display_title_en"
                     />
+                    <p
+                      v-if="card.status !== 'published' || !card.has_unpublished_changes"
+                      class="small muted"
+                    >
+                      {{ card.content.vocabulary?.length || 0 }} 个词汇 ·
+                      {{ card.content.chunks?.length || 0 }} 个语块
+                    </p>
                   </div>
                 </div>
               </td>
@@ -524,17 +530,20 @@ onBeforeUnmount(() => {
                 }}</span>
                 <p
                   v-if="card.status === 'published' && card.has_unpublished_changes"
-                  class="small muted"
+                  class="badge draft"
                 >
                   有未发布修改
                 </p>
+                <p v-if="card.issues.length && card.status !== 'published'" class="small muted">
+                  待补充 {{ card.issues.length }} 项
+                </p>
               </td>
               <td>
-                <span v-if="card.issues.length" class="small muted"
-                  >待补充 {{ card.issues.length }} 项</span
-                ><span v-else class="small">资料完整</span>
+                <time class="card-modified"
+                  ><span>{{ dateText(card.updated_at).split(' ')[0] }}</span
+                  ><span>{{ dateText(card.updated_at).split(' ')[1] }}</span></time
+                >
               </td>
-              <td>{{ dateText(card.updated_at) }}</td>
               <td>
                 <RouterLink :to="{ path: `/cards/${card.id}`, query: { back: route.fullPath } }"
                   >编辑</RouterLink
@@ -561,7 +570,7 @@ onBeforeUnmount(() => {
         </table>
       </div>
       <div v-if="data && !error" class="pagination">
-        <span>共 {{ data.total }} 条</span
+        <span class="pagination-total">共 {{ data.total }} 张 · 每页10条</span
         ><button :disabled="page <= 1 || busy" @click="filter({ page: page - 1 })">上一页</button
         ><span v-if="data.total">第 {{ data.page }} / {{ data.total_pages }} 页</span
         ><span v-else>暂无卡片</span
@@ -569,6 +578,32 @@ onBeforeUnmount(() => {
           下一页
         </button>
       </div>
+      <div v-if="managementBatches.length || hasPendingAction" class="batch-history">
+        <button v-if="hasPendingAction" type="button" @click="openActions('delete')">
+          查询待确认管理操作
+        </button>
+        <details v-if="managementBatches.length">
+          <summary>最近批量管理操作</summary>
+          <div v-for="value in managementBatches" :key="value.id" class="between">
+            <span
+              >{{ dateText(value.created_at) }} · 批量{{
+                value.action === 'delete' ? '删除' : '下线'
+              }}
+              · {{ value.items.length }}张</span
+            ><button @click="openActions(value.action, value.id)">查看结果</button>
+          </div>
+        </details>
+      </div>
+      <details v-if="batches.length" class="batch-history">
+        <summary>最近批量发布</summary>
+        <div v-for="batch in batches" :key="batch.id" class="between">
+          <span class="small">{{ dateText(batch.created_at) }} · {{ batchSummary(batch) }}</span
+          ><button type="button" class="text small" @click="openBatch(batch.id)">查看结果</button>
+        </div>
+      </details>
+      <p v-if="historyError" class="notice error">
+        发布记录暂未获取<button type="button" class="text" @click="loadBatches()">重新获取</button>
+      </p>
     </div>
     <SceneImagePreview v-if="image" :card="image" @close="image = null" @invalid="imageInvalid" />
     <SceneCardActions
@@ -594,7 +629,7 @@ onBeforeUnmount(() => {
     /><ElDialog
       :model-value="!!confirmation"
       :title="confirmation?.kind === 'delete' ? '删除这张卡片？' : '下线这张卡片？'"
-      width="460px"
+      width="560px"
       :close-on-click-modal="false"
       :show-close="!actionBusy"
       @close="confirmation = null"
@@ -623,20 +658,164 @@ onBeforeUnmount(() => {
   </div>
 </template>
 <style scoped lang="scss">
+.card-filters {
+  margin-bottom: 20px;
+  gap: 0;
+
+  input {
+    max-width: 380px;
+  }
+
+  .segments {
+    margin-left: auto;
+  }
+
+  .search-submit {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    padding: 0;
+    border: 0;
+  }
+}
+
 .selection-bar {
-  padding: 0 0 18px;
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  min-height: 58px;
+  background: var(--soft);
+
+  .page-selection {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    white-space: nowrap;
+  }
+
+  .row {
+    gap: 20px;
+  }
+
+  small {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 12px;
+  }
+}
+
+:where(.card-list-content) {
+  .table-wrap {
+    border-bottom: 0;
+    border-radius: 12px 12px 0 0;
+  }
+
+  table {
+    table-layout: fixed;
+  }
+
+  th:first-child {
+    width: 4%;
+  }
+
+  th:nth-child(2) {
+    width: 34%;
+  }
+
+  th:nth-child(3) {
+    width: 20%;
+  }
+
+  th:nth-child(4) {
+    width: 16%;
+  }
+
+  th:last-child {
+    width: 26%;
+  }
+
+  th {
+    height: 54px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  tbody tr {
+    height: 123px;
+  }
+
+  td .badge + .badge {
+    margin-left: 5px;
+  }
+
+  td:last-child {
+    font-size: 13px;
+  }
+
+  td .text {
+    padding: 6px 7px;
+    font-size: 13px;
+  }
+
+  .pagination {
+    border: 1px solid var(--line);
+    border-top: 0;
+    border-radius: 0 0 12px 12px;
+    background: var(--paper);
+  }
+
+  .pagination-total {
+    margin-right: auto;
+  }
+}
+
+.card-title-cell {
+  min-width: 0;
+
+  .name {
+    min-width: 0;
+  }
+}
+
+.thumbnail-button {
+  width: 78px;
+  height: 82px;
+  padding: 8px 14px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--paper);
+
+  .thumbnail {
+    width: 48px;
+    height: 64px;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+}
+
+.card-modified {
+  display: grid;
+  gap: 2px;
+}
+
+.select-cell {
+  text-align: center;
 }
 
 .batch-history {
-  margin-bottom: 20px;
-  padding: 12px;
-  background: var(--soft);
-  border-radius: 8px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 12px;
 
   summary {
     cursor: pointer;
-    font-size: 13px;
   }
 
   > div {
@@ -644,45 +823,24 @@ onBeforeUnmount(() => {
   }
 }
 
-.select-cell {
-  width: 40px;
-  text-align: center;
-}
-
-.button-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
-  border-radius: 8px;
-  text-decoration: none;
-  background: var(--green);
-  color: #fff;
-  font-weight: 600;
-}
-
-.thumbnail-button {
-  padding: 0;
-  border: 0;
-  background: none;
-}
-
-.thumbnail {
-  width: 48px;
-  height: 64px;
-  object-fit: cover;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-}
-
 .back-link {
   display: block;
-  font-size: 12px;
   margin-bottom: 12px;
 }
 
 .impact {
   margin: 16px 0;
   color: var(--muted);
+}
+
+@media (width <= 1200px) {
+  .selection-bar {
+    flex-wrap: wrap;
+    gap: 12px;
+
+    .row {
+      gap: 8px;
+    }
+  }
 }
 </style>

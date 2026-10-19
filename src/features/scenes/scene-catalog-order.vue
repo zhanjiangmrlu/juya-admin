@@ -252,13 +252,24 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
-  <section class="catalog-order panel">
+  <section class="catalog-order">
     <div class="between">
       <div>
-        <h2>调整全部已发布卡片顺序</h2>
-        <p class="muted small">拖动句柄或使用上下按钮；只改变学习列表的展示顺序。</p>
+        <h1>卡片管理</h1>
+        <p class="muted small">调整全部已发布卡片顺序，仅影响学习列表展示。</p>
       </div>
-      <button type="button" :disabled="saving" @click="close">取消／返回</button>
+      <div class="row">
+        <button type="button" :disabled="saving" @click="close">取消排序</button
+        ><button
+          type="button"
+          class="primary"
+          data-action="save-order"
+          :disabled="!dirty || saving || loading"
+          @click="save(true)"
+        >
+          {{ saving ? '正在保存…' : unknown ? '重试原保存' : '保存顺序' }}
+        </button>
+      </div>
     </div>
     <p v-if="notice" class="notice">{{ notice }}</p>
     <p v-if="error" class="notice error" role="alert">
@@ -266,65 +277,95 @@ onBeforeUnmount(() => {
       }}<button v-if="unknown" type="button" class="text" @click="recover">查询保存结果</button>
     </p>
     <AppState :busy="loading" :empty="!loading && !items.length" empty-title="暂无已发布卡片" />
-    <ol v-if="items.length" class="catalog-list">
-      <li
-        v-for="(item, index) in visibleItems"
-        :key="item.id"
-        @dragover.prevent
-        @drop.prevent="move(dragging, globalIndex(index))"
-      >
-        <button
-          type="button"
-          class="handle"
-          :draggable="!saving && !loading && !unknown"
-          :aria-label="`拖动 ${item.name}`"
-          @dragstart="startDrag($event, item.id)"
-          @dragend="dragging = ''"
-        >
-          ⠿</button
-        ><span class="rank">{{ globalIndex(index) + 1 }}</span
-        ><img
-          v-if="item.thumbnail_id"
-          :src="mediaURL(item.thumbnail_id)"
-          alt=""
-          loading="lazy"
-        /><strong class="catalog-name"
-          ><SceneTitle :name="item.name" :title-en="item.title_en"
-        /></strong>
-        <div class="row">
-          <input
-            v-model.number="positions[item.id]"
-            type="number"
-            min="1"
-            :max="items.length"
-            :placeholder="String(globalIndex(index) + 1)"
-            :aria-label="`${item.name} 移动到全局位置`"
-            :disabled="saving || loading || unknown"
-          /><button
-            :data-move="item.id"
-            :disabled="saving || loading || unknown"
-            @click="moveTo(item.id)"
+    <div v-if="items.length" class="table-wrap catalog-list">
+      <table>
+        <thead>
+          <tr>
+            <th>顺序</th>
+            <th>场景卡片</th>
+            <th>状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(item, index) in visibleItems"
+            :key="item.id"
+            @dragover.prevent
+            @drop.prevent="move(dragging, globalIndex(index))"
           >
-            移动到第N位
-          </button>
-          <button
-            type="button"
-            :disabled="globalIndex(index) === 0 || saving || loading || unknown"
-            :aria-label="`上移 ${item.name}`"
-            @click="move(item.id, globalIndex(index) - 1)"
-          >
-            ↑</button
-          ><button
-            type="button"
-            :disabled="globalIndex(index) === items.length - 1 || saving || loading || unknown"
-            :aria-label="`下移 ${item.name}`"
-            @click="move(item.id, globalIndex(index) + 1)"
-          >
-            ↓
-          </button>
-        </div>
-      </li>
-    </ol>
+            <td>
+              <button
+                type="button"
+                class="handle"
+                :draggable="!saving && !loading && !unknown"
+                :aria-label="`拖动 ${item.name}`"
+                @dragstart="startDrag($event, item.id)"
+                @dragend="dragging = ''"
+              >
+                ⠿</button
+              ><span class="rank">{{ globalIndex(index) + 1 }}</span>
+            </td>
+            <td>
+              <div class="catalog-card">
+                <img
+                  v-if="item.thumbnail_id"
+                  :src="mediaURL(item.thumbnail_id)"
+                  alt=""
+                  loading="lazy"
+                /><strong class="catalog-name"
+                  ><SceneTitle :name="item.name" :title-en="item.title_en"
+                /></strong>
+              </div>
+            </td>
+            <td><span class="badge">已发布</span></td>
+            <td>
+              <div class="row">
+                <button
+                  type="button"
+                  class="text small"
+                  :disabled="globalIndex(index) === 0 || saving || loading || unknown"
+                  :aria-label="`上移 ${item.name}`"
+                  @click="move(item.id, globalIndex(index) - 1)"
+                >
+                  ↑ 上移</button
+                ><button
+                  type="button"
+                  class="text small"
+                  :disabled="
+                    globalIndex(index) === items.length - 1 || saving || loading || unknown
+                  "
+                  :aria-label="`下移 ${item.name}`"
+                  @click="move(item.id, globalIndex(index) + 1)"
+                >
+                  ↓ 下移
+                </button>
+              </div>
+              <details class="position-tools">
+                <summary>指定位置</summary>
+                <div class="row">
+                  <input
+                    v-model.number="positions[item.id]"
+                    type="number"
+                    min="1"
+                    :max="items.length"
+                    :placeholder="String(globalIndex(index) + 1)"
+                    :aria-label="`${item.name} 移动到全局位置`"
+                    :disabled="saving || loading || unknown"
+                  /><button
+                    :data-move="item.id"
+                    :disabled="saving || loading || unknown"
+                    @click="moveTo(item.id)"
+                  >
+                    移动到第N位
+                  </button>
+                </div>
+              </details>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <div class="row">
       <button :disabled="page <= 1 || saving || loading || unknown" @click="page--">上一页</button
       ><span v-if="pageCount">第{{ page }}/{{ pageCount }}页</span
@@ -347,15 +388,7 @@ onBeforeUnmount(() => {
           :disabled="saving || loading || unknown"
           @click="load(true)"
         >
-          获取最新列表</button
-        ><button
-          type="button"
-          class="primary"
-          data-action="save-order"
-          :disabled="!dirty || saving || loading"
-          @click="save(true)"
-        >
-          {{ saving ? '正在保存…' : unknown ? '重试原保存' : '保存顺序' }}
+          获取最新列表
         </button>
       </div>
     </footer>
@@ -363,7 +396,7 @@ onBeforeUnmount(() => {
       v-if="leaveOpen"
       :model-value="true"
       title="排序尚未保存"
-      width="470px"
+      width="560px"
       :show-close="false"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -387,49 +420,57 @@ onBeforeUnmount(() => {
 </template>
 <style scoped lang="scss">
 .catalog-order {
-  margin-top: 24px;
+  .between {
+    align-items: flex-start;
+  }
 
-  h2 {
-    margin: 0 0 8px;
-    font-size: 20px;
+  h1 {
+    margin-bottom: 6px;
   }
 
   .catalog-list {
-    list-style: none;
-    margin: 24px 0;
-    padding: 0;
+    margin: 28px 0 0;
   }
 
-  li {
+  table {
+    table-layout: fixed;
+
+    th:first-child {
+      width: 12%;
+    }
+
+    th:nth-child(2) {
+      width: 44%;
+    }
+
+    th:nth-child(3) {
+      width: 18%;
+    }
+
+    th:last-child {
+      width: 26%;
+    }
+
+    td {
+      height: 123px;
+    }
+  }
+
+  .catalog-card {
     display: flex;
-    gap: 16px;
     align-items: center;
-    padding: 14px 0;
-    border-bottom: 1px solid var(--line);
-  }
+    gap: 12px;
 
-  img {
-    width: 46px;
-    height: 60px;
-    object-fit: contain;
-    background: var(--soft);
-    border-radius: 4px;
+    img {
+      width: 48px;
+      height: 72px;
+      object-fit: contain;
+    }
   }
 
   .catalog-name {
-    flex: 1;
     font-size: 14px;
-  }
-
-  input[type='number'] {
-    width: 75px;
-  }
-
-  .rank {
-    width: 30px;
-    font-size: 12px;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
+    font-weight: 500;
   }
 
   .handle {
@@ -440,8 +481,39 @@ onBeforeUnmount(() => {
     padding: 2px 8px;
   }
 
+  .rank {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  input[type='number'] {
+    width: 75px;
+  }
+
+  .position-tools {
+    color: var(--muted);
+    font-size: 12px;
+
+    summary {
+      cursor: pointer;
+    }
+
+    > div {
+      margin-top: 8px;
+    }
+  }
+
+  > .row {
+    padding: 16px 20px;
+    border: 1px solid var(--line);
+    border-top: 0;
+    border-radius: 0 0 12px 12px;
+    background: var(--paper);
+  }
+
   footer {
-    margin-top: 24px;
+    margin-top: 20px;
+    align-items: center;
   }
 }
 </style>

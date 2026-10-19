@@ -104,26 +104,36 @@ const applyPaste = () => {
 </script>
 <template>
   <fieldset :disabled="disabled" class="content-fields">
-    <section id="field-basic" class="panel">
-      <h2>1. 基本资料</h2>
-      <label class="field"
-        >中文标题<input
-          v-model="content.name"
-          aria-label="中文标题"
-          maxlength="160"
-          placeholder="例如：在咖啡店点单"
-      /></label>
-      <small v-if="!content.name?.trim()" class="muted">待补充中文标题</small>
-      <label class="field"
-        >英文标题<input
-          v-model="content.title_en"
-          aria-label="英文标题"
-          maxlength="300"
-          placeholder="例如：Ordering Coffee"
-      /></label>
-      <small v-if="!content.title_en?.trim()" class="muted"
-        >待补充英文标题，草稿可先保存，发布前需补齐</small
-      >
+    <section id="field-basic" class="editor-section">
+      <h2><span class="section-number">1</span>基本资料</h2>
+      <div class="title-grid">
+        <label class="field"
+          >中文标题 <span class="required">*</span>
+          <input
+            v-model="content.name"
+            aria-label="中文标题"
+            maxlength="160"
+            placeholder="例如：在咖啡店点单"
+          />
+          <small>{{
+            content.name?.trim() ? '分别填写，不自动翻译。' : '待补充中文标题，草稿可先保存。'
+          }}</small>
+        </label>
+        <label class="field"
+          >英文标题 <span class="required">*</span>
+          <input
+            v-model="content.title_en"
+            aria-label="英文标题"
+            maxlength="300"
+            placeholder="例如：Ordering Coffee"
+          />
+          <small>{{
+            content.title_en?.trim()
+              ? '新发布或重新发布时需补齐。'
+              : '待补充英文标题，草稿可先保存，发布前需补齐。'
+          }}</small>
+        </label>
+      </div>
       <p v-if="!limits" class="notice error">暂未获取上传限制，请重试加载页面</p>
       <div class="media-grid">
         <SceneMediaField
@@ -139,23 +149,29 @@ const applyPaste = () => {
         />
       </div>
     </section>
-    <section id="field-dialogue" class="panel">
+    <section id="field-dialogue" class="editor-section">
       <div class="between">
-        <h2>2. 场景对话</h2>
-        <button
-          type="button"
-          @click="
-            () => {
-              pasteOpen = true
-              pasteCandidate = null
-            }
-          "
-        >
-          粘贴／编辑对话
-        </button>
+        <h2><span class="section-number">2</span>场景对话</h2>
+        <div class="row section-tools">
+          <slot name="dialogue-tools" /><button
+            type="button"
+            @click="
+              () => {
+                pasteOpen = true
+                pasteCandidate = null
+              }
+            "
+          >
+            粘贴／编辑对话
+          </button>
+        </div>
       </div>
       <p class="section-help">每组填写人物、英文和中文，不需要设置音频时间</p>
-      <div v-for="(line, index) in content.dialogue" :key="line.id" class="entry">
+      <div v-if="content.dialogue.length" class="dialogue-labels">
+        <span>人物</span><span>英文对话 <span class="required">*</span></span
+        ><span>中文译文 <span class="required">*</span></span>
+      </div>
+      <div v-for="(line, index) in content.dialogue" :key="line.id" class="entry dialogue-entry">
         <div class="between">
           <strong>第 {{ index + 1 }} 组</strong>
           <div class="row">
@@ -199,10 +215,14 @@ const applyPaste = () => {
         ＋ 添加一组对话
       </button>
     </section>
-    <section id="field-vocabulary" class="panel">
-      <h2>3. 重点词汇</h2>
+    <section id="field-vocabulary" class="editor-section">
+      <h2><span class="section-number">3</span>重点词汇</h2>
       <p class="section-help">本句释义与音标独立选填，请确认对应原句中的具体片段</p>
-      <div v-for="(word, index) in content.vocabulary" :key="word.id" class="entry">
+      <div
+        v-for="(word, index) in content.vocabulary"
+        :key="word.id"
+        class="entry vocabulary-entry"
+      >
         <div class="between">
           <strong>词汇 {{ index + 1 }}</strong>
           <div class="row">
@@ -296,15 +316,15 @@ const applyPaste = () => {
         ＋ 添加词汇
       </button>
     </section>
-    <section id="field-chunks" class="panel">
+    <section id="field-chunks" class="editor-section">
       <div class="between">
-        <h2>4. 语块 <small class="muted">（选填）</small></h2>
+        <h2><span class="section-number">4</span>语块 <small class="muted">（选填）</small></h2>
         <button type="button" :disabled="content.chunks.length >= 100" @click="addChunk">
           ＋ 添加语块
         </button>
       </div>
       <p v-if="!content.chunks.length" class="section-help">没有可直接跳过</p>
-      <div v-for="(chunk, index) in content.chunks" :key="chunk.id" class="entry">
+      <div v-for="(chunk, index) in content.chunks" :key="chunk.id" class="entry chunk-entry">
         <div class="between">
           <strong>语块 {{ index + 1 }}</strong>
           <div class="row">
@@ -382,28 +402,168 @@ const applyPaste = () => {
   min-width: 0;
 }
 
+.editor-section {
+  padding: 30px 0;
+  border-bottom: 1px solid var(--line);
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    line-height: 28px;
+  }
+
+  > h2 {
+    margin-bottom: 20px;
+  }
+}
+
+.section-number {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--soft);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.required {
+  color: var(--red);
+  margin-left: 4px;
+}
+
 .media-grid,
-.two-columns {
+.two-columns,
+.title-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+}
+
+.title-grid {
+  margin-bottom: 22px;
+
+  .field {
+    margin: 0;
+  }
 }
 
 .section-help {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
-  margin: 10px 0 20px;
+  margin: 16px 0 24px;
+}
+
+.section-tools {
+  gap: 8px;
+
+  button {
+    font-size: 13px;
+    min-height: 34px;
+  }
 }
 
 .entry {
+  margin: 20px 0;
+  padding: 20px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 18px;
-  margin: 18px 0;
-  background: #fffefb;
+  border-radius: 10px;
+  background: var(--paper);
 
   .field {
     margin: 12px 0;
+  }
+
+  > .between strong {
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
+
+.dialogue-labels {
+  display: grid;
+  grid-template-columns: 56px 1fr 1fr 40px;
+  gap: 12px;
+  padding: 0 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+:where(.dialogue-entry) {
+  display: grid;
+  grid-template-columns: 56px 1fr 1fr 40px;
+  gap: 12px;
+  padding: 14px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  margin: 0;
+  background: transparent;
+
+  > .between {
+    grid-column: 4;
+    grid-row: 1;
+    align-items: flex-start;
+    justify-content: center;
+
+    > strong {
+      display: none;
+    }
+
+    .row {
+      gap: 0;
+      flex-direction: column;
+    }
+
+    button {
+      padding: 2px 5px;
+      min-height: 26px;
+      font-size: 12px;
+    }
+  }
+
+  > .field {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  > .two-columns {
+    display: contents;
+
+    .field:first-child {
+      grid-column: 2;
+    }
+
+    .field:last-child {
+      grid-column: 3;
+    }
+  }
+
+  .field {
+    margin: 0;
+    font-size: 0;
+
+    > input,
+    > textarea {
+      font-size: 14px;
+      margin-top: 0;
+    }
+
+    > textarea {
+      min-height: 110px;
+    }
   }
 }
 
@@ -421,9 +581,15 @@ const applyPaste = () => {
 }
 
 @media (width <= 1100px) {
-  .two-columns {
-    grid-template-columns: 1fr;
-    gap: 0;
+  .section-tools {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .dialogue-labels,
+  :where(.dialogue-entry) {
+    grid-template-columns: 48px 1fr 1fr 36px;
+    gap: 8px;
   }
 }
 </style>

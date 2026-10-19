@@ -7,6 +7,7 @@ export type ScenePronunciationContext = {
   | { cardId?: never; import: { batchId: string; itemId: string } }
 )
 export interface SceneReaderProps {
+  phone?: boolean
   content: components['schemas']['SceneContent']
   pronunciation?: ScenePronunciationContext
 }

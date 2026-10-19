@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
 import { useResource } from '@/composables/use-resource'
-import { dateText, mediaURL, queryURL } from '@/services/display'
+import { contactSourceText, dateText, mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -47,54 +47,56 @@ onActivated(() => {
 })
 </script>
 <template>
-  <div>
+  <div class="user-list-page">
     <div class="page-heading">
       <RouterLink v-if="route.query.from === 'statistics'" to="/statistics" class="back-link"
         >‹ 返回数据统计</RouterLink
       >
       <h1>用户列表</h1>
-      <p>只读查看用户资料与学习记录，无联系方式和零学习账号均正常展示</p>
+      <p>登录成功即录入；联系方式选填，资料与学习数据同步。</p>
     </div>
-    <div class="panel">
-      <form class="filters" @submit.prevent="filter({ search })">
+    <div class="user-list-content">
+      <form class="filters user-filters" @submit.prevent="filter({ search })">
         <input
           v-model="search"
+          type="search"
           aria-label="搜索用户"
-          placeholder="用户编号、昵称、微信号或手机号"
-        /><button type="submit"><AppIcon name="search" :size="16" />搜索</button
-        ><button type="button" class="text" :disabled="busy" @click="refresh">刷新</button>
+          placeholder="搜索编号、昵称、手机号或微信号"
+        />
+        <button type="submit" class="search-submit">搜索</button>
+        <div class="segments" aria-label="打卡状态">
+          <button
+            v-for="item in [
+              { value: 'all', label: '全部' },
+              { value: 'checked', label: '今日已打卡' },
+              { value: 'unchecked', label: '今日未打卡' }
+            ]"
+            :key="item.value"
+            type="button"
+            :aria-pressed="checkin === item.value"
+            @click="filter({ checkin: item.value })"
+          >
+            {{ item.label }}
+          </button>
+        </div>
       </form>
-      <div class="registration-filter">
-        <span>注册日期</span
-        ><button
+      <div class="registration-filter segments">
+        <span>注册日期</span>
+        <button
           type="button"
-          :class="{ active: registered === 'all' }"
+          :aria-pressed="registered === 'all'"
           @click="filter({ registered: 'all' })"
         >
-          全部注册</button
-        ><button
+          全部注册
+        </button>
+        <button
           type="button"
-          :class="{ active: registered === 'today' }"
+          :aria-pressed="registered === 'today'"
           @click="filter({ registered: 'today' })"
         >
-          今日注册</button
-        ><small>统计日期：{{ data?.statistical_date || '暂未获取' }}（北京时间）</small>
-      </div>
-      <div class="registration-filter">
-        <span>打卡状态</span
-        ><button
-          v-for="item in [
-            { value: 'all', label: '全部' },
-            { value: 'checked', label: '今日已打卡' },
-            { value: 'unchecked', label: '今日未打卡' }
-          ]"
-          :key="item.value"
-          type="button"
-          :class="{ active: checkin === item.value }"
-          @click="filter({ checkin: item.value })"
-        >
-          {{ item.label }}
+          今日注册
         </button>
+        <small>北京时间 {{ data?.statistical_date || '暂未获取' }}</small>
       </div>
       <AppState
         :busy="busy"
@@ -113,11 +115,10 @@ onActivated(() => {
             <tr>
               <th>用户</th>
               <th>联系方式</th>
-              <th>注册时间</th>
               <th>已学场景卡</th>
               <th>连续打卡</th>
               <th>累计打卡</th>
-              <th>最近学习</th>
+              <th>注册／最近学习</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -131,7 +132,7 @@ onActivated(() => {
                     class="avatar"
                     alt=""
                   />
-                  <div v-else class="avatar default"><AppIcon :size="20" /></div>
+                  <div v-else class="avatar default"><AppIcon name="user" :size="17" /></div>
                   <div>
                     <strong>{{ user.nickname || '学习者' }}</strong>
                     <p class="identifier">{{ user.id }}</p>
@@ -139,22 +140,31 @@ onActivated(() => {
                 </div>
               </td>
               <td>
-                <template v-if="user.phone || user.wechat_contact"
-                  ><p v-if="user.phone">手机：{{ user.phone }}</p>
-                  <p v-if="user.wechat_contact">微信：{{ user.wechat_contact }}</p>
-                  <small class="muted">用户填写／未验证</small></template
+                <template v-if="user.phone || user.wechat_contact">
+                  <p v-if="user.phone">
+                    {{ user.phone }}
+                    <small class="badge draft">{{ contactSourceText(user.phone_source) }}</small>
+                  </p>
+                  <p v-if="user.wechat_contact">
+                    {{ user.wechat_contact }}
+                    <small class="badge draft">{{ contactSourceText(user.wechat_source) }}</small>
+                  </p> </template
                 ><span v-else class="muted">未填写</span>
               </td>
-              <td>{{ dateText(user.registered_at) }}</td>
               <td>{{ user.statistics.completed_cards }} 张</td>
               <td>
                 {{ user.statistics.current_streak }} 天
-                <p class="small muted">
-                  {{ user.statistics.checked_in_today ? '今日已打卡' : '今日待打卡' }}
+                <p>
+                  <span class="badge" :class="{ draft: !user.statistics.checked_in_today }">{{
+                    user.statistics.checked_in_today ? '今日已打卡' : '今日待打卡'
+                  }}</span>
                 </p>
               </td>
               <td>{{ user.statistics.total_checkin_days }} 天</td>
-              <td>{{ dateText(user.statistics.last_studied_at) }}</td>
+              <td class="user-times">
+                <p>注册 {{ dateText(user.registered_at) }}</p>
+                <p>学习 {{ dateText(user.statistics.last_studied_at) }}</p>
+              </td>
               <td>
                 <RouterLink :to="{ path: `/users/${user.id}`, query: { back: route.fullPath } }"
                   >查看详情</RouterLink
@@ -164,13 +174,15 @@ onActivated(() => {
           </tbody>
         </table>
       </div>
-      <div v-if="data && data.total > 20" class="pagination">
-        <span>共 {{ data.total }} 人</span
-        ><button :disabled="page <= 1 || busy" @click="filter({ page: page - 1 })">上一页</button
-        ><span>第 {{ page }} 页</span
-        ><button :disabled="page * 20 >= data.total || busy" @click="filter({ page: page + 1 })">
-          下一页
-        </button>
+      <div v-if="data && !error" class="pagination user-pagination">
+        <span class="pagination-total">共 {{ data.total }} 位用户 · 注册时间倒序</span>
+        <template v-if="data.total > 20"
+          ><button :disabled="page <= 1 || busy" @click="filter({ page: page - 1 })">上一页</button
+          ><span>第 {{ page }} 页</span
+          ><button :disabled="page * 20 >= data.total || busy" @click="filter({ page: page + 1 })">
+            下一页
+          </button></template
+        >
       </div>
     </div>
   </div>
@@ -178,52 +190,130 @@ onActivated(() => {
 <style scoped lang="scss">
 .back-link {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   margin-bottom: 12px;
 }
 
+.user-filters {
+  margin-bottom: 20px;
+
+  .segments {
+    margin-left: auto;
+  }
+
+  .search-submit {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    padding: 0;
+    border: 0;
+  }
+}
+
 .registration-filter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 12px 0 20px;
-  font-size: 12px;
+  margin-bottom: 24px;
+  font-size: 13px;
 
   > span {
     color: var(--muted);
-    margin-right: 4px;
+    margin-right: 8px;
   }
 
   button {
-    font-size: 12px;
-    min-height: 30px;
-    padding: 5px 10px;
-
-    &.active {
-      background: var(--soft);
-      border-color: #adc3a4;
-      font-weight: 600;
-    }
+    min-height: 34px;
+    padding: 5px 12px;
   }
 
   small {
     margin-left: auto;
     color: var(--muted);
+    font-size: 12px;
   }
 }
 
 .avatar {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
 
   &.default {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    place-items: center;
     background: var(--soft);
+  }
+}
+
+.user-list-content {
+  .table-wrap {
+    border-bottom: 0;
+    border-radius: 12px 12px 0 0;
+  }
+
+  table {
+    table-layout: fixed;
+
+    th:first-child {
+      width: 16%;
+    }
+
+    th:nth-child(2) {
+      width: 24%;
+    }
+
+    th:nth-child(3) {
+      width: 9%;
+    }
+
+    th:nth-child(4) {
+      width: 12%;
+    }
+
+    th:nth-child(5) {
+      width: 9%;
+    }
+
+    th:nth-child(6) {
+      width: 20%;
+    }
+
+    th:last-child {
+      width: 10%;
+    }
+  }
+
+  td {
+    height: 96px;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  .badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .user-times {
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  .user-pagination {
+    border: 1px solid var(--line);
+    border-top: 0;
+    border-radius: 0 0 12px 12px;
+    background: var(--paper);
+    min-height: 58px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .pagination-total {
+    margin-right: auto;
   }
 }
 </style>

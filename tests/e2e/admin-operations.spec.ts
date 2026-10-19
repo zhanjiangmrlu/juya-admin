@@ -41,7 +41,7 @@ test('remembers list position and selection after returning from the editor', as
   const address = page.url()
   expect(position).toBeGreaterThan(100)
   await link.click()
-  await page.getByRole('link', { name: '‹ 返回卡片管理' }).click()
+  await page.getByRole('link', { name: '返回列表' }).click()
   await expect(page).toHaveURL(address)
   await expect(row.locator('input[type=checkbox]')).toBeChecked()
   await expect
@@ -91,6 +91,7 @@ test('server pagination, scoped batch operations, versioned image and global ord
           (await (await page.request.get(`/api/admin/v1/media/${id}/status`)).json()).state
       )
       .toBe('ready')
+  const prefix = `管理验收${Date.now()}卡`
   const cards = []
   for (let number = 1; number <= 23; number++) {
     const card = await (
@@ -98,7 +99,8 @@ test('server pagination, scoped batch operations, versioned image and global ord
         headers: headers(),
         data: {
           content: {
-            name: `管理验收卡${String(number).padStart(2, '0')}`,
+            name: `${prefix}${String(number).padStart(2, '0')}`,
+            title_en: 'Ordering Coffee',
             image_id: image.id,
             audio_id: audio.id,
             dialogue: [
@@ -136,13 +138,13 @@ test('server pagination, scoped batch operations, versioned image and global ord
       )
     cards.push(card)
   }
-  await page.goto('/cards?search=管理验收卡')
+  await page.goto(`/cards?search=${encodeURIComponent(prefix)}`)
   await expect(page.locator('tbody tr')).toHaveCount(10)
-  await expect(page.locator('.pagination')).toContainText('共 23 条')
+  await expect(page.locator('.pagination')).toContainText('共 23 张')
   await page.getByLabel('选择本页卡片').check()
   await expect(page.locator('.selection-bar')).toContainText('已选择 10 张')
   await page.getByRole('button', { name: '下一页', exact: true }).click()
-  await expect(page.locator('.selection-bar')).toHaveCount(0)
+  await expect(page.locator('.selection-bar')).toContainText('已选择 0 张')
   await expect(page.locator('.pagination')).toContainText('第 2 / 3 页')
   const row = page.locator('tbody tr').filter({ hasText: '已发布' }).first()
   await row.locator('input[type=checkbox]').check()
@@ -165,12 +167,13 @@ test('server pagination, scoped batch operations, versioned image and global ord
   await expect(page.getByRole('dialog')).toContainText('成功 1 张')
   await page.screenshot({ path: 'test-results/admin-action-result.png', fullPage: true })
   await page.getByRole('button', { name: '关闭结果' }).click()
-  await expect(page.locator('.pagination')).toContainText('共 23 条')
+  await expect(page.locator('.pagination')).toContainText('共 23 张')
   await page.goto('/cards?status=published')
   await page.getByRole('button', { name: '调整顺序', exact: true }).click()
   await expect(page.locator('.catalog-name')).toHaveCount(10)
-  const firstName = await page.locator('.catalog-name').first().innerText()
+  const firstName = await page.locator('.catalog-name .chinese').first().innerText()
   const order = await (await page.request.get('/api/admin/v1/catalog-order')).json()
+  await page.locator('details').first().getByText('指定位置').click()
   await page
     .getByLabel(`${firstName} 移动到全局位置`, { exact: true })
     .fill(String(order.items.length))

@@ -24,6 +24,7 @@ for (const action of ['offline', 'delete'] as const) {
     const name = `自动刷新验收-${action}-${Date.now()}`
     const content = {
       name,
+      title_en: 'Ordering Coffee',
       image_id: null as string | null,
       audio_id: null as string | null,
       dialogue: [{ id: 'line', speaker: 'A', english: 'Hello coffee.', chinese: '你好，咖啡。' }],

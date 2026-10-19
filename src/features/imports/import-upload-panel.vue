@@ -90,16 +90,25 @@ const drop = (event: DragEvent) => {
 }
 watch(transferring, (value) => emit('uploading', value))
 watch(pendingCount, (value) => emit('pending', value), { immediate: true })
+/** 复用原队列接收首屏或组件内明确选择的资料
+ * @param files 本次选择的本地文件集合
+ * @param kind 资料在卡片中的用途
+ */
+const addFiles = (files: File[], kind: ImportUpload['kind']) => {
+  if (props.disabled) return
+  add(files, kind)
+  emit('changed')
+  if (kind !== 'zip') void start()
+}
+defineExpose({ addFiles })
 /** 选择资料先展示待上传清单，ZIP等待管理员明确开始
  * @param event 本地文件选择事件
  * @param kind 本次选择的资料用途
  */
 const choose = (event: Event, kind: ImportUpload['kind']) => {
   const input = event.target as HTMLInputElement
-  add([...(input.files || [])], kind)
+  addFiles([...(input.files || [])], kind)
   input.value = ''
-  emit('changed')
-  if (kind !== 'zip') void start()
 }
 /** 显示管理员可读的文件大小
  * @param size 原始文件字节数
@@ -167,7 +176,7 @@ const acceptedFile = (upload: ImportUpload) =>
   props.batch.files.find((file) => file.id === upload.accepted?.id) || upload.accepted
 </script>
 <template>
-  <section class="panel import-upload">
+  <section class="import-upload">
     <h2>上传{{ batch.mode === 'zip' ? 'ZIP资料包' : 'DOCX及配套资料' }}</h2>
     <p class="muted small">
       每张卡片需要名称、场景图、完整音频、中英文对话和词汇；语块选填。文件限额由当前环境校验。
@@ -184,7 +193,15 @@ const acceptedFile = (upload: ImportUpload) =>
       @dragover.prevent
       @drop.prevent="drop"
     >
-      可将多个ZIP拖到此处，或点击下方选择；一张卡片一个文件夹。
+      <label class="button-link primary"
+        >选择多个 ZIP<input
+          multiple
+          type="file"
+          accept=".zip"
+          :disabled="disabled"
+          @change="choose($event, 'zip')"
+      /></label>
+      <p>支持拖入、一次多选及继续追加。包名与目录共同确定素材归属。</p>
     </div>
     <p class="small" role="status">
       总文件 {{ fileStates.length }} · 等待 {{ countState('waiting') }} · 上传中
@@ -193,7 +210,9 @@ const acceptedFile = (upload: ImportUpload) =>
       {{ countState('cancelled') }} · 接收待确认 {{ countState('unknown') }}
     </p>
     <div class="row file-actions">
-      <label v-if="batch.mode === 'zip'" class="button-link"
+      <label
+        v-if="batch.mode === 'zip' && (uploads.length || batch.files.length)"
+        class="button-link"
         >选择ZIP（可多选）<input
           multiple
           type="file"
@@ -201,7 +220,7 @@ const acceptedFile = (upload: ImportUpload) =>
           :disabled="disabled"
           @change="choose($event, 'zip')"
       /></label>
-      <template v-else>
+      <template v-else-if="batch.mode !== 'zip'">
         <label class="button-link"
           >选择DOCX<input
             type="file"
@@ -363,11 +382,31 @@ const acceptedFile = (upload: ImportUpload) =>
 </template>
 <style scoped lang="scss">
 .zip-drop {
-  padding: 18px;
-  margin: 14px 0;
-  border: 1px dashed var(--line);
-  border-radius: 8px;
-  background: var(--soft);
+  min-height: 260px;
+  padding: 30px;
+  text-align: center;
+  margin: 20px 0;
+  border: 1px solid #b7cca7;
+  border-radius: 10px;
+  background: #fbfdf8;
+
+  label {
+    position: relative;
+
+    input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      min-height: 0;
+      cursor: pointer;
+    }
+  }
+
+  p {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 13px;
+  }
 }
 
 .import-upload {
@@ -406,9 +445,12 @@ const acceptedFile = (upload: ImportUpload) =>
     align-items: center;
     gap: 18px;
     flex-wrap: wrap;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--line);
-    font-size: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--paper);
+    padding: 16px;
+    margin-top: 10px;
+    font-size: 13px;
 
     > span:first-child {
       flex: 1;

@@ -58,10 +58,10 @@ onBeforeUnmount(() => {
     <div class="page-heading between">
       <div>
         <h1>数据统计</h1>
-        <p>查看当前账号与已发布内容的真实数据</p>
+        <p>查看用户与场景内容的总体情况。</p>
       </div>
       <button type="button" :disabled="busy" @click="refresh">
-        <AppIcon name="refresh" :size="16" />刷新数据
+        <AppIcon name="refresh" />刷新
       </button>
     </div>
     <div class="overview-period">
@@ -94,7 +94,12 @@ onBeforeUnmount(() => {
           aria-label="正在加载统计"
         /><span v-else class="unavailable">暂未获取</span
         ><span class="metric-link"
-          >{{ metric.id === 'cards' ? '查看已发布卡片' : '查看用户列表'
+          >{{
+            metric.id === 'cards'
+              ? '查看已发布卡片'
+              : metric.id === 'new-users'
+                ? '查看今日注册用户'
+                : '查看全部用户'
           }}<AppIcon name="arrow" :size="16"
         /></span>
       </button>
@@ -121,7 +126,7 @@ onBeforeUnmount(() => {
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 22px;
+  gap: 24px;
 }
 
 .overview-metric {
@@ -129,8 +134,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: stretch;
   text-align: left;
-  padding: 25px;
-  min-height: 226px;
+  padding: 28px;
+  min-height: 252px;
   border-radius: 12px;
 
   &:disabled {
@@ -146,13 +151,13 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: baseline;
     gap: 8px;
-    margin: 22px 0 25px;
+    margin: 28px 0 36px;
   }
 
   .metric-value {
-    font-size: 44px;
+    font-size: 48px;
     line-height: 1.15;
-    font-weight: 650;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
   }
 
@@ -161,7 +166,7 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: space-between;
     border-top: 1px solid var(--line);
-    padding-top: 15px;
+    padding-top: 18px;
     color: var(--green);
     font-size: 12px;
   }

@@ -11,7 +11,7 @@ import type { SceneContent } from '@/features/scenes/editor-model'
 import type { components } from '@/shared/contracts/generated/admin-api'
 import type { ImportBatch, ImportFile } from '@/shared/types/import'
 import type { UploadProgress } from '@/shared/types/media'
-const props = defineProps<{ content: SceneContent; disabled?: boolean }>()
+const props = defineProps<{ content: SceneContent; disabled?: boolean; compact?: boolean }>()
 const emit = defineEmits<{ apply: [content: SceneContent]; busy: [value: boolean] }>()
 const candidate = ref<SceneContent | null>(null),
   open = ref(false),
@@ -166,16 +166,16 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
-  <section class="panel docx-import">
+  <section class="docx-import" :class="{ panel: !compact, compact }">
     <div class="between">
-      <div>
+      <div v-if="!compact">
         <h2>从DOCX读取文本</h2>
         <p class="small muted">
           读取中英文标题、对话、词汇和语块；核对并确认替换后仍需保存草稿。图片和音频保留。
         </p>
       </div>
       <label class="button-link"
-        >{{ busy ? '正在处理资料…' : '选择单卡DOCX'
+        >{{ busy ? '正在处理资料…' : compact ? '使用模板 DOCX 带入' : '选择单卡DOCX'
         }}<input type="file" accept=".docx" :disabled="disabled || busy" @change="choose"
       /></label>
     </div>
@@ -250,6 +250,15 @@ onBeforeUnmount(() => {
 </template>
 <style scoped lang="scss">
 .docx-import {
+  &.compact {
+    font-size: 13px;
+
+    .button-link {
+      min-height: 34px;
+      padding: 5px 12px;
+    }
+  }
+
   p {
     margin-top: 12px;
     line-height: 1.8;

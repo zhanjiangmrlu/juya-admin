@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
+import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
 import { useImportStaging } from '@/composables/use-import-staging'
 import { useWordPronunciation } from '@/composables/use-word-pronunciation'
@@ -28,10 +29,13 @@ import type {
 } from '@/shared/types/import'
 const route = useRoute(),
   router = useRouter()
+const uploadPanel = ref<InstanceType<typeof ImportUploadPanel> | null>(null),
+  pendingSourceFiles = ref<File[]>([])
 const batch = ref<ImportBatch | null>(null),
   recent = ref<ImportBatch[]>([]),
   step = ref(1),
   activeId = ref(''),
+  expandedId = ref(''),
   loading = ref(true),
   busy = ref(false),
   uploading = ref(false),
@@ -232,6 +236,7 @@ const create = async (mode: 'zip' | 'docx') => {
   }
   busy.value = true
   error.value = ''
+  let initialized = false
   creating ||= { key: crypto.randomUUID(), mode, unknown: false }
   try {
     let value: ImportBatch | null = null
@@ -254,13 +259,41 @@ const create = async (mode: 'zip' | 'docx') => {
     accept(value)
     creating = null
     await router.replace({ query: { batch: value.id } })
+    initialized = true
   } catch (reason) {
     if (creating) creating.unknown = true
     if (alive)
       error.value = reason instanceof Error ? reason.message : '创建结果待确认，请重试原方式'
   } finally {
-    if (alive) busy.value = false
+    if (alive) {
+      busy.value = false
+      await nextTick()
+      if (initialized && pendingSourceFiles.value.length && uploadPanel.value) {
+        uploadPanel.value.addFiles(pendingSourceFiles.value, mode === 'zip' ? 'zip' : 'docx')
+        pendingSourceFiles.value = []
+      }
+    }
   }
+}
+/** 首屏文件选择先建立同一暂存批次，再交给原上传队列
+ * @param event 原生ZIP选择事件
+ */
+const beginZIP = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const files = [...(input.files || [])]
+  input.value = ''
+  if (!files.length || busy.value) return
+  pendingSourceFiles.value = files
+  void create('zip')
+}
+/** 将首屏拖入的ZIP交给同一受控队列
+ * @param event 原生拖入文件事件
+ */
+const beginDroppedZIP = (event: DragEvent) => {
+  const files = [...(event.dataTransfer?.files || [])]
+  if (!files.length || busy.value) return
+  pendingSourceFiles.value = files
+  void create('zip')
 }
 /** 清除本地状态后开始新批次，旧结果继续留在服务器 */
 const startNew = async () => {
@@ -270,8 +303,10 @@ const startNew = async () => {
   for (const timer of autosaves.values()) clearTimeout(timer)
   autosaves.clear()
   batch.value = null
+  pendingSourceFiles.value = []
   staging.clear()
   activeId.value = ''
+  expandedId.value = ''
   confirmation.value = null
   retryScope.value = null
   saving = null
@@ -335,6 +370,7 @@ const switchEntry = (id: string) => {
     return
   }
   activeId.value = id
+  expandedId.value = expandedId.value === id ? '' : id
 }
 /** 上传处理完成后形成明确名称的素材候选，再进入核对 */
 const review = async () => {
@@ -581,7 +617,7 @@ onBeforeUnmount(() => {
     <div class="page-heading between">
       <div>
         <h1>批量导入</h1>
-        <p>导入只保存草稿，发布需在卡片管理中确认</p>
+        <p>上传资料 → 核对卡片 → 保存草稿；发布在卡片管理中完成。</p>
       </div>
       <button
         v-if="batch"
@@ -592,7 +628,7 @@ onBeforeUnmount(() => {
         开始新的导入
       </button>
     </div>
-    <ol class="import-steps">
+    <ol v-if="batch" class="import-steps">
       <li
         v-for="(label, index) in ['上传资料', '核对卡片', '保存草稿']"
         :key="label"
@@ -633,19 +669,49 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </details>
-        <section class="panel">
-          <a :href="exampleURL" class="text example-link" download>下载填写示例</a>
-          <h2>选择本批上传方式</h2>
-          <div class="mode-options">
-            <button type="button" :disabled="busy" @click="create('zip')">
-              <strong>上传ZIP（支持多选）</strong
-              ><span>一次选择多个ZIP，每个ZIP可含多张卡片；一张卡片一个文件夹</span></button
-            ><button type="button" :disabled="busy" @click="create('docx')">
-              <strong>上传DOCX及配套资料</strong><span>一份或多份DOCX，另选图片与完整音频</span>
+        <section class="import-intro">
+          <div class="between">
+            <h2>上传资料</h2>
+            <a :href="exampleURL" class="button-link small" download>下载填写示例</a>
+          </div>
+          <p class="intro-copy">
+            每张卡片：中文标题、英文标题、场景图、完整对话音频、双语对话、重点词汇；语块选填。
+          </p>
+          <div class="initial-drop" @dragover.prevent @drop.prevent="beginDroppedZIP">
+            <label class="button-link primary"
+              >选择多个 ZIP<input
+                multiple
+                type="file"
+                accept=".zip"
+                aria-label="选择多个ZIP"
+                :disabled="busy"
+                @change="beginZIP"
+            /></label>
+            <p>支持拖入、一次多选及继续追加。包名与目录共同确定素材归属。</p>
+            <p v-if="limits" class="small">
+              单ZIP最多 {{ Math.floor(limits.archive_limit_bytes / 1024 / 1024) }} MB · 每批最多
+              {{ limits.import_card_limit }} 张卡片
+            </p>
+            <p v-if="pendingSourceFiles.length" class="small">
+              已选择 {{ pendingSourceFiles.length }} 个ZIP{{
+                busy ? '，正在建立导入批次…' : '，文件尚未上传'
+              }}
+            </p>
+            <button v-if="pendingSourceFiles.length && !busy" type="button" @click="create('zip')">
+              继续本次导入
             </button>
           </div>
+          <button type="button" class="docx-entry" :disabled="busy" @click="create('docx')">
+            上传 DOCX 及配套图片／音频
+          </button>
+          <p class="notice import-notice">
+            <AppIcon
+              name="info"
+            />ZIP上传与解析只形成待核对资料，保存草稿后仍需确认发布。完整音频支持 MP3 / M4A / WAV /
+            AAC。
+          </p>
           <p class="small muted">
-            完整音频支持 MP3 / M4A / WAV / AAC，ZIP 内也可直接放入 WAV 文件。
+            ZIP内每个DOCX对应一张卡；独立DOCX可以多卡。不同包／目录同名素材互不混用；歧义须手动确认。
           </p>
         </section>
       </template>
@@ -658,8 +724,12 @@ onBeforeUnmount(() => {
           卡片失败 {{ summary.cardFailed }} 张 · 重复 {{ counts.skipped }} 张
         </p>
         <div v-show="step === 1">
-          <a :href="exampleURL" class="text example-link" download>下载填写示例</a
-          ><ImportUploadPanel
+          <div class="between upload-heading">
+            <h2>上传资料</h2>
+            <a :href="exampleURL" class="button-link small" download>下载填写示例</a>
+          </div>
+          <ImportUploadPanel
+            ref="uploadPanel"
             :key="batch.id"
             :batch="batch"
             :limits="limits"
@@ -725,97 +795,99 @@ onBeforeUnmount(() => {
           <div class="review-layout">
             <ImportReviewList
               :entries="entries"
-              :active-id="active?.item.id"
+              :active-id="expandedId"
               :busy="busy"
               :dirty-ids="
                 entries.filter((entry) => staging.isDirty(entry)).map((entry) => entry.item.id)
               "
               @select="selectEntry"
               @expand="switchEntry"
-            />
-            <div v-if="active" class="review-detail">
-              <template v-if="active.item.readable"
-                ><div class="panel between">
-                  <div>
-                    <h2>{{ active.edit.content.name || '核对资料' }}</h2>
-                    <p class="small muted">
-                      {{
-                        active.edit.target_card_id
-                          ? '已明确选择更新已有卡片草稿'
-                          : active.item.suggested_target_id
-                            ? '此资料已有对应卡片，请明确核对是否更新'
-                            : '新增草稿；名称相同不会自动合并'
-                      }}
+              ><template #default>
+                <div v-if="active" class="review-detail">
+                  <template v-if="active.item.readable"
+                    ><div class="panel between">
+                      <div>
+                        <h2>{{ active.edit.content.name || '核对资料' }}</h2>
+                        <p class="small muted">
+                          {{
+                            active.edit.target_card_id
+                              ? '已明确选择更新已有卡片草稿'
+                              : active.item.suggested_target_id
+                                ? '此资料已有对应卡片，请明确核对是否更新'
+                                : '新增草稿；名称相同不会自动合并'
+                          }}
+                        </p>
+                      </div>
+                      <div class="row">
+                        <button
+                          type="button"
+                          :disabled="busy || editingMedia"
+                          @click="targetOpen = true"
+                        >
+                          选择更新目标／核对差异</button
+                        ><button
+                          v-if="active.edit.target_card_id"
+                          type="button"
+                          class="text"
+                          @click="clearTarget"
+                        >
+                          改为新增</button
+                        ><button
+                          type="button"
+                          :disabled="busy || editingMedia || dirty"
+                          @click="showPreview = true"
+                        >
+                          预览核对
+                        </button>
+                      </div>
+                    </div>
+                    <p v-if="active.error" class="notice error" role="alert">
+                      {{ active.error
+                      }}<button
+                        v-if="active.conflict"
+                        type="button"
+                        class="text"
+                        @click="inspectConflict"
+                      >
+                        核对最新暂存</button
+                      ><button
+                        v-else
+                        type="button"
+                        class="text"
+                        :disabled="active.saving"
+                        @click="staging.save(active)"
+                      >
+                        重试暂存
+                      </button>
                     </p>
-                  </div>
-                  <div class="row">
-                    <button
-                      type="button"
-                      :disabled="busy || editingMedia"
-                      @click="targetOpen = true"
-                    >
-                      选择更新目标／核对差异</button
-                    ><button
-                      v-if="active.edit.target_card_id"
-                      type="button"
-                      class="text"
-                      @click="clearTarget"
-                    >
-                      改为新增</button
-                    ><button
-                      type="button"
-                      :disabled="busy || editingMedia || dirty"
-                      @click="showPreview = true"
-                    >
-                      预览核对
-                    </button>
+                    <ImportAssetPicker
+                      :key="active.item.id"
+                      v-model="active.edit.content"
+                      :batch="batch"
+                      :item-id="active.item.id"
+                      :disabled="busy"
+                    />
+                    <SceneContentForm
+                      :key="active.item.id"
+                      v-model="active.edit.content"
+                      :limits="limits"
+                      :pronunciation="pronunciation"
+                      :pronunciation-disabled="busy || editingMedia"
+                      :save-before-pronounce="staging.isDirty(active)"
+                      save-before-pronounce-label="暂存并试听"
+                      :disabled="busy || active.item.state === 'saving'"
+                      @pronounce="stagedSpeech.play"
+                      @uploading="editingMedia = $event"
+                    />
+                  </template>
+                  <div v-else class="panel notice error">
+                    <h2>此资料无法读取</h2>
+                    <p v-for="issue in active.item.issues" :key="issue.code">{{ issue.message }}</p>
+                    <p>请返回上一步上传修正文件；其他可读资料可以继续保存。</p>
                   </div>
                 </div>
-                <p v-if="active.error" class="notice error" role="alert">
-                  {{ active.error
-                  }}<button
-                    v-if="active.conflict"
-                    type="button"
-                    class="text"
-                    @click="inspectConflict"
-                  >
-                    核对最新暂存</button
-                  ><button
-                    v-else
-                    type="button"
-                    class="text"
-                    :disabled="active.saving"
-                    @click="staging.save(active)"
-                  >
-                    重试暂存
-                  </button>
-                </p>
-                <ImportAssetPicker
-                  :key="active.item.id"
-                  v-model="active.edit.content"
-                  :batch="batch"
-                  :item-id="active.item.id"
-                  :disabled="busy"
-                />
-                <SceneContentForm
-                  :key="active.item.id"
-                  v-model="active.edit.content"
-                  :limits="limits"
-                  :pronunciation="pronunciation"
-                  :pronunciation-disabled="busy || editingMedia"
-                  :save-before-pronounce="staging.isDirty(active)"
-                  save-before-pronounce-label="暂存并试听"
-                  :disabled="busy || active.item.state === 'saving'"
-                  @pronounce="stagedSpeech.play"
-                  @uploading="editingMedia = $event"
-                />
-              </template>
-              <div v-else class="panel notice error">
-                <h2>此资料无法读取</h2>
-                <p v-for="issue in active.item.issues" :key="issue.code">{{ issue.message }}</p>
-                <p>请返回上一步上传修正文件；其他可读资料可以继续保存。</p>
-              </div>
-            </div>
+              </template></ImportReviewList
+            >
           </div>
           <footer class="editor-actions">
             <span class="small muted"
@@ -869,9 +941,12 @@ onBeforeUnmount(() => {
       v-if="showPreview && active"
       :model-value="true"
       title="导入核对预览 · 尚未保存为卡片草稿"
-      width="430px"
+      class="scene-preview"
+      width="516px"
+      align-center
       @close="showPreview = false"
       ><SceneReader
+        phone
         :content="active.edit.content"
         :pronunciation="
           batch
@@ -881,6 +956,7 @@ onBeforeUnmount(() => {
               }
             : undefined
         "
+        @close="showPreview = false"
       /><template #footer
         ><button type="button" @click="showPreview = false">返回核对</button></template
       ></ElDialog
@@ -932,14 +1008,26 @@ onBeforeUnmount(() => {
 .import-steps {
   display: flex;
   list-style: none;
-  padding: 20px 0 26px;
-  gap: 70px;
+  padding: 0 0 28px;
+  margin: 0;
+  gap: 24px;
+  justify-content: space-between;
 
   li {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1;
     color: var(--muted);
+    font-size: 13px;
+
+    &:not(:last-child)::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+      margin-left: 20px;
+    }
 
     span {
       display: grid;
@@ -955,9 +1043,9 @@ onBeforeUnmount(() => {
       font-weight: 600;
 
       span {
-        color: white;
-        background: var(--green);
-        border-color: var(--green);
+        color: var(--ink);
+        background: var(--action);
+        border-color: var(--action);
       }
     }
   }
@@ -998,10 +1086,7 @@ onBeforeUnmount(() => {
 }
 
 .review-layout {
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 22px;
-  align-items: start;
+  display: block;
 }
 
 .review-detail {
@@ -1042,5 +1127,108 @@ onBeforeUnmount(() => {
     padding: 14px;
     background: var(--soft);
   }
+}
+</style>
+
+<style scoped lang="scss">
+.review-step {
+  padding: 28px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.review-detail {
+  > .between {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    align-items: flex-start;
+
+    .row {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+  }
+
+  :deep(.editor-section) {
+    background: transparent;
+  }
+}
+
+.import-summary {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+  color: var(--muted);
+}
+
+.review-heading {
+  margin-bottom: 24px;
+}
+</style>
+
+<style scoped lang="scss">
+.import-intro,
+.upload-heading {
+  h2 {
+    font-size: 18px;
+  }
+
+  .small.button-link {
+    min-height: 34px;
+    font-size: 13px;
+    padding: 5px 12px;
+  }
+}
+
+.intro-copy {
+  margin: 8px 0 20px;
+  font-size: 13px;
+}
+
+.initial-drop {
+  min-height: 260px;
+  border: 1px solid #b7cca7;
+  border-radius: 10px;
+  padding: 30px;
+  text-align: center;
+  background: #fbfdf8;
+
+  label {
+    position: relative;
+
+    input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      min-height: 0;
+      cursor: pointer;
+    }
+  }
+
+  p {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+}
+
+.docx-entry {
+  margin-top: 20px;
+  font-size: 13px;
+}
+
+.import-notice {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: #edf5e6;
+}
+
+.upload-heading {
+  margin: 0 0 20px;
 }
 </style>

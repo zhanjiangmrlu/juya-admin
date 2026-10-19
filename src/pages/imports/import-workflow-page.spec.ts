@@ -10,6 +10,55 @@ import type { ImportBatch, ImportItem } from '@/shared/types/import'
 
 import ImportWorkflowPage from './import-workflow-page.vue'
 
+it('keeps ZIPs selected on the first screen queued until upload is explicitly started', async () => {
+  const batch: ImportBatch = {
+    id: 'new-batch',
+    mode: 'zip',
+    created_at: '',
+    files: [],
+    items: [],
+    unused_file_ids: []
+  }
+  request.mockImplementation(async (path: string, options?: { method?: string }) => {
+    if (path.endsWith('/configuration'))
+      return {
+        image_limit_bytes: 1000,
+        audio_limit_bytes: 1000,
+        archive_limit_bytes: 1000,
+        import_card_limit: 100
+      }
+    if (path === '/api/admin/v1/imports' && options?.method === 'POST') return batch
+    if (path === '/api/admin/v1/imports') return []
+    return batch
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/imports', component: ImportWorkflowPage }]
+  })
+  await router.push('/imports')
+  const page = mount(ImportWorkflowPage, {
+    global: { plugins: [router], stubs: { ElDialog: true } }
+  })
+  await flushPromises()
+  const input = page.find('input[aria-label="选择多个ZIP"]')
+  expect(input.exists()).toBe(true)
+  Object.defineProperty(input.element, 'files', {
+    value: [new File(['zip'], 'first.zip'), new File(['zip'], 'second.zip')]
+  })
+  await input.trigger('change')
+  await flushPromises()
+  expect(page.text()).toContain('first.zip')
+  expect(page.text()).toContain('second.zip')
+  expect(page.get('[data-action="start-upload"]').attributes('disabled')).toBeUndefined()
+  expect(
+    request.mock.calls.filter(
+      ([path, options]) => path === '/api/admin/v1/imports' && options?.method === 'POST'
+    )
+  ).toHaveLength(1)
+  expect(request.mock.calls.some(([path]) => path.includes('/files?'))).toBe(false)
+  page.unmount()
+})
+
 it('restores a batch, persists review changes and only saves actual cards after step-three confirmation', async () => {
   const item: ImportItem = {
     id: 'one',
@@ -103,6 +152,7 @@ it('restores a batch, persists review changes and only saves actual cards after 
   expect(page.text()).toContain('继续处理')
   await page.get('[data-action="resume-import"]').trigger('click')
   await flushPromises()
+  await page.get('button[aria-expanded="false"]').trigger('click')
   await page.get('input[placeholder="例如：在咖啡店点单"]').setValue('Reviewed')
   await page.get('[data-action="review-next"]').trigger('click')
   await flushPromises()

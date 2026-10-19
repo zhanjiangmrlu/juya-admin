@@ -7,7 +7,7 @@ import AppState from '@/components/app-state/app-state.vue'
 import { useResource } from '@/composables/use-resource'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import UserLearningRecords from '@/features/users/user-learning-records.vue'
-import { dateText, mediaURL } from '@/services/display'
+import { contactSourceText, dateText, mediaURL } from '@/services/display'
 import { api } from '@/services/http-client'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -23,9 +23,7 @@ const metrics = computed(() =>
     ? [
         { label: '已学场景卡', value: data.value.statistics.completed_cards, unit: '张' },
         { label: '连续打卡', value: data.value.statistics.current_streak, unit: '天' },
-        { label: '累计打卡', value: data.value.statistics.total_checkin_days, unit: '天' },
-        { label: '最长连续', value: data.value.statistics.longest_streak, unit: '天' },
-        { label: '当前收藏', value: data.value.statistics.favorite_count, unit: '张' }
+        { label: '累计打卡', value: data.value.statistics.total_checkin_days, unit: '天' }
       ]
     : []
 )
@@ -45,106 +43,139 @@ onMounted(() => {
 })
 </script>
 <template>
-  <div>
-    <div class="page-heading">
-      <RouterLink :to="String(route.query.back || '/users')" class="back-link"
-        >‹ 返回用户列表</RouterLink
-      >
-      <div class="between">
-        <h1>用户详情</h1>
-        <button type="button" :disabled="busy" @click="refresh">刷新资料</button>
+  <div class="user-detail-page">
+    <div class="page-heading between">
+      <div>
+        <h1>{{ data?.nickname || '学习者' }} · 用户详情</h1>
+        <p>只读查看账号资料和学习数据。</p>
       </div>
+      <RouterLink :to="String(route.query.back || '/users')" class="button-link"
+        >返回用户列表</RouterLink
+      >
     </div>
-    <AppState :busy="busy" :error="error" @retry="refresh" /><template v-if="data && !busy"
-      ><section class="panel">
-        <div class="profile-heading">
-          <img v-if="data.avatar_id" :src="mediaURL(data.avatar_id)" class="avatar" alt="" /><span
-            v-else
-            class="avatar"
-            ><AppIcon :size="28"
-          /></span>
-          <div>
-            <h2>{{ data.nickname || '学习者' }}</h2>
-            <p class="muted small">{{ data.id }}</p>
+    <AppState :busy="busy" :error="error" @retry="refresh" />
+    <template v-if="data && !busy">
+      <div class="profile-overview">
+        <section class="panel account-panel">
+          <h2>账号资料</h2>
+          <div class="profile-heading">
+            <img v-if="data.avatar_id" :src="mediaURL(data.avatar_id)" class="avatar" alt="" /><span
+              v-else
+              class="avatar"
+              ><AppIcon name="user" :size="17" /></span
+            ><strong>{{ data.nickname || '学习者' }}</strong>
           </div>
-        </div>
-        <dl class="profile-fields">
-          <div>
-            <dt>手机号</dt>
-            <dd>{{ data.phone || '未填写' }}<small v-if="data.phone">用户填写／未验证</small></dd>
+          <dl class="profile-fields">
+            <div>
+              <dt>用户编号</dt>
+              <dd>{{ data.id }}</dd>
+            </div>
+            <div>
+              <dt>注册时间</dt>
+              <dd>{{ dateText(data.registered_at) }}</dd>
+            </div>
+            <div>
+              <dt>手机号</dt>
+              <dd>
+                {{ data.phone || '未填写' }}
+                <small v-if="data.phone" class="badge draft">{{
+                  contactSourceText(data.phone_source)
+                }}</small>
+              </dd>
+            </div>
+            <div>
+              <dt>微信号</dt>
+              <dd>
+                {{ data.wechat_contact || '未填写' }}
+                <small v-if="data.wechat_contact" class="badge draft">{{
+                  contactSourceText(data.wechat_source)
+                }}</small>
+              </dd>
+            </div>
+            <div>
+              <dt>登录方式</dt>
+              <dd>微信身份登录</dd>
+            </div>
+            <div>
+              <dt>最近登录</dt>
+              <dd>{{ dateText(data.last_login_at) }}</dd>
+            </div>
+            <div>
+              <dt>最近学习</dt>
+              <dd>{{ dateText(data.statistics.last_studied_at) }}</dd>
+            </div>
+          </dl>
+        </section>
+        <section class="panel learning-panel">
+          <div class="between">
+            <h2>总学习数据</h2>
+            <button type="button" class="text small" :disabled="busy" @click="refresh">
+              刷新资料
+            </button>
           </div>
-          <div>
-            <dt>微信号</dt>
-            <dd>
-              {{ data.wechat_contact || '未填写'
-              }}<small v-if="data.wechat_contact">用户填写／未验证</small>
-            </dd>
+          <div class="user-metrics">
+            <div v-for="metric in metrics" :key="metric.label">
+              <strong
+                >{{ metric.value ?? '暂未获取'
+                }}<small v-if="metric.value != null">{{ metric.unit }}</small></strong
+              ><span>{{ metric.label }}</span>
+            </div>
           </div>
-          <div>
-            <dt>注册时间</dt>
-            <dd>{{ dateText(data.registered_at) }}</dd>
-          </div>
-          <div>
-            <dt>最近登录</dt>
-            <dd>{{ dateText(data.last_login_at) }}</dd>
-          </div>
-          <div>
-            <dt>最近学习</dt>
-            <dd>{{ dateText(data.statistics.last_studied_at) }}</dd>
-          </div>
-          <div>
-            <dt>今日状态</dt>
-            <dd>{{ data.statistics.checked_in_today ? '今日已打卡' : '今日待打卡' }}</dd>
-          </div>
-        </dl>
-      </section>
-      <section class="panel">
-        <h2>学习概况</h2>
-        <div class="user-metrics">
-          <div v-for="metric in metrics" :key="metric.label">
-            <strong
-              >{{ metric.value }}<small>{{ metric.unit }}</small></strong
-            ><span>{{ metric.label }}</span>
-          </div>
-        </div>
-        <p class="muted small">
-          统计日期：{{ data.statistics.date }}（北京时间） · 下线或删除卡片不减少已有学习成绩
-        </p>
-      </section>
+          <p>
+            {{ data.statistics.checked_in_today ? '今日已打卡' : '今日尚未打卡' }} · 收藏
+            {{ data.statistics.favorite_count ?? '暂未获取' }} 张
+          </p>
+          <p>
+            最长连续：{{ data.statistics.longest_streak ?? '暂未获取' }}
+            天，与学习首页和完成记录保持一致。
+          </p>
+          <p class="statistics-date">统计日期：{{ data.statistics.date }}（北京时间）</p>
+        </section>
+      </div>
       <p v-if="previewError" class="notice error" role="alert">{{ previewError }}</p>
-      <UserLearningRecords :user-id="userId" @preview="showPreview" /></template
-    ><ScenePreview
+      <UserLearningRecords :user-id="userId" @preview="showPreview" />
+    </template>
+    <ScenePreview
       v-if="preview"
       :content="preview.content"
-      :pronunciation="{
-        cardId: preview.card_id,
-        reference: { version_id: preview.version_id }
-      }"
+      :pronunciation="{ cardId: preview.card_id, reference: { version_id: preview.version_id } }"
       mode="published"
       @close="preview = null"
     />
   </div>
 </template>
 <style scoped lang="scss">
-.back-link {
-  display: block;
-  font-size: 12px;
-  margin-bottom: 16px;
+.profile-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-bottom: 24px;
+
+  .panel {
+    margin-bottom: 0;
+    min-height: 410px;
+    padding: 24px;
+  }
+
+  h2 {
+    font-size: 18px;
+    line-height: 28px;
+  }
 }
 
 .profile-heading {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 24px;
+  margin: 20px 0;
+  font-size: 14px;
 
   .avatar {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    place-items: center;
     background: var(--soft);
     object-fit: cover;
   }
@@ -152,65 +183,78 @@ onMounted(() => {
 
 .profile-fields {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: 10px;
   margin: 0;
+  font-size: 13px;
 
-  div {
-    min-width: 0;
+  > div {
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr);
+    gap: 16px;
+    align-items: baseline;
   }
 
   dt {
-    font-size: 12px;
     color: var(--muted);
-    margin-bottom: 6px;
   }
 
   dd {
     margin: 0;
     overflow-wrap: anywhere;
+  }
 
-    small {
-      display: block;
-      color: var(--muted);
-      font-size: 11px;
-    }
+  small {
+    font-size: 10px;
+    font-weight: 400;
+    padding: 2px 6px;
   }
 }
 
 .user-metrics {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  margin: 24px 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 28px 0;
 
   > div {
-    border-right: 1px solid var(--line);
-    padding-left: 24px;
+    min-width: 0;
+  }
 
-    &:first-child {
-      padding-left: 0;
-    }
+  strong {
+    display: block;
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1.4;
 
-    &:last-child {
-      border: 0;
-    }
-
-    strong {
-      display: block;
-      font-size: 28px;
-      font-weight: 650;
-
-      small {
-        font-size: 11px;
-        font-weight: 400;
-        margin-left: 4px;
-      }
-    }
-
-    span {
+    small {
       font-size: 12px;
-      color: var(--muted);
+      font-weight: 400;
+      margin-left: 3px;
     }
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+}
+
+.learning-panel {
+  > p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .statistics-date {
+    font-size: 12px;
+    margin-top: 24px;
+  }
+}
+
+@media (width <= 1050px) {
+  .profile-overview {
+    grid-template-columns: 1fr;
   }
 }
 </style>

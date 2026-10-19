@@ -22,7 +22,6 @@ const begin = async (page: Page) => {
     .getByRole('navigation', { name: '业务导航' })
     .getByRole('link', { name: '批量导入', exact: true })
     .click()
-  await page.getByRole('button', { name: '上传ZIP（支持多选）', exact: false }).click()
 }
 /** 等待所有已接收资料解析后进入核对
  * @param page 当前批次页面
@@ -50,7 +49,7 @@ test('three ZIPs can be selected, removed, appended, reviewed and saved as three
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   await begin(page)
-  const input = page.locator('input[type="file"][accept=".zip"]')
+  const input = page.locator('input[type="file"][accept=".zip"]').first()
   await input.setInputFiles(
     ['first.zip', 'second.zip', 'third.zip'].map((name) => join(root, name))
   )
@@ -64,18 +63,27 @@ test('three ZIPs can be selected, removed, appended, reviewed and saved as three
   await input.setInputFiles(join(root, 'third.zip'))
   await page.locator('[data-action="start-upload"]').click()
   await review(page)
-  await expect(page.locator('.review-list > div')).toHaveCount(3)
+  await expect(page.locator('.review-list tr[data-item-id]')).toHaveCount(3)
   for (const name of ['first.zip', 'second.zip', 'third.zip'])
     await expect(page.locator('.review-list')).toContainText(name)
   await page.screenshot({ path: 'test-results/multi-zip-review.png', fullPage: true })
-  await page.locator('.review-list').getByRole('button', { name: '多ZIP甲', exact: true }).click()
-  await page.getByLabel('卡片名称', { exact: true }).fill('多ZIP甲-已核对')
-  await page.locator('.review-list').getByRole('button', { name: '多ZIP乙', exact: true }).click()
   await page
-    .locator('.review-list')
-    .getByRole('button', { name: '多ZIP甲-已核对', exact: true })
+    .locator('.review-list tr[data-item-id]')
+    .filter({ hasText: '多ZIP甲' })
+    .getByRole('button', { name: '展开核对' })
     .click()
-  await expect(page.getByLabel('卡片名称', { exact: true })).toHaveValue('多ZIP甲-已核对')
+  await page.getByLabel('中文标题', { exact: true }).fill('多ZIP甲-已核对')
+  await page
+    .locator('.review-list tr[data-item-id]')
+    .filter({ hasText: '多ZIP乙' })
+    .getByRole('button', { name: '展开核对' })
+    .click()
+  await page
+    .locator('.review-list tr[data-item-id]')
+    .filter({ hasText: '多ZIP甲-已核对' })
+    .getByRole('button', { name: '展开核对' })
+    .click()
+  await expect(page.getByLabel('中文标题', { exact: true })).toHaveValue('多ZIP甲-已核对')
   await save(page, 3)
   await page.screenshot({ path: 'test-results/multi-zip-results.png', fullPage: true })
   await page.locator('[data-action="import-cards"]').click()
@@ -88,10 +96,11 @@ test('one ZIP containing three folders retains all three independent cards', asy
   await begin(page)
   await page
     .locator('input[type="file"][accept=".zip"]')
+    .first()
     .setInputFiles(join(root, 'three-folders.zip'))
   await page.locator('[data-action="start-upload"]').click()
   await review(page)
-  await expect(page.locator('.review-list > div')).toHaveCount(3)
+  await expect(page.locator('.review-list tr[data-item-id]')).toHaveCount(3)
   await expect(page.locator('.import-summary')).toContainText('ZIP 1 个')
   await expect(page.locator('.import-summary')).toContainText('资料完整 3 张')
   await save(page, 3)
@@ -103,6 +112,7 @@ test('bad ZIP and bad folder do not block readable cards; incomplete audio saves
   await begin(page)
   await page
     .locator('input[type="file"][accept=".zip"]')
+    .first()
     .setInputFiles(['mixed.zip', 'broken.zip'].map((name) => join(root, name)))
   await page.locator('[data-action="start-upload"]').click()
   await review(page)

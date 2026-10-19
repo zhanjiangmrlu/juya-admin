@@ -2,6 +2,7 @@
 import { onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import AppBrand from '@/components/app-brand/app-brand.vue'
 import AppIcon from '@/components/app-icon/app-icon.vue'
 import { installAudioFocus } from '@/services/audio-focus'
 import { requestLogoutPermission } from '@/services/logout-guard'
@@ -15,7 +16,7 @@ onBeforeUnmount(releaseAudioFocus)
 const navigation = [
   { to: '/cards', label: '卡片管理', icon: 'cards' },
   { to: '/imports', label: '批量导入', icon: 'upload' },
-  { to: '/users', label: '用户管理', icon: 'users' },
+  { to: '/users', label: '用户列表', icon: 'users' },
   { to: '/statistics', label: '数据统计', icon: 'chart' }
 ]
 /** 清理敏感页面后返回登录 */
@@ -45,9 +46,7 @@ onBeforeUnmount(() => window.removeEventListener('admin-session-expired', expire
   <RouterView v-if="route.path === '/login'" />
   <div v-else-if="admin.identity" class="admin-shell">
     <aside class="sidebar">
-      <RouterLink class="brand" to="/cards"
-        ><AppIcon :size="28" /><strong>句芽英语</strong><small>内容管理后台</small></RouterLink
-      >
+      <RouterLink class="brand" to="/cards"><AppBrand /><small>内容管理后台</small></RouterLink>
       <nav aria-label="业务导航">
         <RouterLink
           v-for="item in navigation"
@@ -58,15 +57,14 @@ onBeforeUnmount(() => window.removeEventListener('admin-session-expired', expire
         >
       </nav>
       <div class="sidebar-bottom">
-        <p>{{ admin.identity.username }}</p>
+        <p>{{ admin.identity.username === 'admin' ? '管理员' : admin.identity.username }}</p>
         <button type="button" class="text" :disabled="logoutBusy" @click="logout">退出登录</button>
-        <p class="muted small">句芽英语 · 场景学习</p>
       </div>
     </aside>
     <div class="workspace">
       <header class="workspace-bar">
         <span>{{ route.meta.title }}</span
-        ><span class="muted">管理后台</span>
+        ><span class="muted">内容管理员</span>
       </header>
       <p v-if="error" class="notice error" role="alert">{{ error }}</p>
       <main class="page">

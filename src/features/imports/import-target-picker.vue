@@ -72,7 +72,8 @@ onBeforeUnmount(() => {
   <ElDialog
     :model-value="true"
     title="确认更新目标与差异"
-    width="min(1100px,95vw)"
+    width="860px"
+    align-center
     :close-on-click-modal="false"
     @close="emit('close')"
   >

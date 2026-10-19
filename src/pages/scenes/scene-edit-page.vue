@@ -258,12 +258,12 @@ onBeforeUnmount(() => {
 <template>
   <div class="editor-page">
     <div class="page-heading">
-      <RouterLink :to="back" class="back-link">‹ 返回卡片管理</RouterLink>
       <div class="between">
-        <h1>{{ saved ? content.name || '未命名草稿' : '新建卡片' }}</h1>
-        <span class="badge">{{
-          saved ? (saved.status === 'published' ? '编辑候选稿' : '编辑草稿') : '尚未保存'
-        }}</span>
+        <div>
+          <h1>{{ saved ? '编辑场景卡' : '新建卡片' }}</h1>
+          <p>按资料顺序填写，保存草稿后可继续修改。</p>
+        </div>
+        <RouterLink :to="back" class="button-link">返回列表</RouterLink>
       </div>
       <p v-if="saved?.status === 'published'">保存候选稿不会影响当前线上内容，预览确认后整体发布</p>
     </div>
@@ -275,12 +275,6 @@ onBeforeUnmount(() => {
           <li v-for="(issue, index) in issues" :key="index">{{ issue.message }}</li>
         </ul>
       </div>
-      <SceneDocxImport
-        :content="content"
-        :disabled="busy || uploading"
-        @apply="content = $event"
-        @busy="readingDocx = $event"
-      />
       <SceneContentForm
         v-model="content"
         :limits="limits"
@@ -290,7 +284,15 @@ onBeforeUnmount(() => {
         :disabled="busy"
         @pronounce="draftSpeech.play"
         @uploading="uploading = $event"
-      />
+        ><template #dialogue-tools>
+          <SceneDocxImport
+            compact
+            :content="content"
+            :disabled="busy || uploading"
+            @apply="content = $event"
+            @busy="readingDocx = $event"
+          /> </template
+      ></SceneContentForm>
       <footer class="editor-actions">
         <span class="muted small">{{
           uploading ? '素材正在处理，请稍候' : dirty ? '有未保存修改' : saved ? '草稿已保存' : ''
@@ -320,7 +322,7 @@ onBeforeUnmount(() => {
     /><ElDialog
       v-model="leaveOpen"
       title="资料尚未保存"
-      width="470px"
+      width="560px"
       :show-close="false"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -337,8 +339,7 @@ onBeforeUnmount(() => {
 </template>
 <style scoped lang="scss">
 .editor-page {
-  max-width: 1000px;
-  margin: auto;
+  max-width: none;
 
   .back-link {
     display: block;

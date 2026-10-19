@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import AppIcon from '@/components/app-icon/app-icon.vue'
+import AppBrand from '@/components/app-brand/app-brand.vue'
 import { useAdminStore } from '@/stores/admin-store'
 const admin = useAdminStore(),
   router = useRouter(),
@@ -34,7 +34,7 @@ const submit = async () => {
 <template>
   <main class="login-shell">
     <form class="login-box" @submit.prevent="submit">
-      <div class="brand"><AppIcon :size="28" /><strong>句芽英语</strong></div>
+      <div class="brand"><AppBrand /></div>
       <h1>内容管理后台</h1>
       <p class="muted">登录后管理场景卡片与用户学习数据</p>
       <label class="field"
@@ -70,28 +70,30 @@ const submit = async () => {
   padding: 32px;
 
   .login-box {
-    width: 410px;
+    width: 456px;
+    max-width: 100%;
+    min-height: 510px;
     padding: 40px;
     background: var(--paper);
     border: 1px solid var(--line);
     border-radius: 14px;
-    box-shadow: 0 14px 45px #2547330a;
 
     .brand {
       margin-bottom: 28px;
     }
 
     h1 {
-      font-size: 26px;
-      margin-bottom: 10px;
+      font-size: 24px;
+      margin-bottom: 8px;
     }
 
     .field {
-      margin-top: 22px;
+      margin-top: 28px;
+      margin-bottom: 22px;
     }
 
     .block {
-      margin-top: 28px;
+      margin-top: 22px;
     }
 
     .notice {

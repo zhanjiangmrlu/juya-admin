@@ -13,6 +13,60 @@ afterEach(() => {
   sessionStorage.clear()
 })
 
+it('filters with status segments and clears the previous page selection', async () => {
+  request.mockImplementation(async (path: string) => {
+    if (!path.startsWith('/api/admin/v1/cards?')) return []
+    const query = new URL(path, 'http://test').searchParams
+    return {
+      total: 11,
+      page: Number(query.get('page')),
+      limit: 10,
+      total_pages: 2,
+      items: [
+        {
+          id: 'selected-card',
+          display_name: 'Coffee',
+          display_title_en: 'Coffee',
+          status: query.get('status') === 'draft' ? 'draft' : 'published',
+          content: { name: 'Coffee' },
+          issues: [],
+          updated_at: ''
+        }
+      ]
+    }
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/cards', component: SceneListPage }]
+  })
+  await router.push('/cards?search=coffee&page=2')
+  const wrapper = mount(
+    {
+      template:
+        '<RouterView v-slot="{ Component }"><KeepAlive><component :is="Component"/></KeepAlive></RouterView>'
+    },
+    {
+      global: { plugins: [router], stubs: { ElDialog: true } }
+    }
+  )
+  await flushPromises()
+  await wrapper.get('input[aria-label="选择本页卡片"]').setValue(true)
+  const draft = wrapper.findAll('button[aria-pressed]').find((button) => button.text() === '草稿')
+  expect(draft, '草稿筛选应为可操作的分段按钮').toBeDefined()
+  await draft!.trigger('click')
+  await flushPromises()
+  expect(router.currentRoute.value.query).toMatchObject({
+    search: 'coffee',
+    status: 'draft',
+    page: '1'
+  })
+  expect(wrapper.get('input[aria-label="选择本页卡片"]').element).toHaveProperty('checked', false)
+  expect(
+    request.mock.calls.some(([path]) => path.includes('status=draft') && path.includes('limit=10'))
+  ).toBe(true)
+  wrapper.unmount()
+})
+
 it.each(['offline', 'delete'] as const)(
   'updates the list when %s completes after its dialog was closed',
   async (action) => {

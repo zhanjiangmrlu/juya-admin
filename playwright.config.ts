@@ -6,10 +6,15 @@ export default defineConfig({
   retries: 0,
   timeout: 45000,
   reporter: 'list',
-  use: { baseURL: 'http://127.0.0.1:4173', trace: 'off', screenshot: 'only-on-failure' },
+  use: {
+    baseURL: process.env.JUYA_E2E_BASE_URL || 'http://127.0.0.1:4173',
+    channel: process.env.JUYA_E2E_CHANNEL,
+    trace: 'off',
+    screenshot: 'only-on-failure'
+  },
   webServer: {
     command: 'pnpm dev --port 4173',
-    url: 'http://127.0.0.1:4173/login',
+    url: `${process.env.JUYA_E2E_BASE_URL || 'http://127.0.0.1:4173'}/login`,
     reuseExistingServer: true,
     timeout: 30000
   },

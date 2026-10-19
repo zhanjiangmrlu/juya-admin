@@ -31,9 +31,6 @@ const blocked = computed(() =>
   checks.value.filter((check) => check.category === 'incomplete' || check.category === 'error')
 )
 const unchanged = computed(() => checks.value.filter((check) => check.category === 'unchanged'))
-const preview = computed(
-  () => eligible.value.find((check) => check.id === activeId.value) || eligible.value[0]
-)
 const succeeded = computed(
   () => result.value?.items.filter((item) => item.state === 'succeeded').length || 0
 )
@@ -283,7 +280,8 @@ onBeforeUnmount(() => {
     footer-class="publication-footer"
     :model-value="true"
     :title="result ? '批量发布结果' : '逐卡核对并批量发布'"
-    width="min(1100px, 95vw)"
+    width="860px"
+    align-center
     :close-on-click-modal="false"
     @close="close"
   >
@@ -365,18 +363,27 @@ onBeforeUnmount(() => {
       </p>
       <div class="batch-review">
         <div class="review-list">
-          <button
-            v-for="check in eligible"
-            :key="check.id"
-            type="button"
-            :class="{ active: preview?.id === check.id }"
-            @click="activeId = check.id"
-          >
-            <SceneTitle
-              :name="check.name"
-              :title-en="check.preview?.content.title_en ?? check.card?.content.title_en"
+          <div v-for="check in eligible" :key="check.id" class="batch-review-item">
+            <button
+              type="button"
+              :aria-expanded="activeId === check.id"
+              @click="activeId = activeId === check.id ? '' : check.id"
+            >
+              <SceneTitle
+                :name="check.name"
+                :title-en="check.preview?.content.title_en ?? check.card?.content.title_en"
+              />
+              <span class="small muted">{{
+                activeId === check.id ? '收起预览 −' : '展开预览 ＋'
+              }}</span>
+            </button>
+            <SceneReader
+              v-if="activeId === check.id && check.preview && check.card"
+              :key="check.preview.preview_id"
+              :content="check.preview.content"
+              :pronunciation="{ cardId: check.id, reference: { revision: check.preview.revision } }"
             />
-          </button>
+          </div>
           <div v-for="check in blocked" :key="check.id" class="blocked-card">
             <strong
               ><SceneTitle
@@ -393,18 +400,6 @@ onBeforeUnmount(() => {
             />
             · 无需重复发布
           </p>
-        </div>
-        <div class="review-preview">
-          <SceneReader
-            v-if="preview?.preview && preview.card"
-            :key="preview.preview.preview_id"
-            :content="preview.preview.content"
-            :pronunciation="{
-              cardId: preview.id,
-              reference: { revision: preview.preview.revision }
-            }"
-          />
-          <p v-else class="muted">没有可以发布的候选，请先补充资料。</p>
         </div>
       </div>
       <label class="review-confirm"
@@ -439,42 +434,37 @@ onBeforeUnmount(() => {
 }
 
 .batch-review {
-  display: grid;
-  flex: 1;
-  min-height: 0;
-  grid-template-columns: minmax(190px, 1fr) minmax(0, 2fr);
-  grid-template-rows: minmax(0, 1fr);
-  gap: 24px;
-  overflow: hidden;
+  min-height: 120px;
+  max-height: 330px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
 }
 
 .review-list {
-  min-height: 0;
   min-width: 0;
-  overflow: auto;
-  border-right: 1px solid var(--line);
-  padding-right: 18px;
-
-  > button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    margin-bottom: 10px;
-  }
-
-  .active {
-    color: var(--green);
-    background: var(--soft);
-    border-color: var(--green);
-  }
 }
 
-.review-preview {
-  min-height: 0;
-  min-width: 0;
-  overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+.batch-review-item {
+  border-bottom: 1px solid var(--line);
+
+  > button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    padding: 16px 20px;
+    text-align: left;
+    background: transparent;
+  }
+
+  > :where(.scene-reader) {
+    border-top: 1px solid var(--line);
+  }
 }
 
 .blocked-card,
@@ -513,26 +503,12 @@ onBeforeUnmount(() => {
 .result-actions {
   margin-top: 20px;
 }
-
-@media (width <= 800px) {
-  .batch-review {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(80px, 0.4fr) minmax(0, 1fr);
-    gap: 16px;
-  }
-
-  .review-list {
-    padding-right: 0;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-}
 </style>
 <style lang="scss">
 .batch-publication-dialog {
   display: flex;
   flex-direction: column;
-  height: min(860px, calc(100dvh - 48px));
+  height: min(690px, calc(100dvh - 48px));
   max-height: calc(100dvh - 48px);
   margin: 24px auto;
 
