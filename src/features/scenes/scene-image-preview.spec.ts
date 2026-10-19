@@ -1,5 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 const { request } = vi.hoisted(() => ({ request: vi.fn() }))
 vi.mock('@/services/http-client', async (original) => ({
   ...(await original<typeof import('@/services/http-client')>()),
@@ -8,6 +8,17 @@ vi.mock('@/services/http-client', async (original) => ({
 import type { CardView } from './editor-model'
 
 import SceneImagePreview from './scene-image-preview.vue'
+
+beforeEach(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe = vi.fn()
+      disconnect = vi.fn()
+    }
+  )
+})
+afterEach(() => vi.unstubAllGlobals())
 
 it('opens the displayed publication original, zooms it and rejects a stale publication on retry', async () => {
   const card = {
@@ -28,7 +39,7 @@ it('opens the displayed publication original, zooms it and rejects a stale publi
   expect(page.get('img').attributes('src')).toContain('published-image')
   await page.get('img').trigger('load')
   await page.get('[aria-label="放大场景图"]').trigger('click')
-  expect(page.get('img').attributes('style')).toContain('scale(1.25)')
+  expect(page.get('.image-controls').text()).toContain('125%')
   await page.get('img').trigger('error')
   request.mockResolvedValue({ ...card, current_version_id: 'v2', display_image_id: 'new-image' })
   await page.get('[data-action="retry-image"]').trigger('click')
