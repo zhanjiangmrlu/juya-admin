@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+import { clearClientThumbnails } from '@/services/client-thumbnail'
 import { api, ApiError } from '@/services/http-client'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -10,6 +11,7 @@ export const useAdminStore = defineStore('administrator', () => {
   const checked = ref(false)
   /** 清理失效身份和含个人资料的界面状态 */
   const clear = () => {
+    clearClientThumbnails()
     identity.value = null
     checked.value = true
   }
@@ -30,6 +32,7 @@ export const useAdminStore = defineStore('administrator', () => {
    */
   const login = async (body: components['schemas']['AdminLogin']) => {
     identity.value = await api.login(body)
+    clearClientThumbnails()
     checked.value = true
   }
   /** 注销服务器会话，成功后清理本地身份 */

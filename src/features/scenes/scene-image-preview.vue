@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { mediaURL } from '@/services/display'
 import { api, ApiError } from '@/services/http-client'
+import { sceneImageId } from '@/services/scene-image'
 
 import type { CardView } from './editor-model'
 const props = defineProps<{ card: CardView }>()
@@ -67,7 +68,9 @@ const load = async () => {
       loading.value = false
       return
     }
-    source.value = mediaURL(latest.display_image_id)
+    source.value = mediaURL(
+      sceneImageId(latest.display_thumbnail_id, latest.display_image_id, true)
+    )
   } catch (reason) {
     if (reason instanceof ApiError && [404, 409, 410].includes(reason.status)) emit('invalid')
     else error.value = reason instanceof Error ? reason.message : '图片加载失败'

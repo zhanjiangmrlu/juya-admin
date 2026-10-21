@@ -2568,6 +2568,23 @@
               "type": "string",
               "title": "Media Id"
             }
+          },
+          {
+            "name": "thumbnail",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "list",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Thumbnail"
+            }
           }
         ],
         "responses": {

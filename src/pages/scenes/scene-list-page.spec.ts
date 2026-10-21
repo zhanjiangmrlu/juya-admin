@@ -6,6 +6,8 @@ vi.mock('@/services/http-client', async (original) => ({
   ...(await original<typeof import('@/services/http-client')>()),
   api: { request }
 }))
+import { clearClientThumbnails } from '@/services/client-thumbnail'
+
 import SceneListPage from './scene-list-page.vue'
 
 afterEach(() => {
@@ -240,4 +242,143 @@ it('requests server pages of ten, clears selection on paging and shows real boun
   expect(wrapper.text()).not.toContain('已选择 10 张')
   expect(wrapper.text()).toContain('第 2 / 3 页')
   wrapper.unmount()
+})
+
+it('keeps the original out of the list, lazy loads thumbnails and offers a fresh retry after failure', async () => {
+  const card = {
+    id: 'image-card',
+    display_name: '场景',
+    display_title_en: 'Scene',
+    status: 'published',
+    draft_revision: 1,
+    current_version_id: 'version-1',
+    display_thumbnail_id: 'published-thumb',
+    display_image_id: 'published-original',
+    content: { name: '候选', image_id: 'candidate-original' },
+    issues: [],
+    updated_at: ''
+  }
+  request.mockImplementation(async (path: string) =>
+    path.startsWith('/api/admin/v1/cards?')
+      ? { items: [card], total: 1, page: 1, limit: 10, total_pages: 1 }
+      : []
+  )
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/cards', component: SceneListPage }]
+  })
+  await router.push('/cards')
+  const wrapper = mount(
+    { components: { SceneListPage }, template: '<KeepAlive><SceneListPage/></KeepAlive>' },
+    { global: { plugins: [router], stubs: { ElDialog: true } } }
+  )
+  await flushPromises()
+  const thumbnail = wrapper.get('img.thumbnail')
+  expect(thumbnail.attributes('src')).toBe('/api/admin/v1/media/published-thumb?thumbnail=list')
+  expect(wrapper.get('tbody').text()).not.toContain('暂无场景图')
+  expect(thumbnail.attributes('loading')).toBe('lazy')
+  expect(
+    wrapper.findAll('img').some((image) => image.attributes('src')?.includes('original'))
+  ).toBe(false)
+  await thumbnail.trigger('error')
+  expect(wrapper.find('img.thumbnail').exists()).toBe(false)
+  expect(wrapper.get('.thumbnail-placeholder').text()).toContain('加载失败')
+  await wrapper.get('.thumbnail-retry').trigger('click')
+  expect(wrapper.get('img.thumbnail').attributes('src')).toBe(
+    '/api/admin/v1/media/published-thumb?thumbnail=list&retry=1'
+  )
+  expect(wrapper.find('.thumbnail-retry').exists()).toBe(false)
+  wrapper.unmount()
+})
+
+it('draws a real client thumbnail when the server thumbnail is absent and keeps the original viewer separate', async () => {
+  const drawImage = vi.fn()
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+    drawImage
+  } as unknown as CanvasRenderingContext2D)
+  vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue(
+    'data:image/jpeg;base64,generated-thumbnail'
+  )
+  vi.stubGlobal(
+    'Image',
+    class {
+      naturalWidth = 1200
+      naturalHeight = 1800
+      crossOrigin = ''
+      onload: (() => void) | null = null
+      set src(_value: string) {
+        queueMicrotask(() => this.onload?.())
+      }
+    }
+  )
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe = vi.fn()
+      disconnect = vi.fn()
+    }
+  )
+  const card = {
+    id: 'missing-thumbnail-card',
+    display_name: '无缩略图',
+    display_title_en: 'Missing thumbnail',
+    status: 'published',
+    draft_revision: 1,
+    current_version_id: 'v1',
+    display_thumbnail_id: null,
+    display_image_id: 'fallback-original',
+    content: { name: '无缩略图', image_id: 'fallback-original' },
+    issues: [],
+    updated_at: ''
+  }
+  request.mockImplementation(async (path: string) =>
+    path.startsWith('/api/admin/v1/cards?')
+      ? {
+          items: path.includes('page=2') ? [] : [card],
+          total: 11,
+          page: path.includes('page=2') ? 2 : 1,
+          limit: 10,
+          total_pages: 2
+        }
+      : path === '/api/admin/v1/cards/missing-thumbnail-card'
+        ? card
+        : []
+  )
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/cards', component: SceneListPage },
+      { path: '/:pathMatch(.*)*', component: { template: '<div/>' } }
+    ]
+  })
+  await router.push('/cards')
+  const wrapper = mount(
+    {
+      template:
+        '<RouterView v-slot="{Component}"><KeepAlive><component :is="Component"/></KeepAlive></RouterView>'
+    },
+    {
+      global: { plugins: [router], stubs: { ElDialog: { template: '<section><slot/></section>' } } }
+    }
+  )
+  await flushPromises()
+  expect(wrapper.get('img.thumbnail').attributes('src')).toBe(
+    'data:image/jpeg;base64,generated-thumbnail'
+  )
+  expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 144, 216)
+  await wrapper.get('[aria-label="查看 无缩略图 场景大图"]').trigger('click')
+  await flushPromises()
+  expect(wrapper.get('.image-viewport img').attributes('src')).toBe(
+    '/api/admin/v1/media/fallback-original'
+  )
+  await router.push('/cards?page=2')
+  await flushPromises()
+  expect(wrapper.find('img.thumbnail').exists()).toBe(false)
+  clearClientThumbnails()
+  await router.push('/cards?page=1')
+  await flushPromises()
+  expect(drawImage).toHaveBeenCalledTimes(2)
+  wrapper.unmount()
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })

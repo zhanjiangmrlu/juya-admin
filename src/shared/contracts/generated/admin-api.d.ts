@@ -3671,7 +3671,9 @@ export interface operations {
   }
   read_api_admin_v1_media__media_id__get: {
     parameters: {
-      query?: never
+      query?: {
+        thumbnail?: 'list' | null
+      }
       header?: never
       path: {
         media_id: string

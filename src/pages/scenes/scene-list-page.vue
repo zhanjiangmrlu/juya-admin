@@ -12,8 +12,10 @@ import SceneCatalogOrder from '@/features/scenes/scene-catalog-order.vue'
 import SceneImagePreview from '@/features/scenes/scene-image-preview.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import SceneTitle from '@/features/scenes/scene-title.vue'
+import { clientThumbnail } from '@/services/client-thumbnail'
 import { dateText, mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
+import { sceneImageId, sceneThumbnailURL } from '@/services/scene-image'
 
 import type { CardView } from '@/features/scenes/editor-model'
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -29,6 +31,65 @@ const route = useRoute(),
 const status = computed(() => String(route.query.status || 'all')),
   page = computed(() => Number(route.query.page || 1))
 const focusedCard = ref('')
+const thumbnailErrors = ref<Record<string, boolean>>({}),
+  thumbnailRetries = ref<Record<string, number>>({}),
+  generatedThumbnails = ref<Record<string, string>>({}),
+  thumbnailLoading = ref<Record<string, boolean>>({})
+/** 默认选择展示版本的缩略图，重试参数仅用于重新下载失败的小图
+ * @param card 列表当前展示的卡片及其素材编号
+ * @returns 缩略图地址或空值
+ */
+const thumbnailSource = (card: CardView) => {
+  const id = sceneImageId(card.display_thumbnail_id, card.display_image_id),
+    attempt = thumbnailRetries.value[id] || 0
+  if (!id) return generatedThumbnails.value[card.display_image_id || ''] || ''
+  return sceneThumbnailURL(id, attempt)
+}
+/** 仅标记当前缩略图失败，不影响原图查看入口
+ * @param card 缩略图加载失败的卡片
+ */
+const failThumbnail = (card: CardView) => {
+  const id = card.display_thumbnail_id || card.display_image_id
+  if (id) thumbnailErrors.value[id] = true
+}
+/** 缺少服务端缩略图时在浏览器中生成小图，失败保留独立重试入口
+ * @param card 当前列表展示版本的卡片
+ * @param renew 用户重试时是否重新读取原图
+ * @returns 本次缩图处理完成
+ */
+const loadClientThumbnail = async (card: CardView, renew = false) => {
+  const id = card.display_image_id
+  if (!id || card.display_thumbnail_id || thumbnailLoading.value[id]) return
+  thumbnailLoading.value[id] = true
+  thumbnailErrors.value[id] = false
+  try {
+    const result = await clientThumbnail(
+      JSON.stringify([card.id, card.current_version_id || card.draft_revision, id]),
+      async () => mediaURL(id),
+      renew
+    )
+    if (alive && data.value?.items.some((item) => item.display_image_id === id))
+      generatedThumbnails.value[id] = result.thumbnailSrc
+  } catch {
+    if (alive && data.value?.items.some((item) => item.display_image_id === id))
+      thumbnailErrors.value[id] = true
+  } finally {
+    delete thumbnailLoading.value[id]
+  }
+}
+/** 清除失败占位并重新请求缩略图，不打开原图
+ * @param card 用户选择重试缩略图的卡片
+ */
+const retryThumbnail = (card: CardView) => {
+  if (!card.display_thumbnail_id) {
+    void loadClientThumbnail(card, true)
+    return
+  }
+  const id = sceneImageId(card.display_thumbnail_id)
+  if (!id) return
+  thumbnailRetries.value[id] = (thumbnailRetries.value[id] || 0) + 1
+  thumbnailErrors.value[id] = false
+}
 let listingGeneration = 0
 const { data, busy, error, refresh } = useResource(async () => {
   const run = ++listingGeneration,
@@ -50,6 +111,31 @@ const { data, busy, error, refresh } = useResource(async () => {
     await router.replace({ query: { ...route.query, page: value.page, focus: undefined } })
   return value
 })
+watch(
+  () => data.value?.items,
+  (items) => {
+    // KeepAlive 页面只持有当前页小图，跨页复用及过期交给有容量上限的公共缓存
+    const originalIds = new Set((items || []).map((card) => card.display_image_id)),
+      thumbnailIds = new Set((items || []).map((card) => card.display_thumbnail_id)),
+      visibleIds = new Set([...originalIds, ...thumbnailIds])
+    for (const id of Object.keys(generatedThumbnails.value))
+      if (!originalIds.has(id)) delete generatedThumbnails.value[id]
+    for (const id of Object.keys(thumbnailErrors.value))
+      if (!visibleIds.has(id)) delete thumbnailErrors.value[id]
+    for (const id of Object.keys(thumbnailRetries.value))
+      if (!thumbnailIds.has(id)) delete thumbnailRetries.value[id]
+    for (const card of items || []) {
+      const id = card.display_image_id
+      if (
+        id &&
+        !card.display_thumbnail_id &&
+        !generatedThumbnails.value[id] &&
+        !thumbnailErrors.value[id]
+      )
+        void loadClientThumbnail(card)
+    }
+  }
+)
 const image = ref<CardView | null>(null),
   actionOpen = ref(false),
   actionKind = ref<'offline' | 'delete'>('offline'),
@@ -502,12 +588,29 @@ onBeforeUnmount(() => {
                     @click.stop="image = card"
                   >
                     <img
-                      v-if="card.display_thumbnail_id"
-                      :src="mediaURL(card.display_thumbnail_id)"
+                      v-if="
+                        thumbnailSource(card) &&
+                        !thumbnailErrors[card.display_thumbnail_id || card.display_image_id || '']
+                      "
+                      :src="thumbnailSource(card)"
                       class="thumbnail"
                       alt=""
-                    /><span v-else>查看场景图</span></button
-                  ><span v-else class="small muted">暂无场景图</span>
+                      loading="lazy"
+                      @error="failThumbnail(card)"
+                    /><span v-else class="thumbnail-placeholder">{{
+                      thumbnailErrors[card.display_thumbnail_id || card.display_image_id || '']
+                        ? '缩略图加载失败'
+                        : '正在生成缩略图…'
+                    }}</span></button
+                  ><button
+                    v-if="thumbnailErrors[card.display_thumbnail_id || card.display_image_id || '']"
+                    type="button"
+                    class="text small thumbnail-retry"
+                    :aria-label="`重试 ${card.display_name} 缩略图`"
+                    @click.stop="retryThumbnail(card)"
+                  >
+                    重试</button
+                  ><span v-if="!card.display_image_id" class="small muted">暂无场景图</span>
                   <div class="card-title-cell">
                     <SceneTitle
                       class="name"
