@@ -44,9 +44,23 @@ export const useImportStaging = (batchId: () => string) => {
    * @param batch 最新批次快照
    */
   const merge = (batch: ImportBatch) => {
+    const retained = new Set(batch.items.map((item) => item.id))
+    for (const id of Object.keys(entries)) {
+      if (!retained.has(id)) {
+        delete entries[id]
+        pending.delete(id)
+      }
+    }
     for (const item of batch.items) {
       const existing = entries[item.id]
-      if (existing && (isDirty(existing) || existing.saving)) continue
+      if (existing && item.revision < existing.item.revision) continue
+      if (existing && (isDirty(existing) || existing.saving)) {
+        // Availability may change without a staging revision; keep local edits and their revision
+        existing.item.state = item.state
+        existing.item.suggested_target_id = item.suggested_target_id
+        existing.item.issues = item.issues
+        continue
+      }
       const edit = editValue(item)
       entries[item.id] = {
         item,
@@ -111,6 +125,7 @@ export const useImportStaging = (batchId: () => string) => {
           `/api/admin/v1/imports/${batchId()}/items/${entry.item.id}`,
           { method: 'PATCH', body: fixed.body, key: fixed.key }
         )
+        if (entries[entry.item.id] !== entry) return false
         const { revision: _revision, ...sent } = fixed.body
         const editedDuringRequest = JSON.stringify(entry.edit) !== JSON.stringify(sent)
         const accepted = editValue(receipt)
@@ -164,5 +179,15 @@ export const useImportStaging = (batchId: () => string) => {
     entry.error = ''
     pending.delete(item.id)
   }
-  return { entries, isDirty, merge, save, flush, clear, resolveConflict }
+  /** 仅确认已经发送的暂存结果，移除时不提交准备放弃的新输入
+   * @param entry 准备从本次导入移除的核对记录
+   * @returns 是否不存在仍未知的写入结果
+   */
+  const settle = async (entry: ImportEntry) => {
+    const current = running.get(entry.item.id)
+    if (current) await current
+    if (pending.has(entry.item.id)) await save(entry)
+    return !pending.has(entry.item.id)
+  }
+  return { entries, isDirty, merge, save, flush, clear, resolveConflict, settle }
 }

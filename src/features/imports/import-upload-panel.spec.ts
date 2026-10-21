@@ -65,6 +65,23 @@ const accepted = (name: string): ImportFile => ({
   media_id: null,
   progress: null
 })
+
+it('can remove an accepted ZIP while another file is still transferring', async () => {
+  upload
+    .mockResolvedValueOnce(accepted('one.zip'))
+    .mockImplementationOnce(() => new Promise(() => {}))
+  const page = panel()
+  await choose(page, ['one.zip', 'two.zip'])
+  await page.get('[data-action="start-upload"]').trigger('click')
+  await flushPromises()
+  const first = page.findAll('li').find((row) => row.text().includes('one.zip'))!
+  await first.get('[data-action="remove-accepted-upload"]').trigger('click')
+  expect(page.emitted('remove')?.at(-1)).toEqual([['one.zip']])
+  expect(page.find('progress').exists()).toBe(true)
+  await page.setProps({ removedFileIds: ['one.zip'] })
+  expect(page.text()).not.toContain('one.zip')
+  expect(page.text()).toContain('two.zip')
+})
 beforeEach(() => {
   vi.clearAllMocks()
 })

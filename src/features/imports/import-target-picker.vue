@@ -4,12 +4,18 @@ import { onBeforeUnmount, ref } from 'vue'
 import SceneReader from '@/features/scenes/scene-reader.vue'
 import SceneTitle from '@/features/scenes/scene-title.vue'
 import { mediaURL, queryURL } from '@/services/display'
-import { api } from '@/services/http-client'
+import { api, ApiError } from '@/services/http-client'
 
 import type { CardView, SceneContent } from '@/features/scenes/editor-model'
 import type { components } from '@/shared/contracts/generated/admin-api'
 const props = defineProps<{ content: SceneContent; suggestedId?: string | null }>()
-const emit = defineEmits<{ close: []; confirm: [card: CardView] }>()
+const emit = defineEmits<{
+  close: []
+  confirm: [card: CardView]
+  unavailable: [id: string]
+  create: []
+}>()
+const unavailableId = ref('')
 const page = ref(1),
   totalPages = ref(0),
   total = ref(0)
@@ -55,6 +61,12 @@ const select = async (id: string) => {
     if (alive) chosen.value = value
   } catch (reason) {
     if (alive) error.value = reason instanceof Error ? reason.message : '目标已变化，请重新选择'
+    if (alive && reason instanceof ApiError && [404, 410].includes(reason.status)) {
+      chosen.value = null
+      unavailableId.value = id
+      rows.value = rows.value.filter((card) => card.id !== id)
+      emit('unavailable', id)
+    }
   } finally {
     if (alive) busy.value = false
   }
@@ -79,6 +91,12 @@ onBeforeUnmount(() => {
   >
     <p class="notice">更新只保存到目标卡片的候选稿，发布前不会改变学习端内容和学习成绩。</p>
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>
+    <p v-if="unavailableId" class="notice">
+      目标卡片已不存在，可重新选择目标，或保留本次资料按新增草稿处理。
+      <button type="button" data-action="import-as-new" @click="emit('create')">
+        按新增草稿处理
+      </button>
+    </p>
     <template v-if="!chosen">
       <form class="row target-search" @submit.prevent="find(1)">
         <input v-model="search" aria-label="搜索更新目标" placeholder="搜索中文或英文标题" /><button
@@ -89,7 +107,7 @@ onBeforeUnmount(() => {
         </button>
       </form>
       <button
-        v-if="suggestedId"
+        v-if="suggestedId && suggestedId !== unavailableId"
         type="button"
         class="text"
         :disabled="busy"

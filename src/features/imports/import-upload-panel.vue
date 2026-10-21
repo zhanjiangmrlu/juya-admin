@@ -11,6 +11,7 @@ import type { ImportBatch, ImportFile, ImportUpload } from '@/shared/types/impor
 const props = defineProps<{
   batch: ImportBatch
   disabled?: boolean
+  removedFileIds?: string[]
   limits?: components['schemas']['UploadConfiguration'] | null
 }>()
 const emit = defineEmits<{
@@ -18,6 +19,7 @@ const emit = defineEmits<{
   uploading: [value: boolean]
   pending: [value: number]
   changed: []
+  remove: [ids: string[]]
 }>()
 const error = ref(''),
   retrying = ref('')
@@ -35,12 +37,50 @@ const limit = (kind: ImportUpload['kind']) => {
         : 'archive_limit_bytes'
   return props.limits?.[key] ?? Infinity
 }
-const { uploads, running, transferring, pendingCount, add, start, retryUpload, cancel, remove } =
-  useImportUploads(
-    () => props.batch.id,
-    limit,
-    () => emit('refresh')
+const {
+  uploads,
+  running,
+  transferring,
+  pendingCount,
+  add,
+  start,
+  retryUpload,
+  cancel,
+  remove,
+  discardAccepted
+} = useImportUploads(
+  () => props.batch.id,
+  limit,
+  () => emit('refresh')
+)
+const selectedFiles = ref<string[]>([])
+/** 判断ZIP是否尚未包含已提交保存的导入项
+ * @param id 本次已接收的ZIP编号
+ * @returns 是否可以连同核对资料一起移除
+ */
+const removableFile = (id: string) =>
+  !props.disabled &&
+  !props.batch.items.some(
+    (item) => item.source_zip_id === id && (item.job_id || item.saved_card_id)
   )
+/** 勾选已接收的ZIP，维护独立于上传队列的移除范围
+ * @param id 本次已接收的ZIP编号
+ * @param event 文件复选框操作
+ */
+const selectFile = (id: string, event: Event) => {
+  selectedFiles.value = selectedFiles.value.filter((value) => value !== id)
+  if ((event.target as HTMLInputElement).checked) selectedFiles.value.push(id)
+}
+watch(
+  () => [props.removedFileIds, uploads.value.map((upload) => upload.accepted?.id)],
+  () => {
+    discardAccepted(props.removedFileIds || [])
+    selectedFiles.value = selectedFiles.value.filter(
+      (id) => !(props.removedFileIds || []).includes(id) && removableFile(id)
+    )
+  },
+  { deep: true }
+)
 const serverFiles = computed(() =>
   props.batch.files.filter(
     (file) => !file.parent_id && !uploads.value.some((upload) => upload.accepted?.id === file.id)
@@ -267,6 +307,14 @@ const acceptedFile = (upload: ImportUpload) =>
     </div>
     <ul class="file-list">
       <li v-for="upload in uploads" :key="upload.id">
+        <input
+          v-if="upload.kind === 'zip' && upload.accepted && !upload.busy"
+          type="checkbox"
+          :checked="selectedFiles.includes(upload.accepted.id)"
+          :disabled="!removableFile(upload.accepted.id)"
+          :aria-label="`移除ZIP ${upload.file.name}`"
+          @change="selectFile(upload.accepted.id, $event)"
+        />
         <span
           >{{ upload.file.name
           }}<small class="muted"> · {{ sizeText(upload.file.size) }}</small></span
@@ -278,6 +326,16 @@ const acceptedFile = (upload: ImportUpload) =>
         >
         <span v-else-if="upload.error" class="error">{{ upload.error }}</span>
         <span v-else>{{ statusText(acceptedFile(upload)) }}</span>
+        <button
+          v-if="upload.kind === 'zip' && upload.accepted && !upload.busy"
+          type="button"
+          class="text"
+          data-action="remove-accepted-upload"
+          :disabled="!removableFile(upload.accepted.id)"
+          @click="emit('remove', [upload.accepted.id])"
+        >
+          移除
+        </button>
         <button
           v-if="!upload.busy && !upload.accepted && !upload.unknown"
           type="button"
@@ -311,10 +369,28 @@ const acceptedFile = (upload: ImportUpload) =>
         </button>
       </li>
       <li v-for="file in serverFiles" :key="file.id">
+        <input
+          v-if="file.kind === 'zip'"
+          type="checkbox"
+          :checked="selectedFiles.includes(file.id)"
+          :disabled="!removableFile(file.id)"
+          :aria-label="`移除ZIP ${file.name}`"
+          @change="selectFile(file.id, $event)"
+        />
         <span
           >{{ file.name }}<small class="muted"> · {{ sizeText(file.size) }}</small></span
         >
         <span>{{ statusText(file) }}</span>
+        <button
+          v-if="file.kind === 'zip'"
+          type="button"
+          class="text"
+          data-action="remove-accepted-upload"
+          :disabled="!removableFile(file.id)"
+          @click="emit('remove', [file.id])"
+        >
+          移除
+        </button>
         <button
           v-if="file.state === 'failed'"
           type="button"
@@ -326,6 +402,37 @@ const acceptedFile = (upload: ImportUpload) =>
         </button>
       </li>
     </ul>
+    <div
+      v-if="
+        batch.mode === 'zip' && (serverFiles.length || uploads.some((upload) => upload.accepted))
+      "
+      class="row"
+    >
+      <button
+        type="button"
+        :disabled="disabled"
+        @click="
+          selectedFiles = [
+            ...new Set([
+              ...serverFiles.filter((file) => file.kind === 'zip').map((file) => file.id),
+              ...uploads
+                .filter((upload) => upload.accepted && !upload.busy)
+                .map((upload) => upload.accepted!.id)
+            ])
+          ].filter(removableFile)
+        "
+      >
+        选择全部可移除ZIP
+      </button>
+      <button
+        type="button"
+        data-action="remove-selected-files"
+        :disabled="disabled || !selectedFiles.length"
+        @click="emit('remove', selectedFiles)"
+      >
+        移除所选 {{ selectedFiles.length }} 个ZIP
+      </button>
+    </div>
     <p v-if="batch.files.some((file) => file.state === 'failed' && !file.parent_id)" class="notice">
       失败包不计入本次核对；其他可读取卡片可以继续。
     </p>

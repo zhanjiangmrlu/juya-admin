@@ -8,6 +8,7 @@ import AppState from '@/components/app-state/app-state.vue'
 import { useImportStaging } from '@/composables/use-import-staging'
 import { useWordPronunciation } from '@/composables/use-word-pronunciation'
 import ImportAssetPicker from '@/features/imports/import-asset-picker.vue'
+import ImportRemovalDialog from '@/features/imports/import-removal-dialog.vue'
 import ImportReviewList from '@/features/imports/import-review-list.vue'
 import ImportSaveStep from '@/features/imports/import-save-step.vue'
 import ImportTargetPicker from '@/features/imports/import-target-picker.vue'
@@ -26,7 +27,9 @@ import type {
   ImportBatch,
   ImportConfirmation,
   ImportEntry,
-  ImportItem
+  ImportItem,
+  ImportRemovalSelection,
+  ImportRemoved
 } from '@/shared/types/import'
 const route = useRoute(),
   router = useRouter()
@@ -54,6 +57,12 @@ const limits = ref<components['schemas']['UploadConfiguration'] | null>(null),
   retryScope = ref<string[] | null>(null),
   conflictLatest = ref<ImportItem | null>(null)
 const staging = useImportStaging(() => batch.value?.id || '')
+const removalSelection = ref<ImportRemovalSelection | null>(null)
+const removedFileIds = ref<string[]>([])
+const removedItemIds = new Set<string>()
+const removedSourceIds = new Set<string>()
+const suspendedAutosaves = new Set<string>()
+let preparingRemoval = false
 const stagedSpeech = useWordPronunciation(async (wordId, live) => {
   const entry = active.value,
     id = batch.value?.id
@@ -145,6 +154,27 @@ let alive = true,
  * @param value 最新批次
  */
 const accept = (value: ImportBatch) => {
+  if (batch.value && batch.value.id !== value.id) {
+    removedFileIds.value = []
+    removedItemIds.clear()
+    removedSourceIds.clear()
+  }
+  const removedFiles = new Set(removedFileIds.value)
+  value = {
+    ...value,
+    files: value.files.filter(
+      (file) => !removedFiles.has(file.id) && !removedFiles.has(file.parent_id)
+    ),
+    items: value.items.filter(
+      (item) =>
+        !removedItemIds.has(item.id) &&
+        !removedFiles.has(item.source_zip_id || '') &&
+        !removedSourceIds.has(item.source_file_id)
+    ),
+    unused_file_ids: value.unused_file_ids.filter(
+      (id) => !removedSourceIds.has(id) && !removedFiles.has(id)
+    )
+  }
   /** 为当前批次的上传及素材状态生成确认依据
    * @param value 服务端已接收文件快照
    * @returns 文件集合及状态指纹
@@ -158,6 +188,19 @@ const accept = (value: ImportBatch) => {
   }
   batch.value = value
   staging.merge(value)
+  for (const [id, timer] of autosaves) {
+    if (!staging.entries[id]) {
+      clearTimeout(timer)
+      autosaves.delete(id)
+    }
+  }
+  if (activeId.value && !staging.entries[activeId.value]) {
+    activeId.value = ''
+    expandedId.value = ''
+    targetOpen.value = false
+    showPreview.value = false
+    stagedSpeech.stop()
+  }
   if (!activeId.value)
     activeId.value = value.items.find((item) => item.readable)?.id || value.items[0]?.id || ''
 }
@@ -306,6 +349,10 @@ const startNew = async () => {
   batch.value = null
   pendingSourceFiles.value = []
   staging.clear()
+  removedFileIds.value = []
+  removedItemIds.clear()
+  removedSourceIds.clear()
+  removalSelection.value = null
   activeId.value = ''
   expandedId.value = ''
   confirmation.value = null
@@ -321,6 +368,7 @@ const startNew = async () => {
 const schedule = (entry: ImportEntry) => {
   const old = autosaves.get(entry.item.id)
   if (old) clearTimeout(old)
+  if (suspendedAutosaves.has(entry.item.id)) return
   if (!staging.isDirty(entry) || entry.conflict || !entry.item.readable) return
   confirmation.value = null
   saving = null
@@ -506,6 +554,81 @@ const uploadsChanged = () => {
   retryScope.value = null
   saving = null
 }
+/** 准备所选资料的移除确认，只确认已发送写入并读取当前修订
+ * @param kind 按ZIP整包或按卡片移除
+ * @param ids 管理员明确选择的本批次对象
+ */
+const prepareRemoval = async (kind: 'files' | 'items', ids: string[]) => {
+  if (
+    !batch.value ||
+    busy.value ||
+    editingMedia.value ||
+    removalSelection.value ||
+    preparingRemoval
+  )
+    return
+  preparingRemoval = true
+  const batchId = batch.value.id
+  const selected = entries.value.filter((entry) =>
+    kind === 'items' ? ids.includes(entry.item.id) : ids.includes(entry.item.source_zip_id || '')
+  )
+  try {
+    for (const entry of selected) {
+      suspendedAutosaves.add(entry.item.id)
+      const timer = autosaves.get(entry.item.id)
+      if (timer) clearTimeout(timer)
+      autosaves.delete(entry.item.id)
+      if (!(await staging.settle(entry)))
+        throw new Error('所选资料之前的暂存结果仍待确认，请稍后重试移除')
+    }
+    const latest = await api.request<ImportBatch>(`/api/admin/v1/imports/${batchId}`)
+    if (!alive || batch.value?.id !== batchId) return
+    accept(latest)
+    const rows =
+      kind === 'files'
+        ? latest.files
+            .filter((file) => ids.includes(file.id) && !file.parent_id && file.kind === 'zip')
+            .map((file) => ({ id: file.id, name: file.name }))
+        : latest.items
+            .filter((item) => ids.includes(item.id))
+            .map((item) => ({
+              id: item.id,
+              name: item.content.name || '未命名资料',
+              revision: item.revision
+            }))
+    if (rows.length) removalSelection.value = { kind, rows }
+  } catch (reason) {
+    if (alive) error.value = reason instanceof Error ? reason.message : '移除范围暂未获取，请重试'
+  } finally {
+    preparingRemoval = false
+    if (!removalSelection.value) cancelRemoval()
+  }
+}
+/** 取消移除时恢复所选资料尚未提交的自动暂存 */
+const cancelRemoval = () => {
+  removalSelection.value = null
+  suspendedAutosaves.clear()
+  for (const entry of entries.value) if (staging.isDirty(entry)) schedule(entry)
+}
+/** 应用服务端已确认的移除范围，拒绝迟到快照并重新读取实时批次
+ * @param value 本次成功移除的源ZIP或导入项编号
+ */
+const applyRemoval = (value: ImportRemoved) => {
+  if (!batch.value) return
+  ++pollRun
+  for (const id of value.fileIds)
+    if (!removedFileIds.value.includes(id)) removedFileIds.value.push(id)
+  for (const file of batch.value.files) {
+    if (value.fileIds.includes(file.id) || value.fileIds.includes(file.parent_id))
+      removedSourceIds.add(file.id)
+  }
+  for (const id of value.itemIds) removedItemIds.add(id)
+  removalSelection.value = null
+  suspendedAutosaves.clear()
+  uploadsChanged()
+  accept(batch.value)
+  void poll()
+}
 /** 确认更新目标后，绑定最新目标修订并重新暂存
  * @param card 管理员已比较并确认的目标候选
  */
@@ -529,6 +652,16 @@ const clearTarget = () => {
   active.value.edit.target_card_id = null
   active.value.edit.target_revision = null
   active.value.edit.update_confirmed = false
+}
+/** 目标失效后由管理员明确切回新增，保留当前正文和素材 */
+const createAfterUnavailable = () => {
+  clearTarget()
+  if (active.value) {
+    active.value.edit.selected = true
+    schedule(active.value)
+  }
+  targetOpen.value = false
+  void poll()
 }
 /** 返回同批核对，原保存范围确认失效 */
 const backToReview = () => {
@@ -735,6 +868,8 @@ onBeforeUnmount(() => {
             :batch="batch"
             :limits="limits"
             :disabled="busy || savingItems"
+            :removed-file-ids="removedFileIds"
+            @remove="prepareRemoval('files', $event)"
             @changed="uploadsChanged"
             @pending="pendingUploads = $event"
             @refresh="poll"
@@ -789,9 +924,20 @@ onBeforeUnmount(() => {
               · 重复{{ counts.skipped }} · 无法读取{{
                 entries.filter((entry) => !entry.item.readable).length
               }}</span
-            ><button type="button" :disabled="editingMedia || busy" @click="step = 1">
-              返回补充文件
-            </button>
+            >
+            <div class="row">
+              <button
+                type="button"
+                data-action="refresh-import-review"
+                :disabled="busy || polling"
+                @click="poll"
+              >
+                刷新核对状态
+              </button>
+              <button type="button" :disabled="editingMedia || busy" @click="step = 1">
+                返回补充文件
+              </button>
+            </div>
           </div>
           <div class="review-layout">
             <ImportReviewList
@@ -802,6 +948,7 @@ onBeforeUnmount(() => {
                 entries.filter((entry) => staging.isDirty(entry)).map((entry) => entry.item.id)
               "
               @select="selectEntry"
+              @remove="prepareRemoval('items', $event)"
               @expand="switchEntry"
               ><template #default>
                 <div v-if="active" class="review-detail">
@@ -937,6 +1084,15 @@ onBeforeUnmount(() => {
       :suggested-id="active.edit.target_card_id || active.item.suggested_target_id"
       @close="targetOpen = false"
       @confirm="target"
+      @unavailable="poll"
+      @create="createAfterUnavailable"
+    />
+    <ImportRemovalDialog
+      v-if="removalSelection && batch"
+      :batch-id="batch.id"
+      :selection="removalSelection"
+      @close="cancelRemoval"
+      @removed="applyRemoval"
     />
     <ScenePreview
       v-if="showPreview && active"

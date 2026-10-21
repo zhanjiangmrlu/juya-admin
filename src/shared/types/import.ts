@@ -6,6 +6,14 @@ export type ImportBatch = components['schemas']['ImportBatchView']
 export type ImportItem = components['schemas']['ImportItemView']
 export type ImportFile = components['schemas']['ImportFileView']
 export type ImportConfirmation = components['schemas']['ImportConfirmation']
+export interface ImportRemovalSelection {
+  kind: 'files' | 'items'
+  rows: { id: string; name: string; revision?: number }[]
+}
+export interface ImportRemoved {
+  fileIds: string[]
+  itemIds: string[]
+}
 export interface ImportEdit {
   content: SceneContent
   selected: boolean

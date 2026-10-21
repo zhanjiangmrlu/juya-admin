@@ -2,6 +2,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
+import { ApiError } from '@/services/http-client'
+
 import type { ImportBatch, ImportItem } from '@/shared/types/import'
 
 import ImportWorkflowPage from './import-workflow-page.vue'
@@ -101,3 +103,143 @@ it('retries only the failed IDs and leaves newly added and successful cards outs
   expect(saved?.[1].body.item_ids).toEqual(['failed-one'])
   page.unmount()
 })
+
+it('removes a duplicate and ignores a stale poll without losing another card correction', async () => {
+  let current: ImportBatch = {
+    id: 'batch',
+    mode: 'zip',
+    created_at: '',
+    files: [],
+    unused_file_ids: [],
+    items: [item('duplicate', 'duplicate'), item('keep', 'incomplete')]
+  }
+  let late: ((value: ImportBatch) => void) | undefined
+  let delay = false
+  request.mockImplementation(async (path: string) => {
+    if (path.endsWith('/configuration'))
+      return {
+        archive_limit_bytes: 10000,
+        image_limit_bytes: 10000,
+        audio_limit_bytes: 10000,
+        import_card_limit: 50
+      }
+    if (path === '/api/admin/v1/imports') return [current]
+    if (path.endsWith('/items/remove')) {
+      current = { ...current, items: [current.items[1]!] }
+      return current
+    }
+    if (path.endsWith('/batch') && delay) {
+      delay = false
+      return new Promise<ImportBatch>((resolve) => {
+        late = resolve
+      })
+    }
+    return current
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/imports', component: ImportWorkflowPage }]
+  })
+  await router.push('/imports?batch=batch')
+  await router.isReady()
+  const page = mount(ImportWorkflowPage, {
+    global: {
+      plugins: [router],
+      stubs: { ElDialog: { template: '<div><slot/><slot name="footer"/></div>' } }
+    }
+  })
+  await flushPromises()
+  await page.get('[data-item-id="keep"] button[aria-controls]').trigger('click')
+  await page.get('input[aria-label="中文标题"]').setValue('保留我的修改')
+  const stale = structuredClone(current)
+  delay = true
+  await page.get('[data-action="refresh-import-review"]').trigger('click')
+  await page.get('[data-item-id="duplicate"] [data-action="remove-import-item"]').trigger('click')
+  await flushPromises()
+  await page.get('[data-action="confirm-import-removal"]').trigger('click')
+  await flushPromises()
+  late?.(stale)
+  await flushPromises()
+  expect(page.find('[data-item-id="duplicate"]').exists()).toBe(false)
+  expect(page.get('input[aria-label="中文标题"]').element).toHaveProperty('value', '保留我的修改')
+  expect(page.get('[data-item-id="keep"]').text()).toContain('保留我的修改')
+  page.unmount()
+})
+
+it.each(['dirty-target', 'conflict'])(
+  'allows discarding %s without persisting unwanted edits',
+  async (scenario) => {
+    let current: ImportBatch = {
+      id: 'discard',
+      mode: 'zip',
+      created_at: '',
+      files: [],
+      unused_file_ids: [],
+      items: [
+        {
+          ...item('discard-me', 'incomplete'),
+          target_card_id: scenario === 'dirty-target' ? 'deleted-target' : null,
+          target_revision: scenario === 'dirty-target' ? 1 : null
+        }
+      ]
+    }
+    let patched = false
+    let removedRevision = 0
+    request.mockImplementation(
+      async (
+        path: string,
+        options?: { method?: string; body?: { items: { revision: number }[] } }
+      ) => {
+        if (path.endsWith('/configuration'))
+          return {
+            archive_limit_bytes: 10000,
+            image_limit_bytes: 10000,
+            audio_limit_bytes: 10000,
+            import_card_limit: 50
+          }
+        if (path === '/api/admin/v1/imports') return [current]
+        if (options?.method === 'PATCH') {
+          patched = true
+          throw new ApiError('import_changed', '另一窗口已修改', 409)
+        }
+        if (path.endsWith('/items/remove')) {
+          removedRevision = options!.body!.items[0]!.revision
+          current = { ...current, items: [] }
+          return current
+        }
+        return current
+      }
+    )
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/imports', component: ImportWorkflowPage }]
+    })
+    await router.push('/imports?batch=discard')
+    await router.isReady()
+    const page = mount(ImportWorkflowPage, {
+      global: {
+        plugins: [router],
+        stubs: { ElDialog: { template: '<div><slot/><slot name="footer"/></div>' } }
+      }
+    })
+    await flushPromises()
+    vi.useFakeTimers()
+    try {
+      await page.get('[data-item-id="discard-me"] button[aria-controls]').trigger('click')
+      await page.get('input[aria-label="中文标题"]').setValue('准备放弃的输入')
+      if (scenario === 'conflict') await vi.advanceTimersByTimeAsync(650)
+      current = { ...current, items: [{ ...current.items[0]!, revision: 2 }] }
+      await page.get('[data-action="remove-import-item"]').trigger('click')
+      await flushPromises()
+      expect(page.find('[data-action="confirm-import-removal"]').exists()).toBe(true)
+      await page.get('[data-action="confirm-import-removal"]').trigger('click')
+      await flushPromises()
+      expect(removedRevision).toBe(2)
+      expect(page.find('[data-item-id="discard-me"]').exists()).toBe(false)
+      if (scenario === 'dirty-target') expect(patched).toBe(false)
+    } finally {
+      page.unmount()
+      vi.useRealTimers()
+    }
+  }
+)

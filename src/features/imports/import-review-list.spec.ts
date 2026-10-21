@@ -81,3 +81,63 @@ it('expands one review editor inside its own row without changing the saved sele
   expect(page.text()).toContain('second')
   page.unmount()
 })
+
+it('allows duplicate removal independently of its disabled save selection', async () => {
+  const entry: ImportEntry = {
+    item: {
+      id: 'one',
+      revision: 1,
+      state: 'duplicate',
+      readable: true,
+      selected: true,
+      content: {
+        name: '重复卡片',
+        title_en: 'Duplicate',
+        image_id: null,
+        audio_id: null,
+        dialogue: [],
+        vocabulary: [],
+        chunks: []
+      },
+      thumbnail_id: null,
+      issues: [],
+      source_file_id: 'source',
+      target_card_id: null,
+      target_revision: null,
+      saved_card_id: null,
+      saved_draft_revision: null,
+      suggested_target_id: 'old',
+      job_id: null,
+      error_code: null
+    },
+    edit: {
+      content: {
+        name: '重复卡片',
+        title_en: 'Duplicate',
+        image_id: null,
+        audio_id: null,
+        dialogue: [],
+        vocabulary: [],
+        chunks: []
+      },
+      selected: false,
+      target_card_id: null,
+      target_revision: null,
+      update_confirmed: false
+    },
+    baseline: '',
+    saving: false,
+    error: '',
+    conflict: false,
+    reviewedContent: ''
+  }
+  const page = mount(ImportReviewList, { props: { entries: [entry], busy: false, dirtyIds: [] } })
+  expect(page.get('input[type="checkbox"]').attributes('disabled')).toBeDefined()
+  await page.get('[data-action="manage-removals"]').trigger('click')
+  await page.get('input[aria-label="移除 重复卡片"]').setValue(true)
+  await page.get('[data-action="remove-selected-items"]').trigger('click')
+  expect(page.emitted('remove')?.[0]).toEqual([['one']])
+  expect(entry.edit.selected).toBe(false)
+  expect(page.emitted('select')).toBeUndefined()
+  page.unmount()
+})
