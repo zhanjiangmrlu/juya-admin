@@ -63,7 +63,7 @@ onActivated(() => {
           aria-label="搜索用户"
           placeholder="搜索编号、昵称、手机号或微信号"
         />
-        <button type="submit" class="search-submit">搜索</button>
+        <button type="submit" class="primary">查询</button>
         <div class="segments" aria-label="打卡状态">
           <button
             v-for="item in [
@@ -199,17 +199,6 @@ onActivated(() => {
 
   .segments {
     margin-left: auto;
-  }
-
-  .search-submit {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    min-height: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    padding: 0;
-    border: 0;
   }
 }
 

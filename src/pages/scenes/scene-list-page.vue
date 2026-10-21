@@ -493,7 +493,7 @@ onBeforeUnmount(() => {
           aria-label="搜索中文或英文标题"
           placeholder="搜索中文或英文标题"
         />
-        <button type="submit" class="search-submit">搜索</button>
+        <button type="submit" class="primary">查询</button>
         <div class="segments" aria-label="发布状态">
           <button
             v-for="item in [
@@ -763,7 +763,7 @@ onBeforeUnmount(() => {
 <style scoped lang="scss">
 .card-filters {
   margin-bottom: 20px;
-  gap: 0;
+  gap: 12px;
 
   input {
     max-width: 380px;
@@ -771,17 +771,6 @@ onBeforeUnmount(() => {
 
   .segments {
     margin-left: auto;
-  }
-
-  .search-submit {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    min-height: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    padding: 0;
-    border: 0;
   }
 }
 
