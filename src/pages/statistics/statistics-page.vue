@@ -10,9 +10,12 @@ import { api } from '@/services/http-client'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
 const router = useRouter()
-const { data, busy, error, refresh } = useResource(() =>
-  api.request<components['schemas']['Overview']>('/api/admin/v1/statistics')
-)
+const {
+  data,
+  busy,
+  error,
+  refresh: refreshResource
+} = useResource(() => api.request<components['schemas']['Overview']>('/api/admin/v1/statistics'))
 const metrics = [
   {
     key: 'user_count',
@@ -39,9 +42,20 @@ const metrics = [
     query: { status: 'published', from: 'statistics' }
   }
 ] as const
+let active = true,
+  foregroundPending = false
+/** 合并请求期间的前台事件，结算成功或失败后再读取一次服务器日期 */
+const refresh = async () => {
+  do {
+    foregroundPending = false
+    await refreshResource()
+  } while (active && foregroundPending)
+}
 /** 回到前台时使用服务器日期重新统计 */
 const foreground = () => {
-  if (document.visibilityState === 'visible' && !busy.value) void refresh()
+  if (document.visibilityState !== 'visible') return
+  if (busy.value) foregroundPending = true
+  else void refresh()
 }
 onMounted(() => {
   void refresh()
@@ -49,6 +63,8 @@ onMounted(() => {
   window.addEventListener('focus', foreground)
 })
 onBeforeUnmount(() => {
+  active = false
+  foregroundPending = false
   document.removeEventListener('visibilitychange', foreground)
   window.removeEventListener('focus', foreground)
 })

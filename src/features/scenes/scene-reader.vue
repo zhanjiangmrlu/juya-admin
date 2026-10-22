@@ -128,6 +128,12 @@ onBeforeUnmount(() => audio.value?.stop())
           >
         </p>
       </div>
+      <div class="lookup-preview">
+        <button type="button" data-action="lookup-preview" class="text small" disabled>
+          中央查词（预览）
+        </button>
+        <p>中央查词仅作禁用示例；词汇释义与发音请在下方核对。</p>
+      </div>
       <button
         type="button"
         data-action="translation"
@@ -209,6 +215,20 @@ onBeforeUnmount(() => audio.value?.stop())
   font-size: 16px;
   line-height: 1.8;
   overflow-wrap: anywhere;
+
+  .lookup-preview {
+    margin: 12px 0;
+
+    button {
+      min-height: 44px;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+  }
 
   .reader-nav {
     display: flex;

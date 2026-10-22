@@ -1,6 +1,15 @@
 <script setup lang="ts">
-import { computed, onActivated, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import {
+  computed,
+  nextTick,
+  onActivated,
+  onBeforeUnmount,
+  onDeactivated,
+  onMounted,
+  ref,
+  watch
+} from 'vue'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
@@ -27,23 +36,74 @@ const { data, busy, error, refresh } = useResource(() =>
     })
   )
 )
+let scrollTop = 0,
+  active = true,
+  activated = false,
+  scrollGeneration = 0,
+  lastQuery = route.fullPath
+/** 只在同次激活、同条件列表渲染完成后恢复位置
+ * @param top 此次列表查询需要恢复的滚动位置
+ */
+const refreshAt = async (top: number) => {
+  const run = ++scrollGeneration,
+    query = route.fullPath
+  await refresh()
+  await nextTick()
+  if (active && route.path === '/users' && route.fullPath === query && run === scrollGeneration)
+    window.scrollTo({ top })
+}
 /** 独立应用注册和打卡筛选，保留来源
  * @returns 路由条件更新
  * @param values 本次条件变化
  */
-const filter = (values: Record<string, string | number>) =>
-  router.replace({ query: { ...route.query, ...values, page: values.page || 1 } })
+const filter = async (values: Record<string, string | number>) => {
+  const before = route.fullPath
+  await router.replace({ query: { ...route.query, ...values, page: values.page || 1 } })
+  if (route.fullPath === before) {
+    scrollTop = 0
+    await refreshAt(0)
+  }
+}
+/** 离开列表前保存位置，并让未完成恢复失效 */
+const rememberScroll = () => {
+  scrollTop = window.scrollY
+  scrollGeneration++
+}
+/** 返回同条件列表时刷新真实数据并恢复阅读位置 */
+const activate = async () => {
+  active = true
+  if (!activated) {
+    activated = true
+    return
+  }
+  if (lastQuery !== route.fullPath) scrollTop = 0
+  lastQuery = route.fullPath
+  search.value = String(route.query.search || '')
+  await refreshAt(scrollTop)
+}
 watch(
   () => route.fullPath,
   () => {
-    if (route.path === '/users') {
+    if (active && route.path === '/users' && lastQuery !== route.fullPath) {
       search.value = String(route.query.search || '')
-      void refresh()
+      scrollTop = 0
+      lastQuery = route.fullPath
+      void refreshAt(0)
     }
   }
 )
-onActivated(() => {
+onMounted(() => {
   void refresh()
+})
+onActivated(activate)
+onBeforeRouteLeave(rememberScroll)
+onDeactivated(() => {
+  scrollGeneration++
+  active = false
+})
+onBeforeUnmount(() => {
+  scrollGeneration++
+  active = false
 })
 </script>
 <template>
