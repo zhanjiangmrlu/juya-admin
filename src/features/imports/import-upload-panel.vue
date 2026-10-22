@@ -22,6 +22,28 @@ const emit = defineEmits<{
 const error = ref(''),
   retrying = ref('')
 const retryKeys = new Map<string, string>()
+const invalidSourceErrors = new Set([
+  'image_invalid',
+  'audio_invalid',
+  'audio_format_mismatch',
+  'media_invalid',
+  'docx_invalid',
+  'docx_structure',
+  'single_docx_multiple',
+  'archive_unsafe',
+  'archive_invalid',
+  'archive_limit',
+  'import_empty',
+  'import_card_limit',
+  'archive_member_limit',
+  'archive_member_invalid'
+])
+/** 只允许使用原文件重试暂时失败的处理，资料本身错误须修正重传
+ * @param file 当前已接收的服务端文件
+ * @returns 该文件是否仍适用原阶段重试
+ */
+const canRetryFile = (file: ImportFile | null) =>
+  !!file && file.state === 'failed' && !invalidSourceErrors.has(file.error_code || '')
 /** 读取当前环境的单文件上限
  * @param kind 文件在卡片中的用途
  * @returns 允许的最大字节数
@@ -126,8 +148,10 @@ const sizeText = (size: number) =>
  */
 const statusText = (file: ImportFile | null) => {
   if (!file) return '等待接收'
-  if (file.state === 'failed')
-    return importErrors[file.error_code || ''] || '处理失败，请修正或重试'
+  if (file.state === 'failed') {
+    const message = importErrors[file.error_code || ''] || '处理失败，请修正或重试'
+    return canRetryFile(file) ? message : `${message}；请修正后重新选择文件上传`
+  }
   if (file.processing_stage === 'converting') return '已上传，正在兼容处理为 MP3'
   if (file.processing_stage === 'validating') return '已上传，正在校验文件'
   const progress = file.progress
@@ -150,7 +174,7 @@ const statusText = (file: ImportFile | null) => {
  * @param file 已接收且失败的文件
  */
 const retry = async (file: ImportFile) => {
-  if (retrying.value) return
+  if (retrying.value || !canRetryFile(file)) return
   retrying.value = file.id
   error.value = ''
   const key = retryKeys.get(file.id) || crypto.randomUUID()
@@ -301,7 +325,7 @@ const acceptedFile = (upload: ImportUpload) =>
           {{ upload.unknown ? '查询／重试本文件' : '重试本文件' }}
         </button>
         <button
-          v-else-if="acceptedFile(upload)?.state === 'failed'"
+          v-else-if="canRetryFile(acceptedFile(upload))"
           type="button"
           class="text"
           :disabled="!!retrying"
@@ -316,7 +340,7 @@ const acceptedFile = (upload: ImportUpload) =>
         >
         <span>{{ statusText(file) }}</span>
         <button
-          v-if="file.state === 'failed'"
+          v-if="canRetryFile(file)"
           type="button"
           class="text"
           :disabled="!!retrying"
@@ -346,20 +370,9 @@ const acceptedFile = (upload: ImportUpload) =>
         >{{ batch.files.find((value) => value.id === file.parent_id)?.name }} /
         {{ file.name }}</strong
       >
-      <p>
-        {{
-          importErrors[file.error_code || ''] || '此素材处理失败，可重试或更换文件；其他资料保留'
-        }}
-      </p>
+      <p>{{ statusText(file) }}</p>
       <button
-        v-if="
-          ![
-            'archive_member_limit',
-            'archive_member_invalid',
-            'image_invalid',
-            'audio_invalid'
-          ].includes(file.error_code || '')
-        "
+        v-if="canRetryFile(file)"
         type="button"
         class="text"
         :disabled="!!retrying"

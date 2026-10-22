@@ -479,7 +479,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Recent */
+    /**
+     * Recent
+     * @description Recovery is the complete owned set; the default recent-history query stays compatible.
+     */
     get: operations['recent_api_admin_v1_imports_get']
     put?: never
     /** Create */
@@ -1352,6 +1355,17 @@ export interface components {
       mode: string
       /** Created At */
       created_at: string
+      /** Updated At */
+      updated_at: string
+      /** Resumable */
+      resumable: boolean
+      /**
+       * Stage
+       * @enum {string}
+       */
+      stage: 'upload' | 'processing' | 'review' | 'result'
+      /** Source Names */
+      source_names: string[]
       /** Files */
       files: components['schemas']['ImportFileView'][]
       /** Items */
@@ -5552,7 +5566,9 @@ export interface operations {
   }
   recent_api_admin_v1_imports_get: {
     parameters: {
-      query?: never
+      query?: {
+        resumable_only?: boolean
+      }
       header?: never
       path?: never
       cookie?: never
@@ -5884,7 +5900,9 @@ export interface operations {
   }
   read_api_admin_v1_imports__batch_id__get: {
     parameters: {
-      query?: never
+      query?: {
+        require_resumable?: boolean
+      }
       header?: never
       path: {
         batch_id: string

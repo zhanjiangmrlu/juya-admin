@@ -8,6 +8,7 @@ import AppState from '@/components/app-state/app-state.vue'
 import { useImportStaging } from '@/composables/use-import-staging'
 import { useWordPronunciation } from '@/composables/use-word-pronunciation'
 import ImportAssetPicker from '@/features/imports/import-asset-picker.vue'
+import ImportResumePanel from '@/features/imports/import-resume-panel.vue'
 import ImportReviewList from '@/features/imports/import-review-list.vue'
 import ImportSaveStep from '@/features/imports/import-save-step.vue'
 import ImportTargetPicker from '@/features/imports/import-target-picker.vue'
@@ -15,7 +16,7 @@ import ImportUploadPanel from '@/features/imports/import-upload-panel.vue'
 import SceneContentForm from '@/features/scenes/scene-content-form.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import SceneReader from '@/features/scenes/scene-reader.vue'
-import { dateText, queryURL } from '@/services/display'
+import { queryURL } from '@/services/display'
 import { api, ApiError } from '@/services/http-client'
 import { registerLogoutGuard } from '@/services/logout-guard'
 import { loadPronunciation } from '@/services/pronunciation-service'
@@ -33,7 +34,11 @@ const route = useRoute(),
 const uploadPanel = ref<InstanceType<typeof ImportUploadPanel> | null>(null),
   pendingSourceFiles = ref<File[]>([])
 const batch = ref<ImportBatch | null>(null),
-  recent = ref<ImportBatch[]>([]),
+  resumable = ref<ImportBatch[]>([]),
+  recoveryLoading = ref(false),
+  recoveryError = ref(''),
+  recoveryNotice = ref(''),
+  resumingId = ref(''),
   step = ref(1),
   activeId = ref(''),
   expandedId = ref(''),
@@ -137,6 +142,7 @@ const exampleURL = `${(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '
 const autosaves = new Map<string, ReturnType<typeof setTimeout>>()
 let alive = true,
   pollRun = 0,
+  recoveryRun = 0,
   creating: { key: string; mode: 'zip' | 'docx'; unknown: boolean } | null = null,
   saving: { key: string; body: components['schemas']['AcceptSave']; unknown: boolean } | null =
     null,
@@ -184,46 +190,85 @@ const poll = async () => {
     if (alive && run === pollRun) polling.value = false
   }
 }
-/** 载入最近批次和本环境上传配置 */
+/** 刷新真实待处理集合，失败保留已获取的候选且不改变当前批次 */
+const loadRecoverable = async () => {
+  const run = ++recoveryRun
+  recoveryLoading.value = true
+  recoveryError.value = ''
+  try {
+    const values = await api.request<ImportBatch[]>('/api/admin/v1/imports?resumable_only=true')
+    if (alive && run === recoveryRun) resumable.value = values.filter((value) => value.resumable)
+  } catch (reason) {
+    if (alive && run === recoveryRun)
+      recoveryError.value = `待处理批次查询失败，${reason instanceof Error ? reason.message : '请稍后重试'}`
+  } finally {
+    if (alive && run === recoveryRun) recoveryLoading.value = false
+  }
+}
+/** 页面重新获得焦点时刷新候选，不重新打开或替换当前批次 */
+const refreshRecoverable = () => {
+  void loadRecoverable()
+}
+/** 载入真实待处理集合及上传配置，指定当前结果仍可单独查看 */
 const load = async () => {
   loading.value = true
   error.value = ''
   try {
-    const [values, configuration] = await Promise.all([
-      api.request<ImportBatch[]>('/api/admin/v1/imports'),
+    const [, configuration] = await Promise.all([
+      loadRecoverable(),
       api.request<components['schemas']['UploadConfiguration']>('/api/admin/v1/media/configuration')
     ])
     if (!alive) return
-    recent.value = values
     limits.value = configuration
     const id = String(route.query.batch || '')
-    if (id) await resume(id)
+    if (id && !batch.value) await resume(id, false)
   } catch (reason) {
-    if (alive) error.value = reason instanceof Error ? reason.message : '导入记录暂未获取'
+    if (alive) error.value = reason instanceof Error ? reason.message : '上传配置暂未获取'
   } finally {
     if (alive) loading.value = false
   }
 }
-/** 恢复已接收文件与逐卡暂存
- * @param id 选择恢复的批次
+/** 按服务端阶段恢复资料，显式选择前重新校验可恢复性
+ * @param id 管理员选择的批次或指定查看的当前批次
+ * @param requireResumable 显式继续处理时必须再次校验，查看当前结果时不限制已完成状态
  */
-const resume = async (id: string) => {
+const resume = async (id: string, requireResumable = true) => {
+  if (busy.value || (requireResumable && batch.value)) return
   busy.value = true
+  resumingId.value = id
   error.value = ''
+  recoveryError.value = ''
+  recoveryNotice.value = ''
   try {
-    const value = await api.request<ImportBatch>(`/api/admin/v1/imports/${id}`)
+    const path = `/api/admin/v1/imports/${encodeURIComponent(id)}`
+    const value = await api.request<ImportBatch>(
+      requireResumable ? queryURL(path, { require_resumable: true }) : path
+    )
     if (!alive) return
     accept(value)
-    showResults.value = value.items.some((item) =>
-      ['saved', 'saving', 'failed'].includes(item.state)
-    )
-    step.value = showResults.value ? 3 : value.items.some((item) => item.readable) ? 2 : 1
+    showResults.value = value.stage === 'result'
+    step.value = value.stage === 'result' ? 3 : value.stage === 'review' ? 2 : 1
     await router.replace({ query: { batch: id } })
     void poll()
+    if (requireResumable && ['upload', 'processing'].includes(value.stage))
+      notice.value = '已恢复服务端保存的资料；此前未完成上传的本地文件无法恢复，请重新选择失败文件'
   } catch (reason) {
-    if (alive) error.value = reason instanceof Error ? reason.message : '恢复失败，请重试'
+    if (!alive) return
+    if (requireResumable && reason instanceof ApiError && [403, 404, 409].includes(reason.status)) {
+      recoveryNotice.value =
+        '该批次已不可恢复，可能已处理完成、资料不可用或无访问权限；请从待处理批次重新选择，或重新上传资料'
+      resumable.value = resumable.value.filter((value) => value.id !== id)
+      await loadRecoverable()
+    } else if (requireResumable) {
+      recoveryError.value = `恢复未完成，${reason instanceof Error ? reason.message : '请重试所选批次'}`
+    } else {
+      error.value = reason instanceof Error ? reason.message : '当前导入暂未获取，请重试'
+    }
   } finally {
-    if (alive) busy.value = false
+    if (alive) {
+      busy.value = false
+      resumingId.value = ''
+    }
   }
 }
 /** 明确选择一种新批次上传方式，未知结果复用原创建操作
@@ -314,6 +359,7 @@ const startNew = async () => {
   showResults.value = false
   step.value = 1
   await router.replace({ query: {} })
+  void loadRecoverable()
 }
 /** 延迟暂存某一资料，切换查看其他卡片不会丢失该记录
  * @param entry 被修改的独立导入资料
@@ -495,7 +541,7 @@ const save = async () => {
 /** 只为仍被选中的失败卡片重新生成保存确认 */
 const retryFailed = () => {
   const ids = entries.value
-    .filter((entry) => entry.item.state === 'failed' && entry.edit.selected)
+    .filter((entry) => entry.item.state === 'failed' && entry.item.readable && entry.edit.selected)
     .map((entry) => entry.item.id)
   if (ids.length) void next(ids)
 }
@@ -603,18 +649,32 @@ onBeforeRouteLeave((to) => (to.path === '/login' ? true : confirmLeaving()))
 onMounted(() => {
   void load()
   window.addEventListener('beforeunload', beforeUnload)
+  window.addEventListener('focus', refreshRecoverable)
 })
 onBeforeUnmount(() => {
   alive = false
   pollRun++
+  recoveryRun++
   releaseLogout()
   for (const timer of autosaves.values()) clearTimeout(timer)
   window.removeEventListener('beforeunload', beforeUnload)
+  window.removeEventListener('focus', refreshRecoverable)
   pendingLeave?.(false)
 })
 </script>
 <template>
   <div class="import-page">
+    <ImportResumePanel
+      v-if="!loading && !batch"
+      :batches="resumable"
+      :loading="recoveryLoading"
+      :busy="busy"
+      :resuming-id="resumingId"
+      :error="recoveryError"
+      :notice="recoveryNotice"
+      @resume="resume"
+      @refresh="loadRecoverable"
+    />
     <div class="page-heading between">
       <div>
         <h1>批量导入</h1>
@@ -646,30 +706,6 @@ onBeforeUnmount(() => {
     <p v-if="notice" class="notice">{{ notice }}</p>
     <template v-if="!loading">
       <template v-if="!batch">
-        <div v-if="recent.length" class="notice between">
-          <span>有未完成导入或已有结果 · {{ dateText(recent[0]?.created_at) }}</span>
-          <div class="row">
-            <button
-              type="button"
-              data-action="resume-import"
-              :disabled="busy"
-              @click="resume(recent[0]!.id)"
-            >
-              继续处理</button
-            ><button type="button" class="text" @click="recent = []">开始新的导入</button>
-          </div>
-        </div>
-        <details v-if="recent.length > 1" class="panel">
-          <summary>其他最近导入</summary>
-          <div v-for="value in recent.slice(1)" :key="value.id" class="between">
-            <span class="small"
-              >{{ dateText(value.created_at) }} ·
-              {{ value.mode === 'zip' ? 'ZIP资料' : 'DOCX资料' }} · {{ value.items.length }}张</span
-            ><button type="button" class="text" :disabled="busy" @click="resume(value.id)">
-              恢复这次导入
-            </button>
-          </div>
-        </details>
         <section class="import-intro">
           <div class="between">
             <h2>上传资料</h2>

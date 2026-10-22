@@ -15,6 +15,10 @@ it('keeps ZIPs selected on the first screen queued until upload is explicitly st
     id: 'new-batch',
     mode: 'zip',
     created_at: '',
+    updated_at: '',
+    resumable: false,
+    stage: 'upload',
+    source_names: [],
     files: [],
     items: [],
     unused_file_ids: []
@@ -28,7 +32,7 @@ it('keeps ZIPs selected on the first screen queued until upload is explicitly st
         import_card_limit: 100
       }
     if (path === '/api/admin/v1/imports' && options?.method === 'POST') return batch
-    if (path === '/api/admin/v1/imports') return []
+    if (path === '/api/admin/v1/imports?resumable_only=true') return []
     return batch
   })
   const router = createRouter({
@@ -90,6 +94,10 @@ it('restores a batch, persists review changes and only saves actual cards after 
     id: 'batch',
     mode: 'docx',
     created_at: '2026-10-17T00:00:00Z',
+    updated_at: '2026-10-17T00:00:00Z',
+    resumable: true,
+    stage: 'review',
+    source_names: ['card.docx'],
     files: [
       {
         id: 'source',
@@ -108,7 +116,7 @@ it('restores a batch, persists review changes and only saves actual cards after 
   }
   request.mockImplementation(
     async (path: string, options?: { method?: string; body?: Record<string, unknown> }) => {
-      if (path === '/api/admin/v1/imports') return [current]
+      if (path === '/api/admin/v1/imports?resumable_only=true') return [current]
       if (path.endsWith('/configuration'))
         return { image_limit_bytes: 10000, audio_limit_bytes: 10000, archive_limit_bytes: 10000 }
       if (options?.method === 'PATCH') {

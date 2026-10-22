@@ -16,6 +16,10 @@ const batch: ImportBatch = {
   id: 'batch',
   mode: 'zip',
   created_at: '',
+  updated_at: '',
+  resumable: false,
+  stage: 'upload',
+  source_names: [],
   files: [],
   items: [],
   unused_file_ids: []
@@ -260,4 +264,49 @@ it('keeps a cancelled transfer unknown after an early missing receipt and never 
   expect(page.text()).toContain('接收结果待确认')
   expect(page.find('[data-action="retry-upload"]').exists()).toBe(true)
   expect(page.emitted('pending')?.at(-1)).toEqual([0])
+})
+
+it('requires corrected originals for invalid sources and only retries applicable processing failures', async () => {
+  const files: ImportFile[] = [
+    { ...accepted('broken.zip'), state: 'failed', error_code: 'archive_invalid' },
+    {
+      ...accepted('format.wav'),
+      state: 'failed',
+      error_code: 'audio_format_mismatch',
+      kind: 'audio',
+      parent_id: 'broken.zip'
+    },
+    { ...accepted('interrupted.zip'), state: 'failed', error_code: 'worker_interrupted' }
+  ]
+  const page = mount(ImportUploadPanel, { props: { batch: { ...batch, files }, limits } })
+  pages.push(page)
+  const badPackage = page.findAll('li').find((row) => row.text().includes('broken.zip'))!
+  expect(badPackage.find('button').exists()).toBe(false)
+  expect(page.findAll('button').filter((button) => button.text().includes('重试'))).toHaveLength(1)
+  expect(page.text()).toContain('重新选择')
+  request.mockResolvedValueOnce({})
+  await page
+    .findAll('li')
+    .find((row) => row.text().includes('interrupted.zip'))!
+    .get('button')
+    .trigger('click')
+  await flushPromises()
+  expect(
+    request.mock.calls.filter(([path]) => path.includes('/retry')).map(([path]) => path)
+  ).toEqual(['/api/admin/v1/imports/batch/files/interrupted.zip/retry'])
+})
+
+it('does not retry an invalid accepted receipt that is still held in the local upload queue', async () => {
+  upload.mockResolvedValueOnce({
+    ...accepted('broken.zip'),
+    state: 'failed',
+    error_code: 'archive_invalid'
+  })
+  const page = panel()
+  await choose(page, ['broken.zip'])
+  await page.get('[data-action="start-upload"]').trigger('click')
+  await flushPromises()
+  expect(page.findAll('button').filter((button) => button.text().includes('重试'))).toHaveLength(0)
+  expect(page.text()).toContain('重新选择')
+  expect(request.mock.calls.some(([path]) => path.includes('/retry'))).toBe(false)
 })

@@ -14,6 +14,10 @@ const batch = {
   id: 'batch',
   mode: 'docx',
   created_at: '',
+  updated_at: '',
+  resumable: true,
+  stage: 'review',
+  source_names: ['content.docx'],
   files: [],
   unused_file_ids: [],
   items: [

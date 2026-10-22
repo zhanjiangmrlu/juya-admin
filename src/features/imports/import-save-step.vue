@@ -16,6 +16,11 @@ const props = defineProps<{
   scope?: string[] | null
 }>()
 const emit = defineEmits<{ back: []; save: []; refresh: []; retry: [] }>()
+const retryable = computed(() =>
+  props.entries.some(
+    (entry) => entry.item.state === 'failed' && entry.item.readable && entry.edit.selected
+  )
+)
 const counts = computed(() => ({
   saved: props.entries.filter((entry) => entry.item.state === 'saved').length,
   failed: props.entries.filter((entry) => entry.item.state === 'failed').length,
@@ -124,12 +129,7 @@ const counts = computed(() => ({
         {{ busy ? '正在接收…' : '确认保存草稿' }}</button
       ><template v-else
         ><button type="button" :disabled="polling" @click="emit('refresh')">刷新结果</button
-        ><button
-          v-if="counts.failed"
-          type="button"
-          :disabled="busy || saving"
-          @click="emit('retry')"
-        >
+        ><button v-if="retryable" type="button" :disabled="busy || saving" @click="emit('retry')">
           重试失败项，重新确认</button
         ><RouterLink
           v-if="counts.saved"

@@ -51,12 +51,22 @@ it('retries only the failed IDs and leaves newly added and successful cards outs
     id: 'batch',
     mode: 'zip',
     created_at: '',
+    updated_at: '',
+    resumable: true,
+    stage: 'result',
+    source_names: ['来源.zip'],
     files: [],
     unused_file_ids: [],
-    items: [item('failed-one', 'failed'), item('saved-one', 'saved'), item('new-one', 'incomplete')]
+    items: [
+      item('failed-one', 'failed'),
+      item('saved-one', 'saved'),
+      item('new-one', 'incomplete'),
+      { ...item('unreadable-failure', 'failed'), readable: false },
+      { ...item('excluded-failure', 'failed'), selected: false }
+    ]
   }
   request.mockImplementation(async (path: string) => {
-    if (path === '/api/admin/v1/imports') return [batch]
+    if (path === '/api/admin/v1/imports?resumable_only=true') return [batch]
     if (path.endsWith('/configuration'))
       return {
         archive_limit_bytes: 10000,
