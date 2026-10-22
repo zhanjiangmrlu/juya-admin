@@ -17,7 +17,8 @@ const navigation = [
   { to: '/cards', label: '卡片管理', icon: 'cards' },
   { to: '/imports', label: '批量导入', icon: 'upload' },
   { to: '/users', label: '用户列表', icon: 'users' },
-  { to: '/statistics', label: '数据统计', icon: 'chart' }
+  { to: '/statistics', label: '数据统计', icon: 'chart' },
+  { to: '/feedback', label: '问题反馈', icon: 'feedback' }
 ]
 /** 清理敏感页面后返回登录 */
 const expired = () => {
@@ -69,7 +70,7 @@ onBeforeUnmount(() => window.removeEventListener('admin-session-expired', expire
       <p v-if="error" class="notice error" role="alert">{{ error }}</p>
       <main class="page">
         <RouterView v-slot="{ Component }"
-          ><KeepAlive :include="['SceneListPage', 'UserListPage']"
+          ><KeepAlive :include="['SceneListPage', 'UserListPage', 'FeedbackListPage']"
             ><component :is="Component" /></KeepAlive
         ></RouterView>
       </main>

@@ -4,6 +4,7 @@ import { useAdminStore } from '@/stores/admin-store'
 const router = createRouter({
   history: createWebHistory(),
   scrollBehavior(to, from, saved) {
+    if (to.path === '/feedback' && from.path.startsWith('/feedback/')) return undefined
     return saved || (to.path === from.path ? undefined : { top: 0 })
   },
   routes: [
@@ -38,6 +39,16 @@ const router = createRouter({
       path: '/statistics',
       component: () => import('@/pages/statistics/statistics-page.vue'),
       meta: { title: '数据统计' }
+    },
+    {
+      path: '/feedback',
+      component: () => import('@/pages/feedback/feedback-list-page.vue'),
+      meta: { title: '问题反馈' }
+    },
+    {
+      path: '/feedback/:id',
+      component: () => import('@/pages/feedback/feedback-detail-page.vue'),
+      meta: { title: '处理反馈' }
     },
     { path: '/:pathMatch(.*)*', redirect: '/cards' }
   ]

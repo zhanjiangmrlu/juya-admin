@@ -6,6 +6,7 @@ import back from '@/assets/icons/back.svg'
 import cards from '@/assets/icons/cards.svg'
 import chart from '@/assets/icons/chart.svg'
 import close from '@/assets/icons/close.svg'
+import feedback from '@/assets/icons/feedback.svg'
 import heart from '@/assets/icons/heart.svg'
 import info from '@/assets/icons/info.svg'
 import play from '@/assets/icons/play.svg'
@@ -26,6 +27,7 @@ const icons: Record<string, string> = {
   cards,
   chart,
   close,
+  feedback,
   heart,
   info,
   play,
