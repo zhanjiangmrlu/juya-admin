@@ -8,6 +8,7 @@ import AppState from '@/components/app-state/app-state.vue'
 import { useImportStaging } from '@/composables/use-import-staging'
 import { useWordPronunciation } from '@/composables/use-word-pronunciation'
 import ImportAssetPicker from '@/features/imports/import-asset-picker.vue'
+import ImportBatchDeletionDialog from '@/features/imports/import-batch-deletion-dialog.vue'
 import ImportRemovalDialog from '@/features/imports/import-removal-dialog.vue'
 import ImportResumePanel from '@/features/imports/import-resume-panel.vue'
 import ImportReviewList from '@/features/imports/import-review-list.vue'
@@ -62,6 +63,8 @@ const limits = ref<components['schemas']['UploadConfiguration'] | null>(null),
   retryScope = ref<string[] | null>(null),
   conflictLatest = ref<ImportItem | null>(null)
 const staging = useImportStaging(() => batch.value?.id || '')
+const batchDeletion = ref<ImportBatch | null>(null)
+const deletedBatchIds = new Set<string>()
 const removalSelection = ref<ImportRemovalSelection | null>(null)
 const removedFileIds = ref<string[]>([])
 const removedItemIds = new Set<string>()
@@ -240,13 +243,35 @@ const loadRecoverable = async () => {
   recoveryError.value = ''
   try {
     const values = await api.request<ImportBatch[]>('/api/admin/v1/imports?resumable_only=true')
-    if (alive && run === recoveryRun) resumable.value = values.filter((value) => value.resumable)
+    if (alive && run === recoveryRun)
+      resumable.value = values.filter((value) => value.resumable && !deletedBatchIds.has(value.id))
   } catch (reason) {
     if (alive && run === recoveryRun)
       recoveryError.value = `待处理批次查询失败，${reason instanceof Error ? reason.message : '请稍后重试'}`
   } finally {
     if (alive && run === recoveryRun) recoveryLoading.value = false
   }
+}
+/** 确认删除已展示的候选批次，不触及当前导入的编辑状态
+ * @param value 管理员点击的候选及其更新时间快照
+ */
+const askBatchDeletion = (value: ImportBatch) => {
+  if (busy.value || batch.value || batchDeletion.value) return
+  batchDeletion.value = value
+}
+/** 只移除已确认删除的候选，后台迟到列表不能重新带回该批次
+ * @param id 服务端删除回执确认的批次编号
+ */
+const applyBatchDeletion = (id: string) => {
+  deletedBatchIds.add(id)
+  resumable.value = resumable.value.filter((value) => value.id !== id)
+  batchDeletion.value = null
+  recoveryNotice.value = '批次已删除，已保存的卡片、素材和用户成绩已保留'
+}
+/** 冲突后重新加载候选，必须重新确认最新批次版本才能删除 */
+const refreshBatchDeletion = () => {
+  batchDeletion.value = null
+  void loadRecoverable()
 }
 /** 页面重新获得焦点时刷新候选，不重新打开或替换当前批次 */
 const refreshRecoverable = () => {
@@ -276,7 +301,7 @@ const load = async () => {
  * @param requireResumable 显式继续处理时必须再次校验，查看当前结果时不限制已完成状态
  */
 const resume = async (id: string, requireResumable = true) => {
-  if (busy.value || (requireResumable && batch.value)) return
+  if (busy.value || batchDeletion.value || (requireResumable && batch.value)) return
   busy.value = true
   resumingId.value = id
   error.value = ''
@@ -318,7 +343,7 @@ const resume = async (id: string, requireResumable = true) => {
  * @param mode ZIP或独立DOCX方式
  */
 const create = async (mode: 'zip' | 'docx') => {
-  if (busy.value) return
+  if (busy.value || batchDeletion.value) return
   if (creating && creating.mode !== mode) {
     error.value = '请先确认上次创建结果再切换上传方式'
     return
@@ -371,7 +396,7 @@ const beginZIP = (event: Event) => {
   const input = event.target as HTMLInputElement
   const files = [...(input.files || [])]
   input.value = ''
-  if (!files.length || busy.value) return
+  if (!files.length || busy.value || batchDeletion.value) return
   pendingSourceFiles.value = files
   void create('zip')
 }
@@ -380,7 +405,7 @@ const beginZIP = (event: Event) => {
  */
 const beginDroppedZIP = (event: DragEvent) => {
   const files = [...(event.dataTransfer?.files || [])]
-  if (!files.length || busy.value) return
+  if (!files.length || busy.value || batchDeletion.value) return
   pendingSourceFiles.value = files
   void create('zip')
 }
@@ -739,6 +764,10 @@ const resolveConflict = (keepLocal: boolean) => {
  * @returns 是否可以离开
  */
 const confirmLeaving = (): Promise<boolean> => {
+  if (batchDeletion.value) {
+    ElMessage.info('请先完成删除结果查询或取消删除确认')
+    return Promise.resolve(false)
+  }
   if (pendingUploads.value) {
     ElMessage.info('请先上传或移除待上传的文件；接收结果未知的文件请先查询')
     return Promise.resolve(false)
@@ -772,7 +801,13 @@ const leave = async (choice: 'continue' | 'save' | 'discard') => {
  * @param event 原生离开事件
  */
 const beforeUnload = (event: BeforeUnloadEvent) => {
-  if (dirty.value || uploading.value || pendingUploads.value || editingMedia.value) {
+  if (
+    batchDeletion.value ||
+    dirty.value ||
+    uploading.value ||
+    pendingUploads.value ||
+    editingMedia.value
+  ) {
     event.preventDefault()
     event.returnValue = ''
   }
@@ -801,12 +836,20 @@ onBeforeUnmount(() => {
       v-if="!loading && !batch"
       :batches="resumable"
       :loading="recoveryLoading"
-      :busy="busy"
+      :busy="busy || !!batchDeletion"
       :resuming-id="resumingId"
       :error="recoveryError"
       :notice="recoveryNotice"
       @resume="resume"
+      @delete="askBatchDeletion"
       @refresh="loadRecoverable"
+    />
+    <ImportBatchDeletionDialog
+      v-if="batchDeletion"
+      :batch="batchDeletion"
+      @close="batchDeletion = null"
+      @deleted="applyBatchDeletion"
+      @refresh="refreshBatchDeletion"
     />
     <div class="page-heading between">
       <div>

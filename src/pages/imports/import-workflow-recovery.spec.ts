@@ -109,7 +109,17 @@ const open = async (candidates: RecoveryBatch[] = [], url = '/imports') => {
   await router.push(url)
   const page = mount(
     { template: '<RouterView />' },
-    { global: { plugins: [router], stubs: { ElDialog: true } } }
+    {
+      global: {
+        plugins: [router],
+        stubs: {
+          ElDialog: {
+            props: ['modelValue'],
+            template: '<section v-if="modelValue"><slot/><slot name="footer"/></section>'
+          }
+        }
+      }
+    }
   )
   pages.push(page)
   await flushPromises()
@@ -251,3 +261,110 @@ it.each(['upload', 'processing', 'result'] as const)(
     if (stage === 'upload') expect(page.text()).toContain('重新选择')
   }
 )
+
+it.each([1, 3])(
+  'confirms deletion from each of %s candidates and keeps saved cards untouched',
+  async (count) => {
+    const values = Array.from({ length: count }, (_, index) => batch(`delete-${index}`))
+    values[0]!.items.push(item('saved'))
+    const { page, router } = await open(values)
+    await page
+      .get('[data-resume-batch="delete-0"] [data-action="delete-import-batch"]')
+      .trigger('click')
+    await flushPromises()
+    expect(page.text()).toContain('已保存的卡片、素材和用户成绩会保留')
+    expect(request.mock.calls.some(([, options]) => options?.method === 'DELETE')).toBe(false)
+    await page.get('[data-action="cancel-batch-deletion"]').trigger('click')
+    expect(page.findAll('[data-action="delete-import-batch"]')).toHaveLength(count)
+    await page
+      .get('[data-resume-batch="delete-0"] [data-action="delete-import-batch"]')
+      .trigger('click')
+    request.mockResolvedValueOnce({ id: 'delete-0', deleted: true })
+    await page.get('[data-action="confirm-batch-deletion"]').trigger('click')
+    await flushPromises()
+    expect(request).toHaveBeenCalledWith('/api/admin/v1/imports/delete-0', {
+      method: 'DELETE',
+      body: { expected_updated_at: '2026-10-22T01:20:00Z' },
+      key: expect.any(String)
+    })
+    expect(page.find('[data-resume-batch="delete-0"]').exists()).toBe(false)
+    expect(page.findAll('[data-action="delete-import-batch"]')).toHaveLength(count - 1)
+    expect(router.currentRoute.value.query.batch).toBeUndefined()
+    expect(request.mock.calls.some(([path]) => path.startsWith('/api/admin/v1/cards'))).toBe(false)
+  }
+)
+
+it('cannot recreate a deleted candidate through an older in-flight collection response', async () => {
+  const { page } = await open([batch()])
+  let finish: (values: RecoveryBatch[]) => void = () => {}
+  request.mockImplementationOnce(
+    () =>
+      new Promise<RecoveryBatch[]>((resolve) => {
+        finish = resolve
+      })
+  )
+  window.dispatchEvent(new Event('focus'))
+  await page.get('[data-action="delete-import-batch"]').trigger('click')
+  request.mockResolvedValueOnce({ id: 'batch-one', deleted: true })
+  await page.get('[data-action="confirm-batch-deletion"]').trigger('click')
+  await flushPromises()
+  finish([batch()])
+  await flushPromises()
+  expect(page.find('[data-resume-batch="batch-one"]').exists()).toBe(false)
+})
+
+it.each([
+  ['import_changed', '批次资料已变化，请刷新后重新确认删除'],
+  ['import_saving', '批次正在保存卡片，请等待保存完成后再删除']
+])('refreshes a conflicting deletion (%s) without opening another batch', async (code, message) => {
+  const { page, router } = await open([batch()])
+  await page.get('[data-action="delete-import-batch"]').trigger('click')
+  request.mockRejectedValueOnce(new ApiError(code, message, 409))
+  await page.get('[data-action="confirm-batch-deletion"]').trigger('click')
+  await flushPromises()
+  expect(page.text()).toContain(message)
+  expect(page.find('[data-action="resume-import"]').attributes('disabled')).toBeDefined()
+  request.mockResolvedValueOnce([{ ...batch(), updated_at: '2026-10-23T00:00:00Z' }])
+  await page.get('[data-action="refresh-batch-deletion"]').trigger('click')
+  await flushPromises()
+  expect(router.currentRoute.value.query.batch).toBeUndefined()
+  await page.get('[data-action="delete-import-batch"]').trigger('click')
+  request.mockResolvedValueOnce({ id: 'batch-one', deleted: true })
+  await page.get('[data-action="confirm-batch-deletion"]').trigger('click')
+  await flushPromises()
+  expect(
+    request.mock.calls.filter(([, options]) => options?.method === 'DELETE').at(-1)?.[1].body
+  ).toEqual({ expected_updated_at: '2026-10-23T00:00:00Z' })
+})
+
+it('keeps unknown deletion isolated from creating, resuming and leaving until its receipt is known', async () => {
+  const { page, router } = await open([batch('delete-me'), batch('keep-me')])
+  router.addRoute({ path: '/cards', component: { template: '<div>卡片库</div>' } })
+  await page
+    .get('[data-resume-batch="delete-me"] [data-action="delete-import-batch"]')
+    .trigger('click')
+  request.mockRejectedValueOnce(new ApiError('network_unknown', '删除回执未知'))
+  await page.get('[data-action="confirm-batch-deletion"]').trigger('click')
+  await flushPromises()
+  const calls = request.mock.calls.length
+  await page.get('[data-resume-batch="keep-me"] [data-action="resume-import"]').trigger('click')
+  await page.get('.docx-entry').trigger('click')
+  await router.push('/cards')
+  await flushPromises()
+  expect(router.currentRoute.value.path).toBe('/imports')
+  expect(request.mock.calls).toHaveLength(calls)
+  const leaving = new Event('beforeunload', { cancelable: true })
+  window.dispatchEvent(leaving)
+  expect(leaving.defaultPrevented).toBe(true)
+  request.mockResolvedValueOnce({
+    key: request.mock.calls.at(-1)?.[1]?.key,
+    result: { id: 'delete-me', deleted: true }
+  })
+  await page.get('[data-action="confirm-batch-deletion"]').trigger('click')
+  await flushPromises()
+  expect(page.find('[data-resume-batch="keep-me"]').exists()).toBe(true)
+  expect(page.find('[data-resume-batch="delete-me"]').exists()).toBe(false)
+  await router.push('/cards')
+  await flushPromises()
+  expect(router.currentRoute.value.path).toBe('/cards')
+})

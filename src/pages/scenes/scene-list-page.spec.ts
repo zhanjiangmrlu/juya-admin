@@ -382,3 +382,196 @@ it('draws a real client thumbnail when the server thumbnail is absent and keeps 
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
+
+it.each([false, true])(
+  'refreshes an unchanged offline card only after Worker success (dialog closed: %s)',
+  async (closeEarly) => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] })
+    let accepted = false,
+      finished = false
+    const content = {
+      name: '重新上架',
+      title_en: 'Republish',
+      image_id: null,
+      audio_id: null,
+      dialogue: [],
+      vocabulary: [],
+      chunks: []
+    }
+    const card = () => ({
+      id: 'offline-card',
+      display_name: '重新上架',
+      display_title_en: 'Republish',
+      status: finished ? 'published' : 'offline',
+      draft_revision: 3,
+      current_version_id: 'existing-version',
+      has_unpublished_changes: false,
+      content,
+      issues: [],
+      updated_at: '2026-10-23T11:00:00Z'
+    })
+    const batch = () => ({
+      id: 'republish',
+      created_at: '2026-10-23T12:00:00Z',
+      items: [
+        {
+          id: 'publication-item',
+          card_id: 'offline-card',
+          name: '重新上架',
+          title_en: 'Republish',
+          state: finished ? 'succeeded' : 'queued',
+          job_id: 'worker',
+          error_code: null
+        }
+      ]
+    })
+    request.mockImplementation(async (path: string, options?: { method?: string }) => {
+      if (path.startsWith('/api/admin/v1/cards?'))
+        return { items: [card()], total: 1, page: 1, limit: 10, total_pages: 1 }
+      if (path === '/api/admin/v1/cards/offline-card') return card()
+      if (path.endsWith('/preview'))
+        return {
+          preview_id: 'offline-preview',
+          revision: 3,
+          content,
+          mode: 'draft',
+          expires_at: '2026-10-23T13:00:00Z'
+        }
+      if (path === '/api/admin/v1/publication-batches' && options?.method === 'POST') {
+        accepted = true
+        return batch()
+      }
+      if (path === '/api/admin/v1/publication-batches') return accepted ? [batch()] : []
+      if (path === '/api/admin/v1/publication-batches/republish') return batch()
+      return []
+    })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/cards', component: SceneListPage }]
+    })
+    await router.push('/cards')
+    const wrapper = mount(
+      {
+        template:
+          '<RouterView v-slot="{ Component }"><KeepAlive><component :is="Component"/></KeepAlive></RouterView>'
+      },
+      {
+        global: {
+          plugins: [router],
+          stubs: {
+            ElDialog: {
+              props: ['modelValue'],
+              template: '<section v-if="modelValue"><slot/><slot name="footer"/></section>'
+            }
+          }
+        }
+      }
+    )
+    try {
+      await flushPromises()
+      await wrapper.get('input[aria-label="选择本页卡片"]').setValue(true)
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text() === '批量发布')!
+        .trigger('click')
+      await flushPromises()
+      expect(request).toHaveBeenCalledWith('/api/admin/v1/cards/offline-card/preview', {
+        method: 'POST',
+        body: { revision: 3 }
+      })
+      expect(wrapper.text()).toContain('可发布 1 张')
+      await wrapper.get('[data-action="confirm-reviewed"]').setValue(true)
+      await wrapper.get('[data-action="publish-reviewed"]').trigger('click')
+      await flushPromises()
+      expect(request).toHaveBeenCalledWith('/api/admin/v1/publication-batches', {
+        method: 'POST',
+        key: expect.any(String),
+        body: {
+          confirmed: true,
+          items: [{ card_id: 'offline-card', revision: 3, preview_id: 'offline-preview' }]
+        }
+      })
+      expect(wrapper.get('.result-totals').text()).toContain('成功 0 张')
+      expect(wrapper.get('.result-totals').text()).toContain('处理中 1 张')
+      if (closeEarly) {
+        await wrapper
+          .findAll('button')
+          .find((button) => button.text() === '关闭结果')!
+          .trigger('click')
+        await flushPromises()
+      }
+      finished = true
+      await vi.advanceTimersByTimeAsync(closeEarly ? 5100 : 1100)
+      await flushPromises()
+      expect(wrapper.get('tbody').text()).toContain('已发布')
+      if (!closeEarly) expect(wrapper.get('.result-totals').text()).toContain('成功 1 张')
+    } finally {
+      wrapper.unmount()
+      vi.clearAllTimers()
+    }
+  }
+)
+
+it('ignores a delayed publication history response from a previous activation', async () => {
+  const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+  let finishOld: (value: unknown) => void = () => {},
+    historyReads = 0
+  const success = {
+    id: 'historical-batch',
+    created_at: '2026-10-23T00:00:00Z',
+    items: [
+      {
+        id: 'item',
+        card_id: 'one',
+        name: '真实完成',
+        title_en: '',
+        state: 'succeeded',
+        job_id: 'worker',
+        error_code: null
+      }
+    ]
+  }
+  request.mockImplementation((path: string) => {
+    if (path.startsWith('/api/admin/v1/cards?'))
+      return Promise.resolve({ items: [], total: 0, page: 1, limit: 10, total_pages: 0 })
+    if (path === '/api/admin/v1/publication-batches') {
+      if (historyReads++ === 0)
+        return new Promise((resolve) => {
+          finishOld = resolve
+        })
+      return Promise.resolve([success])
+    }
+    return Promise.resolve([])
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/cards', component: SceneListPage },
+      { path: '/:pathMatch(.*)*', component: { template: '<div>其他页面</div>' } }
+    ]
+  })
+  await router.push('/cards')
+  const wrapper = mount(
+    {
+      template:
+        '<RouterView v-slot="{ Component }"><KeepAlive><component :is="Component"/></KeepAlive></RouterView>'
+    },
+    {
+      global: { plugins: [router], stubs: { ElDialog: true } }
+    }
+  )
+  try {
+    await flushPromises()
+    await router.push('/elsewhere')
+    await router.push('/cards')
+    await flushPromises()
+    expect(wrapper.get('.batch-history').text()).toContain('成功 1')
+    finishOld([{ ...success, items: [{ ...success.items[0], state: 'queued' }] }])
+    await flushPromises()
+    expect(wrapper.get('.batch-history').text()).toContain('成功 1')
+    expect(wrapper.get('.batch-history').text()).toContain('处理中 0')
+  } finally {
+    wrapper.unmount()
+    scroll.mockRestore()
+  }
+})

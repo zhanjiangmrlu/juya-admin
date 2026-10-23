@@ -155,7 +155,8 @@ const confirmation = ref<{ card: CardView; kind: 'offline' | 'delete' } | null>(
 let pending: (() => Promise<unknown>) | null = null
 let alive = true,
   historyTimer: ReturnType<typeof setTimeout> | null = null,
-  historyChecks = 0
+  historyChecks = 0,
+  historyGeneration = 0
 let managementTimer: ReturnType<typeof setTimeout> | null = null,
   managementGeneration = 0,
   managementChecks = 0
@@ -321,6 +322,7 @@ const batchSummary = (batch: components['schemas']['BatchView']) =>
  * @param automatic 是否由上次刷新定时触发
  */
 const loadBatches = async (automatic = false) => {
+  const run = ++historyGeneration
   if (historyTimer) {
     clearTimeout(historyTimer)
     historyTimer = null
@@ -330,8 +332,21 @@ const loadBatches = async (automatic = false) => {
     const value = await api.request<components['schemas']['BatchView'][]>(
       '/api/admin/v1/publication-batches'
     )
-    if (!alive || route.path !== '/cards') return
+    if (!alive || run !== historyGeneration || route.path !== '/cards') return
+    const previousSuccesses = new Set(
+      batches.value.flatMap((batch) =>
+        batch.items
+          .filter((item) => item.state === 'succeeded')
+          .map((item) => `${batch.id}:${item.id}`)
+      )
+    )
+    const newlySucceeded = value.some((batch) =>
+      batch.items.some(
+        (item) => item.state === 'succeeded' && !previousSuccesses.has(`${batch.id}:${item.id}`)
+      )
+    )
     batches.value = value
+    if (newlySucceeded) void refresh()
     historyError.value = ''
     if (
       value.some((batch) =>
@@ -345,8 +360,13 @@ const loadBatches = async (automatic = false) => {
       }, 5000)
     }
   } catch (reason) {
-    if (alive) historyError.value = reason instanceof Error ? reason.message : '发布记录暂未获取'
+    if (alive && run === historyGeneration && route.path === '/cards')
+      historyError.value = reason instanceof Error ? reason.message : '发布记录暂未获取'
   }
+}
+/** Worker 已确认发布成功后刷新原筛选列表，不改变用户成绩规则 */
+const publicationChanged = () => {
+  void refresh()
 }
 /** 关闭发布层后，保留服务器记录并刷新原列表
  * @param batchId 已接受的批次，取消预览时为空
@@ -444,12 +464,16 @@ onDeactivated(() => {
   image.value = null
   batchOpen.value = false
   actionOpen.value = false
+  historyGeneration++
   if (historyTimer) clearTimeout(historyTimer)
+  historyTimer = null
   stopManagement()
 })
 onBeforeUnmount(() => {
   alive = false
+  historyGeneration++
   if (historyTimer) clearTimeout(historyTimer)
+  historyTimer = null
   stopManagement()
 })
 </script>
@@ -722,6 +746,7 @@ onBeforeUnmount(() => {
       :card-ids="selected"
       :batch-id="selectedBatch || undefined"
       @close="closeBatch"
+      @changed="publicationChanged"
     />
     <ScenePreview
       v-if="preview"

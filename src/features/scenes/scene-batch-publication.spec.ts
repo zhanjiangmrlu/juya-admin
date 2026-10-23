@@ -140,3 +140,103 @@ it('requires reviewed confirmation and submits only the latest eligible cards', 
     vi.useRealTimers()
   }
 })
+
+it('keeps queued and failed items honest and signals only newly persisted successes', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout'] })
+  let state = 'queued'
+  request.mockImplementation(async () => ({
+    id: 'worker-result',
+    created_at: '2026-10-23T00:00:00Z',
+    items: [
+      {
+        id: 'first',
+        card_id: 'one',
+        name: '重新发布',
+        title_en: '',
+        state,
+        job_id: 'job-one',
+        error_code: null
+      },
+      {
+        id: 'second',
+        card_id: 'two',
+        name: '发布失败',
+        title_en: '',
+        state: 'failed',
+        job_id: 'job-two',
+        error_code: 'publish_failed'
+      }
+    ]
+  }))
+  const page = mount(SceneBatchPublication, {
+    props: { batchId: 'worker-result' },
+    global: { stubs: { ElDialog: { template: '<div><slot/><slot name="footer"/></div>' } } }
+  })
+  try {
+    await flushPromises()
+    expect(page.text()).toContain('成功 0 张')
+    expect(page.text()).toContain('处理中 1 张')
+    expect(page.text()).toContain('失败 1 张')
+    expect(page.emitted('changed')).toBeUndefined()
+    state = 'succeeded'
+    await vi.advanceTimersByTimeAsync(1100)
+    await flushPromises()
+    expect(page.text()).toContain('成功 1 张')
+    expect(page.text()).toContain('处理中 0 张')
+    expect(page.emitted('changed')).toHaveLength(1)
+    await page
+      .findAll('button')
+      .find((button) => button.text() === '刷新结果')!
+      .trigger('click')
+    await flushPromises()
+    expect(page.emitted('changed')).toHaveLength(1)
+  } finally {
+    page.unmount()
+    vi.clearAllTimers()
+    vi.useRealTimers()
+  }
+})
+
+it('retains processing on a query failure and clears the query error when the durable result recovers', async () => {
+  const queued = {
+    id: 'query-recovery',
+    created_at: '',
+    items: [
+      {
+        id: 'item',
+        card_id: 'one',
+        name: '等待结果',
+        title_en: '',
+        state: 'queued',
+        job_id: 'worker',
+        error_code: null
+      }
+    ]
+  }
+  request.mockResolvedValueOnce(queued)
+  request.mockRejectedValueOnce(new ApiError('network_unknown', '结果查询连接中断'))
+  const page = mount(SceneBatchPublication, {
+    props: { batchId: 'query-recovery' },
+    global: { stubs: { ElDialog: { template: '<div><slot/><slot name="footer"/></div>' } } }
+  })
+  try {
+    await flushPromises()
+    expect(page.get('.result-totals').text()).toContain('成功 0 张')
+    expect(page.get('.result-totals').text()).toContain('处理中 1 张')
+    expect(page.get('.result-totals').text()).toContain('失败 0 张')
+    expect(page.get('[role="alert"]').text()).toContain('结果查询连接中断')
+    request.mockResolvedValueOnce({
+      ...queued,
+      items: [{ ...queued.items[0], state: 'succeeded' }]
+    })
+    await page
+      .findAll('button')
+      .find((button) => button.text() === '刷新结果')!
+      .trigger('click')
+    await flushPromises()
+    expect(page.get('.result-totals').text()).toContain('成功 1 张')
+    expect(page.find('[role="alert"]').exists()).toBe(false)
+  } finally {
+    page.unmount()
+  }
+})

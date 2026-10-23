@@ -521,7 +521,8 @@ export interface paths {
     get: operations['read_api_admin_v1_imports__batch_id__get']
     put?: never
     post?: never
-    delete?: never
+    /** Delete Batch */
+    delete: operations['delete_batch_api_admin_v1_imports__batch_id__delete']
     options?: never
     head?: never
     patch?: never
@@ -1183,12 +1184,27 @@ export interface components {
       /** Items */
       items: components['schemas']['DailyRecord'][]
     }
+    /** DeleteImport */
+    DeleteImport: {
+      /** Expected Updated At */
+      expected_updated_at: string
+    }
     /** DeletedCard */
     DeletedCard: {
       /** Id */
       id: string
       /** Deleted */
       deleted: boolean
+    }
+    /** DeletedImport */
+    DeletedImport: {
+      /** Id */
+      id: string
+      /**
+       * Deleted
+       * @constant
+       */
+      deleted: true
     }
     /** Dialogue */
     Dialogue: {
@@ -5918,6 +5934,122 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ImportBatchView']
+        }
+      }
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Gone */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unprocessable Content */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Service Unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  delete_batch_api_admin_v1_imports__batch_id__delete: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        batch_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DeleteImport']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DeletedImport']
         }
       }
       /** @description Bad Request */

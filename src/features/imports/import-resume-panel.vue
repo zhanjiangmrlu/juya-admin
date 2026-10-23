@@ -14,7 +14,7 @@ const props = defineProps<{
   error: string
   notice: string
 }>()
-const emit = defineEmits<{ resume: [id: string]; refresh: [] }>()
+const emit = defineEmits<{ resume: [id: string]; delete: [batch: ImportBatch]; refresh: [] }>()
 const expanded = ref(true)
 const single = computed(() => (props.batches.length === 1 ? props.batches[0] : null))
 const stages: Record<ImportBatch['stage'], string> = {
@@ -87,16 +87,26 @@ const problemText = (batch: ImportBatch) => {
             <p v-if="problemText(single)" class="problem">{{ problemText(single) }}</p>
           </template>
         </div>
-        <button
-          v-if="single"
-          type="button"
-          class="primary"
-          data-action="resume-import"
-          :disabled="busy"
-          @click="emit('resume', single.id)"
-        >
-          {{ resumingId === single.id ? '正在恢复…' : '继续处理' }}
-        </button>
+        <div v-if="single" class="row batch-actions">
+          <button
+            type="button"
+            class="text danger"
+            data-action="delete-import-batch"
+            :disabled="busy"
+            @click="emit('delete', single)"
+          >
+            删除批次
+          </button>
+          <button
+            type="button"
+            class="primary"
+            data-action="resume-import"
+            :disabled="busy"
+            @click="emit('resume', single.id)"
+          >
+            {{ resumingId === single.id ? '正在恢复…' : '继续处理' }}
+          </button>
+        </div>
         <button
           v-else
           type="button"
@@ -116,15 +126,26 @@ const problemText = (batch: ImportBatch) => {
             <p class="metadata">{{ dateText(value.updated_at) }} · {{ stages[value.stage] }}</p>
             <p v-if="problemText(value)" class="problem">{{ problemText(value) }}</p>
           </div>
-          <button
-            type="button"
-            class="text"
-            data-action="resume-import"
-            :disabled="busy"
-            @click="emit('resume', value.id)"
-          >
-            {{ resumingId === value.id ? '正在恢复…' : '继续处理' }}
-          </button>
+          <div class="row batch-actions">
+            <button
+              type="button"
+              class="text danger"
+              data-action="delete-import-batch"
+              :disabled="busy"
+              @click="emit('delete', value)"
+            >
+              删除批次
+            </button>
+            <button
+              type="button"
+              class="text"
+              data-action="resume-import"
+              :disabled="busy"
+              @click="emit('resume', value.id)"
+            >
+              {{ resumingId === value.id ? '正在恢复…' : '继续处理' }}
+            </button>
+          </div>
         </li>
       </ul>
     </section>
@@ -179,6 +200,12 @@ const problemText = (batch: ImportBatch) => {
     line-height: 24px;
     margin-top: 5px;
     overflow-wrap: anywhere;
+  }
+
+  .batch-actions {
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .resume-list {

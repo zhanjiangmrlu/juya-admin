@@ -11,7 +11,7 @@ import type { BatchPublicationProps, PublicationCheck } from '@/shared/types/pub
 
 import SceneTitle from './scene-title.vue'
 const props = withDefaults(defineProps<BatchPublicationProps>(), { cardIds: () => [] })
-const emit = defineEmits<{ close: [batchId: string | null] }>()
+const emit = defineEmits<{ close: [batchId: string | null]; changed: [] }>()
 const checks = ref<PublicationCheck[]>([]),
   checking = ref(false),
   checkedCount = ref(0),
@@ -39,6 +39,23 @@ const pendingCount = computed(
   () =>
     result.value?.items.filter((item) => !['succeeded', 'failed'].includes(item.state)).length || 0
 )
+const observedSuccesses = new Set<string>()
+/** 展示服务端持久结果，仅在首次观察到成功时通知列表刷新
+ * @param value 服务端已接受或 Worker 已落盘的逐卡发布结果
+ */
+const acceptResult = (value: components['schemas']['BatchView']) => {
+  result.value = value
+  error.value = ''
+  let changed = false
+  for (const item of value.items) {
+    const key = `${value.id}:${item.id}`
+    if (item.state === 'succeeded' && !observedSuccesses.has(key)) {
+      observedSuccesses.add(key)
+      changed = true
+    }
+  }
+  if (changed) emit('changed')
+}
 let alive = true,
   pollGeneration = 0,
   publishKey = '',
@@ -56,7 +73,7 @@ const poll = async () => {
         `/api/admin/v1/publication-batches/${batchId}`
       )
       if (!alive || run !== pollGeneration) return
-      result.value = value
+      acceptResult(value)
       if (value.items.every((item) => ['succeeded', 'failed'].includes(item.state))) return
       await new Promise((resolve) => setTimeout(resolve, 1000))
     }
@@ -77,7 +94,7 @@ const restore = async (id: string) => {
     const value = await api.request<components['schemas']['BatchView']>(
       `/api/admin/v1/publication-batches/${id}`
     )
-    if (alive) result.value = value
+    if (alive) acceptResult(value)
   } catch (reason) {
     if (alive) error.value = reason instanceof Error ? reason.message : '暂未获取这次发布'
   } finally {
@@ -190,7 +207,7 @@ const publish = async () => {
       { method: 'POST', body: submission, key: publishKey }
     )
     if (alive) {
-      result.value = value
+      acceptResult(value)
       unknown.value = false
       void poll()
     }
@@ -219,7 +236,7 @@ const recover = async () => {
       `/api/admin/v1/operations/${publishKey}`
     )
     if (alive) {
-      result.value = value.result as components['schemas']['BatchView']
+      acceptResult(value.result as components['schemas']['BatchView'])
       unknown.value = false
       void poll()
     }
@@ -242,7 +259,7 @@ const retry = async () => {
       { method: 'POST', key: retryKey }
     )
     if (alive) {
-      result.value = value
+      acceptResult(value)
       retryKey = ''
       notice.value = '资料有变化的项目需重新核对，已经成功的项目不会重复发布'
       void poll()
@@ -309,6 +326,9 @@ onBeforeUnmount(() => {
         ><span>失败 {{ failed.length }} 张</span>
       </div>
       <p class="muted small">关闭后仍会继续处理，结果可从卡片管理再次查看。</p>
+      <p class="muted small">
+        重新发布后，未学卡会回到待学列表；已学卡保留成绩，可从学习记录或收藏复习。
+      </p>
       <table class="result-table">
         <thead>
           <tr>
