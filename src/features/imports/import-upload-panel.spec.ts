@@ -69,6 +69,23 @@ const accepted = (name: string): ImportFile => ({
   media_id: null,
   progress: null
 })
+
+it('can remove an accepted ZIP while another file is still transferring', async () => {
+  upload
+    .mockResolvedValueOnce(accepted('one.zip'))
+    .mockImplementationOnce(() => new Promise(() => {}))
+  const page = panel()
+  await choose(page, ['one.zip', 'two.zip'])
+  await page.get('[data-action="start-upload"]').trigger('click')
+  await flushPromises()
+  const first = page.findAll('li').find((row) => row.text().includes('one.zip'))!
+  await first.get('[data-action="remove-accepted-upload"]').trigger('click')
+  expect(page.emitted('remove')?.at(-1)).toEqual([['one.zip']])
+  expect(page.find('progress').exists()).toBe(true)
+  await page.setProps({ removedFileIds: ['one.zip'] })
+  expect(page.text()).not.toContain('one.zip')
+  expect(page.text()).toContain('two.zip')
+})
 beforeEach(() => {
   vi.clearAllMocks()
 })
@@ -281,14 +298,16 @@ it('requires corrected originals for invalid sources and only retries applicable
   const page = mount(ImportUploadPanel, { props: { batch: { ...batch, files }, limits } })
   pages.push(page)
   const badPackage = page.findAll('li').find((row) => row.text().includes('broken.zip'))!
-  expect(badPackage.find('button').exists()).toBe(false)
+  expect(badPackage.findAll('button').some((button) => button.text().includes('重试'))).toBe(false)
+  expect(badPackage.find('[data-action="remove-accepted-upload"]').exists()).toBe(true)
   expect(page.findAll('button').filter((button) => button.text().includes('重试'))).toHaveLength(1)
   expect(page.text()).toContain('重新选择')
   request.mockResolvedValueOnce({})
   await page
     .findAll('li')
     .find((row) => row.text().includes('interrupted.zip'))!
-    .get('button')
+    .findAll('button')
+    .find((button) => button.text().includes('重试'))!
     .trigger('click')
   await flushPromises()
   expect(

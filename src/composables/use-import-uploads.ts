@@ -148,9 +148,30 @@ export const useImportUploads = (
     if (item.busy || item.accepted || item.unknown) return
     uploads.value = uploads.value.filter((value) => value.id !== item.id)
   }
+  /** 清理服务端确认移除的接收记录，其他传输和队列继续运行
+   * @param ids 已从本批次移除的源文件编号
+   */
+  const discardAccepted = (ids: string[]) => {
+    const removed = new Set(ids)
+    const retained = uploads.value.filter(
+      (item) => !item.accepted || !removed.has(item.accepted.id)
+    )
+    if (retained.length !== uploads.value.length) uploads.value = retained
+  }
   onBeforeUnmount(() => {
     alive = false
     for (const controller of controllers.values()) controller.abort()
   })
-  return { uploads, running, transferring, pendingCount, add, start, retryUpload, cancel, remove }
+  return {
+    uploads,
+    running,
+    transferring,
+    pendingCount,
+    add,
+    start,
+    retryUpload,
+    cancel,
+    remove,
+    discardAccepted
+  }
 }

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
+
 import SceneTitle from '@/features/scenes/scene-title.vue'
 import { mediaURL } from '@/services/display'
 import { importStates } from '@/shared/constants/import'
@@ -24,10 +26,66 @@ const sourceName = (entry: ImportEntry) => {
   ]
   return `${entry.item.source_zip_name}${sources.length > 1 ? `（第${sources.indexOf(entry.item.source_zip_id) + 1}包）` : ''}`
 }
-const emit = defineEmits<{ select: [entry: ImportEntry, event: Event]; expand: [id: string] }>()
+const managing = ref(false),
+  removalIds = ref<string[]>([])
+/** 切换批量移除模式，并清空上一轮独立选择范围 */
+const toggleManaging = () => {
+  managing.value = !managing.value
+  removalIds.value = []
+}
+/** 判断当前导入项是否尚未提交草稿保存
+ * @param entry 当前列表中的独立核对记录
+ * @returns 是否可以从本次导入移除
+ */
+const removable = (entry: ImportEntry) =>
+  !entry.item.job_id && !entry.item.saved_card_id && !entry.saving
+/** 在批量移除模式下维护独立范围，保存勾选不受影响
+ * @param entry 当前被勾选的核对记录
+ * @param event 复选框变化事件
+ */
+const chooseRemoval = (entry: ImportEntry, event: Event) => {
+  removalIds.value = removalIds.value.filter((id) => id !== entry.item.id)
+  if ((event.target as HTMLInputElement).checked) removalIds.value.push(entry.item.id)
+}
+watch(
+  () => props.entries,
+  () => {
+    removalIds.value = removalIds.value.filter((id) =>
+      props.entries.some((entry) => entry.item.id === id && removable(entry))
+    )
+  }
+)
+const emit = defineEmits<{
+  select: [entry: ImportEntry, event: Event]
+  expand: [id: string]
+  remove: [ids: string[]]
+}>()
 </script>
 <template>
   <div class="table-wrap review-list">
+    <div class="row removal-actions">
+      <button type="button" data-action="manage-removals" :disabled="busy" @click="toggleManaging">
+        {{ managing ? '退出批量移除' : '批量移除卡片' }}
+      </button>
+      <template v-if="managing">
+        <button
+          type="button"
+          :disabled="busy"
+          @click="removalIds = entries.filter(removable).map((entry) => entry.item.id)"
+        >
+          选择全部可移除项
+        </button>
+        <button
+          type="button"
+          data-action="remove-selected-items"
+          :disabled="busy || !removalIds.length"
+          @click="emit('remove', removalIds)"
+        >
+          移除所选 {{ removalIds.length }} 张
+        </button>
+      </template>
+    </div>
+    <p v-if="!entries.length" class="notice">本次暂无待核对卡片，可返回补充文件继续上传。</p>
     <table>
       <thead>
         <tr>
@@ -42,6 +100,15 @@ const emit = defineEmits<{ select: [entry: ImportEntry, event: Event]; expand: [
           <tr :data-item-id="entry.item.id" :class="{ active: activeId === entry.item.id }">
             <td>
               <input
+                v-if="managing"
+                type="checkbox"
+                :checked="removalIds.includes(entry.item.id)"
+                :disabled="busy || !removable(entry)"
+                :aria-label="`移除 ${entry.edit.content.name}`"
+                @change="chooseRemoval(entry, $event)"
+              />
+              <input
+                v-else
                 type="checkbox"
                 :checked="entry.edit.selected"
                 :disabled="
@@ -89,6 +156,15 @@ const emit = defineEmits<{ select: [entry: ImportEntry, event: Event]; expand: [
               <button
                 type="button"
                 class="text small"
+                data-action="remove-import-item"
+                :disabled="busy || !removable(entry)"
+                @click="emit('remove', [entry.item.id])"
+              >
+                移除
+              </button>
+              <button
+                type="button"
+                class="text small"
                 :disabled="busy"
                 :aria-expanded="activeId === entry.item.id"
                 :aria-controls="`review-${entry.item.id}`"
@@ -112,6 +188,11 @@ const emit = defineEmits<{ select: [entry: ImportEntry, event: Event]; expand: [
 </template>
 <style scoped lang="scss">
 .review-list {
+  .removal-actions {
+    padding: 12px 0;
+    flex-wrap: wrap;
+  }
+
   table {
     table-layout: fixed;
     min-width: 700px;

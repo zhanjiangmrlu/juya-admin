@@ -160,3 +160,129 @@ test('bad ZIP and bad folder do not block readable cards; incomplete audio saves
   expect(draft.status).toBe('draft')
   expect(draft.current_version_id).toBeNull()
 })
+
+/** 将独立验收ZIP加入当前批次并启动传输
+ * @param page 当前导入页面
+ * @param names 本轮验收资料的ZIP文件名
+ */
+const uploadSources = async (page: Page, names: string[]) => {
+  await page
+    .locator('input[type="file"][accept=".zip"]')
+    .first()
+    .setInputFiles(names.map((name) => join(root, name)))
+  await page.locator('[data-action="start-upload"]').click()
+}
+
+test('deleted-card reimport saves a new draft and a later duplicate can be removed', async ({
+  page
+}) => {
+  await begin(page)
+  await uploadSources(page, ['reimport.zip'])
+  await review(page)
+  await save(page, 1)
+  const firstBatchId = new URL(page.url()).searchParams.get('batch')
+  const first = await (await page.request.get(`/api/admin/v1/imports/${firstBatchId}`)).json()
+  const old = first.items[0]
+  const session = await (await page.request.get('/api/admin/v1/auth/session')).json()
+  const deleted = await page.request.delete(`/api/admin/v1/cards/${old.saved_card_id}`, {
+    headers: { 'X-CSRF-Token': session.csrf_token, 'Idempotency-Key': crypto.randomUUID() },
+    data: { revision: old.saved_draft_revision }
+  })
+  expect(deleted.status()).toBe(200)
+  await page.getByRole('button', { name: '开始新的导入', exact: true }).click()
+  await uploadSources(page, ['reimport.zip'])
+  await review(page)
+  await expect(page.locator('.review-list')).not.toContainText('重复，默认跳过')
+  await save(page, 1)
+  const secondBatchId = new URL(page.url()).searchParams.get('batch')
+  const second = await (await page.request.get(`/api/admin/v1/imports/${secondBatchId}`)).json()
+  expect(second.items[0].saved_card_id).not.toBe(old.saved_card_id)
+  expect((await page.request.get(`/api/admin/v1/cards/${old.saved_card_id}`)).status()).toBe(410)
+  await page.getByRole('button', { name: '开始新的导入', exact: true }).click()
+  await uploadSources(page, ['reimport.zip'])
+  await review(page)
+  await expect(page.locator('.review-list')).toContainText('重复，默认跳过')
+  await page.screenshot({
+    path: 'test-results/import-duplicate-removal.png',
+    fullPage: true,
+    animations: 'disabled'
+  })
+  await page.locator('[data-action="remove-import-item"]').click()
+  await expect(page.getByRole('dialog')).toContainText('删除后重传验收')
+  await page.locator('[data-action="confirm-import-removal"]').click()
+  await expect(page.locator('.review-list tr[data-item-id]')).toHaveCount(0)
+  await page.reload()
+  await expect(page.locator('.import-summary')).toContainText('识别卡片 0 张')
+})
+
+test('an accepted ZIP can be removed during a sibling upload and bulk removal preserves the remaining ZIP', async ({
+  page
+}) => {
+  await begin(page)
+  let release: (() => void) | undefined
+  const held = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let uploads = 0
+  await page.route(/\/imports\/[^/]+\/files\?kind=zip$/, async (route) => {
+    uploads++
+    if (uploads === 2) await held
+    await route.continue()
+  })
+  await uploadSources(page, [
+    'remove-one.zip',
+    'remove-two.zip',
+    'remove-three.zip',
+    'remove-keep.zip'
+  ])
+  const first = page.locator('.file-list li').filter({ hasText: 'remove-one.zip' })
+  await first.locator('[data-action="remove-accepted-upload"]').click()
+  await page.locator('[data-action="confirm-import-removal"]').click()
+  await expect(first).toHaveCount(0)
+  release?.()
+  await expect(page.getByRole('button', { name: '进入核对', exact: true })).toBeEnabled({
+    timeout: 25000
+  })
+  await page.getByLabel('移除ZIP remove-two.zip', { exact: true }).check()
+  await page.getByLabel('移除ZIP remove-three.zip', { exact: true }).check()
+  await page.locator('[data-action="remove-selected-files"]').click()
+  await expect(page.getByRole('dialog')).toContainText('2 个ZIP')
+  await page.screenshot({
+    path: 'test-results/import-zip-removal-confirmation.png',
+    fullPage: true,
+    animations: 'disabled'
+  })
+  await page.locator('[data-action="confirm-import-removal"]').click()
+  await expect(page.locator('.file-list li')).toHaveCount(1)
+  await review(page)
+  await expect(page.locator('.review-list tr[data-item-id]')).toHaveCount(1)
+  await expect(page.locator('.review-list')).toContainText('保留ZIP验收')
+  await save(page, 1)
+})
+
+test('single and bulk card removal keep the other folders and their ZIP source', async ({
+  page
+}) => {
+  await begin(page)
+  await uploadSources(page, ['removal-folders.zip'])
+  await review(page)
+  await expect(page.locator('.review-list tr[data-item-id]')).toHaveCount(4)
+  await page
+    .locator('.review-list tr[data-item-id]')
+    .filter({ hasText: '文件夹移除0' })
+    .locator('[data-action="remove-import-item"]')
+    .click()
+  await page.locator('[data-action="confirm-import-removal"]').click()
+  await expect(page.locator('.review-list tr[data-item-id]')).toHaveCount(3)
+  await page.locator('[data-action="manage-removals"]').click()
+  await page.getByLabel('移除 文件夹移除1', { exact: true }).check()
+  await page.getByLabel('移除 文件夹移除2', { exact: true }).check()
+  await page.locator('[data-action="remove-selected-items"]').click()
+  await page.locator('[data-action="confirm-import-removal"]').click()
+  await expect(page.locator('.review-list tr[data-item-id]')).toHaveCount(1)
+  await page.reload()
+  await expect(page.locator('.review-list tr[data-item-id]')).toHaveCount(1)
+  await expect(page.locator('.import-summary')).toContainText('ZIP 1 个')
+  await expect(page.locator('.review-list')).toContainText('文件夹移除3')
+  await save(page, 1)
+})
