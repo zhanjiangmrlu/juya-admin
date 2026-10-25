@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
 import { useResource } from '@/composables/use-resource'
+import UserAuthorization from '@/features/learning-access/user-authorization.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import UserLearningRecords from '@/features/users/user-learning-records.vue'
 import { contactSourceText, dateText, mediaURL } from '@/services/display'
@@ -47,7 +48,7 @@ onMounted(() => {
     <div class="page-heading between">
       <div>
         <h1>{{ data?.nickname || '学习者' }} · 用户详情</h1>
-        <p>只读查看账号资料和学习数据。</p>
+        <p>账号资料与学习数据只读，学习授权可管理。</p>
       </div>
       <RouterLink :to="String(route.query.back || '/users')" class="button-link"
         >返回用户列表</RouterLink
@@ -55,6 +56,12 @@ onMounted(() => {
     </div>
     <AppState :busy="busy" :error="error" @retry="refresh" />
     <template v-if="data && !busy">
+      <UserAuthorization
+        v-if="data.authorization"
+        :user-id="userId"
+        :authorization="data.authorization"
+        @changed="refresh"
+      />
       <div class="profile-overview">
         <section class="panel account-panel">
           <h2>账号资料</h2>

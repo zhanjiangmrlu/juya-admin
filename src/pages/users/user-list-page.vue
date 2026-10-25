@@ -25,17 +25,22 @@ const route = useRoute(),
 const registered = computed(() => String(route.query.registered || 'all')),
   checkin = computed(() => String(route.query.checkin || 'all')),
   page = computed(() => Number(route.query.page || 1))
-const { data, busy, error, refresh } = useResource(() =>
-  api.request<components['schemas']['AdminUserPage']>(
+const { data, busy, error, refresh } = useResource(async () => {
+  const requested = route.fullPath
+  const value = await api.request<components['schemas']['AdminUserPage']>(
     queryURL('/api/admin/v1/users', {
       search: route.query.search || '',
       registered: registered.value,
       checkin: checkin.value,
+      authorization_status: route.query.authorization_status || 'all',
       page: page.value,
       limit: 20
     })
   )
-)
+  if (route.path === '/users' && route.fullPath === requested && value.page !== page.value)
+    await router.replace({ query: { ...route.query, page: value.page } })
+  return value
+})
 let scrollTop = 0,
   active = true,
   activated = false,
@@ -141,6 +146,18 @@ onBeforeUnmount(() => {
         </div>
       </form>
       <div class="registration-filter segments">
+        <label
+          >学习授权<select
+            :value="route.query.authorization_status || 'all'"
+            aria-label="学习授权筛选"
+            @change="filter({ authorization_status: ($event.target as HTMLSelectElement).value })"
+          >
+            <option value="all">全部授权状态</option>
+            <option value="none">未授权</option>
+            <option value="active">授权有效</option>
+            <option value="expired">已到期</option>
+          </select></label
+        >
         <span>注册日期</span>
         <button
           type="button"
@@ -165,7 +182,12 @@ onBeforeUnmount(() => {
         empty-title="暂无符合条件的用户"
         empty-text="可调整筛选条件或清空搜索重试"
         @retry="refresh"
-        ><button type="button" @click="filter({ search: '', registered: 'all', checkin: 'all' })">
+        ><button
+          type="button"
+          @click="
+            filter({ search: '', registered: 'all', checkin: 'all', authorization_status: 'all' })
+          "
+        >
           清空条件
         </button></AppState
       >
@@ -175,6 +197,7 @@ onBeforeUnmount(() => {
             <tr>
               <th>用户</th>
               <th>联系方式</th>
+              <th>学习授权</th>
               <th>已学场景卡</th>
               <th>连续打卡</th>
               <th>累计打卡</th>
@@ -210,6 +233,15 @@ onBeforeUnmount(() => {
                     <small class="badge draft">{{ contactSourceText(user.wechat_source) }}</small>
                   </p> </template
                 ><span v-else class="muted">未填写</span>
+              </td>
+              <td>
+                {{
+                  user.authorization?.status === 'active'
+                    ? '授权有效'
+                    : user.authorization?.status === 'expired'
+                      ? '已到期'
+                      : '未授权'
+                }}
               </td>
               <td>{{ user.statistics.completed_cards }} 张</td>
               <td>

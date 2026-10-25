@@ -51,9 +51,14 @@ const open = async () => {
 
 beforeEach(() => {
   scroll = 0
-  request
-    .mockReset()
-    .mockImplementation(async (path: string) => (path.includes('/users?') ? rows : user))
+  request.mockReset().mockImplementation(async (path: string) =>
+    path.includes('/users?')
+      ? {
+          ...rows,
+          page: Number(new URL(path, 'https://example.test').searchParams.get('page') || 1)
+        }
+      : user
+  )
   vi.spyOn(window, 'scrollY', 'get').mockImplementation(() => scroll)
   vi.spyOn(window, 'scrollTo').mockImplementation((...args: unknown[]) => {
     scroll = (args[0] as ScrollToOptions).top || 0
@@ -76,7 +81,12 @@ it.each(['explicit', 'history'])(
     expect(scroll).toBe(650)
     expect(page.get('input').element.value).toBe('Readonly')
     expect(page.text()).toContain('返回数据统计')
-    expect(request.mock.calls.at(-1)![0]).toContain('registered=today&checkin=unchecked&page=2')
+    const query = new URL(request.mock.calls.at(-1)![0], 'https://example.test').searchParams
+    expect([query.get('registered'), query.get('checkin'), query.get('page')]).toEqual([
+      'today',
+      'unchecked',
+      '2'
+    ])
     await page.get('form').trigger('submit')
     await flushPromises()
     expect(router.currentRoute.value.query.page).toBe('1')
@@ -108,5 +118,18 @@ it('never scrolls the next detail when a returning list response arrives late', 
   await flushPromises()
   expect(router.currentRoute.value.path).toBe('/users/user-one')
   expect(window.scrollTo).not.toHaveBeenCalled()
+  page.unmount()
+})
+
+it('uses the server fallback page after the current filter no longer has a second page', async () => {
+  request.mockImplementation(async (path: string) =>
+    path.includes('/users?') ? { ...rows, total: 20, page: 1 } : user
+  )
+  const { router, page } = await open()
+  await flushPromises()
+  expect(router.currentRoute.value.query.page).toBe('1')
+  expect(router.currentRoute.value.query.registered).toBe('today')
+  expect(router.currentRoute.value.query.checkin).toBe('unchecked')
+  expect(page.text()).toContain('共 20 位用户')
   page.unmount()
 })
