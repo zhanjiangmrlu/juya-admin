@@ -193,6 +193,16 @@ onBeforeUnmount(() => {
       >
       <div v-if="data && data.total && !busy && !error" class="table-wrap">
         <table>
+          <colgroup>
+            <col class="user-column" />
+            <col class="contact-column" />
+            <col class="authorization-column" />
+            <col class="completed-column" />
+            <col class="streak-column" />
+            <col class="checkin-column" />
+            <col class="times-column" />
+            <col class="actions-column" />
+          </colgroup>
           <thead>
             <tr>
               <th>用户</th>
@@ -337,33 +347,32 @@ onBeforeUnmount(() => {
 
   table {
     table-layout: fixed;
+    min-width: 1120px;
 
-    th:first-child {
-      width: 16%;
+    .user-column {
+      width: 18%;
     }
 
-    th:nth-child(2) {
-      width: 24%;
-    }
-
-    th:nth-child(3) {
-      width: 9%;
-    }
-
-    th:nth-child(4) {
-      width: 12%;
-    }
-
-    th:nth-child(5) {
-      width: 9%;
-    }
-
-    th:nth-child(6) {
+    .contact-column {
       width: 20%;
     }
 
-    th:last-child {
+    .authorization-column,
+    .completed-column {
+      width: 9%;
+    }
+
+    .streak-column {
       width: 10%;
+    }
+
+    .checkin-column,
+    .actions-column {
+      width: 8%;
+    }
+
+    .times-column {
+      width: 18%;
     }
   }
 
@@ -381,6 +390,10 @@ onBeforeUnmount(() => {
   .user-times {
     font-size: 12px;
     line-height: 1.8;
+
+    p {
+      white-space: nowrap;
+    }
   }
 
   .user-pagination {
