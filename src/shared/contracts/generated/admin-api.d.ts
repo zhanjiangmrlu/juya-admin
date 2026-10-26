@@ -1128,6 +1128,8 @@ export interface components {
       registered_at: string
       /** Last Login At */
       last_login_at: string
+      /** User Code */
+      user_code: string
       authorization?: components['schemas']['AuthorizationView'] | null
       statistics: components['schemas']['Statistics']
     }
@@ -1433,6 +1435,8 @@ export interface components {
       id: string
       /** User Id */
       user_id: string
+      /** User Code */
+      user_code: string
       /**
        * Category
        * @enum {string}

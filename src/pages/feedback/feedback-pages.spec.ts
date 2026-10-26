@@ -15,6 +15,7 @@ import { useAdminStore } from '@/stores/admin-store'
 const feedback = {
   id: 'FB1001',
   user_id: 'U1001',
+  user_code: 'Juya001',
   category: 'content',
   status: 'pending',
   summary: '释义需要核对',
@@ -91,6 +92,9 @@ it('queries server search and status without clearing list unread', async () => 
   })
   expect(page.find('img[alt="未读用户补充"]').exists()).toBe(true)
   expect(page.text()).toContain('晨间活动')
+  expect(page.text()).toContain('Juya001')
+  expect(page.text()).toContain('FB1001')
+  expect(page.get('tbody').text()).not.toContain('U1001')
   expect(page.text()).toContain('已删除')
   expect(request.mock.calls.every(([, options]) => !options?.method)).toBe(true)
   await page.get('input[type="search"]').setValue('U1001')

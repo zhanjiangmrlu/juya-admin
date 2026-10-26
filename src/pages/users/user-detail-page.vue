@@ -59,6 +59,7 @@ onMounted(() => {
       <UserAuthorization
         v-if="data.authorization"
         :user-id="userId"
+        :user-code="data.user_code"
         :authorization="data.authorization"
         @changed="refresh"
       />
@@ -75,7 +76,7 @@ onMounted(() => {
           <dl class="profile-fields">
             <div>
               <dt>用户编号</dt>
-              <dd>{{ data.id }}</dd>
+              <dd>{{ data.user_code }}</dd>
             </div>
             <div>
               <dt>注册时间</dt>

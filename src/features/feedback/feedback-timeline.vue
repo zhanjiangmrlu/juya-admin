@@ -35,7 +35,7 @@ const renewImage = async (image: FeedbackImage) => {
 </script>
 <template>
   <section class="panel feedback-history">
-    <h2>{{ detail.id }} · {{ detail.user_id }}</h2>
+    <h2>{{ detail.id }} · {{ detail.user_code }}</h2>
     <div class="between">
       <strong>{{ FEEDBACK_CATEGORY_LABELS[detail.category] }}</strong
       ><span

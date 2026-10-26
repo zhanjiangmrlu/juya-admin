@@ -4,6 +4,53 @@ import { describe, expect, it } from 'vitest'
 import SceneReader from './scene-reader.vue'
 
 describe('read-only publication preview', () => {
+  it.each([
+    [
+      [3, 10],
+      [7, 17]
+    ],
+    [
+      [3, 10],
+      [3, 17]
+    ],
+    [
+      [3, 17],
+      [7, 10]
+    ],
+    [
+      [3, 17],
+      [3, 17]
+    ]
+  ])('renders overlapping ranges as their union without repeating the original', (...ranges) => {
+    const english = '😀 tea and coffee.'
+    const page = mount(SceneReader, {
+      props: {
+        content: {
+          name: '茶',
+          title_en: 'Tea',
+          dialogue: [{ id: 'one', speaker: 'A', english, chinese: '茶和咖啡' }],
+          vocabulary: ranges.map(([start, end], index) => ({
+            id: `word-${index}`,
+            english: english.slice(start, end),
+            meaning: '',
+            phonetic: '',
+            pronunciation_text: '',
+            pronunciation_issue: false,
+            source: { line_id: 'one', start: start!, end: end!, quote: english.slice(start, end) }
+          })),
+          chunks: []
+        }
+      }
+    })
+    expect(page.get('.dialogue .english').text()).toBe(english)
+    expect(
+      page
+        .findAll('.dialogue mark')
+        .map((node) => node.text())
+        .join('')
+    ).toBe('tea and coffee')
+    page.unmount()
+  })
   it('shows both saved titles and independently hides missing vocabulary fields', () => {
     const page = mount(SceneReader, {
       props: {

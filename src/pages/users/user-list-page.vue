@@ -228,7 +228,7 @@ onBeforeUnmount(() => {
                   <div v-else class="avatar default"><AppIcon name="user" :size="17" /></div>
                   <div>
                     <strong>{{ user.nickname || '学习者' }}</strong>
-                    <p class="identifier">{{ user.id }}</p>
+                    <p class="identifier">{{ user.user_code }}</p>
                   </div>
                 </div>
               </td>

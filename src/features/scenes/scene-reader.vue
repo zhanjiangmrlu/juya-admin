@@ -59,13 +59,23 @@ const segments = (line: components['schemas']['Dialogue']) => {
       (source) =>
         source &&
         source.line_id === line.id &&
+        source.start >= 0 &&
+        source.end > source.start &&
+        source.end <= line.english.length &&
+        Boolean(source.quote) &&
         line.english.slice(source.start, source.end) === source.quote
     )
     .sort((a, b) => a!.start - b!.start)
   const result: { text: string; highlight: boolean }[] = []
-  let cursor = 0
+  const ranges: { start: number; end: number }[] = []
   for (const source of sources) {
-    if (!source || source.start < cursor) continue
+    if (!source) continue
+    const previous = ranges.at(-1)
+    if (previous && source.start <= previous.end) previous.end = Math.max(previous.end, source.end)
+    else ranges.push({ start: source.start, end: source.end })
+  }
+  let cursor = 0
+  for (const source of ranges) {
     result.push(
       { text: line.english.slice(cursor, source.start), highlight: false },
       { text: line.english.slice(source.start, source.end), highlight: true }
