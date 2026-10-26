@@ -10,6 +10,7 @@ enableAutoUnmount(afterEach)
 
 const user = {
   id: 'user-one',
+  user_code: 'Juya001',
   nickname: 'Readonly',
   registered_at: '2026-10-22T01:00:00Z',
   statistics: {
@@ -65,6 +66,16 @@ beforeEach(() => {
   })
 })
 afterEach(() => vi.restoreAllMocks())
+
+it('shows the stable user code while navigation and detail requests retain UUIDs', async () => {
+  const { page } = await open()
+  expect(page.get('.identifier').text()).toBe('Juya001')
+  await page.get('tbody a').trigger('click')
+  await flushPromises()
+  expect(page.get('.profile-fields').text()).toContain('Juya001')
+  expect(request.mock.calls.some(([path]) => path === '/api/admin/v1/users/user-one')).toBe(true)
+  page.unmount()
+})
 
 it.each(['explicit', 'history'])(
   'restores search, both filters, page and scroll on %s return',

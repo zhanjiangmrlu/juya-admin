@@ -161,7 +161,7 @@ onBeforeUnmount(() => {
                 src="@/assets/icons/feedback-unread.svg"
                 alt="未读用户补充"
               />
-              <p>{{ item.user_id }}</p>
+              <p>{{ item.user_code }}</p>
             </td>
             <td>{{ FEEDBACK_CATEGORY_LABELS[item.category] }}</td>
             <td>

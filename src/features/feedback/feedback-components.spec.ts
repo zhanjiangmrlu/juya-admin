@@ -53,6 +53,7 @@ it('keeps source unavailable and timeline safe while a private screenshot fails 
       detail: {
         id: 'one',
         user_id: 'user',
+        user_code: 'Juya001',
         category: 'content',
         status: 'pending',
         source_title: '安全名称',
@@ -75,6 +76,7 @@ it('keeps source unavailable and timeline safe while a private screenshot fails 
     global: { stubs: { ElDialog: true } }
   })
   expect(page.text()).toContain('来源已删除')
+  expect(page.get('h2').text()).toBe('one · Juya001')
   expect(page.find('a').exists()).toBe(false)
   expect(page.find('img[src=x]').exists()).toBe(false)
   const thumbnail = page.get('img[alt="查看反馈截图"]')

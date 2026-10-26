@@ -30,7 +30,7 @@ it('never labels an in-flight renewal preview as revocation when another action 
   })
   await router.push('/')
   const page = mount(UserAuthorization, {
-    props: { userId: 'user', authorization },
+    props: { userId: 'user', userCode: 'Juya001', authorization },
     global: {
       plugins: [router],
       stubs: {
@@ -58,6 +58,7 @@ it('never labels an in-flight renewal preview as revocation when another action 
   await flushPromises()
   expect(page.get('h3').text()).toBe('续期一个月')
   expect(page.text()).toContain('最终到期日：2026-12-25')
+  expect(page.text()).toContain('用户编号：Juya001')
   expect(request.mock.calls).toHaveLength(1)
   expect(request.mock.calls[0][1].body.action).toBe('renew')
   page.unmount()

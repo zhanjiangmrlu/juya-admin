@@ -11,6 +11,7 @@ import { useAccessOperation } from './use-access-operation'
 
 const props = defineProps<{
   userId: string
+  userCode: string
   authorization: components['schemas']['AuthorizationView']
 }>()
 const emit = defineEmits<{ changed: [] }>()
@@ -222,7 +223,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
       :close-on-press-escape="!operation.unknown.value && !operation.busy.value"
       :before-close="cancel"
     >
-      <p>用户编号：{{ userId }}</p>
+      <p>用户编号：{{ userCode }}</p>
       <p>当前到期日：{{ preview.before.expires_on || '尚未授权' }}</p>
       <p>
         {{
