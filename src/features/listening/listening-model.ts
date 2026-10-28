@@ -1,0 +1,121 @@
+import type { ArticlePayload, TimelineWord } from './listening-types'
+
+/** 创建不补造业务资料的空草稿
+ * @returns 待管理员录入的资料
+ */
+export const emptyPayload = (): ArticlePayload => ({
+  title_zh: '',
+  title_en: '',
+  tags: [],
+  body_en: '',
+  translation_zh: '',
+  expressions: Array.from({ length: 5 }, () => ({ english: '', chinese: '', example: '' })),
+  word_meanings: [],
+  audio_id: null,
+  image_id: null
+})
+/** 提示本地已知的必填缺项，音频就绪及最终校验仍以服务端为准
+ * @param payload 当前编辑资料
+ * @param topicId 已确认的主题归属
+ * @returns 可定位的缺项说明
+ */
+export const publishErrors = (payload: ArticlePayload, topicId: string): string[] => [
+  ...(!topicId ? ['请选择有效主题'] : []),
+  ...(!payload.title_zh.trim() ? ['请填写中文标题'] : []),
+  ...(!payload.title_en.trim() ? ['请填写英文标题'] : []),
+  ...(!payload.body_en.trim() ? ['请填写英文正文'] : []),
+  ...(!payload.translation_zh.trim() ? ['请填写全文中文译文'] : []),
+  ...(payload.expressions.length !== 5 ||
+  payload.expressions.some(
+    (item) => !item.english.trim() || !item.chinese.trim() || !item.example.trim()
+  )
+    ? ['需要恰好5组完整表达、中文释义和替换例句']
+    : []),
+  ...(!payload.audio_id ? ['请上传完整英文音频'] : [])
+]
+/** 区分候选的移除资格及保存资格
+ * @param candidates 当前服务端暂存候选
+ * @param selectedIds 管理员明确勾选的编号
+ * @returns 真实有效选择、可保存与可移除的范围
+ */
+export const candidateSelection = (
+  candidates: { id: string; state: string; removed: boolean }[],
+  selectedIds: string[]
+) => {
+  const selected = candidates.filter((item) => !item.removed && selectedIds.includes(item.id))
+  const save = selected
+    .filter((item) => ['complete', 'incomplete'].includes(item.state))
+    .map((item) => item.id)
+  return {
+    selected: selected.map((item) => item.id),
+    save,
+    remove: selected.filter((item) => item.state !== 'saved').map((item) => item.id),
+    excluded: selected.length - save.length
+  }
+}
+/** 调整一套完整顺序中的单篇位置，保持另一套顺序独立
+ * @param ids 当前完整编号集合
+ * @param id 待移动文章
+ * @param direction 向前为-1，向后为1
+ * @returns 调整后的新集合
+ */
+export const moveArticle = (ids: string[], id: string, direction: number) => {
+  const result = [...ids],
+    index = result.indexOf(id),
+    target = index + direction
+  if (index >= 0 && target >= 0 && target < result.length)
+    [result[index], result[target]] = [result[target]!, result[index]!]
+  return result
+}
+/** 用当前媒体时钟计算码点字符与短尾迹，不使用独立动画
+ * @param body 未改写的英文原文
+ * @param words 经服务端校验的词时间轴
+ * @param position 当前音频秒数
+ * @returns 原始字符与当前位置样式
+ */
+export const timelineCharacters = (body: string, words: TimelineWord[], position: number) => {
+  const ms = position * 1000,
+    current = words.find((word) => ms >= word.start_ms && ms < word.end_ms)
+  const point = current
+    ? current.start +
+      Math.min(
+        current.end - current.start - 1,
+        Math.floor(
+          ((ms - current.start_ms) / (current.end_ms - current.start_ms)) *
+            (current.end - current.start)
+        )
+      )
+    : -1
+  return [...body].map((text, index) => ({
+    text,
+    active: index === point,
+    trail: Boolean(current && index < point && index >= Math.max(current.start, point - 8)),
+    opacity: point > index ? Math.max(0, 1 - (point - index) / 9) : 1
+  }))
+}
+export const statusLabels: Record<string, string> = {
+  draft: '草稿',
+  published: '已发布',
+  offline: '已下线',
+  deleted: '已删除',
+  complete: '资料完整',
+  incomplete: '待补充',
+  unreadable: '无法读取',
+  duplicate: '自动跳过',
+  saved: '已保存',
+  pending: '等待生成',
+  processing: '生成中',
+  ready: '可用',
+  needs_attention: '需处理',
+  failed: '失败',
+  missing: '暂无时间轴'
+}
+export const importErrorLabels: Record<string, string> = {
+  listening_target_duplicate: '本批多项选择了同一目标，请分别选择目标后重试',
+  listening_import_snapshot_changed: '候选资料与原确认不同，请返回重新核对',
+  listening_article_changed: '目标草稿已在其他窗口修改，请重新选择目标并核对差异',
+  listening_article_deleted: '目标文章已删除，本次没有更新，请重新选择目标',
+  listening_article_missing: '目标文章已不可用，本次没有更新，请重新选择目标',
+  listening_media_reference_invalid: '素材归属无效，请重新选择本候选或目标现有素材',
+  listening_word_reference_invalid: '正文关联词义位置已变化，请核对后重试'
+}

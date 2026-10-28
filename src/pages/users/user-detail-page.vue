@@ -23,6 +23,7 @@ const metrics = computed(() =>
   data.value
     ? [
         { label: '已学场景卡', value: data.value.statistics.completed_cards, unit: '张' },
+        { label: '已学听读', value: data.value.statistics.completed_articles, unit: '篇' },
         { label: '连续打卡', value: data.value.statistics.current_streak, unit: '天' },
         { label: '累计打卡', value: data.value.statistics.total_checkin_days, unit: '天' }
       ]
@@ -130,8 +131,15 @@ onMounted(() => {
             </div>
           </div>
           <p>
-            {{ data.statistics.checked_in_today ? '今日已打卡' : '今日尚未打卡' }} · 收藏
-            {{ data.statistics.favorite_count ?? '暂未获取' }} 张
+            {{ data.statistics.checked_in_today ? '今日已打卡' : '今日尚未打卡' }} · 场景收藏
+            {{ data.statistics.favorite_count ?? '暂未获取' }} 张 · 听读收藏
+            {{ data.statistics.listening_favorite_count ?? '暂未获取' }} 篇
+          </p>
+          <p>
+            今日完成：{{ data.statistics.today_completed_cards ?? '暂未获取' }} 张场景卡、{{
+              data.statistics.today_completed_articles ?? '暂未获取'
+            }}
+            篇听读；两类共用每日打卡
           </p>
           <p>
             最长连续：{{ data.statistics.longest_streak ?? '暂未获取' }}

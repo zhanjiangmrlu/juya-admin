@@ -3,20 +3,27 @@ import { onMounted, ref } from 'vue'
 
 import AppState from '@/components/app-state/app-state.vue'
 import { useResource } from '@/composables/use-resource'
+import ListeningUserRecords from '@/features/listening/listening-user-records.vue'
 import SceneTitle from '@/features/scenes/scene-title.vue'
 import { dateText, mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
+import { listeningRequest } from '@/services/listening-service'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
 const props = defineProps<{ userId: string }>()
 const emit = defineEmits<{ preview: [cardId: string] }>()
-const tab = ref<'learned' | 'checkins'>('learned'),
+const tab = ref<'learned' | 'listening' | 'checkins'>('learned'),
   page = ref(1),
   checkinPage = ref(1),
   expanded = ref(''),
   dayBusy = ref(false),
   dayError = ref(''),
   day = ref<components['schemas']['DailyRecords'] | null>(null)
+const articleDay = ref<{
+    article_items: (components['schemas']['Summary'] & { completed_at: string })[]
+    article_count: number
+  } | null>(null),
+  articleDayError = ref('')
 const learned = useResource(() =>
   api.request<components['schemas']['Page_LearningRecord_']>(
     queryURL(`/api/admin/v1/users/${props.userId}/learning-records`, {
@@ -33,7 +40,7 @@ const checkins = useResource(() =>
 /** 分别保留两个记录标签的加载状态
  * @param value 目标标签
  */
-const switchTab = (value: 'learned' | 'checkins') => {
+const switchTab = (value: 'learned' | 'listening' | 'checkins') => {
   tab.value = value
   if (value === 'checkins' && !checkins.data.value) void checkins.refresh()
 }
@@ -49,11 +56,23 @@ const expand = async (date: string) => {
   dayBusy.value = true
   dayError.value = ''
   day.value = null
+  articleDay.value = null
+  articleDayError.value = ''
   try {
     const result = await api.request<components['schemas']['DailyRecords']>(
       `/api/admin/v1/users/${props.userId}/checkins/${date}`
     )
     if (expanded.value === date) day.value = result
+    try {
+      const listening = await listeningRequest<{
+        article_items: (components['schemas']['Summary'] & { completed_at: string })[]
+        article_count: number
+      }>(`/users/${props.userId}/checkins/${date}`)
+      if (expanded.value === date) articleDay.value = listening
+    } catch (reason) {
+      if (expanded.value === date)
+        articleDayError.value = reason instanceof Error ? reason.message : '听读明细暂未获取'
+    }
   } catch (reason) {
     if (expanded.value === date)
       dayError.value = reason instanceof Error ? reason.message : '暂未获取'
@@ -70,6 +89,12 @@ onMounted(() => {
     <div class="tabs">
       <button type="button" :class="{ active: tab === 'learned' }" @click="switchTab('learned')">
         已学卡片 {{ learned.data.value?.total ?? '' }}</button
+      ><button
+        type="button"
+        :class="{ active: tab === 'listening' }"
+        @click="switchTab('listening')"
+      >
+        已学听读</button
       ><button type="button" :class="{ active: tab === 'checkins' }" @click="switchTab('checkins')">
         打卡记录 {{ checkins.data.value?.total ?? '' }}
       </button>
@@ -167,7 +192,8 @@ onMounted(() => {
           <button type="button" class="checkin-heading" @click="expand(record.date)">
             <strong>{{ record.date }}</strong
             ><span
-              >完成 {{ record.card_count }} 张场景卡
+              >完成 {{ record.card_count }} 张场景卡 ·
+              {{ record.article_count ?? '暂未获取' }} 篇听读
               {{ expanded === record.date ? '⌃' : '⌄' }}</span
             >
           </button>
@@ -191,6 +217,21 @@ onMounted(() => {
               ><span v-else class="muted">{{
                 card.unavailable_reason === 'deleted' ? '已删除 · 成绩保留' : '暂不可用 · 成绩保留'
               }}</span>
+            </div>
+            <p v-if="articleDayError" class="notice error" role="alert">{{ articleDayError }}</p>
+            <div
+              v-for="item in articleDay?.article_items"
+              :key="`listening-${item.id}`"
+              class="between day-card"
+            >
+              <div>
+                <strong>{{ item.title_zh }}</strong>
+                <p>{{ item.title_en }}</p>
+                <small class="muted">{{ dateText(item.completed_at) }} · 听读</small>
+              </div>
+              <RouterLink v-if="item.available" :to="`/listening/${item.id}`"
+                >查看文章管理</RouterLink
+              ><span v-else class="muted">暂不可用 · 成绩保留</span>
             </div>
           </div>
         </div>
@@ -220,6 +261,7 @@ onMounted(() => {
         </div>
       </div>
     </div>
+    <ListeningUserRecords v-if="tab === 'listening'" :user-id="userId" />
   </section>
 </template>
 <style scoped lang="scss">

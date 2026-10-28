@@ -8,6 +8,26 @@ const router = createRouter({
     return saved || (to.path === from.path ? undefined : { top: 0 })
   },
   routes: [
+    ...(['categories', 'topics', 'topic-order', 'global-order'] as const).map((surface) => ({
+      path: `/listening/${surface}`,
+      component: () => import('@/pages/listening/listening-catalog-page.vue'),
+      meta: { title: '听读管理', listeningSurface: surface }
+    })),
+    {
+      path: '/listening',
+      component: () => import('@/pages/listening/listening-list-page.vue'),
+      meta: { title: '听读管理' }
+    },
+    {
+      path: '/listening-imports',
+      component: () => import('@/pages/listening/listening-import-page.vue'),
+      meta: { title: '听读导入' }
+    },
+    {
+      path: '/listening/:id',
+      component: () => import('@/pages/listening/listening-edit-page.vue'),
+      meta: { title: '听读文章编辑' }
+    },
     { path: '/login', component: () => import('@/pages/login/login-page.vue') },
     { path: '/', redirect: '/cards' },
     {

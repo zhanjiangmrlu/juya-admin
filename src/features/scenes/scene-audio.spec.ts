@@ -7,6 +7,33 @@ vi.mock('@/services/http-client', async (original) => ({
 }))
 import SceneAudio from './scene-audio.vue'
 
+it('supports a controlled listening source and inline five-rate controls without querying scene media', async () => {
+  request.mockClear()
+  const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+  const page = mount(SceneAudio, {
+    props: {
+      mediaId: 'article-audio',
+      sourceUrl: '/api/admin/v1/listening/articles/a/media/audio',
+      variant: 'preview',
+      inlineRates: true,
+      title: '完整英文音频'
+    }
+  })
+  await flushPromises()
+  expect(request).not.toHaveBeenCalled()
+  expect(page.get('audio').attributes('src')).toContain('/listening/articles/a/media/audio')
+  const element = page.get('audio')
+  Object.defineProperty(element.element, 'duration', { configurable: true, value: 30 })
+  await element.trigger('loadedmetadata')
+  await page.get('[aria-label="展开完整音频倍速"]').trigger('click')
+  expect(page.findAll('.inline-rates button')).toHaveLength(5)
+  await page.findAll('.inline-rates button')[2]!.trigger('click')
+  expect(element.element.playbackRate).toBe(1.5)
+  expect(element.element.paused).toBe(true)
+  page.unmount()
+  pause.mockRestore()
+})
+
 it('uses real playback, seeking and rate changes in the preview player', async () => {
   request.mockResolvedValue({
     id: 'preview',

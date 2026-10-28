@@ -11,8 +11,13 @@ const props = defineProps<{
   variant?: 'editor' | 'preview'
   mediaId?: string | null
   metadata?: components['schemas']['MediaMetadata'] | null
+  sourceUrl?: string
+  inlineRates?: boolean
+  title?: string
+  subtitle?: string
+  compact?: boolean
 }>()
-const emit = defineEmits<{ play: [] }>()
+const emit = defineEmits<{ play: []; position: [seconds: number] }>()
 const audio = ref<HTMLAudioElement | null>(null),
   current = ref<components['schemas']['MediaMetadata'] | null>(null)
 const reading = ref(true),
@@ -23,6 +28,7 @@ const reading = ref(true),
   position = ref(0),
   speed = ref(1),
   playbackError = ref('')
+const ratesOpen = ref(false)
 const format = computed(
   () =>
     ({ 'audio/mpeg': 'MP3', 'audio/mp4': 'M4A', 'audio/wav': 'WAV', 'audio/aac': 'AAC' })[
@@ -30,12 +36,18 @@ const format = computed(
     ] || ''
 )
 const source = computed(() =>
-  props.mediaId ? `${mediaURL(props.mediaId)}?load=${attempt.value}` : ''
+  props.sourceUrl
+    ? `${props.sourceUrl}${props.sourceUrl.includes('?') ? '&' : '?'}load=${attempt.value}`
+    : props.mediaId
+      ? `${mediaURL(props.mediaId)}?load=${attempt.value}`
+      : ''
 )
 let generation = 0,
   alive = true
+let frame = 0
 /** 统一停止当前完整音频，供切卡及词汇试听复用 */
 const stop = () => {
+  cancelAnimationFrame(frame)
   audio.value?.pause()
   playing.value = false
 }
@@ -58,6 +70,10 @@ const load = async () => {
   position.value = 0
   current.value = null
   if (!props.mediaId) {
+    reading.value = false
+    return
+  }
+  if (props.sourceUrl) {
     reading.value = false
     return
   }
@@ -103,6 +119,22 @@ const play = () => {
   playing.value = true
   if (audio.value) claimAudioFocus(audio.value)
   emit('play')
+  if (props.sourceUrl) {
+    cancelAnimationFrame(frame)
+    trackPosition()
+  }
+}
+/** 直接受控音频逐帧读取媒体时间，暂停和缓冲不推算时钟 */
+const trackPosition = () => {
+  updatePosition()
+  if (audio.value && !audio.value.paused && !audio.value.ended)
+    frame = requestAnimationFrame(trackPosition)
+}
+/** 播放暂停或结束时冻结最后真实位置 */
+const paused = () => {
+  cancelAnimationFrame(frame)
+  playing.value = false
+  updatePosition()
 }
 /** 切换真实音频播放，失败时保留已上传事实供重试 */
 const toggle = async () => {
@@ -122,6 +154,7 @@ const toggle = async () => {
 /** 同步真实播放位置，拖动滑块不改变音频版本 */
 const updatePosition = () => {
   position.value = audio.value?.currentTime || 0
+  emit('position', position.value)
 }
 /** 按管理员选择的实际秒数定位音频
  * @param event 播放进度滑块输入事件
@@ -146,7 +179,16 @@ const changeSpeed = (event: Event) => {
     playbackError.value = '倍速设置失败，请重试'
   }
 }
-watch(() => [props.mediaId, props.metadata], load, { immediate: true })
+/** 选择听读播放器内部五档倍速，不改变播放暂停状态
+ * @param rate 管理员选择的倍速
+ */
+const setInlineRate = (rate: number) => {
+  if (!audio.value || ![1, 1.25, 1.5, 1.75, 2].includes(rate)) return
+  audio.value.playbackRate = rate
+  speed.value = rate
+  ratesOpen.value = false
+}
+watch(() => [props.mediaId, props.metadata, props.sourceUrl], load, { immediate: true })
 onBeforeUnmount(() => {
   alive = false
   generation++
@@ -155,7 +197,10 @@ onBeforeUnmount(() => {
 defineExpose({ stop })
 </script>
 <template>
-  <div class="scene-audio" :class="{ 'preview-player': variant === 'preview' }">
+  <div
+    class="scene-audio"
+    :class="{ 'preview-player': variant === 'preview', 'compact-player': compact }"
+  >
     <p v-if="!mediaId" class="muted">未上传完整音频</p>
     <template v-else>
       <p v-if="variant !== 'preview'">
@@ -191,14 +236,14 @@ defineExpose({ stop })
           v-if="mediaId && (!current || current.state === 'ready')"
           ref="audio"
           :key="`${mediaId}-${attempt}`"
-          :src="current?.state === 'ready' ? source : undefined"
+          :src="sourceUrl || current?.state === 'ready' ? source : undefined"
           :controls="variant !== 'preview' && ready && !error"
-          :preload="current?.state === 'ready' ? 'metadata' : 'none'"
+          :preload="sourceUrl || current?.state === 'ready' ? 'metadata' : 'none'"
           @loadedmetadata="loaded"
           @error="failed"
           @play="play"
-          @pause="playing = false"
-          @ended="playing = false"
+          @pause="paused"
+          @ended="paused"
           @timeupdate="updatePosition"
         />
         <div v-if="variant === 'preview'" class="player-controls">
@@ -213,13 +258,15 @@ defineExpose({ stop })
             ><AppIcon v-else name="play" />
           </button>
           <div class="player-copy">
-            <strong>完整对话音频</strong><small>LISTEN TO THE FULL DIALOGUE</small>
+            <strong>{{ title || '完整对话音频' }}</strong
+            ><small>{{ subtitle || 'LISTEN TO THE FULL DIALOGUE' }}</small>
             <p>
               {{ durationText(position) || '0:00' }} /
               {{ ready ? durationText(audio?.duration) : '—' }} · 整篇播放
             </p>
           </div>
           <select
+            v-if="!inlineRates"
             :value="speed"
             aria-label="完整音频倍速"
             :disabled="!ready || !!error"
@@ -229,6 +276,16 @@ defineExpose({ stop })
               {{ rate }}× 倍速
             </option>
           </select>
+          <button
+            v-else
+            type="button"
+            class="rate-toggle"
+            aria-label="展开完整音频倍速"
+            :disabled="!ready || Boolean(error)"
+            @click="ratesOpen = !ratesOpen"
+          >
+            {{ speed }}×
+          </button>
           <input
             type="range"
             aria-label="完整音频播放进度"
@@ -239,6 +296,17 @@ defineExpose({ stop })
             :disabled="!ready || !!error"
             @input="seek"
           />
+          <div v-if="inlineRates && ratesOpen" class="inline-rates">
+            <button
+              v-for="rate in [1, 1.25, 1.5, 1.75, 2]"
+              :key="rate"
+              type="button"
+              :class="{ primary: speed === rate }"
+              @click="setInlineRate(rate)"
+            >
+              {{ rate }}×
+            </button>
+          </div>
           <p v-if="playbackError" class="error" role="alert">{{ playbackError }}</p>
         </div>
       </template>
@@ -343,6 +411,36 @@ defineExpose({ stop })
   .error {
     grid-column: 1 / -1;
     color: var(--red);
+  }
+
+  .inline-rates {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+
+    button {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  &.compact-player {
+    padding: 16px;
+
+    .player-controls {
+      gap: 12px;
+    }
+
+    :where(.player-copy) {
+      small {
+        display: none;
+      }
+
+      p {
+        font-size: 11px;
+        white-space: nowrap;
+      }
+    }
   }
 }
 </style>

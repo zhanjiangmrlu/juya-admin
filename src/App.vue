@@ -15,6 +15,7 @@ const releaseAudioFocus = installAudioFocus()
 onBeforeUnmount(releaseAudioFocus)
 const navigation = [
   { to: '/cards', label: '卡片管理', icon: 'cards' },
+  { to: '/listening', label: '听读管理', icon: 'listening' },
   { to: '/imports', label: '批量导入', icon: 'upload' },
   { to: '/users', label: '用户列表', icon: 'users' },
   { to: '/statistics', label: '数据统计', icon: 'chart' },
@@ -70,7 +71,8 @@ onBeforeUnmount(() => window.removeEventListener('admin-session-expired', expire
       <p v-if="error" class="notice error" role="alert">{{ error }}</p>
       <main class="page">
         <RouterView v-slot="{ Component }"
-          ><KeepAlive :include="['SceneListPage', 'UserListPage', 'FeedbackListPage']"
+          ><KeepAlive
+            :include="['SceneListPage', 'ListeningListPage', 'UserListPage', 'FeedbackListPage']"
             ><component :is="Component" /></KeepAlive
         ></RouterView>
       </main>

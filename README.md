@@ -1,6 +1,8 @@
 # 句芽英语管理后台
 
-以修订14 `需求基线-当前确认版.md`、原型及 Figma `lf1bnYzDAZt9eLtdLT0HM3 / 191:1617` 为本次界面基线。后台使用 Vue3、TypeScript、SCSS 与 Element Plus，统一后端为同级 `juya-api`，管理接口前缀 `/api/admin/v1`。本轮只修改后台前端，未修改小程序或后端接口。
+当前以V1.5整合04增补02、修订17需求与设计为依据，保留原场景并新增主题听读。后台使用 Vue3、TypeScript、SCSS 与 Element Plus，统一后端为同级 `juya-api`，管理接口前缀 `/api/admin/v1`。
+
+**换MacBook继续开发先读[交接入口](HANDOFF.md)**。需求由用户同步，当前Figma链接、三端记录和截图随API仓库提交；四项目沿用Mac已有环境，代码使用`test`分支、数据库使用本地。下方修订14及线上记录是历史，不能作为本次部署授权或当前完整验收结论。
 
 Node.js22.22+（22系列）、pnpm11.25.0。复制 `.env.example` 配置本地管理 API。使用 `pnpm install`、`pnpm dev` 启动；`pnpm check`、`pnpm test`、`pnpm build` 验证。
 

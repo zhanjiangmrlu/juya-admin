@@ -253,7 +253,10 @@ onBeforeUnmount(() => {
                       : '未授权'
                 }}
               </td>
-              <td>{{ user.statistics.completed_cards }} 张</td>
+              <td>
+                <p>{{ user.statistics.completed_cards }} 张场景</p>
+                <p>{{ user.statistics.completed_articles ?? '暂未获取' }} 篇听读</p>
+              </td>
               <td>
                 {{ user.statistics.current_streak }} 天
                 <p>

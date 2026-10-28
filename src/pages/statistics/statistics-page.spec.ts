@@ -17,6 +17,14 @@ const snapshot = {
   statistical_date: '2026-10-21',
   updated_at: '2026-10-21T15:59:59Z'
 }
+
+it('separates current published listening articles from scene counts and links to listening management', async () => {
+  network.mockResolvedValue(Response.json({ ...snapshot, published_article_count: 7 }))
+  const { page } = await open()
+  expect(page.get('[data-metric="articles"]').text()).toContain('7')
+  expect(page.get('[data-metric="cards"]').text()).toContain('3')
+  expect(page.text()).toContain('已发布听读文章')
+})
 /** 挂载统计页及三个真实指标的路由目标
  * @returns 统计组件和路由
  */

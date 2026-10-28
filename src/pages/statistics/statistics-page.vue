@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AppIcon from '@/components/app-icon/app-icon.vue'
@@ -16,32 +16,47 @@ const {
   error,
   refresh: refreshResource
 } = useResource(() => api.request<components['schemas']['Overview']>('/api/admin/v1/statistics'))
-const metrics = [
-  {
-    key: 'user_count',
-    label: '用户总数',
-    unit: '人',
-    id: 'users',
-    path: '/users',
-    query: { registered: 'all', checkin: 'all', from: 'statistics' }
-  },
-  {
-    key: 'new_users_today',
-    label: '今日新增用户',
-    unit: '人',
-    id: 'new-users',
-    path: '/users',
-    query: { registered: 'today', checkin: 'all', from: 'statistics' }
-  },
-  {
-    key: 'published_card_count',
-    label: '已发布场景卡片',
-    unit: '张',
-    id: 'cards',
-    path: '/cards',
-    query: { status: 'published', from: 'statistics' }
-  }
-] as const
+const metrics = computed(
+  () =>
+    [
+      {
+        key: 'user_count',
+        label: '用户总数',
+        unit: '人',
+        id: 'users',
+        path: '/users',
+        query: { registered: 'all', checkin: 'all', from: 'statistics' }
+      },
+      {
+        key: 'new_users_today',
+        label: '今日新增用户',
+        unit: '人',
+        id: 'new-users',
+        path: '/users',
+        query: { registered: 'today', checkin: 'all', from: 'statistics' }
+      },
+      {
+        key: 'published_card_count',
+        label: '已发布场景卡片',
+        unit: '张',
+        id: 'cards',
+        path: '/cards',
+        query: { status: 'published', from: 'statistics' }
+      },
+      ...(data.value?.published_article_count !== undefined
+        ? [
+            {
+              key: 'published_article_count',
+              label: '已发布听读文章',
+              unit: '篇',
+              id: 'articles',
+              path: '/listening',
+              query: { status: 'published', from: 'statistics' }
+            } as const
+          ]
+        : [])
+    ] as const
+)
 let active = true,
   foregroundPending = false
 /** 合并请求期间的前台事件，结算成功或失败后再读取一次服务器日期 */
@@ -74,7 +89,7 @@ onBeforeUnmount(() => {
     <div class="page-heading between">
       <div>
         <h1>数据统计</h1>
-        <p>查看用户与场景内容的总体情况。</p>
+        <p>查看用户、场景与听读内容的总体情况。</p>
       </div>
       <button type="button" :disabled="busy" @click="refresh">
         <AppIcon name="refresh" />刷新
@@ -113,9 +128,11 @@ onBeforeUnmount(() => {
           >{{
             metric.id === 'cards'
               ? '查看已发布卡片'
-              : metric.id === 'new-users'
-                ? '查看今日注册用户'
-                : '查看全部用户'
+              : metric.id === 'articles'
+                ? '查看已发布文章'
+                : metric.id === 'new-users'
+                  ? '查看今日注册用户'
+                  : '查看全部用户'
           }}<AppIcon name="arrow" :size="16"
         /></span>
       </button>
@@ -125,6 +142,10 @@ onBeforeUnmount(() => {
       <p>用户总数：成功注册的稳定账号去重，包含未填写联系方式和尚未学习的用户，不包含管理员。</p>
       <p>今日新增：按北京时间今天首次注册的账号统计，不以登录或补充资料计数。</p>
       <p>已发布场景卡片：当前已发布且未删除的卡片，同卡多次发布只计一张；草稿、下线卡不计入。</p>
+      <p>已发布听读文章：当前有效发布的不同文章，草稿、下线与删除不计入；用户历史已学篇数保留。</p>
+      <p v-if="data && data.published_article_count === undefined">
+        听读统计暂未获取，请刷新后核对。
+      </p>
       <p>列表查询与统计的更新时间可能不同，发生新增或发布后可以刷新核对。</p>
     </section>
   </div>
@@ -141,7 +162,7 @@ onBeforeUnmount(() => {
 
 .overview-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 24px;
 }
 

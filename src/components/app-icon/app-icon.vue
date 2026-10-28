@@ -9,6 +9,7 @@ import close from '@/assets/icons/close.svg'
 import feedback from '@/assets/icons/feedback.svg'
 import heart from '@/assets/icons/heart.svg'
 import info from '@/assets/icons/info.svg'
+import listening from '@/assets/icons/listening.svg'
 import play from '@/assets/icons/play.svg'
 import plus from '@/assets/icons/plus.svg'
 import refresh from '@/assets/icons/refresh.svg'
@@ -30,6 +31,7 @@ const icons: Record<string, string> = {
   feedback,
   heart,
   info,
+  listening,
   play,
   plus,
   refresh,
