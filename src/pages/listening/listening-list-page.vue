@@ -276,8 +276,15 @@ onMounted(async () => {
       ><RouterLink to="/listening/topics">主题管理</RouterLink>
     </div>
     <form class="filters" @submit.prevent="filter({ q: search || undefined, page: 1 })">
+      <div class="search">
+        <input v-model="search" aria-label="搜索中英文标题" placeholder="搜索中英文标题" />
+        <button type="submit" aria-label="搜索" :disabled="busy">
+          <AppIcon name="search" :size="16" />
+        </button>
+      </div>
       <label
-        >分类<select
+        ><select
+          aria-label="分类"
           :value="category"
           @change="
             filter({
@@ -294,7 +301,8 @@ onMounted(async () => {
         </select></label
       >
       <label
-        >主题<select
+        ><select
+          aria-label="主题"
           :value="topic"
           @change="
             filter({ topic_id: ($event.target as HTMLSelectElement).value || undefined, page: 1 })
@@ -306,7 +314,8 @@ onMounted(async () => {
           </option>
         </select></label
       ><label
-        >状态<select
+        ><select
+          aria-label="状态"
           :value="status"
           @change="
             filter({ status: ($event.target as HTMLSelectElement).value || undefined, page: 1 })
@@ -317,12 +326,11 @@ onMounted(async () => {
           <option value="published">已发布</option>
           <option value="offline">已下线</option>
         </select></label
-      ><label class="search"
-        >搜索双标题<input v-model="search" placeholder="输入中文或英文标题" /></label
-      ><button :disabled="busy">搜索</button
-      ><button type="button" :disabled="busy" @click="load">刷新</button
-      ><button type="button" @click="settings = 'free'">免费M设置</button
-      ><RouterLink class="button-link" to="/listening/global-order">全局免费排序</RouterLink>
+      >
+      <div class="filter-actions">
+        <button type="button" @click="settings = 'free'">免费开放设置</button>
+        <RouterLink class="button-link" to="/listening/global-order">全局免费排序</RouterLink>
+      </div>
     </form>
     <AppState
       :error="error"
@@ -529,25 +537,68 @@ onMounted(async () => {
 
   .filters {
     display: flex;
-    align-items: end;
-    gap: 12px;
+    align-items: center;
+    gap: 10px;
     flex-wrap: wrap;
     margin: 24px 0;
 
     label {
-      width: 140px;
+      flex: 0 0 142px;
       font-size: 12px;
-    }
-
-    .search {
-      flex: 1;
-      min-width: 180px;
     }
 
     input,
     select {
       display: block;
-      margin-top: 6px;
+      width: 100%;
+      height: 40px;
+      min-height: 40px;
+      padding: 10px 12px;
+      border-color: var(--line);
+      font-size: 12px;
+      line-height: 18px;
+      color: var(--muted);
+    }
+
+    select {
+      appearance: none;
+    }
+  }
+
+  .search {
+    position: relative;
+    flex: 0 1 258px;
+    min-width: 180px;
+
+    input {
+      padding-right: 40px;
+    }
+
+    button {
+      position: absolute;
+      top: 1px;
+      right: 1px;
+      width: 38px;
+      min-height: 38px;
+      padding: 0;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+    }
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+
+    button,
+    .button-link {
+      width: 114px;
+      min-height: 40px;
+      padding: 0;
+      border-radius: 10px;
+      font-size: 13px;
     }
   }
 

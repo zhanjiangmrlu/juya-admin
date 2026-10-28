@@ -13,6 +13,7 @@ import listening from '@/assets/icons/listening.svg'
 import play from '@/assets/icons/play.svg'
 import plus from '@/assets/icons/plus.svg'
 import refresh from '@/assets/icons/refresh.svg'
+import search from '@/assets/icons/search.svg'
 import speaker from '@/assets/icons/speaker.svg'
 import upload from '@/assets/icons/upload.svg'
 import user from '@/assets/icons/user.svg'
@@ -35,6 +36,7 @@ const icons: Record<string, string> = {
   play,
   plus,
   refresh,
+  search,
   speaker,
   upload,
   user,

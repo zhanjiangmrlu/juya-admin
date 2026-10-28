@@ -174,7 +174,7 @@ test('local real listening management, draft preview, M confirmation and shared 
   await expect(page.getByRole('heading', { name: '听读文章管理', exact: true })).toBeVisible()
   await expect(page.locator('tbody tr')).not.toHaveCount(0)
   await page.screenshot({ path: info.outputPath('article-management-1440.png'), fullPage: true })
-  await page.getByRole('button', { name: '免费M设置', exact: true }).click()
+  await page.getByRole('button', { name: '免费开放设置', exact: true }).click()
   const settings = page.getByRole('dialog', { name: '听读管理设置' })
   await expect(settings.getByText('免费篇数M', { exact: false })).toBeVisible()
   await settings.getByRole('textbox').fill('1')
