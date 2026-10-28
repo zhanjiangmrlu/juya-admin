@@ -111,6 +111,16 @@ export const statusLabels: Record<string, string> = {
   missing: '暂无时间轴'
 }
 export const importErrorLabels: Record<string, string> = {
+  'topic_id:confirmation_required':
+    '文章所属主题待确认，请点击“核对 / 补充资料”，选择所属主题后保存到本批暂存',
+  'title_zh:required_for_publish': '中文标题待补充，请在“核对 / 补充资料”中填写',
+  'title_en:required_for_publish': '英文标题待补充，请在“核对 / 补充资料”中填写',
+  'body_en:required_for_publish': '英文正文待补充，请在“核对 / 补充资料”中填写',
+  'translation_zh:required_for_publish': '全文中文译文待补充，请在“核对 / 补充资料”中填写',
+  'expressions:five_complete_required_for_publish':
+    '表达资料待补充，发布前需填写完整的5组英文表达、中文释义和替换例句',
+  'audio_id:selection_required': '完整英文音频待确认，请在“核对 / 补充资料”中选择配套音频',
+  listening_docx_missing: '未找到可读取的听读DOCX资料，请检查压缩包中是否包含.docx文件',
   listening_target_duplicate: '本批多项选择了同一目标，请分别选择目标后重试',
   listening_import_snapshot_changed: '候选资料与原确认不同，请返回重新核对',
   listening_article_changed: '目标草稿已在其他窗口修改，请重新选择目标并核对差异',

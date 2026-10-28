@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElMessage } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
@@ -149,10 +150,12 @@ const showPreview = async () => {
     busy.value = false
   }
 }
-/** 明确发布已预览的这一版，服务端复核资料和音频 */
+/** 发布已预览的版本并展示结果，失败时保留弹窗内的错误说明 */
 const publish = async () => {
   if (!article.value || !preview.value || preview.value.errors.length) return
   busy.value = true
+  error.value = ''
+  notice.value = ''
   try {
     accept(
       await listeningOperation<Article>('POST', `/articles/${article.value.id}/publish`, {
@@ -162,9 +165,9 @@ const publish = async () => {
     )
     previewOpen.value = false
     notice.value = '文章已发布新版本'
+    ElMessage.success(notice.value)
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '发布失败，请刷新确认'
-    previewOpen.value = false
   } finally {
     busy.value = false
   }
@@ -295,19 +298,24 @@ onMounted(load)
     </div>
     <p v-else class="notice error">文章已删除，不能编辑或重新发布</p>
     <div v-if="article?.status !== 'deleted'" class="editor-actions">
-      <span class="muted">{{ dirty ? '有未保存修改' : '已与服务器同步' }}</span
+      <span class="muted" role="status">
+        <template v-if="article"
+          >{{ statusLabels[article.status] }} · 版本 {{ article.revision }} ·
+        </template>
+        {{ dirty ? '有未保存修改' : '已与服务器同步' }}</span
       ><button :disabled="busy" @click="save">{{ busy ? '处理中…' : '保存草稿' }}</button
       ><button class="primary" :disabled="busy" @click="showPreview">预览并核对发布</button>
     </div>
     <ElDialog
       v-model="previewOpen"
-      class="preview-dialog"
+      class="listening-article-preview"
       body-class="preview-body"
       title="当前编辑稿预览"
       width="900px"
       :close-on-click-modal="false"
       destroy-on-close
-      ><template v-if="preview"
+      ><p v-if="error" class="notice error" role="alert">{{ error }}</p>
+      <template v-if="preview"
         ><div v-if="preview.errors.length" class="notice error">
           <p>当前资料不能发布，仍可预览草稿</p>
           <ul>
@@ -322,7 +330,7 @@ onMounted(load)
           :disabled="busy || Boolean(preview?.errors.length)"
           @click="publish"
         >
-          确认发布这一版
+          {{ busy ? '发布中…' : '确认发布这一版' }}
         </button></template
       ></ElDialog
     >
@@ -330,11 +338,6 @@ onMounted(load)
 </template>
 <style scoped lang="scss">
 .listening-edit {
-  .preview-dialog :deep(.preview-body) {
-    max-height: 72vh;
-    overflow: auto;
-  }
-
   .editor-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 340px;

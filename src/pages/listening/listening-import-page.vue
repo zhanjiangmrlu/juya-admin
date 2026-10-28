@@ -477,7 +477,9 @@ onMounted(async () => {
               : '新建文章草稿'
           }}
         </p>
-        <p v-for="issue in item.errors" :key="issue" class="notice error">{{ issue }}</p>
+        <p v-for="issue in item.errors" :key="issue" class="notice error">
+          {{ importErrorLabels[issue] || issue }}
+        </p>
         <p v-if="item.duplicate_of" class="muted">自动跳过：与 {{ item.duplicate_of }} 资料重复</p>
         <button
           v-if="['complete', 'incomplete'].includes(item.state)"
@@ -570,6 +572,10 @@ onMounted(async () => {
             </option>
           </select></label
         >
+        <p v-if="!topics.length" class="notice">
+          当前没有可选主题，请先到<RouterLink to="/listening/topics">主题管理</RouterLink
+          >创建主题，再返回本批选择所属主题
+        </p>
         <ListeningContentForm
           ref="candidateForm"
           v-model="editing.payload"

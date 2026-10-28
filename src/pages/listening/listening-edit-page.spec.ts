@@ -79,3 +79,72 @@ it('recovers the original creation receipt before saving changed input as an upd
   expect(router.currentRoute.value.path).toBe('/listening/created')
   page.unmount()
 })
+
+it.each([true, false])(
+  'keeps the publication result visible when success is %s',
+  async (success) => {
+    const draft = { ...saved, id: 'existing', word_count: 120 }
+    network.mockImplementation(async (request: Request) => {
+      if (request.method === 'GET' && request.url.endsWith('/topics'))
+        return Response.json({ items: [{ id: 'topic', name: '主题' }] })
+      if (request.method === 'GET' && request.url.endsWith('/articles/existing'))
+        return Response.json(draft)
+      if (request.url.endsWith('/preview'))
+        return Response.json({ article: draft, preview_token: 'confirmed', errors: [] })
+      if (request.url.endsWith('/publish'))
+        return success
+          ? Response.json({ ...draft, status: 'published', revision: 2 })
+          : Response.json(
+              {
+                error: { code: 'listening_preview_stale', message: '编辑稿已变化，请重新预览确认' }
+              },
+              { status: 409 }
+            )
+      throw new Error(`Unexpected request ${request.method} ${request.url}`)
+    })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/listening/:id', component: ListeningEditPage },
+        { path: '/listening', component: { template: '<div />' } }
+      ]
+    })
+    await router.push('/listening/existing')
+    const page = mount(
+      { template: '<RouterView />' },
+      {
+        global: {
+          plugins: [router],
+          stubs: {
+            ListeningContentForm: true,
+            ListeningDocxImport: true,
+            ListeningTimeline: true,
+            ListeningReader: true,
+            ElDialog: {
+              props: ['modelValue'],
+              template: '<div v-if="modelValue" role="dialog"><slot/><slot name="footer"/></div>'
+            }
+          }
+        }
+      }
+    )
+    await flushPromises()
+    await page
+      .findAll('button')
+      .find((b) => b.text() === '预览并核对发布')!
+      .trigger('click')
+    await flushPromises()
+    await page
+      .findAll('button')
+      .find((b) => b.text() === '确认发布这一版')!
+      .trigger('click')
+    await flushPromises()
+    if (success) {
+      expect(page.find('[role="dialog"]').exists()).toBe(false)
+      expect(page.get('.editor-actions').text()).toContain('已发布')
+    } else {
+      expect(page.get('[role="dialog"]').text()).toContain('编辑稿已变化，请重新预览确认')
+    }
+    page.unmount()
+  }
+)

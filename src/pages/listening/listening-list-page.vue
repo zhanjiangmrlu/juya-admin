@@ -471,14 +471,24 @@ onMounted(async () => {
     /></ElDialog>
     <ElDialog
       :model-value="Boolean(preview)"
-      class="preview-dialog"
+      class="listening-article-preview"
       body-class="preview-body"
       title="文章预览"
       width="900px"
       destroy-on-close
       @update:model-value="preview = null"
-      ><ListeningReader v-if="preview" :article="preview"
-    /></ElDialog>
+      ><ListeningReader v-if="preview" :article="preview" />
+      <template #footer>
+        <button @click="preview = null">关闭预览</button>
+        <RouterLink
+          v-if="preview"
+          class="button-link primary"
+          :to="{ path: `/listening/${preview.id}`, query: { back: route.fullPath } }"
+          @click="preview = null"
+          >前往编辑并发布</RouterLink
+        >
+      </template>
+    </ElDialog>
     <ElDialog
       v-model="confirmOpen"
       :title="`确认删除${targets.length}篇文章`"
@@ -520,11 +530,6 @@ onMounted(async () => {
 </template>
 <style scoped lang="scss">
 .listening-list {
-  .preview-dialog :deep(.preview-body) {
-    max-height: 72vh;
-    overflow: auto;
-  }
-
   .settings-actions {
     margin-bottom: 20px;
     flex-wrap: wrap;

@@ -518,6 +518,24 @@ table {
   max-width: calc(100vw - 48px);
   color: var(--ink);
 
+  &.listening-article-preview {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 64px);
+    margin: 32px auto;
+
+    .preview-body {
+      min-height: 0;
+      max-height: none;
+      overflow: auto;
+    }
+
+    [class~='el-dialog__header'],
+    [class~='el-dialog__footer'] {
+      flex-shrink: 0;
+    }
+  }
+
   [class~='el-dialog__title'] {
     font-size: 19px;
     font-weight: 500;
