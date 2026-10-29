@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import AppFilePicker from '@/components/app-file-picker/app-file-picker.vue'
 import AppState from '@/components/app-state/app-state.vue'
 import ListeningContentForm from '@/features/listening/listening-content-form.vue'
 import ListeningDocxImport from '@/features/listening/listening-docx-import.vue'
-import { emptyPayload, publishErrors, statusLabels } from '@/features/listening/listening-model'
-import ListeningReader from '@/features/listening/listening-reader.vue'
+import { emptyPayload, statusLabels } from '@/features/listening/listening-model'
+import ListeningPreviewPanel from '@/features/listening/listening-preview-panel.vue'
 import ListeningTimeline from '@/features/listening/listening-timeline.vue'
 import SceneAudio from '@/features/scenes/scene-audio.vue'
 import { api } from '@/services/http-client'
@@ -20,7 +20,7 @@ import {
   listeningRequest
 } from '@/services/listening-service'
 
-import type { Article, ArticlePayload, Topic } from '@/features/listening/listening-types'
+import type { Article, ArticlePayload, Category, Topic } from '@/features/listening/listening-types'
 
 const route = useRoute(),
   router = useRouter()
@@ -28,6 +28,7 @@ const article = ref<Article | null>(null),
   payload = ref(emptyPayload()),
   topic = ref(''),
   topics = ref<Topic[]>([]),
+  categories = ref<Category[]>([]),
   busy = ref(false),
   error = ref(''),
   savedSnapshot = ref(''),
@@ -38,7 +39,17 @@ const article = ref<Article | null>(null),
   form = ref<InstanceType<typeof ListeningContentForm> | null>(null)
 const snapshot = computed(() => JSON.stringify({ topic_id: topic.value, payload: payload.value }))
 const dirty = computed(() => snapshot.value !== savedSnapshot.value)
-const localErrors = computed(() => publishErrors(payload.value, topic.value))
+const canPublish = computed(() =>
+  Boolean(
+    article.value &&
+    preview.value &&
+    !dirty.value &&
+    !preview.value.errors.length &&
+    preview.value.article.id === article.value.id &&
+    preview.value.article.revision === article.value.revision
+  )
+)
+let previewReturnScroll = 0
 let pendingSave: {
   snapshot: string
   operation: ReturnType<typeof listeningRecoverableOperation<Article>>
@@ -58,7 +69,12 @@ const load = async () => {
   busy.value = true
   error.value = ''
   try {
-    topics.value = (await listeningRequest<{ items: Topic[] }>('/topics')).items
+    const [topicResult, categoryResult] = await Promise.all([
+      listeningRequest<{ items: Topic[] }>('/topics'),
+      listeningRequest<{ items: Category[] }>('/categories')
+    ])
+    topics.value = topicResult.items
+    categories.value = categoryResult.items
     if (route.params.id !== 'new')
       accept(await listeningRequest<Article>(`/articles/${route.params.id}`))
     else savedSnapshot.value = snapshot.value
@@ -131,6 +147,7 @@ const save = async (): Promise<Article | null> => {
 }
 /** 先持久化当前编辑稿，再读取不写成绩的预览与发布核对 */
 const showPreview = async () => {
+  const returnScroll = window.scrollY
   const value = dirty.value || !article.value ? await save() : article.value
   if (!value) return
   busy.value = true
@@ -143,16 +160,26 @@ const showPreview = async () => {
     }>('POST', `/articles/${value.id}/preview`, {
       revision: value.revision
     })()
+    previewReturnScroll = returnScroll
     previewOpen.value = true
+    await nextTick()
+    window.scrollTo(0, 0)
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '预览读取失败'
   } finally {
     busy.value = false
   }
 }
+/** 关闭整页预览，保留编辑实例与已核对版本并返回原编辑位置 */
+const closePreview = async () => {
+  if (!previewOpen.value) return
+  previewOpen.value = false
+  await nextTick()
+  window.scrollTo(0, previewReturnScroll)
+}
 /** 发布已预览的版本并展示结果，失败时保留弹窗内的错误说明 */
 const publish = async () => {
-  if (!article.value || !preview.value || preview.value.errors.length) return
+  if (!article.value || !preview.value || !canPublish.value) return
   busy.value = true
   error.value = ''
   notice.value = ''
@@ -163,7 +190,7 @@ const publish = async () => {
         preview_token: preview.value.preview_token
       })()
     )
-    previewOpen.value = false
+    await closePreview()
     notice.value = '文章已发布新版本'
     ElMessage.success(notice.value)
   } catch (reason) {
@@ -223,130 +250,227 @@ onMounted(load)
 </script>
 <template>
   <div class="listening-edit">
-    <div class="page-heading between">
-      <div>
-        <h1>{{ article ? '编辑听读文章' : '新建听读文章' }}</h1>
-        <p>保存草稿 → 预览核对 → 明确发布</p>
-      </div>
-      <RouterLink class="button-link" :to="String(route.query.back || '/listening')"
-        >返回文章管理</RouterLink
-      >
-    </div>
-    <AppState :error="error" @retry="reload" />
-    <p v-if="notice" class="notice" role="status">{{ notice }}</p>
-    <p v-if="article" class="muted small">
-      {{ statusLabels[article.status] }} · 版本 {{ article.revision }} ·
-      {{ article.word_count }} 词<span v-if="article.status === 'published'">
-        · 编辑稿不会替换当前发布内容</span
-      >
-    </p>
-    <div v-if="article?.status !== 'deleted'" class="editor-grid">
-      <section class="panel">
-        <ListeningDocxImport :payload="payload" :disabled="busy" @apply="payload = $event" />
-        <ListeningContentForm
-          ref="form"
-          v-model="payload"
-          v-model:topic="topic"
-          :topics="topics"
-          :disabled="busy"
-        />
-      </section>
-      <aside class="panel media-panel">
-        <h2>全文音频与原图</h2>
-        <label class="field"
-          >完整英文音频<AppFilePicker
-            label="选择完整英文音频"
-            accept=".mp3,.m4a,.wav,.aac"
-            :disabled="busy"
-            @change="uploadMedia($event, 'audio')" /></label
-        ><SceneAudio
-          v-if="article && payload.audio_id"
-          :media-id="payload.audio_id"
-          :source-url="listeningMediaURL(article.id, payload.audio_id)"
-          variant="preview"
-          compact
-          inline-rates
-          title="完整英文音频"
-          subtitle="LISTEN TO THE FULL ARTICLE"
-        /><label class="field"
-          >文章原图（选填）<AppFilePicker
-            label="选择文章原图"
-            accept="image/*"
-            :disabled="busy"
-            @change="uploadMedia($event, 'image')" /></label
-        ><img
-          v-if="article && payload.image_id"
-          :src="listeningMediaURL(article.id, payload.image_id)"
-          alt="当前文章配图"
-        /><button
-          v-if="payload.image_id"
-          type="button"
-          class="text"
-          :disabled="busy"
-          @click="payload.image_id = null"
-        >
-          取消选填配图
-        </button>
-        <p v-if="upload" class="muted small" role="status">{{ upload }}</p>
-        <ListeningTimeline v-if="article" :article-id="article.id" :revision="article.revision" />
-        <h3 class="validation-title">发布资料核对</h3>
-        <ul v-if="localErrors.length" class="muted small">
-          <li v-for="item in localErrors" :key="item">{{ item }}</li>
-        </ul>
-        <p v-else class="muted small">基础资料已齐；音频就绪与有效归属由服务端发布前校验</p>
-      </aside>
-    </div>
-    <p v-else class="notice error">文章已删除，不能编辑或重新发布</p>
-    <div v-if="article?.status !== 'deleted'" class="editor-actions">
-      <span class="muted" role="status">
-        <template v-if="article"
-          >{{ statusLabels[article.status] }} · 版本 {{ article.revision }} ·
-        </template>
-        {{ dirty ? '有未保存修改' : '已与服务器同步' }}</span
-      ><button :disabled="busy" @click="save">{{ busy ? '处理中…' : '保存草稿' }}</button
-      ><button class="primary" :disabled="busy" @click="showPreview">预览并核对发布</button>
-    </div>
-    <ElDialog
-      v-model="previewOpen"
-      class="listening-article-preview"
-      body-class="preview-body"
-      title="当前编辑稿预览"
-      width="900px"
-      :close-on-click-modal="false"
-      destroy-on-close
-      ><p v-if="error" class="notice error" role="alert">{{ error }}</p>
-      <template v-if="preview"
-        ><div v-if="preview.errors.length" class="notice error">
-          <p>当前资料不能发布，仍可预览草稿</p>
-          <ul>
-            <li v-for="item in preview.errors" :key="item">{{ item }}</li>
-          </ul>
+    <div v-show="!previewOpen" class="edit-workspace">
+      <div class="page-heading between">
+        <div>
+          <h1>{{ article ? '编辑听读文章' : '新建听读文章' }}</h1>
+          <p>保存草稿 → 预览核对 → 明确发布</p>
         </div>
-        <ListeningReader :article="preview.article" /></template
-      ><template #footer
-        ><button :disabled="busy" @click="previewOpen = false">返回修改</button
-        ><button
-          class="primary"
-          :disabled="busy || Boolean(preview?.errors.length)"
-          @click="publish"
+        <div class="row heading-actions">
+          <RouterLink class="button-link" :to="String(route.query.back || '/listening')"
+            >返回文章管理</RouterLink
+          ><ListeningDocxImport
+            :payload="payload"
+            :disabled="busy"
+            compact
+            @apply="payload = $event"
+          />
+        </div>
+      </div>
+      <AppState :error="error" @retry="reload" />
+      <p v-if="notice" class="notice" role="status">{{ notice }}</p>
+      <p v-if="article" class="muted small">
+        {{ statusLabels[article.status] }} · 版本 {{ article.revision }} ·
+        {{ article.word_count }} 词<span v-if="article.status === 'published'">
+          · 编辑稿不会替换当前发布内容</span
         >
-          {{ busy ? '发布中…' : '确认发布这一版' }}
-        </button></template
-      ></ElDialog
-    >
+      </p>
+      <div v-if="article?.status !== 'deleted'" class="editor-grid">
+        <div class="editor-content">
+          <ListeningContentForm
+            ref="form"
+            v-model="payload"
+            v-model:topic="topic"
+            :topics="topics"
+            :categories="categories"
+            :disabled="busy"
+          >
+            <template #media>
+              <section class="panel content-card">
+                <h2>完整英文音频 *</h2>
+                <p class="muted small">上传已准备好的完整音频，支持MP3／M4A／WAV／AAC</p>
+                <label class="field"
+                  >完整英文音频<AppFilePicker
+                    label="选择完整英文音频"
+                    accept=".mp3,.m4a,.wav,.aac"
+                    :disabled="busy"
+                    @change="uploadMedia($event, 'audio')" /></label
+                ><SceneAudio
+                  v-if="article && payload.audio_id"
+                  :media-id="payload.audio_id"
+                  :source-url="listeningMediaURL(article.id, payload.audio_id)"
+                  variant="preview"
+                  compact
+                  inline-rates
+                  title="完整英文音频"
+                  subtitle="LISTEN TO THE FULL ARTICLE"
+                />
+                <ListeningTimeline
+                  v-if="article"
+                  :article-id="article.id"
+                  :revision="article.revision"
+                />
+              </section>
+              <section class="panel content-card">
+                <h2>本篇原图 <small class="muted">选填</small></h2>
+                <p class="muted small">可不上传，无图时不显示阅读页图片入口</p>
+                <label class="field"
+                  >文章原图（选填）<AppFilePicker
+                    label="选择文章原图"
+                    accept="image/*"
+                    :disabled="busy"
+                    @change="uploadMedia($event, 'image')" /></label
+                ><img
+                  v-if="article && payload.image_id"
+                  :src="listeningMediaURL(article.id, payload.image_id)"
+                  alt="当前文章配图"
+                /><button
+                  v-if="payload.image_id"
+                  type="button"
+                  class="text"
+                  :disabled="busy"
+                  @click="payload.image_id = null"
+                >
+                  取消选填配图
+                </button>
+              </section>
+              <p v-if="upload" class="muted small" role="status">{{ upload }}</p>
+            </template>
+          </ListeningContentForm>
+        </div>
+        <aside class="panel save-panel">
+          <h2>保存与发布</h2>
+          <dl>
+            <div>
+              <dt>当前状态</dt>
+              <dd>{{ article ? statusLabels[article.status] : '未保存' }}</dd>
+            </div>
+            <div>
+              <dt>英文词数</dt>
+              <dd>{{ article?.word_count ?? '保存后计算' }}</dd>
+            </div>
+            <div>
+              <dt>语块完整性</dt>
+              <dd>
+                {{
+                  payload.expressions.filter(
+                    (item) => item.english.trim() && item.chinese.trim() && item.example.trim()
+                  ).length
+                }}
+                / 5组
+              </dd>
+            </div>
+            <div>
+              <dt>完整音频</dt>
+              <dd>{{ payload.audio_id ? '已选择' : '待上传' }}</dd>
+            </div>
+          </dl>
+          <div class="save-actions">
+            <span class="muted small" role="status"
+              >{{ article ? `${statusLabels[article.status]} · 版本 ${article.revision} · ` : ''
+              }}{{ dirty ? '有未保存修改' : '已与服务器同步' }}</span
+            ><button :disabled="busy" @click="save">{{ busy ? '处理中…' : '保存草稿' }}</button
+            ><button :disabled="busy" @click="showPreview">预览并核对发布</button
+            ><button class="primary" :disabled="busy || !canPublish" @click="publish">
+              确认发布
+            </button>
+          </div>
+          <p class="publish-guidance muted small">
+            发布需双标题、有效分类与主题、英文正文、全文译文、完整5组语块和已就绪的全文音频
+          </p>
+          <p class="publish-guidance muted small">
+            原图选填。先保存并预览核对当前稿件，再确认发布；管理员试听可选，未试听不影响发布
+          </p>
+        </aside>
+      </div>
+      <p v-else class="notice error">文章已删除，不能编辑或重新发布</p>
+    </div>
+    <section v-if="previewOpen && preview" class="preview-workspace">
+      <div class="page-heading between">
+        <div>
+          <h1>文章预览</h1>
+          <p>核对当前编辑稿的排版与资料完整性</p>
+        </div>
+        <div class="row">
+          <button :disabled="busy" @click="closePreview">返回修改</button
+          ><button class="primary" :disabled="busy || !canPublish" @click="publish">
+            {{ busy ? '发布中…' : '确认发布这一版' }}
+          </button>
+        </div>
+      </div>
+      <p v-if="error" class="notice error" role="alert">{{ error }}</p>
+      <div v-if="preview.errors.length" class="notice error">
+        <p>当前资料不能发布，仍可预览草稿</p>
+        <ul>
+          <li v-for="item in preview.errors" :key="item">{{ item }}</li>
+        </ul>
+      </div>
+      <ListeningPreviewPanel
+        :article="{
+          ...preview.article,
+          topic_name: topics.find((item) => item.id === preview?.article.topic_id)?.name,
+          category_name: categories.find(
+            (item) =>
+              item.id === topics.find((item) => item.id === preview?.article.topic_id)?.category_id
+          )?.name
+        }"
+      />
+    </section>
   </div>
 </template>
 <style scoped lang="scss">
 .listening-edit {
+  .heading-actions {
+    align-items: start;
+  }
+
+  .publish-guidance {
+    margin-top: 16px;
+    font-size: 11px;
+    line-height: 1.85;
+  }
+
   .editor-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-columns: minmax(0, 1fr) 288px;
     align-items: start;
     gap: 24px;
     margin-top: 20px;
   }
 
-  .media-panel {
+  .editor-content {
+    min-width: 0;
+
+    .content-card {
+      padding: 22px;
+      margin-bottom: 20px;
+    }
+  }
+
+  .save-panel {
+    position: sticky;
+    top: 20px;
+    padding: 22px;
+
+    h2 {
+      font-size: 17px;
+      margin-bottom: 20px;
+    }
+
+    dl > div {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 0;
+      font-size: 12px;
+    }
+
+    dd {
+      margin: 0;
+    }
+  }
+
+  .editor-content {
     img {
       width: 100%;
       max-height: 280px;
@@ -356,26 +480,17 @@ onMounted(load)
     audio {
       width: 100%;
     }
-
-    .validation-title {
-      margin-top: 24px;
-    }
   }
 
-  .editor-actions {
+  .save-actions {
+    position: static;
     display: flex;
-    justify-content: flex-end;
+    flex-direction: column;
     gap: 12px;
-    align-items: center;
-    position: sticky;
-    bottom: 0;
-    padding: 18px 0;
-    background: var(--bg);
-    border-top: 1px solid var(--line);
-    margin-top: 24px;
+    margin-top: 20px;
 
-    span {
-      margin-right: auto;
+    button {
+      width: 100%;
     }
   }
 

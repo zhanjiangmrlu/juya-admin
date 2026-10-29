@@ -7,7 +7,7 @@ import { listeningBase } from '@/services/listening-service'
 
 import type { ArticlePayload } from './listening-types'
 
-const props = defineProps<{ payload: ArticlePayload; disabled?: boolean }>(),
+const props = defineProps<{ payload: ArticlePayload; disabled?: boolean; compact?: boolean }>(),
   emit = defineEmits<{ apply: [payload: ArticlePayload] }>()
 const parsed = ref<{ payload: ArticlePayload; hints: Record<string, string> } | null>(null),
   busy = ref(false),
@@ -65,8 +65,15 @@ const apply = () => {
 }
 </script>
 <template>
-  <section class="docx-import">
-    <label class="field"
+  <section class="docx-import" :class="{ compact }">
+    <AppFilePicker
+      v-if="compact"
+      :label="busy ? '读取中…' : '从DOCX带入'"
+      accept=".docx"
+      :disabled="busy || disabled"
+      @change="choose"
+    />
+    <label v-else class="field"
       >从DOCX带入（先核对变化）<AppFilePicker
         label="选择DOCX文件"
         accept=".docx"
@@ -120,6 +127,21 @@ const apply = () => {
 .docx-import {
   border-bottom: 1px solid var(--line);
   padding-bottom: 12px;
+
+  &.compact {
+    border: 0;
+    padding: 0;
+    position: relative;
+
+    > .notice {
+      position: absolute;
+      z-index: 2;
+      top: 48px;
+      right: 0;
+      width: 320px;
+      padding: 12px;
+    }
+  }
 
   .comparison {
     display: grid;

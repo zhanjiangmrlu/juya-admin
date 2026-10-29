@@ -65,3 +65,55 @@ it('uses the published version for vocabulary audition from a user record withou
   expect(network.mock.calls.every(([request]) => request.method === 'GET')).toBe(true)
   page.unmount()
 })
+
+it('shows the audited administrator and before/after authorization values in the detail history', async () => {
+  network.mockReset().mockImplementation(async (request: Request) =>
+    Response.json(
+      new URL(request.url).pathname.endsWith('/history')
+        ? {
+            items: [
+              {
+                id: 'audit',
+                admin_id: 'operator-42',
+                action: 'renew',
+                occurred_at: '2026-10-27T01:41:00Z',
+                before: { status: 'active', expires_on: '2026-11-27' },
+                after: { status: 'active', expires_on: '2026-12-27' }
+              }
+            ],
+            total: 1,
+            page: 1,
+            limit: 10
+          }
+        : {
+            id: 'learner',
+            user_code: 'JY0001',
+            nickname: '学习者',
+            statistics: {},
+            authorization: {
+              status: 'active',
+              starts_on: '2026-10-27',
+              expires_on: '2026-11-27',
+              expires_at: '2026-11-27T16:00:00Z',
+              revision: 1
+            }
+          }
+    )
+  )
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/users/:id', component: UserDetailPage }]
+  })
+  await router.push('/users/learner')
+  const page = mount(UserDetailPage, {
+    global: { plugins: [router], stubs: { UserLearningRecords: true, UserAuthorization: true } }
+  })
+  await flushPromises()
+  expect(page.text()).toContain('最近授权操作')
+  const audit = page.get('.authorization-history tbody').text()
+  expect(audit).toContain('operator-42')
+  expect(audit).toContain('2026-11-27')
+  expect(audit).toContain('2026-12-27')
+  expect(network.mock.calls.every(([request]) => request.method === 'GET')).toBe(true)
+  page.unmount()
+})

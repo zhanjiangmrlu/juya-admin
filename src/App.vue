@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AppBrand from '@/components/app-brand/app-brand.vue'
@@ -14,13 +14,32 @@ const route = useRoute(),
 const releaseAudioFocus = installAudioFocus()
 onBeforeUnmount(releaseAudioFocus)
 const navigation = [
-  { to: '/cards', label: '卡片管理', icon: 'cards' },
+  { to: '/cards', label: '场景卡片', icon: 'cards' },
   { to: '/listening', label: '听读管理', icon: 'listening' },
   { to: '/imports', label: '批量导入', icon: 'upload' },
-  { to: '/users', label: '用户列表', icon: 'users' },
+  { to: '/users', label: '用户管理', icon: 'users' },
   { to: '/statistics', label: '数据统计', icon: 'chart' },
   { to: '/feedback', label: '问题反馈', icon: 'feedback' }
 ]
+// 保持后台跨北京时间零点后的日期与当前时间一致
+const clock = ref(Date.now())
+const dateTimer = window.setInterval(() => {
+  clock.value = Date.now()
+}, 60_000)
+onBeforeUnmount(() => window.clearInterval(dateTimer))
+const headerDate = computed(() =>
+  new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Shanghai' }).format(clock.value)
+)
+const breadcrumb = computed(() => {
+  const current = String(route.meta.title || '')
+  if (route.path.startsWith('/listening/'))
+    return current === '听读管理'
+      ? current
+      : `听读管理 / ${route.params.id === 'new' ? '新建文章' : current}`
+  if (route.path.startsWith('/users/')) return `用户管理 / ${current}`
+  if (route.path.startsWith('/cards/')) return `场景卡片 / ${current}`
+  return route.path === '/cards' ? '场景卡片' : route.path === '/users' ? '用户管理' : current
+})
 /** 清理敏感页面后返回登录 */
 const expired = () => {
   admin.clear()
@@ -65,8 +84,8 @@ onBeforeUnmount(() => window.removeEventListener('admin-session-expired', expire
     </aside>
     <div class="workspace">
       <header class="workspace-bar">
-        <span>{{ route.meta.title }}</span
-        ><span class="muted">内容管理员</span>
+        <span>{{ breadcrumb }}</span
+        ><span class="muted">{{ headerDate }} 内容管理员</span>
       </header>
       <p v-if="error" class="notice error" role="alert">{{ error }}</p>
       <main class="page">

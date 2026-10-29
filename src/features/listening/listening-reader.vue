@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+import imageZoom from '@/assets/icons/image-zoom.svg'
 import SceneAudio from '@/features/scenes/scene-audio.vue'
 import { listeningMediaURL } from '@/services/listening-service'
 
@@ -37,16 +38,36 @@ const paragraphs = computed(() => {
 </script>
 <template>
   <article class="listening-reader">
-    <p class="notice">管理员只读预览 · 不写入学习、收藏或打卡记录</p>
-    <h2>{{ article.payload.title_zh || '中文标题待补充' }}</h2>
-    <p class="english-title">{{ article.payload.title_en || '英文标题待补充' }}</p>
+    <div class="reader-heading">
+      <div class="heading-copy">
+        <h2>{{ article.payload.title_zh || '中文标题待补充' }}</h2>
+        <p class="english-title">{{ article.payload.title_en || '英文标题待补充' }}</p>
+      </div>
+      <button
+        v-if="article.payload.image_id"
+        type="button"
+        class="image-entry text"
+        @click="image = true"
+      >
+        <img :src="mediaSource(article.payload.image_id)" alt="文章配图" /><span
+          ><img
+            class="zoom-icon"
+            :src="imageZoom"
+            width="11"
+            height="11"
+            alt=""
+            aria-hidden="true"
+          />查看大图</span
+        >
+      </button>
+    </div>
     <p class="muted small">
-      {{ article.payload.tags.join(' · ') }} ·
-      {{ article.word_count === undefined ? '词数保存后由服务端计算' : `${article.word_count} 词` }}
+      {{ article.payload.tags.join(' · ') }}{{ article.payload.tags.length ? ' · ' : ''
+      }}{{
+        article.word_count === undefined ? '词数保存后由服务端计算' : `${article.word_count} 词`
+      }}
+      · {{ article.payload.expressions.length }}个表达
     </p>
-    <button v-if="article.payload.image_id" type="button" class="image-entry" @click="image = true">
-      <img :src="mediaSource(article.payload.image_id)" alt="文章配图" />查看大图
-    </button>
     <div v-if="article.payload.audio_id" class="player">
       <SceneAudio
         :media-id="article.payload.audio_id"
@@ -106,17 +127,50 @@ const paragraphs = computed(() => {
   max-width: 760px;
   margin: auto;
 
+  .reader-heading {
+    display: flex;
+    gap: 16px;
+    align-items: start;
+    margin-top: 20px;
+  }
+
+  .heading-copy {
+    flex: 1;
+    min-width: 0;
+
+    h2 {
+      font-size: 18px;
+      line-height: 1.6;
+    }
+  }
+
   .english-title {
-    font-size: 22px;
+    font-size: 30px;
+    line-height: 1.25;
+    font-family: Fraunces, Georgia, serif;
     margin: 10px 0;
   }
 
   .image-entry {
-    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 0;
+    font-size: 10px;
+    width: 70px;
 
-    img {
-      width: 48px;
-      height: 72px;
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    > img {
+      width: 64px;
+      height: 96px;
+      border-radius: 7px;
       object-fit: contain;
     }
   }
@@ -130,8 +184,8 @@ const paragraphs = computed(() => {
   }
 
   .prose {
-    font-size: 18px;
-    line-height: 2;
+    font-size: 16px;
+    line-height: 1.85;
     margin: 24px 0;
 
     p {

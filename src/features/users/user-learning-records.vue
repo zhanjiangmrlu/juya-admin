@@ -85,10 +85,11 @@ onMounted(() => {
 })
 </script>
 <template>
-  <section class="learning-records">
+  <section class="panel learning-records">
+    <h2>学习记录</h2>
     <div class="tabs">
       <button type="button" :class="{ active: tab === 'learned' }" @click="switchTab('learned')">
-        已学卡片 {{ learned.data.value?.total ?? '' }}</button
+        已学场景 {{ learned.data.value?.total ?? '' }}</button
       ><button
         type="button"
         :class="{ active: tab === 'listening' }"
@@ -184,7 +185,7 @@ onMounted(() => {
         :error="checkins.error.value"
         :empty="checkins.data.value?.total === 0"
         empty-title="用户还没有打卡记录"
-        empty-text="主动完成一张卡片会自动计入当天打卡"
+        empty-text="主动完成一张场景卡或一篇听读会自动计入当天打卡"
         @retry="checkins.refresh"
       />
       <div v-if="checkins.data.value">
@@ -229,8 +230,8 @@ onMounted(() => {
                 <p>{{ item.title_en }}</p>
                 <small class="muted">{{ dateText(item.completed_at) }} · 听读</small>
               </div>
-              <RouterLink v-if="item.available" :to="`/listening/${item.id}`"
-                >查看文章管理</RouterLink
+              <RouterLink v-if="item.available" :to="`/listening/${item.id}/published-preview`"
+                >查看发布内容</RouterLink
               ><span v-else class="muted">暂不可用 · 成绩保留</span>
             </div>
           </div>
@@ -262,6 +263,7 @@ onMounted(() => {
       </div>
     </div>
     <ListeningUserRecords v-if="tab === 'listening'" :user-id="userId" />
+    <p class="records-note">后台查看内容为只读预览，不代用户完成、收藏或打卡。</p>
   </section>
 </template>
 <style scoped lang="scss">
@@ -301,8 +303,35 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .learning-records {
+  padding: 24px;
+
+  h2 {
+    margin-bottom: 18px;
+  }
+
   .tabs {
+    gap: 22px;
     margin-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+
+    button {
+      padding: 8px 0 12px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      font-size: 12px;
+    }
+
+    .active {
+      border-bottom: 2px solid var(--ink);
+      font-weight: 700;
+    }
+  }
+
+  .records-note {
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--muted);
   }
 
   table {

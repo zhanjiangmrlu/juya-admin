@@ -18,8 +18,8 @@
   --el-border-radius-base: 8px;
   --el-color-primary-light-9: #e4f0db;
   --sidebar-width: 220px;
-  --topbar-height: 72px;
-  --page-gutter: 32px;
+  --topbar-height: 68px;
+  --page-gutter: 34px;
 }
 
 * {
@@ -619,4 +619,10 @@ table {
 .editor-page,
 .import-page {
   padding-bottom: 90px;
+}
+
+button.danger:not(.text) {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
 }

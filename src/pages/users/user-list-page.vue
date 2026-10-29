@@ -113,68 +113,59 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div class="user-list-page">
-    <div class="page-heading">
-      <RouterLink v-if="route.query.from === 'statistics'" to="/statistics" class="back-link"
-        >‹ 返回数据统计</RouterLink
-      >
-      <h1>用户列表</h1>
-      <p>登录成功即录入；联系方式选填，资料与学习数据同步。</p>
+    <div class="page-heading between">
+      <div>
+        <RouterLink v-if="route.query.from === 'statistics'" to="/statistics" class="back-link"
+          >‹ 返回数据统计</RouterLink
+        >
+        <h1>用户列表</h1>
+        <p>联系方式与来源只读；场景、听读分别统计，共用学习授权及打卡。</p>
+      </div>
+      <button type="button" :disabled="busy" @click="refresh">
+        <AppIcon name="refresh" :size="18" />刷新
+      </button>
     </div>
     <div class="user-list-content">
       <form class="filters user-filters" @submit.prevent="filter({ search })">
-        <input
-          v-model="search"
-          type="search"
-          aria-label="搜索用户"
-          placeholder="搜索编号、昵称、手机号或微信号"
-        />
-        <button type="submit" class="primary">查询</button>
-        <div class="segments" aria-label="打卡状态">
-          <button
-            v-for="item in [
-              { value: 'all', label: '全部' },
-              { value: 'checked', label: '今日已打卡' },
-              { value: 'unchecked', label: '今日未打卡' }
-            ]"
-            :key="item.value"
-            type="button"
-            :aria-pressed="checkin === item.value"
-            @click="filter({ checkin: item.value })"
-          >
-            {{ item.label }}
+        <div class="user-search">
+          <input
+            v-model="search"
+            type="search"
+            aria-label="搜索用户"
+            placeholder="搜索编号、昵称、手机号或微信号"
+          />
+          <button type="submit" class="text" aria-label="查询用户">
+            <AppIcon name="search" :size="16" />
           </button>
         </div>
+        <select
+          :value="route.query.authorization_status || 'all'"
+          aria-label="学习授权筛选"
+          @change="filter({ authorization_status: ($event.target as HTMLSelectElement).value })"
+        >
+          <option value="all">全部授权状态</option>
+          <option value="none">未授权</option>
+          <option value="active">授权有效</option>
+          <option value="expired">已到期</option>
+        </select>
+        <select
+          :value="checkin"
+          aria-label="打卡状态筛选"
+          @change="filter({ checkin: ($event.target as HTMLSelectElement).value })"
+        >
+          <option value="all">全部打卡状态</option>
+          <option value="checked">今日已打卡</option>
+          <option value="unchecked">今日未打卡</option>
+        </select>
+        <select
+          :value="registered"
+          aria-label="注册日期筛选"
+          @change="filter({ registered: ($event.target as HTMLSelectElement).value })"
+        >
+          <option value="all">全部注册日期</option>
+          <option value="today">今日注册</option>
+        </select>
       </form>
-      <div class="registration-filter segments">
-        <label
-          >学习授权<select
-            :value="route.query.authorization_status || 'all'"
-            aria-label="学习授权筛选"
-            @change="filter({ authorization_status: ($event.target as HTMLSelectElement).value })"
-          >
-            <option value="all">全部授权状态</option>
-            <option value="none">未授权</option>
-            <option value="active">授权有效</option>
-            <option value="expired">已到期</option>
-          </select></label
-        >
-        <span>注册日期</span>
-        <button
-          type="button"
-          :aria-pressed="registered === 'all'"
-          @click="filter({ registered: 'all' })"
-        >
-          全部注册
-        </button>
-        <button
-          type="button"
-          :aria-pressed="registered === 'today'"
-          @click="filter({ registered: 'today' })"
-        >
-          今日注册
-        </button>
-        <small>北京时间 {{ data?.statistical_date || '暂未获取' }}</small>
-      </div>
       <AppState
         :busy="busy"
         :error="error"
@@ -196,22 +187,24 @@ onBeforeUnmount(() => {
           <colgroup>
             <col class="user-column" />
             <col class="contact-column" />
-            <col class="authorization-column" />
+            <col class="completed-column" />
             <col class="completed-column" />
             <col class="streak-column" />
             <col class="checkin-column" />
             <col class="times-column" />
+            <col class="authorization-column" />
             <col class="actions-column" />
           </colgroup>
           <thead>
             <tr>
               <th>用户</th>
               <th>联系方式</th>
-              <th>学习授权</th>
-              <th>已学场景卡</th>
+              <th>已学场景</th>
+              <th>已学听读</th>
               <th>连续打卡</th>
               <th>累计打卡</th>
               <th>注册／最近学习</th>
+              <th>学习授权</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -226,11 +219,9 @@ onBeforeUnmount(() => {
                     alt=""
                   />
                   <div v-else class="avatar default"><AppIcon name="user" :size="17" /></div>
-                  <div>
-                    <strong>{{ user.nickname || '学习者' }}</strong>
-                    <p class="identifier">{{ user.user_code }}</p>
-                  </div>
+                  <strong>{{ user.nickname || '学习者' }}</strong>
                 </div>
+                <p class="identifier">{{ user.user_code }}</p>
               </td>
               <td>
                 <template v-if="user.phone || user.wechat_contact">
@@ -244,19 +235,8 @@ onBeforeUnmount(() => {
                   </p> </template
                 ><span v-else class="muted">未填写</span>
               </td>
-              <td>
-                {{
-                  user.authorization?.status === 'active'
-                    ? '授权有效'
-                    : user.authorization?.status === 'expired'
-                      ? '已到期'
-                      : '未授权'
-                }}
-              </td>
-              <td>
-                <p>{{ user.statistics.completed_cards }} 张场景</p>
-                <p>{{ user.statistics.completed_articles ?? '暂未获取' }} 篇听读</p>
-              </td>
+              <td>{{ user.statistics.completed_cards }} 张</td>
+              <td>{{ user.statistics.completed_articles ?? '暂未获取' }} 篇</td>
               <td>
                 {{ user.statistics.current_streak }} 天
                 <p>
@@ -269,6 +249,23 @@ onBeforeUnmount(() => {
               <td class="user-times">
                 <p>注册 {{ dateText(user.registered_at) }}</p>
                 <p>学习 {{ dateText(user.statistics.last_studied_at) }}</p>
+              </td>
+              <td class="authorization-cell">
+                <span
+                  class="badge"
+                  :class="{
+                    draft: user.authorization?.status === 'expired',
+                    offline: !user.authorization || user.authorization.status === 'none'
+                  }"
+                  >{{
+                    user.authorization?.status === 'active'
+                      ? '授权有效'
+                      : user.authorization?.status === 'expired'
+                        ? '已到期'
+                        : '未授权'
+                  }}</span
+                >
+                <p>{{ user.authorization?.expires_on || '—' }}</p>
               </td>
               <td>
                 <RouterLink :to="{ path: `/users/${user.id}`, query: { back: route.fullPath } }"
@@ -289,6 +286,9 @@ onBeforeUnmount(() => {
           </button></template
         >
       </div>
+      <div class="user-list-note">
+        同一授权覆盖场景学习与主题听读。两类已学数量分别计数，连续／累计打卡按同一北京时间日期计算。<br />手机号、微信号及真实来源保留，只读展示；未授权或到期仍可学习当前免费内容。
+      </div>
     </div>
   </div>
 </template>
@@ -300,37 +300,41 @@ onBeforeUnmount(() => {
 }
 
 .user-filters {
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 18px;
 
-  .segments {
-    margin-left: auto;
-  }
-}
-
-.registration-filter {
-  margin-bottom: 24px;
-  font-size: 13px;
-
-  > span {
-    color: var(--muted);
-    margin-right: 8px;
-  }
-
-  button {
-    min-height: 34px;
-    padding: 5px 12px;
-  }
-
-  small {
-    margin-left: auto;
-    color: var(--muted);
+  select {
+    width: 142px;
+    min-height: 40px;
     font-size: 12px;
+  }
+
+  .user-search {
+    display: flex;
+    align-items: center;
+    width: 320px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--paper);
+
+    input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      width: 100%;
+      font-size: 12px;
+    }
+
+    button {
+      padding: 0 12px;
+      min-height: 40px;
+    }
   }
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -338,14 +342,15 @@ onBeforeUnmount(() => {
   &.default {
     display: grid;
     place-items: center;
-    background: var(--soft);
+    background: transparent;
+    width: 18px;
+    height: 18px;
   }
 }
 
 .user-list-content {
   .table-wrap {
-    border-bottom: 0;
-    border-radius: 12px 12px 0 0;
+    border-radius: 12px;
   }
 
   table {
@@ -353,35 +358,38 @@ onBeforeUnmount(() => {
     min-width: 1120px;
 
     .user-column {
-      width: 18%;
+      width: 12%;
     }
 
     .contact-column {
-      width: 20%;
+      width: 21%;
     }
 
-    .authorization-column,
-    .completed-column {
-      width: 9%;
+    .completed-column,
+    .checkin-column {
+      width: 8%;
+    }
+
+    .authorization-column {
+      width: 10%;
     }
 
     .streak-column {
       width: 10%;
     }
 
-    .checkin-column,
     .actions-column {
-      width: 8%;
+      width: 7%;
     }
 
     .times-column {
-      width: 18%;
+      width: 16%;
     }
   }
 
   td {
-    height: 96px;
-    font-size: 13px;
+    height: 124px;
+    font-size: 12px;
     overflow-wrap: anywhere;
   }
 
@@ -400,10 +408,8 @@ onBeforeUnmount(() => {
   }
 
   .user-pagination {
-    border: 1px solid var(--line);
-    border-top: 0;
-    border-radius: 0 0 12px 12px;
-    background: var(--paper);
+    border: 0;
+    background: transparent;
     min-height: 58px;
     color: var(--muted);
     font-size: 12px;
@@ -412,5 +418,26 @@ onBeforeUnmount(() => {
   .pagination-total {
     margin-right: auto;
   }
+}
+
+.identifier {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.authorization-cell p {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.user-list-note {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--soft);
+  font-size: 12px;
+  line-height: 1.8;
 }
 </style>

@@ -89,7 +89,7 @@ onBeforeUnmount(() => {
     <div class="page-heading between">
       <div>
         <h1>数据统计</h1>
-        <p>查看用户、场景与听读内容的总体情况。</p>
+        <p>查看用户与两类学习内容的总体情况。</p>
       </div>
       <button type="button" :disabled="busy" @click="refresh">
         <AppIcon name="refresh" />刷新
@@ -137,16 +137,15 @@ onBeforeUnmount(() => {
         /></span>
       </button>
     </div>
-    <section class="overview-notes">
+    <section class="panel overview-notes">
       <h2>统计口径</h2>
-      <p>用户总数：成功注册的稳定账号去重，包含未填写联系方式和尚未学习的用户，不包含管理员。</p>
-      <p>今日新增：按北京时间今天首次注册的账号统计，不以登录或补充资料计数。</p>
-      <p>已发布场景卡片：当前已发布且未删除的卡片，同卡多次发布只计一张；草稿、下线卡不计入。</p>
-      <p>已发布听读文章：当前有效发布的不同文章，草稿、下线与删除不计入；用户历史已学篇数保留。</p>
+      <p>用户按账号去重，重新登录和更新资料不重复计新增，不包含管理员。</p>
+      <p>今日新增按北京时间注册日期计算，与今日打卡分开。</p>
+      <p>场景按张、听读按篇分别统计当前有效发布内容；草稿、下线和删除内容不计入。</p>
+      <p>个人已学数量、收藏和共同打卡可在用户详情中查看，后台不手工改写成绩。</p>
       <p v-if="data && data.published_article_count === undefined">
         听读统计暂未获取，请刷新后核对。
       </p>
-      <p>列表查询与统计的更新时间可能不同，发生新增或发布后可以刷新核对。</p>
     </section>
   </div>
 </template>
@@ -163,7 +162,7 @@ onBeforeUnmount(() => {
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 24px;
+  gap: 18px;
 }
 
 .overview-metric {
@@ -171,8 +170,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: stretch;
   text-align: left;
-  padding: 28px;
-  min-height: 252px;
+  padding: 23px;
+  min-height: 191px;
   border-radius: 12px;
 
   &:disabled {
@@ -180,7 +179,7 @@ onBeforeUnmount(() => {
   }
 
   .metric-title {
-    font-size: 15px;
+    font-size: 12px;
     color: var(--muted);
   }
 
@@ -188,11 +187,11 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: baseline;
     gap: 8px;
-    margin: 28px 0 36px;
+    margin: 24px 0 21px;
   }
 
   .metric-value {
-    font-size: 48px;
+    font-size: 36px;
     line-height: 1.15;
     font-weight: 500;
     font-variant-numeric: tabular-nums;
@@ -203,9 +202,9 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: space-between;
     border-top: 1px solid var(--line);
-    padding-top: 18px;
-    color: var(--green);
-    font-size: 12px;
+    padding-top: 15px;
+    color: var(--muted);
+    font-size: 11px;
   }
 
   .metric-skeleton,
@@ -230,19 +229,18 @@ onBeforeUnmount(() => {
 }
 
 .overview-notes {
-  border-top: 1px solid var(--line);
-  margin-top: 34px;
-  padding-top: 24px;
+  margin-top: 28px;
+  padding: 24px;
 
   h2 {
-    font-size: 15px;
+    font-size: 18px;
     margin-bottom: 12px;
   }
 
   p {
     color: var(--muted);
     font-size: 12px;
-    margin: 7px 0;
+    margin: 12px 0;
     line-height: 1.9;
   }
 }

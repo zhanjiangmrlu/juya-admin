@@ -5,7 +5,7 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
 import { statusLabels } from '@/features/listening/listening-model'
-import ListeningReader from '@/features/listening/listening-reader.vue'
+import ListeningPreviewPanel from '@/features/listening/listening-preview-panel.vue'
 import ListeningSettings from '@/features/listening/listening-settings.vue'
 import { dateText, queryURL } from '@/services/display'
 import { listeningOperation, listeningRequest } from '@/services/listening-service'
@@ -53,6 +53,7 @@ const filterTopics = computed(() =>
 let generation = 0
 let previousQuery = route.fullPath,
   scrollTop = 0,
+  previewReturnScroll = 0,
   activated = false
 /** 展示当前文章真实分类和主题归属
  * @param topicId 文章当前主题编号
@@ -119,6 +120,7 @@ const toggleAll = () => {
  * @param item 用户点击的这一篇文章
  */
 const showPreview = async (item: Article) => {
+  const returnScroll = window.scrollY
   error.value = ''
   busy.value = true
   try {
@@ -127,11 +129,20 @@ const showPreview = async (item: Article) => {
         revision: item.revision
       })()
     ).article
+    previewReturnScroll = returnScroll
+    await nextTick()
+    window.scrollTo(0, 0)
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '预览失败'
   } finally {
     busy.value = false
   }
+}
+/** 关闭整页预览，恢复列表原有筛选、勾选与滚动位置 */
+const closePreview = async () => {
+  preview.value = null
+  await nextTick()
+  window.scrollTo(0, previewReturnScroll)
 }
 /** 固定本次删除名单，单行调用只接收这一行
  * @param items 明确选择的文章集合
@@ -239,7 +250,8 @@ watch(
   }
 )
 onBeforeRouteLeave(() => {
-  scrollTop = window.scrollY
+  scrollTop = preview.value ? previewReturnScroll : window.scrollY
+  preview.value = null
 })
 onActivated(async () => {
   if (!activated) {
@@ -257,238 +269,264 @@ onMounted(async () => {
 </script>
 <template>
   <div class="listening-list">
-    <div class="page-heading between">
-      <div>
-        <h1>听读文章管理</h1>
-        <p>支持ZIP批量导入，也可单篇新建；按主题维护短文与完整音频。</p>
+    <div v-show="!preview" class="list-workspace">
+      <div class="page-heading between">
+        <div>
+          <h1>听读文章管理</h1>
+          <p>支持ZIP批量导入，也可单篇新建；按主题维护短文与完整音频。</p>
+        </div>
+        <div class="row">
+          <RouterLink class="button-link" to="/listening-imports"
+            ><AppIcon name="upload" />批量导入</RouterLink
+          ><RouterLink class="button-link primary" to="/listening/new"
+            ><AppIcon name="plus" />新建文章</RouterLink
+          >
+        </div>
       </div>
-      <div class="row">
-        <RouterLink class="button-link" to="/listening-imports"
-          ><AppIcon name="upload" />批量导入</RouterLink
-        ><RouterLink class="button-link primary" to="/listening/new"
-          ><AppIcon name="plus" />新建文章</RouterLink
+      <div class="tabs settings-actions">
+        <button class="active" type="button">文章管理</button
+        ><RouterLink to="/listening/categories">分类管理</RouterLink
+        ><RouterLink to="/listening/topics">主题管理</RouterLink>
+      </div>
+      <form class="filters" @submit.prevent="filter({ q: search || undefined, page: 1 })">
+        <div class="search">
+          <input v-model="search" aria-label="搜索中英文标题" placeholder="搜索中英文标题" />
+          <button type="submit" aria-label="搜索" :disabled="busy">
+            <AppIcon name="search" :size="16" />
+          </button>
+        </div>
+        <label
+          ><select
+            aria-label="分类"
+            :value="category"
+            @change="
+              filter({
+                category_id: ($event.target as HTMLSelectElement).value || undefined,
+                topic_id: undefined,
+                page: 1
+              })
+            "
+          >
+            <option value="">全部分类</option>
+            <option v-for="item in categories" :key="item.id" :value="item.id">
+              {{ item.name }}
+            </option>
+          </select></label
         >
-      </div>
-    </div>
-    <div class="tabs settings-actions">
-      <button class="active" type="button">文章管理</button
-      ><RouterLink to="/listening/categories">分类管理</RouterLink
-      ><RouterLink to="/listening/topics">主题管理</RouterLink>
-    </div>
-    <form class="filters" @submit.prevent="filter({ q: search || undefined, page: 1 })">
-      <div class="search">
-        <input v-model="search" aria-label="搜索中英文标题" placeholder="搜索中英文标题" />
-        <button type="submit" aria-label="搜索" :disabled="busy">
-          <AppIcon name="search" :size="16" />
+        <label
+          ><select
+            aria-label="主题"
+            :value="topic"
+            @change="
+              filter({ topic_id: ($event.target as HTMLSelectElement).value || undefined, page: 1 })
+            "
+          >
+            <option value="">全部主题</option>
+            <option v-for="item in filterTopics" :key="item.id" :value="item.id">
+              {{ item.name }}
+            </option>
+          </select></label
+        ><label
+          ><select
+            aria-label="状态"
+            :value="status"
+            @change="
+              filter({ status: ($event.target as HTMLSelectElement).value || undefined, page: 1 })
+            "
+          >
+            <option value="">全部状态</option>
+            <option value="draft">草稿</option>
+            <option value="published">已发布</option>
+            <option value="offline">已下线</option>
+          </select></label
+        >
+        <div class="filter-actions">
+          <button type="button" @click="settings = 'free'">免费开放设置</button>
+          <RouterLink class="button-link" to="/listening/global-order">全局免费排序</RouterLink>
+        </div>
+      </form>
+      <AppState
+        :error="error"
+        :busy="busy"
+        :empty="data?.total === 0"
+        empty-title="暂无符合条件的文章"
+        empty-text="可以新建文章，或调整筛选条件"
+        @retry="load"
+      />
+      <p v-if="notice" class="notice" role="status">{{ notice }}</p>
+      <div v-if="unknownDelete" class="notice error">
+        本次删除结果未知，先查询实际状态<button :disabled="deleting" @click="queryDelete">
+          查询本次删除结果
         </button>
       </div>
-      <label
-        ><select
-          aria-label="分类"
-          :value="category"
-          @change="
-            filter({
-              category_id: ($event.target as HTMLSelectElement).value || undefined,
-              topic_id: undefined,
-              page: 1
-            })
-          "
+      <div v-if="results" class="notice result-panel" role="status">
+        <div class="between">
+          <span
+            >本次删除：成功
+            {{ results.items.filter((item) => item.status === 'success').length }} 篇，失败
+            {{ results.items.filter((item) => item.status === 'failed').length }} 篇</span
+          ><button
+            v-if="results.items.some((item) => item.status === 'failed')"
+            :disabled="deleting"
+            @click="retryFailed"
+          >
+            刷新并重新确认原失败项
+          </button>
+        </div>
+        <p
+          v-for="item in results.items.filter((item) => item.status === 'failed')"
+          :key="item.id"
+          class="failed-detail"
         >
-          <option value="">全部分类</option>
-          <option v-for="item in categories" :key="item.id" :value="item.id">
-            {{ item.name }}
-          </option>
-        </select></label
-      >
-      <label
-        ><select
-          aria-label="主题"
-          :value="topic"
-          @change="
-            filter({ topic_id: ($event.target as HTMLSelectElement).value || undefined, page: 1 })
-          "
-        >
-          <option value="">全部主题</option>
-          <option v-for="item in filterTopics" :key="item.id" :value="item.id">
-            {{ item.name }}
-          </option>
-        </select></label
-      ><label
-        ><select
-          aria-label="状态"
-          :value="status"
-          @change="
-            filter({ status: ($event.target as HTMLSelectElement).value || undefined, page: 1 })
-          "
-        >
-          <option value="">全部状态</option>
-          <option value="draft">草稿</option>
-          <option value="published">已发布</option>
-          <option value="offline">已下线</option>
-        </select></label
-      >
-      <div class="filter-actions">
-        <button type="button" @click="settings = 'free'">免费开放设置</button>
-        <RouterLink class="button-link" to="/listening/global-order">全局免费排序</RouterLink>
+          {{ targets.find((target) => target.id === item.id)?.payload.title_zh || item.id }}：{{
+            item.error || '失败，请刷新核对'
+          }}
+        </p>
       </div>
-    </form>
-    <AppState
-      :error="error"
-      :busy="busy"
-      :empty="data?.total === 0"
-      empty-title="暂无符合条件的文章"
-      empty-text="可以新建文章，或调整筛选条件"
-      @retry="load"
-    />
-    <p v-if="notice" class="notice" role="status">{{ notice }}</p>
-    <div v-if="unknownDelete" class="notice error">
-      本次删除结果未知，先查询实际状态<button :disabled="deleting" @click="queryDelete">
-        查询本次删除结果
-      </button>
-    </div>
-    <section v-if="results" class="panel result-panel">
-      <h2>本次删除结果</h2>
-      <p v-for="item in results.items" :key="item.id">
-        {{ targets.find((target) => target.id === item.id)?.payload.title_zh || item.id }}：{{
-          item.status === 'success' ? '删除成功' : `失败 · ${item.error || '请刷新核对'}`
+      <div v-if="selected.length" class="between selection-bar">
+        <span>已选当前页 {{ selected.length }} 篇</span>
+        <div class="row">
+          <button :disabled="deleting" @click="selected = []">取消选择</button
+          ><button
+            class="danger"
+            :disabled="deleting"
+            @click="confirmDelete(data?.items.filter((item) => selected.includes(item.id)) || [])"
+          >
+            批量删除
+          </button>
+        </div>
+      </div>
+      <div v-if="data && !busy && !error && data.items.length" class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>
+                <input
+                  type="checkbox"
+                  aria-label="全选当前页文章"
+                  :checked="allSelected"
+                  :indeterminate="partialSelected"
+                  @change="toggleAll"
+                />
+              </th>
+              <th>文章标题</th>
+              <th>分类 / 主题</th>
+              <th>状态 / 创建时间</th>
+              <th>学习范围</th>
+              <th>全文音频</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="item in data.items"
+              :key="item.id"
+              :class="{
+                'failed-row': results?.items.some(
+                  (result) => result.id === item.id && result.status === 'failed'
+                )
+              }"
+            >
+              <td>
+                <input
+                  v-model="selected"
+                  type="checkbox"
+                  :value="item.id"
+                  :aria-label="`选择${item.payload.title_zh || item.id}`"
+                />
+              </td>
+              <td>
+                <strong>{{ item.payload.title_zh || '中文标题待补充' }}</strong>
+                <p class="muted">{{ item.payload.title_en || '英文标题待补充' }}</p>
+                <small>{{ item.payload.tags.join(' · ') }}</small>
+              </td>
+              <td>
+                {{ topicPath(item.topic_id) }}
+                <p class="muted small">{{ item.word_count }} 词</p>
+              </td>
+              <td>
+                <span class="badge" :class="item.status">{{ statusLabels[item.status] }}</span>
+                <p class="muted small">{{ dateText(item.created_at) }}</p>
+              </td>
+              <td>
+                <span v-if="item.status !== 'published'" class="muted small">发布后判断</span
+                ><span v-else-if="!policy?.configured" class="muted small">听读尚未开放</span
+                ><span v-else :class="{ badge: policy.article_ids.includes(item.id) }">{{
+                  policy.article_ids.includes(item.id) ? '免费开放' : '需学习授权'
+                }}</span>
+              </td>
+              <td>
+                <span class="badge" :class="{ draft: !item.payload.audio_id }">{{
+                  item.payload.audio_id ? '已关联' : '音频待补充'
+                }}</span>
+              </td>
+              <td>
+                <div class="row row-actions">
+                  <RouterLink
+                    :to="{ path: `/listening/${item.id}`, query: { back: route.fullPath } }"
+                    >编辑</RouterLink
+                  ><button class="text" @click="showPreview(item)">预览</button
+                  ><button v-if="item.status === 'published'" class="text" @click="offline = item">
+                    下线</button
+                  ><button class="text danger" :disabled="deleting" @click="confirmDelete([item])">
+                    删除
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p v-if="policy" class="notice">
+        {{
+          policy.configured
+            ? `听读免费 M = ${policy.free_count}，当前免费 ${policy.article_ids.length} 篇；与场景免费数量独立设置`
+            : '免费M尚未确认，听读暂未开放；请预览名单并明确保存'
         }}
       </p>
-      <button
-        v-if="results.items.some((item) => item.status === 'failed')"
-        :disabled="deleting"
-        @click="retryFailed"
-      >
-        刷新并重新确认原失败项
-      </button>
-    </section>
-    <div v-if="selected.length" class="between selection-bar">
-      <span>已选当前页 {{ selected.length }} 篇</span>
-      <div class="row">
-        <button :disabled="deleting" @click="selected = []">取消选择</button
-        ><button
-          class="danger"
-          :disabled="deleting"
-          @click="confirmDelete(data?.items.filter((item) => selected.includes(item.id)) || [])"
-        >
-          批量删除
+      <div v-if="data" class="pagination">
+        <span>共 {{ data.total }} 篇 · 每页10篇</span
+        ><button :disabled="busy || page <= 1" @click="filter({ page: page - 1 })">上一页</button
+        ><span>第 {{ page }} 页</span
+        ><button :disabled="busy || page * 10 >= data.total" @click="filter({ page: page + 1 })">
+          下一页
         </button>
       </div>
+      <ElDialog
+        :model-value="Boolean(settings)"
+        title="听读管理设置"
+        :width="settings === 'free' ? '620px' : '900px'"
+        destroy-on-close
+        @update:model-value="settings = null"
+        ><ListeningSettings v-if="settings" :initial="settings" @changed="load"
+      /></ElDialog>
     </div>
-    <div v-if="data && !busy && !error && data.items.length" class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>
-              <input
-                type="checkbox"
-                aria-label="全选当前页文章"
-                :checked="allSelected"
-                :indeterminate="partialSelected"
-                @change="toggleAll"
-              />
-            </th>
-            <th>文章标题</th>
-            <th>分类 / 主题</th>
-            <th>状态 / 创建时间</th>
-            <th>学习范围</th>
-            <th>全文音频</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in data.items" :key="item.id">
-            <td>
-              <input
-                v-model="selected"
-                type="checkbox"
-                :value="item.id"
-                :aria-label="`选择${item.payload.title_zh || item.id}`"
-              />
-            </td>
-            <td>
-              <strong>{{ item.payload.title_zh || '中文标题待补充' }}</strong>
-              <p class="muted">{{ item.payload.title_en || '英文标题待补充' }}</p>
-              <small>{{ item.payload.tags.join(' · ') }}</small>
-            </td>
-            <td>
-              {{ topicPath(item.topic_id) }}
-              <p class="muted small">{{ item.word_count }} 词</p>
-            </td>
-            <td>
-              <span class="badge" :class="item.status">{{ statusLabels[item.status] }}</span>
-              <p class="muted small">{{ dateText(item.created_at) }}</p>
-            </td>
-            <td>
-              <span v-if="item.status !== 'published'" class="muted small">发布后判断</span
-              ><span v-else-if="!policy?.configured" class="muted small">听读尚未开放</span
-              ><span v-else :class="{ badge: policy.article_ids.includes(item.id) }">{{
-                policy.article_ids.includes(item.id) ? '免费开放' : '需学习授权'
-              }}</span>
-            </td>
-            <td>
-              <span class="badge" :class="{ draft: !item.payload.audio_id }">{{
-                item.payload.audio_id ? '已关联' : '音频待补充'
-              }}</span>
-            </td>
-            <td>
-              <div class="row row-actions">
-                <RouterLink :to="{ path: `/listening/${item.id}`, query: { back: route.fullPath } }"
-                  >编辑</RouterLink
-                ><button class="text" @click="showPreview(item)">预览</button
-                ><button v-if="item.status === 'published'" class="text" @click="offline = item">
-                  下线</button
-                ><button class="text danger" :disabled="deleting" @click="confirmDelete([item])">
-                  删除
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p v-if="policy" class="notice">
-      {{
-        policy.configured
-          ? `听读免费 M = ${policy.free_count}，当前免费 ${policy.article_ids.length} 篇；与场景免费数量独立设置`
-          : '免费M尚未确认，听读暂未开放；请预览名单并明确保存'
-      }}
-    </p>
-    <div v-if="data" class="pagination">
-      <span>共 {{ data.total }} 篇 · 每页10篇</span
-      ><button :disabled="busy || page <= 1" @click="filter({ page: page - 1 })">上一页</button
-      ><span>第 {{ page }} 页</span
-      ><button :disabled="busy || page * 10 >= data.total" @click="filter({ page: page + 1 })">
-        下一页
-      </button>
-    </div>
-    <ElDialog
-      :model-value="Boolean(settings)"
-      title="听读管理设置"
-      width="900px"
-      destroy-on-close
-      @update:model-value="settings = null"
-      ><ListeningSettings v-if="settings" :initial="settings" @changed="load"
-    /></ElDialog>
-    <ElDialog
-      :model-value="Boolean(preview)"
-      class="listening-article-preview"
-      body-class="preview-body"
-      title="文章预览"
-      width="900px"
-      destroy-on-close
-      @update:model-value="preview = null"
-      ><ListeningReader v-if="preview" :article="preview" />
-      <template #footer>
-        <button @click="preview = null">关闭预览</button>
-        <RouterLink
-          v-if="preview"
-          class="button-link primary"
-          :to="{ path: `/listening/${preview.id}`, query: { back: route.fullPath } }"
-          @click="preview = null"
-          >前往编辑并发布</RouterLink
-        >
-      </template>
-    </ElDialog>
+    <section v-if="preview" class="preview-workspace">
+      <div class="page-heading between">
+        <div>
+          <h1>文章预览</h1>
+          <p>核对当前编辑稿的排版与资料完整性</p>
+        </div>
+        <div class="row">
+          <button @click="closePreview">关闭预览</button
+          ><RouterLink
+            class="button-link primary"
+            :to="{ path: `/listening/${preview.id}`, query: { back: route.fullPath } }"
+            >前往编辑并发布</RouterLink
+          >
+        </div>
+      </div>
+      <ListeningPreviewPanel
+        v-if="preview"
+        :article="{
+          ...preview,
+          topic_name: topics.find((item) => item.id === preview?.topic_id)?.name,
+          category_name: categories.find(
+            (item) => item.id === topics.find((item) => item.id === preview?.topic_id)?.category_id
+          )?.name
+        }"
+      />
+    </section>
     <ElDialog
       v-model="confirmOpen"
       :title="`确认删除${targets.length}篇文章`"
@@ -496,15 +534,20 @@ onMounted(async () => {
       :close-on-click-modal="false"
       :close-on-press-escape="!deleting"
       :show-close="!deleting"
-      ><p class="notice error">
+      ><p class="notice warning">
         删除后立即停止全文与资源访问；用户已有收藏、完成及打卡历史保留安全引用。删除后不能重新发布
       </p>
-      <ul>
-        <li v-for="item in targets" :key="item.id">
-          {{ item.payload.title_zh || '中文标题待补充' }} /
-          {{ item.payload.title_en || '英文标题待补充' }} · {{ statusLabels[item.status] }}
-        </li>
-      </ul>
+      <div class="confirmation-objects">
+        <div v-for="item in targets" :key="item.id" class="object-card">
+          <strong>{{ item.payload.title_zh || '中文标题待补充' }}</strong>
+          <p class="muted small">{{ item.payload.title_en || '英文标题待补充' }}</p>
+          <div class="between">
+            <span class="muted small">{{ topicPath(item.topic_id) }}</span
+            ><span class="badge">{{ statusLabels[item.status] }}</span>
+          </div>
+        </div>
+      </div>
+      <p class="muted small">共 {{ targets.length }} 篇。确认范围仅包含当前明确选择的文章</p>
       <template #footer
         ><button :disabled="deleting" @click="confirmOpen = false">取消</button
         ><button class="danger" :disabled="deleting || !targets.length" @click="remove">
@@ -517,8 +560,18 @@ onMounted(async () => {
       title="确认下线文章"
       width="600px"
       @update:model-value="offline = null"
-      ><p>{{ offline?.payload.title_zh }} / {{ offline?.payload.title_en }}</p>
-      <p>下线后停止学习端访问；历史记录和成绩保留</p>
+      ><div v-if="offline" class="object-card">
+        <strong>{{ offline.payload.title_zh }}</strong>
+        <p class="muted small">{{ offline.payload.title_en }}</p>
+        <span class="muted small">{{ topicPath(offline.topic_id) }}</span>
+      </div>
+      <p>下线后用户暂时无法学习本篇，后台可编辑并重新发布</p>
+      <p class="muted small">用户已有收藏、学习记录与打卡成绩会保留</p>
+      <p class="notice warning">
+        {{
+          offline && policy?.article_ids.includes(offline.id) ? '本篇当前在免费名单内。' : ''
+        }}下线后将依据最新发布集合重新计算全局前M篇
+      </p>
       <template #footer
         ><button :disabled="deleting" @click="offline = null">取消</button
         ><button class="danger" :disabled="deleting" @click="takeOffline">
@@ -530,6 +583,38 @@ onMounted(async () => {
 </template>
 <style scoped lang="scss">
 .listening-list {
+  .object-card {
+    padding: 18px;
+    margin: 16px 0;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--paper);
+
+    p {
+      margin: 6px 0 12px;
+    }
+  }
+
+  .confirmation-objects {
+    max-height: 300px;
+    overflow: auto;
+  }
+
+  .warning {
+    background: #fff4d8;
+    color: #826036;
+    border: 1px solid #ecd6a4;
+  }
+
+  .failed-row {
+    background: #fff1e8;
+  }
+
+  .failed-detail {
+    margin-top: 10px;
+    color: var(--danger);
+  }
+
   .settings-actions {
     margin-bottom: 20px;
     flex-wrap: wrap;

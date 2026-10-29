@@ -39,38 +39,34 @@ onMounted(records.refresh)
         <thead>
           <tr>
             <th>听读文章</th>
-            <th>首次完成 / 最近完成</th>
-            <th>状态</th>
+            <th>状态／首次完成／最近学习</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="item in records.data.value.items" :key="item.id">
             <td>
               <div class="article-title">
-                <img v-if="item.thumbnail_url" :src="item.thumbnail_url" alt="" /><span
-                  v-else
-                  class="image-placeholder"
-                  >暂无配图</span
-                ><span
-                  ><strong>{{ item.title_zh }}</strong>
-                  <p>{{ item.title_en }}</p>
-                  <small>{{ item.word_count }} 词</small></span
-                >
+                <strong>{{ item.title_zh }}</strong>
+                <p>{{ item.title_en }}</p>
               </div>
             </td>
             <td>
-              <p>首次：{{ dateText(item.first_completed_at) }}</p>
-              <p>最近：{{ dateText(item.last_completed_at) }}</p>
+              <span class="badge" :class="{ offline: !item.available }">{{
+                item.available ? '已发布' : '暂不可用'
+              }}</span>
+              <p>首次完成：{{ dateText(item.first_completed_at) }}</p>
+              <p>最近学习：{{ dateText(item.last_completed_at) }}</p>
             </td>
             <td>
-              <RouterLink v-if="item.available" :to="`/listening/${item.id}`"
-                >查看文章管理</RouterLink
+              <RouterLink v-if="item.available" :to="`/listening/${item.id}/published-preview`"
+                >查看发布内容</RouterLink
               ><span v-else>暂不可用 · 成绩保留</span>
             </td>
           </tr>
         </tbody>
       </table>
-      <div class="pagination">
+      <div v-if="records.data.value.total > 20" class="pagination">
         <span>共 {{ records.data.value.total }} 篇</span
         ><button :disabled="page <= 1 || records.busy.value" @click="changePage(-1)">上一页</button
         ><span>第 {{ page }} 页</span
@@ -86,28 +82,38 @@ onMounted(records.refresh)
 </template>
 <style scoped lang="scss">
 .article-records {
+  table {
+    table-layout: fixed;
+
+    th:first-child {
+      width: 42%;
+    }
+
+    th:nth-child(2) {
+      width: 40%;
+    }
+
+    th:last-child {
+      width: 18%;
+    }
+  }
+
+  td {
+    padding-top: 20px;
+    padding-bottom: 20px;
+    font-size: 12px;
+  }
+
+  td > p {
+    font-size: 11px;
+    margin-top: 4px;
+    color: var(--muted);
+  }
+
   .article-title {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-
-    img,
-    .image-placeholder {
-      flex-shrink: 0;
-      width: 48px;
-      height: 72px;
-      object-fit: contain;
-    }
-
-    .image-placeholder {
-      display: grid;
-      place-items: center;
-      background: var(--soft);
-      font-size: 11px;
-    }
-
-    p,
-    small {
+    p {
+      margin-top: 4px;
+      font-size: 12px;
       color: var(--muted);
     }
   }

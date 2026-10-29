@@ -24,6 +24,11 @@ const router = createRouter({
       meta: { title: '听读导入' }
     },
     {
+      path: '/listening/:id/published-preview',
+      component: () => import('@/pages/listening/listening-published-preview-page.vue'),
+      meta: { title: '听读发布内容预览' }
+    },
+    {
       path: '/listening/:id',
       component: () => import('@/pages/listening/listening-edit-page.vue'),
       meta: { title: '听读文章编辑' }

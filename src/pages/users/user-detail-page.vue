@@ -6,6 +6,7 @@ import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
 import { useResource } from '@/composables/use-resource'
 import UserAuthorization from '@/features/learning-access/user-authorization.vue'
+import UserAuthorizationHistory from '@/features/learning-access/user-authorization-history.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import UserLearningRecords from '@/features/users/user-learning-records.vue'
 import { contactSourceText, dateText, mediaURL } from '@/services/display'
@@ -29,6 +30,13 @@ const metrics = computed(() =>
       ]
     : []
 )
+/** 滚动到授权变更审计表
+ * @returns 滚动完成后无返回值
+ */
+const showAuthorizationHistory = () =>
+  document
+    .getElementById('authorization-history')
+    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 /** 读取卡片当前发布快照，历史停用卡不开放正文
  * @param cardId 用户记录中的稳定卡片编号
  */
@@ -63,6 +71,7 @@ onMounted(() => {
         :user-code="data.user_code"
         :authorization="data.authorization"
         @changed="refresh"
+        @history-requested="showAuthorizationHistory"
       />
       <div class="profile-overview">
         <section class="panel account-panel">
@@ -114,42 +123,50 @@ onMounted(() => {
               <dd>{{ dateText(data.statistics.last_studied_at) }}</dd>
             </div>
           </dl>
+          <p class="profile-note">已填联系资料及其来源在此只读保留，不能代用户编辑。</p>
         </section>
         <section class="panel learning-panel">
-          <div class="between">
-            <h2>总学习数据</h2>
-            <button type="button" class="text small" :disabled="busy" @click="refresh">
-              刷新资料
-            </button>
-          </div>
+          <h2>总学习数据</h2>
           <div class="user-metrics">
             <div v-for="metric in metrics" :key="metric.label">
+              <span>{{ metric.label }}</span>
               <strong
                 >{{ metric.value ?? '暂未获取'
                 }}<small v-if="metric.value != null">{{ metric.unit }}</small></strong
-              ><span>{{ metric.label }}</span>
+              >
             </div>
           </div>
-          <p>
-            {{ data.statistics.checked_in_today ? '今日已打卡' : '今日尚未打卡' }} · 场景收藏
-            {{ data.statistics.favorite_count ?? '暂未获取' }} 张 · 听读收藏
-            {{ data.statistics.listening_favorite_count ?? '暂未获取' }} 篇
-          </p>
-          <p>
-            今日完成：{{ data.statistics.today_completed_cards ?? '暂未获取' }} 张场景卡、{{
-              data.statistics.today_completed_articles ?? '暂未获取'
-            }}
-            篇听读；两类共用每日打卡
-          </p>
-          <p>
-            最长连续：{{ data.statistics.longest_streak ?? '暂未获取' }}
-            天，与学习首页和完成记录保持一致。
-          </p>
-          <p class="statistics-date">统计日期：{{ data.statistics.date }}（北京时间）</p>
+          <dl class="profile-fields learning-fields">
+            <div>
+              <dt>今日状态</dt>
+              <dd>
+                <span class="badge" :class="{ draft: !data.statistics.checked_in_today }">{{
+                  data.statistics.checked_in_today ? '今日已打卡' : '今日待打卡'
+                }}</span>
+              </dd>
+            </div>
+            <div>
+              <dt>收藏数量</dt>
+              <dd>
+                场景 {{ data.statistics.favorite_count ?? '暂未获取' }} 张／听读
+                {{ data.statistics.listening_favorite_count ?? '暂未获取' }} 篇
+              </dd>
+            </div>
+            <div>
+              <dt>最长连续</dt>
+              <dd>{{ data.statistics.longest_streak ?? '暂未获取' }} 天</dd>
+            </div>
+          </dl>
+          <p class="profile-note">场景与听读分别累计，共用每日打卡，不手工改写成绩。</p>
         </section>
       </div>
       <p v-if="previewError" class="notice error" role="alert">{{ previewError }}</p>
       <UserLearningRecords :user-id="userId" @preview="showPreview" />
+      <UserAuthorizationHistory
+        v-if="data.authorization"
+        :user-id="userId"
+        :revision="data.authorization.revision"
+      />
     </template>
     <ScenePreview
       v-if="preview"
@@ -169,7 +186,7 @@ onMounted(() => {
 
   .panel {
     margin-bottom: 0;
-    min-height: 410px;
+    min-height: 480px;
     padding: 24px;
   }
 
@@ -199,23 +216,27 @@ onMounted(() => {
 
 .profile-fields {
   display: grid;
-  gap: 10px;
+  gap: 0;
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
 
   > div {
     display: grid;
     grid-template-columns: 104px minmax(0, 1fr);
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
     gap: 16px;
     align-items: baseline;
   }
 
   dt {
-    color: var(--muted);
+    color: var(--ink);
   }
 
   dd {
     margin: 0;
+    color: var(--muted);
+    text-align: right;
     overflow-wrap: anywhere;
   }
 
@@ -228,9 +249,11 @@ onMounted(() => {
 
 .user-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin: 28px 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px 20px;
+  margin: 18px 0 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
 
   > div {
     min-width: 0;
@@ -238,9 +261,10 @@ onMounted(() => {
 
   strong {
     display: block;
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 500;
     line-height: 1.4;
+    margin-top: 9px;
 
     small {
       font-size: 12px;
@@ -250,14 +274,14 @@ onMounted(() => {
   }
 
   span {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--muted);
   }
 }
 
 .learning-panel {
   > p {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--muted);
     line-height: 1.8;
   }
@@ -272,5 +296,15 @@ onMounted(() => {
   .profile-overview {
     grid-template-columns: 1fr;
   }
+}
+
+.profile-note {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.learning-fields {
+  margin-top: 20px;
 }
 </style>

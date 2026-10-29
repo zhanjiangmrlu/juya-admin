@@ -40,3 +40,32 @@ it('confirms unsaved editor departure before revoking the administrator session'
   cleanup()
   wrapper.unmount()
 })
+it('refreshes the Beijing header date across midnight without duplicate listening breadcrumbs', async () => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-10-28T15:59:59Z'))
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  const admin = useAdminStore()
+  admin.identity = { id: 'admin-1', username: 'admin' }
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      {
+        path: '/listening/categories',
+        meta: { title: '听读管理' },
+        component: { template: '<p>分类</p>' }
+      }
+    ]
+  })
+  await router.push('/listening/categories')
+  const wrapper = mount(App, { global: { plugins: [pinia, router] } })
+  try {
+    expect(wrapper.get('.workspace-bar').text()).not.toContain('听读管理 / 听读管理')
+    expect(wrapper.get('.workspace-bar').text()).toContain('2026-10-28')
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(wrapper.get('.workspace-bar').text()).toContain('2026-10-29')
+  } finally {
+    wrapper.unmount()
+    vi.useRealTimers()
+  }
+})

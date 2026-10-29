@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef, watch } from 'vue'
 
+import dragIcon from '@/assets/icons/drag.svg'
 import AppState from '@/components/app-state/app-state.vue'
 import {
   listeningOperation,
@@ -18,7 +19,7 @@ import type {
   Topic
 } from './listening-types'
 
-import { moveArticle } from './listening-model'
+import { moveArticle, statusLabels } from './listening-model'
 
 const props = defineProps<{
   initial: 'hierarchy' | 'order' | 'free'
@@ -55,7 +56,10 @@ const pendingHierarchy = shallowRef<{
 } | null>(null)
 const topicSearch = ref(''),
   categoryFilter = ref(''),
-  orderConfirm = ref(false)
+  orderConfirm = ref(false),
+  freeConfirm = ref(false),
+  savedOrder = ref<string[]>([]),
+  draggedId = ref('')
 const visibleTopics = computed(() =>
   topics.value.filter(
     (item) =>
@@ -74,6 +78,12 @@ const publishedCount = (ids: string[]) =>
 const freeValid = computed(
   () => /^\d+$/.test(freeInput.value.trim()) && Number.isSafeInteger(Number(freeInput.value))
 )
+const freePreviewCurrent = computed(() =>
+  Boolean(
+    freePreview.value && freeValid.value && freePreview.value.free_count === Number(freeInput.value)
+  )
+)
+let freePreviewGeneration = 0
 /** 将文章编号转换为真实双标题，未读到资料时保留编号供核对
  * @param id 当前名单或排序中的稳定文章编号
  * @returns 管理员核对对象名称
@@ -126,6 +136,7 @@ const loadOrder = async () => {
     order.value = await listeningRequest<Order>(
       `/order?scope=${scope.value}${scope.value === 'topic' ? `&topic_id=${topic.value}` : ''}`
     )
+    savedOrder.value = [...order.value.article_ids]
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '顺序读取失败'
   } finally {
@@ -182,7 +193,7 @@ const saveHierarchy = async () => {
         sort_order: item.sort_order,
         ...(item.id ? { revision: item.revision } : {}),
         ...(item.kind === 'topic'
-          ? { category_id: item.category_id, description: item.description }
+          ? { category_id: item.category_id, description: item.description, name_en: item.name_en }
           : { name_en: item.name_en })
       }
     )
@@ -212,6 +223,7 @@ const submitOrder = async () => {
       ...(scope.value === 'topic' ? { topic_id: topic.value } : {})
     })()
     orderConfirm.value = false
+    savedOrder.value = [...order.value.article_ids]
     notice.value = '当前作用域顺序已保存'
     freePreview.value = null
     emit('changed')
@@ -228,13 +240,28 @@ const saveOrder = () => {
 }
 /** 请求服务端计算全局前M篇及名单变化 */
 const previewFree = async () => {
-  if (!freeValid.value) return
+  if (!freeValid.value || busy.value) return
+  const freeCount = Number(freeInput.value),
+    generation = ++freePreviewGeneration
+  freePreview.value = null
+  freeConfirm.value = false
   busy.value = true
   error.value = ''
   try {
-    freePreview.value = await listeningOperation<FreePreview>('POST', '/free-policy/preview', {
-      free_count: Number(freeInput.value)
+    const result = await listeningOperation<FreePreview>('POST', '/free-policy/preview', {
+      free_count: freeCount
     })()
+    // 输入或请求轮次变化时，旧令牌不得恢复到当前确认范围
+    if (
+      generation !== freePreviewGeneration ||
+      !freeValid.value ||
+      Number(freeInput.value) !== freeCount ||
+      result.free_count !== freeCount
+    ) {
+      error.value = '免费篇数已变化，请重新预览名单'
+      return
+    }
+    freePreview.value = result
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '名单计算失败'
   } finally {
@@ -243,24 +270,75 @@ const previewFree = async () => {
 }
 /** 管理员核对完整名单后提交当前确认令牌 */
 const saveFree = async () => {
-  if (!freePreview.value) return
+  if (!freePreview.value || !freePreviewCurrent.value || busy.value) return
   busy.value = true
   error.value = ''
   try {
     policy.value = await listeningOperation<FreePolicy>('PUT', '/free-policy', {
       preview_token: freePreview.value.preview_token
     })()
+    freeConfirm.value = false
     notice.value = '听读免费M已保存'
     freePreview.value = null
     emit('changed')
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '保存失败，请重新预览完整名单'
+    freeConfirm.value = false
     freePreview.value = null
   } finally {
     busy.value = false
   }
 }
+/** 仅从拖动手柄开始排序，参数为原生拖动事件与待移动文章编号
+ * @param event 原生拖动事件，用于声明移动操作
+ * @param id 管理员选择的文章编号
+ */
+const startDrag = (event: DragEvent, id: string) => {
+  if (busy.value) return
+  draggedId.value = id
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', id)
+  }
+}
+/** 将当前拖动文章移到落点位置，保持完整文章集合
+ * @param targetId 管理员放置位置对应的文章编号
+ */
+const dropArticle = (targetId: string) => {
+  if (!order.value || busy.value || !draggedId.value) return
+  const ids = [...order.value.article_ids]
+  const from = ids.indexOf(draggedId.value),
+    target = ids.indexOf(targetId)
+  if (from >= 0 && target >= 0) {
+    ids.splice(from, 1)
+    ids.splice(target, 0, draggedId.value)
+    order.value.article_ids = ids
+  }
+  draggedId.value = ''
+}
+/** 放弃当前未保存排序，恢复本作用域最近一次已确认顺序 */
+const cancelOrder = () => {
+  if (order.value) order.value.article_ids = [...savedOrder.value]
+  orderConfirm.value = false
+}
+/** 返回文章发布归属的分类和主题
+ * @param id 当前排序或免费名单中的文章编号
+ * @returns 可核对的分类主题名称
+ */
+const affiliation = (id: string) => {
+  const article = articles.value.find((item) => item.id === id)
+  const item = topics.value.find(
+    (item) => item.id === (article?.published_topic_id || article?.topic_id)
+  )
+  return (
+    [categories.value.find((category) => category.id === item?.category_id)?.name, item?.name]
+      .filter(Boolean)
+      .join(' / ') || '归属待确认'
+  )
+}
 watch(freeInput, () => {
+  freePreviewGeneration++
+  freeConfirm.value = false
   freePreview.value = null
 })
 watch([scope, topic], () => {
@@ -317,9 +395,9 @@ onMounted(load)
       <template v-else>
         <div class="row topic-filters">
           <label class="field"
-            >搜索主题<input v-model="topicSearch" placeholder="输入主题名称" /></label
+            ><input v-model="topicSearch" aria-label="搜索主题" placeholder="输入主题名称" /></label
           ><label class="field"
-            >分类<select v-model="categoryFilter">
+            ><select v-model="categoryFilter" aria-label="筛选分类">
               <option value="">全部分类</option>
               <option v-for="item in categories" :key="item.id" :value="item.id">
                 {{ item.name }}
@@ -372,8 +450,7 @@ onMounted(load)
                   {{ item.name }}
                 </option>
               </select></label
-            ><label v-if="edit.kind === 'category'" class="field"
-              >英文名称（选填）<input v-model="edit.name_en" /></label
+            ><label class="field">英文名称（选填）<input v-model="edit.name_en" /></label
             ><label class="field"
               >显示序号<input v-model.number="edit.sort_order" type="number" step="1" required
             /></label>
@@ -415,16 +492,31 @@ onMounted(load)
           v-for="(id, index) in order.article_ids"
           :key="id"
           class="between catalog-row order-row"
-          :class="{ free: scope === 'global' && policy?.article_ids.includes(id) }"
+          :class="{
+            free: scope === 'global' && policy?.article_ids.includes(id),
+            dragging: draggedId === id
+          }"
+          @dragover.prevent
+          @drop.prevent="dropArticle(id)"
         >
-          <span class="order-number">{{ index + 1 }}</span
+          <button
+            type="button"
+            class="drag-handle text"
+            :draggable="!busy"
+            :disabled="busy"
+            :aria-label="`拖动排序：${title(id)}`"
+            @dragstart="startDrag($event, id)"
+            @dragend="draggedId = ''"
+          >
+            <img :src="dragIcon" width="19" height="19" alt="" aria-hidden="true" /></button
+          ><span class="order-number">{{ index + 1 }}</span
           ><span class="order-title"
             ><strong>{{ articles.find((item) => item.id === id)?.payload.title_zh || id }}</strong
             ><small>{{ articles.find((item) => item.id === id)?.payload.title_en }}</small></span
-          ><span class="muted small">{{
-            scope === 'global'
-              ? topics.find((item) => item.id === articles.find((a) => a.id === id)?.topic_id)?.name
-              : ''
+          >
+          <span class="muted small">{{ affiliation(id) }}</span
+          ><span v-if="scope === 'topic'" class="badge">{{
+            statusLabels[articles.find((item) => item.id === id)?.status || '']
           }}</span
           ><span v-if="scope === 'global' && policy?.article_ids.includes(id)" class="badge"
             >当前免费</span
@@ -446,7 +538,7 @@ onMounted(load)
           </div>
         </div>
         <div class="row section-heading">
-          <button :disabled="busy" @click="loadOrder">重新读取</button
+          <button :disabled="busy" @click="cancelOrder">取消调整</button
           ><button class="primary" :disabled="busy" @click="saveOrder">
             {{ scope === 'global' ? '核对名单并保存' : '保存顺序' }}
           </button>
@@ -459,9 +551,16 @@ onMounted(load)
           policy?.configured ? `当前M=${policy.free_count}` : '听读免费M尚未确认，当前听读不开放'
         }}。场景N和用户学习授权不受此设置影响
       </p>
-      <label class="field"
+      <div class="between free-summary">
+        <span class="badge">当前M={{ policy?.configured ? policy.free_count : '未设置' }}</span
+        ><span class="muted small"
+          >已发布 {{ articles.filter((item) => item.status === 'published').length }} 篇</span
+        >
+      </div>
+      <label class="field free-input"
         >免费篇数M<input
           v-model="freeInput"
+          :disabled="busy"
           inputmode="numeric"
           placeholder="请输入非负整数，0表示无免费篇"
         /><small>按全量有效发布文章的全局顺序取前M篇，超过总数则全部免费；完成不补位</small></label
@@ -469,9 +568,30 @@ onMounted(load)
         预览名单与影响</button
       ><template v-if="freePreview"
         ><h3 class="section-heading">将生效的完整名单（{{ freePreview.article_ids.length }}篇）</h3>
-        <ol>
-          <li v-for="id in freePreview.article_ids" :key="id">{{ title(id) }}</li>
-        </ol>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>顺序</th>
+                <th>文章</th>
+                <th>分类 / 主题</th>
+                <th>名单变化</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(id, index) in freePreview.article_ids" :key="id">
+                <td>{{ index + 1 }}</td>
+                <td>{{ title(id) }}</td>
+                <td>{{ affiliation(id) }}</td>
+                <td>
+                  <span class="badge">{{
+                    freePreview.added_ids.includes(id) ? '新增免费' : '保持免费'
+                  }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <p v-if="!freePreview.article_ids.length" class="muted">没有免费文章</p>
         <p>
           新增 {{ freePreview.added_ids.length }} 篇；移出 {{ freePreview.removed_ids.length }} 篇
@@ -482,10 +602,61 @@ onMounted(load)
         </ul>
         <div class="row">
           <button :disabled="busy" @click="freePreview = null">取消</button
-          ><button class="primary" :disabled="busy" @click="saveFree">确认保存M与名单</button>
+          ><button
+            class="primary"
+            :disabled="busy || !freePreviewCurrent"
+            @click="freeConfirm = true"
+          >
+            保存免费设置
+          </button>
         </div></template
       ></template
     >
+    <ElDialog
+      v-model="freeConfirm"
+      title="确认调整听读免费篇数"
+      width="620px"
+      :close-on-click-modal="false"
+    >
+      <template v-if="freePreview"
+        ><div class="policy-summary">
+          <span
+            >当前免费篇数 <strong>{{ policy?.free_count ?? '未设置' }}</strong></span
+          ><span
+            >调整后免费篇数 <strong>{{ freePreview.free_count }}</strong></span
+          >
+        </div>
+        <p class="notice">
+          新增免费 {{ freePreview.added_ids.length }} 篇，移出免费
+          {{ freePreview.removed_ids.length }} 篇。已完成记录保留，当前访问以最新授权和免费名单为准
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>变化</th>
+                <th>文章</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="id in freePreview.added_ids" :key="id">
+                <td>新增免费</td>
+                <td>{{ title(id) }}</td>
+              </tr>
+              <tr v-for="id in freePreview.removed_ids" :key="id">
+                <td>移出免费</td>
+                <td>{{ title(id) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div></template
+      ><template #footer
+        ><button :disabled="busy" @click="freeConfirm = false">返回核对</button
+        ><button class="primary" :disabled="busy || !freePreviewCurrent" @click="saveFree">
+          确认保存M与名单
+        </button></template
+      >
+    </ElDialog>
     <ElDialog
       v-model="orderConfirm"
       title="核对全局顺序与免费名单"
@@ -522,8 +693,45 @@ onMounted(load)
 </template>
 <style scoped lang="scss">
 .listening-settings {
+  table th {
+    font-size: 12px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .free-summary {
+    margin: 16px 0;
+  }
+
+  .free-input input {
+    max-width: 220px;
+  }
+
+  .policy-summary {
+    display: flex;
+    gap: 40px;
+    padding: 20px;
+    background: var(--soft);
+    border-radius: 10px;
+
+    strong {
+      display: block;
+      font-size: 28px;
+      margin-top: 8px;
+    }
+  }
+
+  .drag-handle {
+    cursor: grab;
+    padding: 0 8px;
+  }
+
+  .dragging {
+    opacity: 0.5;
+  }
+
   .topic-filters {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
     .field {
       width: 220px;
@@ -551,7 +759,9 @@ onMounted(load)
 
   .catalog-row.order-row {
     background: var(--paper);
-    padding: 20px;
+    padding: 17px 20px;
+    min-height: 70px;
+    gap: 15px;
     border: 1px solid var(--line);
     margin-top: -1px;
 

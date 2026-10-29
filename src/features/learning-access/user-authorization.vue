@@ -2,7 +2,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 
-import { dateText } from '@/services/display'
 import { api } from '@/services/http-client'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -14,16 +13,13 @@ const props = defineProps<{
   userCode: string
   authorization: components['schemas']['AuthorizationView']
 }>()
-const emit = defineEmits<{ changed: [] }>()
+const emit = defineEmits<{ changed: []; historyRequested: [] }>()
 const preview = ref<components['schemas']['GrantPreview'] | null>(null),
   action = ref<components['schemas']['AuthorizationPreview']['action']>('grant'),
   confirmedAction = ref<components['schemas']['AuthorizationPreview']['action']>('grant'),
   expiresOn = ref(''),
   error = ref(''),
-  busy = ref(false),
-  showHistory = ref(false),
-  historyPage = ref(1),
-  history = ref<components['schemas']['AccessHistoryPage'] | null>(null)
+  busy = ref(false)
 const path = `/api/admin/v1/users/${encodeURIComponent(props.userId)}/learning-authorization`
 const operation = useAccessOperation<components['schemas']['AuthorizationView']>(
   path,
@@ -72,20 +68,11 @@ const inspect = async () => {
     busy.value = false
   }
 }
-/** 读取完整分页历史，保留此前成功显示的结果 */
-const readHistory = async () => {
-  try {
-    history.value = await api.request(`${path}/history?page=${historyPage.value}&limit=10`)
-  } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : '操作记录读取失败'
-  }
-}
 /** 确认保存，未知响应复用原操作查询，不重复加月 */
 const save = async () => {
   if (await operation.submit()) {
     preview.value = null
     emit('changed')
-    if (showHistory.value) void readHistory()
   }
 }
 /** 关闭已核对但未提交的操作 */
@@ -114,18 +101,6 @@ const openRevoke = () => {
   choose('revoke')
   void inspect()
 }
-/** 展开真实操作历史并读取当前页 */
-const toggleHistory = () => {
-  showHistory.value = !showHistory.value
-  if (showHistory.value) void readHistory()
-}
-/** 翻阅完整操作记录，page为上一页或下一页增量
- * @param delta 页码调整量
- */
-const turnHistory = (delta: number) => {
-  historyPage.value += delta
-  void readHistory()
-}
 /** 版本冲突后刷新真实授权，再允许重新核对 */
 const refreshGrant = () => {
   preview.value = null
@@ -140,7 +115,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
     <div class="between">
       <div>
         <h2>学习授权</h2>
-        <p>统一开放全部有效场景与正文点词查询。</p>
+        <p>统一开放有效已发布场景、主题听读及正文点词。</p>
       </div>
       <span class="badge">{{ labels[authorization.status] }}</span>
     </div>
@@ -151,7 +126,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
           <dd>{{ authorization.starts_on || '尚未开通' }}</dd>
         </div>
         <div>
-          <dt>到期日期</dt>
+          <dt>到期日期（当日有效）</dt>
           <dd>{{ authorization.expires_on || '尚未开通' }}</dd>
         </div>
       </dl>
@@ -180,7 +155,9 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
         >
           撤销授权
         </button>
-        <button type="button" @click="toggleHistory">查看操作记录</button>
+        <button type="button" class="text small" @click="emit('historyRequested')">
+          查看操作记录
+        </button>
       </div>
     </div>
     <div v-if="action === 'set_expiry'" class="expiry-input">
@@ -192,25 +169,10 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
           :disabled="busy || operation.unknown.value || operation.busy.value" /></label
       ><button :disabled="busy || operation.unknown.value" @click="inspect">核对日期</button>
     </div>
-    <p class="small muted">北京时间，到期日当日有效，次日 00:00 失效。</p>
+
     <p v-if="error || operation.error.value" class="notice error" role="alert">
       {{ error || operation.error.value }}
     </p>
-    <div v-if="showHistory && history" class="authorization-history">
-      <p v-for="item in history.items" :key="item.id">
-        {{ dateText(item.occurred_at) }} ·
-        {{ actionLabels[item.action as keyof typeof actionLabels] || item.action }} ·
-        {{ item.before.expires_on || '未授权' }} → {{ item.after.expires_on || '未授权' }} ·
-        {{ item.after.status === 'none' ? '已撤销' : '' }}
-      </p>
-      <div class="between">
-        <button :disabled="historyPage <= 1" @click="turnHistory(-1)">上一页</button
-        ><span>共 {{ history.total }} 条</span
-        ><button :disabled="historyPage * history.limit >= history.total" @click="turnHistory(1)">
-          下一页
-        </button>
-      </div>
-    </div>
     <ElDialog
       v-if="preview"
       :model-value="true"
@@ -258,7 +220,8 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
 </template>
 <style scoped lang="scss">
 .authorization-panel {
-  margin-bottom: 24px;
+  padding: 24px;
+  margin-bottom: 20px;
 
   h2 {
     font-size: 18px;
@@ -270,6 +233,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 20px;
+  align-items: center;
 
   dl {
     display: flex;
@@ -282,7 +246,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
   }
 
   dd {
-    margin: 8px 0;
+    margin: 6px 0 0;
   }
 }
 
@@ -302,11 +266,5 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
     display: grid;
     gap: 8px;
   }
-}
-
-.authorization-history {
-  margin-top: 16px;
-  max-height: 300px;
-  overflow: auto;
 }
 </style>

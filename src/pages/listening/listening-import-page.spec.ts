@@ -159,6 +159,17 @@ it('selects a stable existing target, stages without writing articles and review
   await flushPromises()
   expect(page.get('.target-difference').text()).toContain('Old text.')
   expect(page.get('.target-difference').text()).toContain('New text.')
+  await page.get('.content-form details textarea').setValue('invalid JSON')
+  await page.get('.content-form details textarea').trigger('change')
+  await page
+    .findAll('button')
+    .find((button) => button.text() === '保存到本批暂存')!
+    .trigger('click')
+  await flushPromises()
+  expect(writes).toEqual([])
+  expect(page.text()).toContain('请先修正本篇词义格式')
+  await page.get('.content-form details textarea').setValue('[]')
+  await page.get('.content-form details textarea').trigger('change')
   await page
     .findAll('button')
     .find((button) => button.text() === '保存到本批暂存')!
@@ -190,4 +201,39 @@ it('selects a stable existing target, stages without writing articles and review
   })
   expect(writes.every((write) => write.path.includes('/imports/'))).toBe(true)
   page.unmount()
+})
+
+it('retains an unknown upload queue for the original-key retry', async () => {
+  const { api } = await import('@/services/http-client')
+  const upload = vi.spyOn(api, 'upload').mockRejectedValue(new Error('传输结果未知'))
+  network.mockImplementation(async (request: Request) => {
+    if (request.method === 'POST')
+      return Response.json({
+        id: 'pending',
+        mode: 'zip',
+        revision: 1,
+        packages: [],
+        candidates: [],
+        counts: {}
+      })
+    return Response.json({ items: [], total: 0 })
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/listening-imports', component: ListeningImportPage }]
+  })
+  await router.push('/listening-imports')
+  const page = mount(
+    { template: '<RouterView />' },
+    { global: { plugins: [router], stubs: { ElDialog: true } } }
+  )
+  await flushPromises()
+  const input = page.get('input[type="file"]')
+  Object.defineProperty(input.element, 'files', { value: [new File(['zip'], 'original.zip')] })
+  await input.trigger('change')
+  await flushPromises()
+  expect(page.get('.package-queue').text()).toContain('original.zip')
+  expect(page.findAll('button').some((item) => item.text() === '以原操作重试上传')).toBe(true)
+  page.unmount()
+  upload.mockRestore()
 })
