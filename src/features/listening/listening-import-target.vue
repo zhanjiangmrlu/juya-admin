@@ -69,7 +69,7 @@ const create = () => {
 <template>
   <section class="import-target">
     <h3>本次保存方式</h3>
-    <div class="row">
+    <div class="row save-options">
       <label
         ><input
           v-model="mode"
@@ -134,6 +134,19 @@ const create = () => {
 <style scoped lang="scss">
 .import-target {
   margin-bottom: 24px;
+
+  .save-options {
+    flex-wrap: wrap;
+    gap: 12px 24px;
+
+    label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      cursor: pointer;
+    }
+  }
 
   .field {
     flex: 1;
