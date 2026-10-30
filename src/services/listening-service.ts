@@ -51,11 +51,10 @@ export const listeningRecoverableOperation = <T>(method: string, path: string, b
       unknown = false
       return result
     } catch (reason) {
-      if (
+      // 原写请求的明确业务拒绝结束未知状态，调用页才可释放旧版本并重新确认
+      unknown =
         reason instanceof ApiError &&
         (['network_unknown', 'response_unknown'].includes(reason.code) || reason.status >= 500)
-      )
-        unknown = true
       throw reason
     }
   }

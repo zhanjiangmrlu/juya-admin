@@ -213,3 +213,87 @@ it('keeps preview optional and retains editable content when returning from it',
   ])
   page.unmount()
 })
+
+it('unlocks publication after an unknown request is definitely rejected and permits a fresh revision', async () => {
+  let revision = 1,
+    attempts = 0
+  const writes: Request[] = []
+  network.mockImplementation(async (request: Request) => {
+    if (request.url.endsWith('/categories')) return Response.json({ items: [] })
+    if (request.url.endsWith('/topics'))
+      return Response.json({ items: [{ id: 'topic', name: '主题', name_en: 'Topic' }] })
+    if (request.url.includes('/operations/'))
+      return Response.json({ error: { code: 'operation_unknown' } }, { status: 404 })
+    if (request.url.endsWith('/publish')) {
+      writes.push(request.clone())
+      attempts++
+      if (attempts === 1) {
+        revision = 2
+        throw new Error('lost before commit')
+      }
+      if (attempts === 2)
+        return Response.json(
+          { error: { code: 'listening_article_changed', message: '编辑稿已变化，请刷新' } },
+          { status: 409 }
+        )
+      return Response.json({
+        ...saved,
+        id: 'existing',
+        revision: 3,
+        status: 'published',
+        payload: readyPayload
+      })
+    }
+    return Response.json({ ...saved, id: 'existing', revision, payload: readyPayload })
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/listening/:id', component: ListeningEditPage },
+      { path: '/listening', component: { template: '<div>文章管理</div>' } }
+    ]
+  })
+  await router.push('/listening/existing')
+  const page = mount(
+    { template: '<RouterView />' },
+    {
+      global: {
+        plugins: [router],
+        stubs: { ListeningTimeline: true, ListeningDocxImport: true, ElDialog: true }
+      }
+    }
+  )
+  await flushPromises()
+  await page
+    .findAll('.save-panel button')
+    .find((item) => item.text() === '发布')!
+    .trigger('click')
+  await flushPromises()
+  await page
+    .findAll('.save-panel button')
+    .find((item) => item.text() === '重试发布')!
+    .trigger('click')
+  await flushPromises()
+  expect(
+    page
+      .findAll('.save-panel button')
+      .find((item) => item.text() === '保存草稿')!
+      .attributes('disabled')
+  ).toBeUndefined()
+  const editor = page.getComponent(ListeningEditPage)
+  const state = editor.findComponent({ name: 'AppState' })
+  state.vm.$emit('retry')
+  await flushPromises()
+  await page
+    .findAll('.save-panel button')
+    .find((item) => item.text() === '发布')!
+    .trigger('click')
+  await flushPromises()
+  expect(router.currentRoute.value.path).toBe('/listening')
+  expect(await writes[2]!.json()).toEqual({ revision: 2 })
+  expect(writes[0]!.headers.get('Idempotency-Key')).toBe(writes[1]!.headers.get('Idempotency-Key'))
+  expect(writes[2]!.headers.get('Idempotency-Key')).not.toBe(
+    writes[0]!.headers.get('Idempotency-Key')
+  )
+  page.unmount()
+})
