@@ -111,7 +111,7 @@ const differences = computed(() => {
       </tbody>
     </table>
     <p class="muted small">
-      这里只核对草稿变化；最终确认保存后仍需单独预览、明确发布，才会更新学习端
+      这里只核对资料变化；选择“保存为草稿”不更新学习端，选择“发布所选合格文章”并通过校验后才更新学习端
     </p>
   </div>
 </template>

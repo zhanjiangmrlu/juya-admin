@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type ComponentPublicInstance, computed, onMounted, ref, shallowRef } from 'vue'
+import { type ComponentPublicInstance, computed, nextTick, onMounted, ref, shallowRef } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import AppFilePicker from '@/components/app-file-picker/app-file-picker.vue'
@@ -10,7 +10,8 @@ import ListeningImportTarget from '@/features/listening/listening-import-target.
 import {
   candidateSelection,
   importErrorLabels,
-  statusLabels
+  statusLabels,
+  topicLabel
 } from '@/features/listening/listening-model'
 import ListeningPreviewPanel from '@/features/listening/listening-preview-panel.vue'
 import ListeningTimeline from '@/features/listening/listening-timeline.vue'
@@ -19,7 +20,9 @@ import {
   listeningBase,
   listeningImportMediaBase,
   listeningOperation,
-  listeningRequest
+  listeningRecoverableOperation,
+  listeningRequest,
+  listeningTemplateURL
 } from '@/services/listening-service'
 
 import type {
@@ -47,6 +50,7 @@ const mode = ref<'zip' | 'docx'>(route.query.mode === 'docx' ? 'docx' : 'zip'),
   uploadPercent = ref<number | null>(null),
   preview = ref<ImportPreview | null>(null),
   result = ref<ImportResult | null>(null),
+  submitAction = ref<'draft' | 'publish'>('draft'),
   candidatePreview = ref<Candidate | null>(null),
   removeOpen = ref(false),
   editing = ref<CandidateEditor | null>(null),
@@ -63,7 +67,9 @@ const pendingUpload = shallowRef<{
   key: string
   revision: number
 } | null>(null)
-let pendingSave: (() => Promise<ImportResult>) | null = null
+const pendingSave = shallowRef<ReturnType<
+  typeof listeningRecoverableOperation<ImportResult>
+> | null>(null)
 /** 持有当前展开的唯一候选表单实例，避免循环模板将引用收集为数组
  * @param value 当前挂载的候选表单实例，卸载时为空
  */
@@ -76,9 +82,10 @@ const setCandidateForm = (value: Element | ComponentPublicInstance | null) => {
  */
 const accept = (value: ImportBatch, defaults = false) => {
   batch.value = value
+  result.value = null
   mode.value = value.mode === 'docx' ? 'docx' : 'zip'
   preview.value = null
-  pendingSave = null
+  pendingSave.value = null
   selected.value = defaults
     ? value.candidates
         .filter((item) => !item.removed && ['complete', 'incomplete'].includes(item.state))
@@ -92,6 +99,10 @@ const accept = (value: ImportBatch, defaults = false) => {
  * @param id 当前管理员拥有的服务端批次编号
  */
 const resume = async (id: string) => {
+  if (pendingSave.value) {
+    await save()
+    return
+  }
   busy.value = true
   error.value = ''
   try {
@@ -144,7 +155,7 @@ const sendUpload = async () => {
  * @param files 管理员明确选择或拖入的文件
  */
 const uploadFiles = async (files: File[]) => {
-  if (!files.length || busy.value) return
+  if (!files.length || busy.value || pendingSave.value) return
   busy.value = true
   error.value = ''
   try {
@@ -179,6 +190,7 @@ const dropFiles = (event: DragEvent) => {
  * @param candidate 当前候选及素材对应
  */
 const editCandidate = async (candidate: Candidate) => {
+  if (pendingSave.value) return
   editing.value = {
     candidate,
     payload: JSON.parse(JSON.stringify(candidate.payload)),
@@ -190,7 +202,7 @@ const editCandidate = async (candidate: Candidate) => {
     targetError: ''
   }
   preview.value = null
-  pendingSave = null
+  pendingSave.value = null
   if (candidate.target_article_id) {
     const current = editing.value
     busy.value = true
@@ -277,38 +289,62 @@ const removeCandidates = async () => {
     busy.value = false
   }
 }
-/** 只确认可保存集合，明确排除无法读取、重复与成功项 */
-const next = async () => {
-  if (!batch.value || !selection.value.save.length || editing.value) return
+/** 固定当前勾选中的可提交对象，核对快照后直接执行管理员选择的动作
+ * @param action 保存草稿或明确发布
+ */
+const next = async (action: 'draft' | 'publish') => {
+  if (!batch.value || editing.value || busy.value || pendingSave.value) return
+  const ids = action === 'publish' ? selection.value.publish : selection.value.save
+  if (!ids.length) return
   busy.value = true
   error.value = ''
+  result.value = null
+  submitAction.value = action
   try {
     preview.value = await listeningOperation<ImportPreview>(
       'POST',
       `/imports/${batch.value.id}/preview`,
-      { revision: batch.value.revision, candidate_ids: selection.value.save }
+      {
+        revision: batch.value.revision,
+        candidate_ids: [...ids],
+        submit_action: action
+      }
     )()
-    step.value = 3
+    pendingSave.value = listeningRecoverableOperation<ImportResult>(
+      'POST',
+      `/imports/${batch.value.id}/save`,
+      {
+        preview_token: preview.value.preview_token,
+        submit_action: action
+      }
+    )
+    await save()
   } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : '确认范围失败，未创建任何草稿'
+    error.value = reason instanceof Error ? reason.message : '核对范围失败，未提交保存或发布'
   } finally {
     busy.value = false
   }
 }
-/** 明确确认后才创建或更新草稿，未知响应保持原操作等待查询 */
+/** 恢复原提交回执，全部成功返回列表，部分失败保留真实结果 */
 const save = async () => {
-  if (!batch.value || !preview.value) return
+  if (!pendingSave.value) return
   busy.value = true
   error.value = ''
   try {
-    pendingSave ||= listeningOperation<ImportResult>('POST', `/imports/${batch.value.id}/save`, {
-      preview_token: preview.value.preview_token
-    })
-    const value = await pendingSave()
-    result.value = value
+    const value = await pendingSave.value.run()
+    pendingSave.value = null
     accept(value.batch)
+    result.value = value
+    if (!value.items.some((item) => item.status === 'failed')) {
+      await router.push(String(route.query.back || '/listening'))
+    } else {
+      step.value = 2
+      await nextTick()
+      document.querySelector('[data-submission-results]')?.scrollIntoView?.({ block: 'start' })
+    }
   } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : '保存结果未知，请查询实际批次后重试'
+    error.value = reason instanceof Error ? reason.message : '提交结果未确认，请重试'
+    if (!pendingSave.value?.unknown) pendingSave.value = null
   } finally {
     busy.value = false
   }
@@ -329,12 +365,15 @@ const retryFailed = async () => {
 }
 /** 返回核对后使旧保存确认失效 */
 const backToReview = () => {
+  if (pendingSave.value) return
   step.value = 2
   preview.value = null
-  pendingSave = null
+  result.value = null
+  error.value = ''
 }
 /** 清空勾选但保留当前核对位置 */
 const clearSelection = () => {
+  if (pendingSave.value) return
   selected.value = []
   preview.value = null
 }
@@ -371,18 +410,20 @@ onMounted(async () => {
     <div class="page-heading between">
       <div>
         <h1>听读批量导入</h1>
-        <p>独立听读批次 · 资料核对后仅保存草稿</p>
+        <p>独立听读批次 · 核对后可直接发布或保存草稿</p>
       </div>
       <RouterLink class="button-link" to="/listening">返回文章管理</RouterLink>
     </div>
     <ol class="steps">
       <li :class="{ active: step >= 1 }"><span>1</span> 上传资料</li>
       <li :class="{ active: step >= 2 }"><span>2</span> 核对文章</li>
-      <li :class="{ active: step >= 3 }"><span>3</span> 保存草稿</li>
+      <li :class="{ active: step >= 3 }"><span>3</span> 发布或保存草稿</li>
     </ol>
     <AppState :error="error" @retry="batch ? resume(batch.id) : undefined" />
+    <button v-if="pendingSave" :disabled="busy" @click="save">查询并恢复本次提交</button>
     <div v-if="step === 1" class="upload-layout">
       <section class="panel upload-panel">
+        <a :href="listeningTemplateURL" download="listening-template.docx">下载填写示例</a>
         <h2>上传听读资料</h2>
         <div v-if="!batch" class="row mode-options">
           <label><input v-model="mode" type="radio" value="zip" /> 上传ZIP</label
@@ -405,14 +446,17 @@ onMounted(async () => {
             :label="mode === 'zip' ? '选择ZIP文件' : '选择DOCX及配套资料'"
             :accept="mode === 'zip' ? '.zip' : '.docx,.mp3,.m4a,.wav,.aac,.png,.jpg,.jpeg,.webp'"
             multiple
-            :disabled="busy"
+            :disabled="busy || Boolean(pendingSave)"
             @change="chooseFiles"
           />
         </div>
         <p v-if="uploadText" role="status">{{ uploadText }}</p>
         <div v-if="pendingUpload" class="row">
-          <button :disabled="busy" @click="sendUpload">以原操作重试上传</button
-          ><button v-if="batch" :disabled="busy" @click="resume(batch.id)">查询实际批次</button>
+          <button :disabled="busy || Boolean(pendingSave)" @click="sendUpload">
+            以原操作重试上传</button
+          ><button v-if="batch" :disabled="busy || Boolean(pendingSave)" @click="resume(batch.id)">
+            查询实际批次
+          </button>
         </div>
         <div v-if="pendingUpload" class="package-queue">
           <div
@@ -448,7 +492,12 @@ onMounted(async () => {
             </p>
           </div>
         </div>
-        <button v-if="candidates.length" class="primary" :disabled="busy" @click="step = 2">
+        <button
+          v-if="candidates.length"
+          class="primary"
+          :disabled="busy || Boolean(pendingSave)"
+          @click="step = 2"
+        >
           继续核对 {{ candidates.length }} 项
         </button>
       </section>
@@ -480,7 +529,7 @@ onMounted(async () => {
       <h2>服务端未完成批次</h2>
       <div v-for="item in recoverable" :key="item.id" class="between">
         <span>{{ item.id }} · {{ item.mode.toUpperCase() }} · {{ item.status }}</span
-        ><button :disabled="busy" @click="resume(item.id)">继续处理</button>
+        ><button :disabled="busy || Boolean(pendingSave)" @click="resume(item.id)">继续处理</button>
       </div>
     </section>
     <template v-if="step === 2 && batch"
@@ -493,7 +542,7 @@ onMounted(async () => {
             {{ selection.excluded }}
           </p>
         </div>
-        <button :disabled="busy" @click="step = 1">继续添加资料</button>
+        <button :disabled="busy || Boolean(pendingSave)" @click="step = 1">继续添加资料</button>
       </div>
       <p class="notice">重复资料自动跳过；无法读取项可以移除，不能保存。修改须先成功暂存</p>
       <p class="muted small">
@@ -503,13 +552,13 @@ onMounted(async () => {
       </p>
       <div class="row review-actions">
         <button
-          :disabled="busy"
+          :disabled="busy || Boolean(pendingSave)"
           @click="
             selected = candidates.filter((item) => item.state !== 'saved').map((item) => item.id)
           "
         >
           勾选当前未保存项</button
-        ><button :disabled="busy" @click="clearSelection">取消选择</button
+        ><button :disabled="busy || Boolean(pendingSave)" @click="clearSelection">取消选择</button
         ><button
           class="danger"
           :disabled="busy || !selection.remove.length || Boolean(editing)"
@@ -520,6 +569,14 @@ onMounted(async () => {
       </div>
       <div class="table-wrap review-table">
         <table>
+          <colgroup>
+            <col class="select-col" />
+            <col />
+            <col />
+            <col />
+            <col />
+            <col class="action-col" />
+          </colgroup>
           <thead>
             <tr>
               <th>选择</th>
@@ -538,7 +595,7 @@ onMounted(async () => {
                     v-model="selected"
                     type="checkbox"
                     :value="item.id"
-                    :disabled="busy || item.state === 'saved'"
+                    :disabled="busy || Boolean(pendingSave) || item.state === 'saved'"
                     :aria-label="`选择${item.payload.title_zh || item.path}`"
                   />
                 </td>
@@ -546,7 +603,9 @@ onMounted(async () => {
                   <strong>{{ item.payload.title_zh || '标题待补充' }}</strong>
                   <p class="muted small">{{ item.payload.title_en || '英文标题待补充' }}</p>
                   <small class="muted">{{
-                    topics.find((topic) => topic.id === item.topic_id)?.name || '主题待确认'
+                    topics.find((topic) => topic.id === item.topic_id)
+                      ? topicLabel(topics.find((topic) => topic.id === item.topic_id)!)
+                      : '主题待确认'
                   }}</small>
                 </td>
                 <td>
@@ -564,6 +623,11 @@ onMounted(async () => {
                   }}</span>
                 </td>
                 <td>
+                  <p v-if="item.parse_error" class="issue-text">
+                    {{ item.parse_error.stage }} · {{ item.parse_error.field }}：{{
+                      item.parse_error.message
+                    }}
+                  </p>
                   <p v-for="issue in item.errors" :key="issue" class="issue-text">
                     {{ importErrorLabels[issue] || issue }}
                   </p>
@@ -599,19 +663,20 @@ onMounted(async () => {
                   </details>
                 </td>
                 <td>
-                  <RouterLink v-if="item.article_id" :to="`/listening/${item.article_id}`"
-                    >查看已保存草稿</RouterLink
+                  <RouterLink v-if="item.article_id" :to="`/listening/${item.article_id}`">{{
+                    item.published_version_id ? '查看已发布文章' : '查看已保存草稿'
+                  }}</RouterLink
                   ><template v-else-if="['complete', 'incomplete'].includes(item.state)"
                     ><button
                       class="text"
-                      :disabled="busy || Boolean(editing)"
+                      :disabled="busy || Boolean(pendingSave) || Boolean(editing)"
                       @click="editCandidate(item)"
                     >
                       核对 / 补充资料</button
                     ><button
                       type="button"
                       class="text"
-                      :disabled="busy || Boolean(editing)"
+                      :disabled="busy || Boolean(pendingSave) || Boolean(editing)"
                       @click="candidatePreview = item"
                     >
                       预览与试听（可选）
@@ -628,7 +693,7 @@ onMounted(async () => {
                       :target="editing.target"
                       :target-revision="editing.targetRevision"
                       :target-error="editing.targetError"
-                      :disabled="busy"
+                      :disabled="busy || Boolean(pendingSave)"
                       @select="selectTarget"
                     />
                     <label class="field"
@@ -686,7 +751,7 @@ onMounted(async () => {
                       v-model:topic="editing.topic"
                       :topics="topics"
                       compact
-                      :disabled="busy"
+                      :disabled="busy || Boolean(pendingSave)"
                     />
                     <section
                       v-if="editing.mode === 'update' && editing.target"
@@ -703,8 +768,13 @@ onMounted(async () => {
                       />
                     </section>
                     <div class="row">
-                      <button :disabled="busy" @click="editing = null">放弃本次修改</button
-                      ><button class="primary" :disabled="busy" @click="saveCandidate">
+                      <button :disabled="busy || Boolean(pendingSave)" @click="editing = null">
+                        放弃本次修改</button
+                      ><button
+                        class="primary"
+                        :disabled="busy || Boolean(pendingSave)"
+                        @click="saveCandidate"
+                      >
                         保存到本批暂存
                       </button>
                     </div>
@@ -718,143 +788,82 @@ onMounted(async () => {
       <p v-if="!candidates.length" class="notice">本批没有可保存候选，可继续添加资料</p>
       <div class="review-footer">
         <span class="muted"
-          >已勾选 {{ selection.selected.length }}，本次可保存 {{ selection.save.length }} 篇</span
-        ><button
-          class="primary"
-          :disabled="busy || !selection.save.length || Boolean(editing)"
-          @click="next"
+          >已勾选{{ selection.selected.length }}项，可存草稿{{ selection.save.length }}篇，可发布{{
+            selection.publish.length
+          }}篇</span
         >
-          核对完成，下一步
-        </button>
+        <div class="row">
+          <button
+            :disabled="busy || !selection.save.length || Boolean(editing) || Boolean(pendingSave)"
+            @click="next('draft')"
+          >
+            保存为草稿</button
+          ><button
+            class="primary"
+            :disabled="
+              busy || !selection.publish.length || Boolean(editing) || Boolean(pendingSave)
+            "
+            @click="next('publish')"
+          >
+            发布所选合格文章（{{ selection.publish.length }}篇）
+          </button>
+        </div>
       </div></template
     >
-    <section v-if="step === 3 && batch" class="panel">
-      <h2>{{ result ? '本次保存结果' : '确认保存草稿范围' }}</h2>
-      <template v-if="preview"
-        ><p class="notice">仅保存以下 {{ preview.candidate_ids.length }} 篇；保存后不会自动发布</p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>文章</th>
-                <th>来源</th>
-                <th>保存方式</th>
-                <th>资料状态</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="id in preview.candidate_ids" :key="id">
-                <td>
-                  <strong>{{
-                    batch.candidates.find((item) => item.id === id)?.payload.title_zh || id
-                  }}</strong>
-                  <p class="muted small">
-                    {{ batch.candidates.find((item) => item.id === id)?.payload.title_en }}
-                  </p>
-                </td>
-                <td>{{ batch.candidates.find((item) => item.id === id)?.path }}</td>
-                <td>
-                  {{
-                    batch.candidates.find((item) => item.id === id)?.target_article_id
-                      ? '更新已有草稿'
-                      : '新建草稿'
-                  }}
-                </td>
-                <td>
-                  {{ statusLabels[batch.candidates.find((item) => item.id === id)?.state || ''] }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div v-if="preview.changes" class="final-changes">
-          <section
-            v-for="change in preview.changes"
-            :key="change.candidate_id"
-            class="final-change"
-          >
-            <h3>
-              {{ change.operation === 'update' ? '更新已有文章' : '新建文章草稿' }} ·
-              {{ change.after.payload.title_zh || '标题待补充' }}
-            </h3>
-            <p v-if="change.target_article_id" class="muted small">
-              目标 {{ change.target_article_id }} · 当前草稿版本 {{ change.target_revision }}
-            </p>
-            <ListeningImportDifference
-              :before="change.before"
-              :after="change.after"
-              :topics="topics"
-            />
-          </section>
-        </div>
-        <p>排除 {{ selection.excluded }} 项；重复自动跳过，无法读取不创建草稿</p>
-        <div class="row">
-          <button :disabled="busy" @click="backToReview">返回核对</button
-          ><button class="primary" :disabled="busy" @click="save">确认保存草稿</button>
-        </div></template
-      ><template v-if="result"
-        ><div class="notice" role="status">
-          成功 {{ result.items.filter((item) => item.status === 'success').length }} 项，失败
-          {{ result.items.filter((item) => item.status === 'failed').length }}
-          项。成功项不会重复保存
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>文章</th>
-                <th>结果 / 问题</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="item in result.items"
-                :key="item.candidate_id"
-                :class="{ 'failed-row': item.status === 'failed' }"
-              >
-                <td>
-                  {{
-                    batch.candidates.find((c) => c.id === item.candidate_id)?.payload.title_zh ||
-                    item.candidate_id
-                  }}
-                </td>
-                <td>
-                  {{
-                    item.status === 'success'
-                      ? '成功'
-                      : item.status === 'skipped'
-                        ? batch.candidates.find((candidate) => candidate.id === item.candidate_id)
-                            ?.target_article_id
-                          ? '与目标草稿相同，未重复更新'
-                          : '自动跳过'
-                        : '失败'
-                  }}
-                  {{ item.error ? importErrorLabels[item.error] || item.error : '' }}
-                </td>
-                <td>
-                  <RouterLink v-if="item.article_id" :to="`/listening/${item.article_id}`"
-                    >补充草稿资料</RouterLink
-                  >
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="row">
-          <RouterLink
-            class="button-link"
-            :to="{ path: '/listening', query: { batch_id: batch.id } }"
-            >查看本次文章</RouterLink
-          ><button
-            v-if="result.items.some((item) => item.status === 'failed')"
-            :disabled="busy"
-            @click="retryFailed"
-          >
-            查询并仅核对原失败项</button
-          ><button :disabled="busy" @click="backToReview">返回核对</button>
-        </div></template
-      ><button v-if="error" :disabled="busy" @click="resume(batch.id)">查询实际保存结果</button>
+    <section v-if="result && batch" class="panel submission-results" data-submission-results>
+      <h2>{{ submitAction === 'publish' ? '本次发布结果' : '本次保存结果' }}</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>文章</th>
+              <th>结果 / 问题</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="item in result.items"
+              :key="item.candidate_id"
+              :class="{ 'failed-row': item.status === 'failed' }"
+            >
+              <td>
+                {{
+                  batch.candidates.find((candidate) => candidate.id === item.candidate_id)?.payload
+                    .title_zh || item.candidate_id
+                }}
+              </td>
+              <td>
+                {{
+                  item.status === 'success'
+                    ? submitAction === 'publish'
+                      ? '已发布'
+                      : '已保存草稿'
+                    : item.status === 'skipped'
+                      ? '已跳过相同资料'
+                      : '失败'
+                }}
+                {{ item.error ? importErrorLabels[item.error] || item.error : '' }}
+              </td>
+              <td>
+                <RouterLink v-if="item.article_id" :to="`/listening/${item.article_id}`"
+                  >查看文章</RouterLink
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row">
+        <RouterLink class="button-link" to="/listening">返回文章管理</RouterLink
+        ><button
+          v-if="result.items.some((item) => item.status === 'failed')"
+          :disabled="busy || Boolean(pendingSave)"
+          @click="retryFailed"
+        >
+          查询并仅核对原失败项</button
+        ><button :disabled="busy || Boolean(pendingSave)" @click="backToReview">返回核对</button>
+      </div>
     </section>
     <ElDialog
       v-model="removeOpen"
@@ -871,8 +880,8 @@ onMounted(async () => {
         </div>
       </div>
       <template #footer
-        ><button :disabled="busy" @click="removeOpen = false">取消</button
-        ><button class="danger" :disabled="busy" @click="removeCandidates">
+        ><button :disabled="busy || Boolean(pendingSave)" @click="removeOpen = false">取消</button
+        ><button class="danger" :disabled="busy || Boolean(pendingSave)" @click="removeCandidates">
           确认删除{{ selection.remove.length }}项
         </button></template
       ></ElDialog
@@ -1135,6 +1144,39 @@ onMounted(async () => {
 
   .candidate-editor {
     margin: 24px 0;
+  }
+
+  .review-table {
+    isolation: isolate;
+
+    table {
+      min-width: 1180px;
+      table-layout: fixed;
+    }
+
+    .select-col {
+      width: 46px;
+    }
+
+    .action-col {
+      width: 180px;
+    }
+
+    :where(th:last-child),
+    :where(tr:not(.expanded-row) td:last-child) {
+      position: sticky;
+      right: 0;
+      z-index: 2;
+      box-shadow: -1px 0 var(--line);
+    }
+
+    :where(tr:not(.expanded-row) td:last-child) {
+      background: var(--paper);
+    }
+
+    td {
+      overflow-wrap: anywhere;
+    }
   }
 
   .review-footer {

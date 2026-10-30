@@ -5,7 +5,8 @@ import {
   emptyPayload,
   moveArticle,
   publishErrors,
-  timelineCharacters
+  timelineCharacters,
+  topicLabel
 } from './listening-model'
 
 describe('听读业务边界', () => {
@@ -35,6 +36,7 @@ describe('听读业务边界', () => {
     expect(candidateSelection(candidates, ['0', '1', '2', '3', '4'])).toEqual({
       selected: ['0', '1', '2', '3', '4'],
       save: ['0', '1'],
+      publish: ['0'],
       remove: ['0', '1', '2', '3'],
       excluded: 3
     })
@@ -58,4 +60,28 @@ describe('听读业务边界', () => {
       false
     )
   })
+})
+
+it('keeps static phrase colors underneath time-bound media highlights', () => {
+  const chars = timelineCharacters(
+    '🌱 a day in life.',
+    [{ start: 2, end: 3, start_ms: 0, end_ms: 100, sentence_id: '0' }],
+    0.05,
+    ['a day in life']
+  )
+  expect(chars[2]).toMatchObject({ active: true, background: '#e4efd6' })
+  expect(chars[5]).toMatchObject({ active: false, background: '#e4efd6' })
+  expect(timelineCharacters('🌱 a day in life.', [], 1, ['a day in life'])[2]).toMatchObject({
+    active: false,
+    trail: false,
+    background: '#e4efd6'
+  })
+})
+
+it('shows topic English first, omits empty Chinese and tolerates legacy English', () => {
+  expect(topicLabel({ name_en: 'Everyday English', name: '日常生活' })).toBe(
+    'Everyday English / 日常生活'
+  )
+  expect(topicLabel({ name_en: 'Everyday English', name: '' })).toBe('Everyday English')
+  expect(topicLabel({ name_en: '', name: '旧主题' })).toBe('旧主题')
 })

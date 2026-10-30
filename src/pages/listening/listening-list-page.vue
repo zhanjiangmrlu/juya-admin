@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { computed, nextTick, onActivated, onMounted, ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
+import { computed, nextTick, onActivated, onMounted, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
-import { statusLabels } from '@/features/listening/listening-model'
+import { statusLabels, topicLabel } from '@/features/listening/listening-model'
 import ListeningPreviewPanel from '@/features/listening/listening-preview-panel.vue'
 import ListeningSettings from '@/features/listening/listening-settings.vue'
 import { dateText, queryURL } from '@/services/display'
-import { listeningOperation, listeningRequest } from '@/services/listening-service'
+import {
+  listeningOperation,
+  listeningRecoverableOperation,
+  listeningRequest
+} from '@/services/listening-service'
 
 import type {
   Article,
@@ -18,6 +23,7 @@ import type {
   Page,
   Topic
 } from '@/features/listening/listening-types'
+import type { components } from '@/shared/contracts/generated/admin-api'
 
 defineOptions({ name: 'ListeningListPage' })
 const route = useRoute(),
@@ -39,6 +45,67 @@ const data = ref<Page<Article> | null>(null),
   deleting = ref(false),
   unknownDelete = ref(false),
   offline = ref<Article | null>(null)
+type PublicationResult = components['schemas']['BatchPublishResult']
+const publicationResult = ref<PublicationResult | null>(null),
+  publicationTargets = ref<Article[]>([])
+const pendingPublication = shallowRef<ReturnType<
+  typeof listeningRecoverableOperation<PublicationResult>
+> | null>(null)
+const selectedPublications = computed(
+  () =>
+    data.value?.items.filter(
+      (item) =>
+        selected.value.includes(item.id) &&
+        (item.status !== 'published' || item.has_unpublished_changes)
+    ) || []
+)
+/** 使用原操作查询或恢复明确选择的发布集合 */
+const recoverPublication = async () => {
+  if (!pendingPublication.value || deleting.value) return
+  deleting.value = true
+  error.value = ''
+  try {
+    const value = await pendingPublication.value.run()
+    pendingPublication.value = null
+    publicationResult.value = value.items.some((item) => item.status === 'failed') ? value : null
+    selected.value = []
+    if (!publicationResult.value) ElMessage.success('文章发布完成')
+    await load()
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : '发布结果未确认，请重试'
+    if (!pendingPublication.value?.unknown) pendingPublication.value = null
+  } finally {
+    deleting.value = false
+  }
+}
+/** 发布行内或当前页明确选择的版本，不把其他勾选项混入行内操作
+ * @param items 本次明确选择的合格文章集合
+ */
+const publishArticles = async (items: Article[]) => {
+  if (deleting.value || pendingPublication.value || !items.length) return
+  publicationTargets.value = items.map((item) => ({ ...item }))
+  pendingPublication.value = listeningRecoverableOperation<PublicationResult>(
+    'POST',
+    '/articles/batch-publish',
+    { items: items.map(({ id, revision }) => ({ id, revision })) }
+  )
+  await recoverPublication()
+}
+/** 刷新后仅重新选择原失败项，管理员核对当前版本再明确发布 */
+const selectPublicationFailures = async () => {
+  const ids =
+    publicationResult.value?.items
+      .filter((item) => item.status === 'failed')
+      .map((item) => item.id) || []
+  await load()
+  selected.value =
+    data.value?.items.filter((item) => ids.includes(item.id)).map((item) => item.id) || []
+}
+/** M保存成功后关闭弹窗并刷新当前真实列表 */
+const settingsChanged = () => {
+  if (settings.value === 'free') settings.value = null
+  void load()
+}
 const page = computed(() => Math.max(1, Number(route.query.page) || 1)),
   category = computed(() => String(route.query.category_id || '')),
   topic = computed(() => String(route.query.topic_id || '')),
@@ -62,7 +129,7 @@ let previousQuery = route.fullPath,
 const topicPath = (topicId: string) => {
   const value = topics.value.find((item) => item.id === topicId)
   return value
-    ? `${categories.value.find((item) => item.id === value.category_id)?.name || '分类待核对'} / ${value.name}`
+    ? `${categories.value.find((item) => item.id === value.category_id)?.name || '分类待核对'} / ${topicLabel(value)}`
     : '归属待核对'
 }
 /** 读取当前页真实列表并回退到最近有效页 */
@@ -243,7 +310,9 @@ watch(
     if (route.path !== '/listening' || route.fullPath === previousQuery) return
     previousQuery = route.fullPath
     scrollTop = 0
-    if (selected.value.length) notice.value = '筛选或页码已变化，当前页勾选已清空'
+    notice.value = ''
+    results.value = null
+    publicationResult.value = null
     selected.value = []
     search.value = String(route.query.q || '')
     void load()
@@ -288,6 +357,17 @@ onMounted(async () => {
         ><RouterLink to="/listening/categories">分类管理</RouterLink
         ><RouterLink to="/listening/topics">主题管理</RouterLink>
       </div>
+      <div v-if="policy" class="between free-overview">
+        <p>
+          <strong>免费开放</strong> ·
+          {{
+            policy.configured
+              ? `当前听读免费${policy.article_ids.length}篇，其余文章需学习授权`
+              : '尚未设置听读免费篇数'
+          }}
+        </p>
+        <button type="button" @click="settings = 'free'">免费开放设置</button>
+      </div>
       <form class="filters" @submit.prevent="filter({ q: search || undefined, page: 1 })">
         <div class="search">
           <input v-model="search" aria-label="搜索中英文标题" placeholder="搜索中英文标题" />
@@ -323,7 +403,7 @@ onMounted(async () => {
           >
             <option value="">全部主题</option>
             <option v-for="item in filterTopics" :key="item.id" :value="item.id">
-              {{ item.name }}
+              {{ topicLabel(item) }}
             </option>
           </select></label
         ><label
@@ -341,7 +421,6 @@ onMounted(async () => {
           </select></label
         >
         <div class="filter-actions">
-          <button type="button" @click="settings = 'free'">免费开放设置</button>
           <RouterLink class="button-link" to="/listening/global-order">全局免费排序</RouterLink>
         </div>
       </form>
@@ -359,10 +438,14 @@ onMounted(async () => {
           查询本次删除结果
         </button>
       </div>
-      <div v-if="results" class="notice result-panel" role="status">
+      <div
+        v-if="results?.items.some((item) => item.status === 'failed')"
+        class="notice result-panel"
+        role="status"
+      >
         <div class="between">
           <span
-            >本次删除：成功
+            >删除未完成：成功
             {{ results.items.filter((item) => item.status === 'success').length }} 篇，失败
             {{ results.items.filter((item) => item.status === 'failed').length }} 篇</span
           ><button
@@ -383,10 +466,33 @@ onMounted(async () => {
           }}
         </p>
       </div>
+      <button v-if="pendingPublication" :disabled="deleting" @click="recoverPublication">
+        查询并恢复本次发布
+      </button>
+      <div v-if="publicationResult" class="notice publication-results" role="alert">
+        <p>以下文章未发布，请核对后重新选择发布</p>
+        <p
+          v-for="item in publicationResult.items.filter((row) => row.status === 'failed')"
+          :key="item.id"
+        >
+          {{ publicationTargets.find((row) => row.id === item.id)?.payload.title_zh }}：{{
+            item.message || '资料或版本已变化，请编辑核对'
+          }}
+        </p>
+        <button :disabled="busy || deleting" @click="selectPublicationFailures">
+          仅重新选择原失败项
+        </button>
+      </div>
       <div v-if="selected.length" class="between selection-bar">
         <span>已选当前页 {{ selected.length }} 篇</span>
         <div class="row">
           <button :disabled="deleting" @click="selected = []">取消选择</button
+          ><button
+            class="primary"
+            :disabled="deleting || !selectedPublications.length || Boolean(pendingPublication)"
+            @click="publishArticles(selectedPublications)"
+          >
+            批量发布（{{ selectedPublications.length }}篇）</button
           ><button
             class="danger"
             :disabled="deleting"
@@ -411,8 +517,7 @@ onMounted(async () => {
               </th>
               <th>文章标题</th>
               <th>分类 / 主题</th>
-              <th>状态 / 创建时间</th>
-              <th>学习范围</th>
+              <th>状态</th>
               <th>全文音频</th>
               <th>操作</th>
             </tr>
@@ -439,6 +544,7 @@ onMounted(async () => {
                 <strong>{{ item.payload.title_zh || '中文标题待补充' }}</strong>
                 <p class="muted">{{ item.payload.title_en || '英文标题待补充' }}</p>
                 <small>{{ item.payload.tags.join(' · ') }}</small>
+                <p class="muted small">创建于{{ dateText(item.created_at) }}</p>
               </td>
               <td>
                 {{ topicPath(item.topic_id) }}
@@ -446,9 +552,7 @@ onMounted(async () => {
               </td>
               <td>
                 <span class="badge" :class="item.status">{{ statusLabels[item.status] }}</span>
-                <p class="muted small">{{ dateText(item.created_at) }}</p>
-              </td>
-              <td>
+
                 <span v-if="item.status !== 'published'" class="muted small">发布后判断</span
                 ><span v-else-if="!policy?.configured" class="muted small">听读尚未开放</span
                 ><span v-else :class="{ badge: policy.article_ids.includes(item.id) }">{{
@@ -466,6 +570,13 @@ onMounted(async () => {
                     :to="{ path: `/listening/${item.id}`, query: { back: route.fullPath } }"
                     >编辑</RouterLink
                   ><button class="text" @click="showPreview(item)">预览</button
+                  ><button
+                    v-if="item.status !== 'published' || item.has_unpublished_changes"
+                    class="text"
+                    :disabled="deleting || Boolean(pendingPublication)"
+                    @click="publishArticles([item])"
+                  >
+                    发布</button
                   ><button v-if="item.status === 'published'" class="text" @click="offline = item">
                     下线</button
                   ><button class="text danger" :disabled="deleting" @click="confirmDelete([item])">
@@ -477,13 +588,6 @@ onMounted(async () => {
           </tbody>
         </table>
       </div>
-      <p v-if="policy" class="notice">
-        {{
-          policy.configured
-            ? `听读免费 M = ${policy.free_count}，当前免费 ${policy.article_ids.length} 篇；与场景免费数量独立设置`
-            : '免费M尚未确认，听读暂未开放；请预览名单并明确保存'
-        }}
-      </p>
       <div v-if="data" class="pagination">
         <span>共 {{ data.total }} 篇 · 每页10篇</span
         ><button :disabled="busy || page <= 1" @click="filter({ page: page - 1 })">上一页</button
@@ -494,11 +598,11 @@ onMounted(async () => {
       </div>
       <ElDialog
         :model-value="Boolean(settings)"
-        title="听读管理设置"
+        :title="settings === 'free' ? '免费开放设置' : '听读管理设置'"
         :width="settings === 'free' ? '620px' : '900px'"
         destroy-on-close
         @update:model-value="settings = null"
-        ><ListeningSettings v-if="settings" :initial="settings" @changed="load"
+        ><ListeningSettings v-if="settings" :initial="settings" @changed="settingsChanged"
       /></ElDialog>
     </div>
     <section v-if="preview" class="preview-workspace">
@@ -520,7 +624,7 @@ onMounted(async () => {
         v-if="preview"
         :article="{
           ...preview,
-          topic_name: topics.find((item) => item.id === preview?.topic_id)?.name,
+          topic_name: topicPath(preview?.topic_id || ''),
           category_name: categories.find(
             (item) => item.id === topics.find((item) => item.id === preview?.topic_id)?.category_id
           )?.name
@@ -690,6 +794,14 @@ onMounted(async () => {
       border-radius: 10px;
       font-size: 13px;
     }
+  }
+
+  .free-overview {
+    margin-bottom: 20px;
+    padding: 14px 18px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #f2f6ed;
   }
 
   .selection-bar {

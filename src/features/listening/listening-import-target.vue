@@ -89,7 +89,7 @@ const create = () => {
     </div>
     <template v-if="mode === 'update'">
       <p class="notice">
-        明确选择已有文章后核对下方前后差异，暂存和下一步均不会改写文章；只有最终确认才更新该文章草稿
+        选择已有文章并核对前后差异；保存到本批暂存不会改写文章。选择“保存为草稿”或“发布所选合格文章”后才提交更新
       </p>
       <div class="row">
         <label class="field"

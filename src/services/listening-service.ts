@@ -1,6 +1,7 @@
 import { api, ApiError } from '@/services/http-client'
 
 export const listeningBase = '/api/admin/v1/listening'
+export const listeningTemplateURL = `${(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')}${listeningBase}/template`
 /** 读取或写入独立听读子域，复用既有会话和幂等请求
  * @param path 子域相对路径
  * @param options 请求正文、方法及稳定操作键

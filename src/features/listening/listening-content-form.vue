@@ -3,6 +3,8 @@ import { computed, ref, watch } from 'vue'
 
 import type { ArticlePayload, Category, Topic } from './listening-types'
 
+import { topicLabel } from './listening-model'
+
 const payload = defineModel<ArticlePayload>({ required: true })
 const topic = defineModel<string>('topic', { required: true })
 const props = defineProps<{
@@ -100,7 +102,7 @@ defineExpose({ meaningError })
           >所属主题 *<select v-model="topic" aria-label="所属主题">
             <option value="">请选择主题</option>
             <option v-for="item in visibleTopics" :key="item.id" :value="item.id">
-              {{ item.name }}
+              {{ topicLabel(item) }}
             </option>
           </select></label
         >

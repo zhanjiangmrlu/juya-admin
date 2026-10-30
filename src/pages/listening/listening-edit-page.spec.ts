@@ -80,93 +80,94 @@ it('recovers the original creation receipt before saving changed input as an upd
     revision: 1,
     payload: { title_zh: 'changed' }
   })
-  expect(router.currentRoute.value.path).toBe('/listening/created')
+  expect(router.currentRoute.value.path).toBe('/listening')
   page.unmount()
 })
 
+const readyPayload = {
+  ...emptyPayload(),
+  title_zh: '文章',
+  title_en: 'An Article',
+  body_en: 'We rest.',
+  translation_zh: '我们休息。',
+  audio_id: 'audio',
+  expressions: Array.from({ length: 5 }, () => ({
+    english: 'take a break',
+    chinese: '休息',
+    example: 'Take a break.'
+  }))
+}
 it.each([true, false])(
-  'keeps the publication result visible when success is %s',
+  'publishes without mandatory preview and returns to the list only on success=%s',
   async (success) => {
-    const draft = { ...saved, id: 'existing', word_count: 120 }
+    const draft = { ...saved, id: 'existing', payload: readyPayload, word_count: 2 }
+    const writes: Request[] = []
     network.mockImplementation(async (request: Request) => {
-      if (request.method === 'GET' && request.url.endsWith('/categories'))
-        return Response.json({ items: [] })
-      if (request.method === 'GET' && request.url.endsWith('/topics'))
-        return Response.json({ items: [{ id: 'topic', name: '主题' }] })
-      if (request.method === 'GET' && request.url.endsWith('/articles/existing'))
-        return Response.json(draft)
-      if (request.url.endsWith('/preview'))
-        return Response.json({ article: draft, preview_token: 'confirmed', errors: [] })
+      if (request.method !== 'GET') writes.push(request.clone())
+      if (request.url.endsWith('/categories')) return Response.json({ items: [] })
+      if (request.url.endsWith('/topics'))
+        return Response.json({ items: [{ id: 'topic', name: '主题', name_en: 'A topic' }] })
+      if (request.url.endsWith('/articles/existing')) return Response.json(draft)
       if (request.url.endsWith('/publish'))
         return success
           ? Response.json({ ...draft, status: 'published', revision: 2 })
           : Response.json(
-              {
-                error: { code: 'listening_preview_stale', message: '编辑稿已变化，请重新预览确认' }
-              },
+              { error: { code: 'listening_article_changed', message: '编辑稿已变化，请刷新' } },
               { status: 409 }
             )
-      throw new Error(`Unexpected request ${request.method} ${request.url}`)
+      throw new Error('Unexpected publication request')
     })
     const router = createRouter({
       history: createMemoryHistory(),
       routes: [
         { path: '/listening/:id', component: ListeningEditPage },
-        { path: '/listening', component: { template: '<div />' } }
+        { path: '/listening', component: { template: '<div>文章管理</div>' } }
       ]
     })
-    await router.push('/listening/existing')
+    await router.push('/listening/existing?back=%2Flistening%3Fq%3Dmorning')
     const page = mount(
       { template: '<RouterView />' },
       {
         global: {
           plugins: [router],
           stubs: {
-            ListeningContentForm: true,
-            ListeningDocxImport: true,
             ListeningTimeline: true,
-            ListeningReader: true,
-            ElDialog: {
-              props: ['modelValue'],
-              template: '<div v-if="modelValue" role="dialog"><slot/><slot name="footer"/></div>'
-            }
+            ListeningDocxImport: true,
+            ListeningPreviewPanel: true,
+            ElDialog: true
           }
         }
       }
     )
     await flushPromises()
-    await page
-      .findAll('button')
-      .find((b) => b.text() === '预览并核对发布')!
-      .trigger('click')
+    const publishButton = page.findAll('.save-panel button').find((item) => item.text() === '发布')
+    expect(publishButton).toBeDefined()
+    await publishButton!.trigger('click')
     await flushPromises()
-    await page
-      .findAll('button')
-      .find((b) => b.text() === '确认发布这一版')!
-      .trigger('click')
-    await flushPromises()
-    if (success) {
-      expect(page.find('.preview-workspace').exists()).toBe(false)
-      expect(page.get('.save-actions').text()).toContain('已发布')
-    } else {
-      expect(page.get('.preview-workspace').text()).toContain('编辑稿已变化，请重新预览确认')
+    expect(writes).toHaveLength(1)
+    expect(writes[0]!.url.endsWith('/publish')).toBe(true)
+    expect(await writes[0]!.json()).toEqual({ revision: 1 })
+    if (success) expect(router.currentRoute.value.fullPath).toBe('/listening?q=morning')
+    else {
+      expect(router.currentRoute.value.path).toBe('/listening/existing')
+      expect(page.text()).toContain('编辑稿已变化，请刷新')
     }
     page.unmount()
   }
 )
 
-it('enables sidebar publication only while the checked preview still matches the saved input', async () => {
-  const draft = { ...saved, id: 'existing', word_count: 120 }
-  const writes: string[] = []
+it('keeps preview optional and retains editable content when returning from it', async () => {
+  const draft = { ...saved, id: 'existing', payload: readyPayload, word_count: 2 }
+  const writes: Request[] = []
   network.mockImplementation(async (request: Request) => {
-    if (request.method !== 'GET') writes.push(request.url)
+    if (request.method !== 'GET') writes.push(request)
+    if (request.url.endsWith('/categories')) return Response.json({ items: [] })
     if (request.url.endsWith('/topics'))
       return Response.json({ items: [{ id: 'topic', name: '主题' }] })
-    if (request.url.endsWith('/categories')) return Response.json({ items: [] })
     if (request.url.endsWith('/articles/existing')) return Response.json(draft)
     if (request.url.endsWith('/preview'))
       return Response.json({ article: draft, preview_token: 'checked', errors: [] })
-    throw new Error(`Unexpected request ${request.url}`)
+    throw new Error('Unexpected preview request')
   })
   const router = createRouter({
     history: createMemoryHistory(),
@@ -179,51 +180,36 @@ it('enables sidebar publication only while the checked preview still matches the
   const page = mount(
     { template: '<RouterView />' },
     {
-      attachTo: document.body,
       global: {
         plugins: [router],
         stubs: {
-          ListeningContentForm: {
-            props: ['modelValue'],
-            emits: ['update:modelValue'],
-            template:
-              '<button class="change" @click="$emit(\'update:modelValue\', {...modelValue, title_zh: \'changed\'})">修改正文</button>'
-          },
-          ListeningDocxImport: true,
           ListeningTimeline: true,
+          ListeningDocxImport: true,
           ListeningPreviewPanel: true,
-          ElDialog: {
-            props: ['modelValue'],
-            template: '<div v-if="modelValue" role="dialog"><slot/><slot name="footer"/></div>'
-          }
+          ElDialog: true
         }
       }
     }
   )
   await flushPromises()
-  const publishButton = () =>
-    page.findAll('.save-panel button').find((button) => button.text() === '确认发布')!
-  expect(publishButton().attributes('disabled')).toBeDefined()
+  const previewButton = page.findAll('button').find((item) => item.text() === '预览（可选）')
+  expect(previewButton).toBeDefined()
+  await previewButton!.trigger('click')
+  await flushPromises()
+  expect(page.get('.preview-workspace').isVisible()).toBe(true)
   await page
     .findAll('button')
-    .find((button) => button.text() === '预览并核对发布')!
+    .find((item) => item.text() === '返回修改')!
     .trigger('click')
-  await flushPromises()
+  expect(page.get('.edit-workspace').isVisible()).toBe(true)
   expect(
     page
-      .findAll('h1')
-      .filter((item) => item.isVisible())
-      .map((item) => item.text())
-  ).toEqual(['文章预览'])
-  expect(page.get('.change').isVisible()).toBe(false)
-  await page
-    .findAll('button')
-    .find((button) => button.text() === '返回修改')!
-    .trigger('click')
-  expect(page.get('.change').isVisible()).toBe(true)
-  expect(publishButton().attributes('disabled')).toBeUndefined()
-  await page.get('.change').trigger('click')
-  expect(publishButton().attributes('disabled')).toBeDefined()
-  expect(writes.every((url) => url.endsWith('/preview'))).toBe(true)
+      .findAll('.save-panel button')
+      .find((item) => item.text() === '发布')!
+      .attributes('disabled')
+  ).toBeUndefined()
+  expect(writes.map((request) => new URL(request.url).pathname)).toEqual([
+    '/api/admin/v1/listening/articles/existing/preview'
+  ])
   page.unmount()
 })

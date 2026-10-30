@@ -9,6 +9,138 @@ vi.mock('@/services/http-client', async (original) => {
   return { ...module, api: module.createHttpClient('https://admin-api.example', network) }
 })
 import ListeningImportPage from './listening-import-page.vue'
+
+it.each(['partial', 'unknown'])(
+  'publishes only qualified candidates and restores failures (%s)',
+  async (resultMode) => {
+    let receipt: unknown = null
+    let originalKey = ''
+    const payload = { ...emptyPayload(), title_zh: '资料', title_en: 'Article' }
+    let batch = {
+      id: 'b',
+      mode: 'zip',
+      revision: 1,
+      status: 'review',
+      packages: [],
+      counts: { total: 3, complete: 2, incomplete: 1 },
+      candidates: ['complete', 'complete', 'incomplete'].map((state, i) => ({
+        id: `c${i + 1}`,
+        package_id: 'p',
+        path: `${i + 1}/content.docx`,
+        state,
+        payload: { ...payload, title_zh: `资料${i + 1}` },
+        topic_id: 't',
+        resources: { audio: [], image: [] },
+        errors: [],
+        removed: false,
+        article_id: null as string | null,
+        duplicate_of: null,
+        timeline: { state: 'missing' }
+      }))
+    }
+    const writes: { path: string; body: unknown }[] = []
+    network.mockImplementation(async (request: Request) => {
+      const path = new URL(request.url).pathname
+      if (path.includes('/operations/')) {
+        expect(path.endsWith(originalKey)).toBe(true)
+        return Response.json({ result: receipt })
+      }
+      if (request.method !== 'GET') {
+        const body = await request.json()
+        writes.push({ path, body })
+        if (path.endsWith('/preview'))
+          return Response.json({
+            preview_token: 'snapshot',
+            candidate_ids: body.candidate_ids,
+            submit_action: body.submit_action,
+            changes: [],
+            counts: { savable: 2 }
+          })
+        if (path.endsWith('/save')) {
+          batch = {
+            ...batch,
+            revision: 2,
+            status: 'partial',
+            candidates: batch.candidates.map((item) =>
+              item.id === 'c1' ? { ...item, state: 'saved', article_id: 'a1' } : item
+            )
+          }
+          receipt = {
+            batch,
+            submit_action: 'publish',
+            items: [
+              {
+                candidate_id: 'c1',
+                status: 'success',
+                article_id: 'a1',
+                published_version_id: 'v1'
+              },
+              { candidate_id: 'c2', status: 'failed', error: 'listening_article_changed' }
+            ]
+          }
+          originalKey = request.headers.get('Idempotency-Key')!
+          if (resultMode === 'unknown') throw new Error('response lost')
+          return Response.json(receipt)
+        }
+      }
+      if (path.endsWith('/topics')) return Response.json({ items: [{ id: 't', name: '主题' }] })
+      if (path.endsWith('/imports/b')) return Response.json(batch)
+      return Response.json({ items: [], total: 0 })
+    })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/listening-imports', component: ListeningImportPage },
+        { path: '/listening', component: { template: '<div />' } }
+      ]
+    })
+    await router.push('/listening-imports?batch_id=b')
+    const page = mount(
+      { template: '<RouterView />' },
+      { global: { plugins: [router], stubs: { ElDialog: true } } }
+    )
+    await flushPromises()
+    const publish = page.findAll('button').find((item) => item.text() === '发布所选合格文章（2篇）')
+    expect(publish).toBeDefined()
+    await publish!.trigger('click')
+    await flushPromises()
+    if (resultMode === 'unknown') {
+      expect(
+        page
+          .findAll('tbody input[type="checkbox"]')
+          .every((item) => item.attributes('disabled') !== undefined)
+      ).toBe(true)
+      await page
+        .findAll('button')
+        .find((item) => item.text() === '查询并恢复本次提交')!
+        .trigger('click')
+      await flushPromises()
+    }
+    expect(writes).toHaveLength(2)
+    expect(writes[0]!.body).toEqual({
+      revision: 1,
+      candidate_ids: ['c1', 'c2'],
+      submit_action: 'publish'
+    })
+    expect(writes[1]!.body).toEqual({ preview_token: 'snapshot', submit_action: 'publish' })
+    expect(router.currentRoute.value.path).toBe('/listening-imports')
+    expect(page.text()).toContain('本次发布结果')
+    await page
+      .findAll('button')
+      .find((item) => item.text() === '查询并仅核对原失败项')!
+      .trigger('click')
+    await flushPromises()
+    expect(page.findAll('button').some((item) => item.text() === '发布所选合格文章（1篇）')).toBe(
+      true
+    )
+    expect(
+      page
+        .findAll('tbody input[type="checkbox"]')
+        .filter((item) => (item.element as HTMLInputElement).checked)
+    ).toHaveLength(1)
+    page.unmount()
+  }
+)
 it('loads every server-filtered unfinished page including an older batch beyond fifty', async () => {
   const pages: string[] = []
   network.mockImplementation(async (request: Request) => {
@@ -181,25 +313,16 @@ it('selects a stable existing target, stages without writing articles and review
       body: expect.objectContaining({ target_article_id: 'existing', target_revision: 4 })
     }
   ])
-  await page
-    .findAll('button')
-    .find((button) => button.text() === '核对完成，下一步')!
-    .trigger('click')
-  await flushPromises()
-  expect(page.get('.final-changes').text()).toContain('更新已有文章')
-  expect(page.get('.final-changes').text()).toContain('Old text.')
-  expect(page.get('.final-changes').text()).toContain('New text.')
-  expect(writes.some((write) => write.path.endsWith('/save'))).toBe(false)
-  await page
-    .findAll('button')
-    .find((button) => button.text() === '确认保存草稿')!
-    .trigger('click')
+  const saveDraft = page.findAll('button').find((button) => button.text() === '保存为草稿')
+  expect(saveDraft).toBeDefined()
+  await saveDraft!.trigger('click')
   await flushPromises()
   expect(writes.at(-1)).toEqual({
     path: '/api/admin/v1/listening/imports/b/save',
-    body: { preview_token: 'confirmed' }
+    body: { preview_token: 'confirmed', submit_action: 'draft' }
   })
   expect(writes.every((write) => write.path.includes('/imports/'))).toBe(true)
+  expect(router.currentRoute.value.path).toBe('/listening')
   page.unmount()
 })
 

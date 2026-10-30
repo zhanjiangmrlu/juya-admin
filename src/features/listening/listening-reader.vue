@@ -27,7 +27,12 @@ const position = ref(0),
   imageFailure = ref(false)
 const paragraphs = computed(() => {
   const words = props.article.timeline?.state === 'ready' ? props.article.timeline.words : []
-  const chars = timelineCharacters(props.article.payload.body_en, words || [], position.value)
+  const chars = timelineCharacters(
+    props.article.payload.body_en,
+    words || [],
+    position.value,
+    props.article.payload.expressions.map((item) => item.english)
+  )
   const result: (typeof chars)[] = [[]]
   for (const char of chars) {
     if (char.text === '\n') result.push([])
@@ -88,7 +93,14 @@ const paragraphs = computed(() => {
           v-for="(char, offset) in paragraph"
           :key="offset"
           :class="{ active: char.active, trail: char.trail }"
-          :style="char.trail ? { '--trail': char.opacity } : undefined"
+          :style="{
+            background: char.active ? '#dcecc9' : char.background,
+            color: char.active
+              ? '#1e6b43'
+              : char.trail
+                ? `rgba(30,107,67,${0.45 + char.opacity * 0.55})`
+                : undefined
+          }"
           >{{ char.text }}</span
         >
       </p>

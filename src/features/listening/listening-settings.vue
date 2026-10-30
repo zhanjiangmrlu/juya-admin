@@ -9,17 +9,10 @@ import {
   listeningRequest
 } from '@/services/listening-service'
 
-import type {
-  Article,
-  Category,
-  FreePolicy,
-  FreePreview,
-  Order,
-  Page,
-  Topic
-} from './listening-types'
+import type { Article, Category, FreePolicy, Order, Page, Topic } from './listening-types'
 
-import { moveArticle, statusLabels } from './listening-model'
+import ListeningCatalogList from './listening-catalog-list.vue'
+import { moveArticle, statusLabels, topicLabel } from './listening-model'
 
 const props = defineProps<{
   initial: 'hierarchy' | 'order' | 'free'
@@ -33,7 +26,6 @@ const tab = ref(props.initial),
   articles = ref<Article[]>([]),
   policy = ref<FreePolicy | null>(null),
   freeInput = ref(''),
-  freePreview = ref<FreePreview | null>(null),
   order = ref<Order | null>(null),
   scope = ref<'global' | 'topic'>(props.surface === 'topic-order' ? 'topic' : 'global'),
   topic = ref(props.topicId || ''),
@@ -54,36 +46,15 @@ const pendingHierarchy = shallowRef<{
   snapshot: string
   operation: ReturnType<typeof listeningRecoverableOperation<Category | Topic>>
 } | null>(null)
-const topicSearch = ref(''),
-  categoryFilter = ref(''),
-  orderConfirm = ref(false),
-  freeConfirm = ref(false),
+const pendingFree = shallowRef<ReturnType<typeof listeningRecoverableOperation<FreePolicy>> | null>(
+  null
+)
+const orderConfirm = ref(false),
   savedOrder = ref<string[]>([]),
   draggedId = ref('')
-const visibleTopics = computed(() =>
-  topics.value.filter(
-    (item) =>
-      (!categoryFilter.value || item.category_id === categoryFilter.value) &&
-      item.name.includes(topicSearch.value.trim())
-  )
-)
-/** 计算实际有效发布的文章数
- * @param ids 已确认主题编号集合
- * @returns 当前有效已发布篇数
- */
-const publishedCount = (ids: string[]) =>
-  articles.value.filter(
-    (item) => item.status === 'published' && ids.includes(item.published_topic_id || item.topic_id)
-  ).length
 const freeValid = computed(
   () => /^\d+$/.test(freeInput.value.trim()) && Number.isSafeInteger(Number(freeInput.value))
 )
-const freePreviewCurrent = computed(() =>
-  Boolean(
-    freePreview.value && freeValid.value && freePreview.value.free_count === Number(freeInput.value)
-  )
-)
-let freePreviewGeneration = 0
 /** 将文章编号转换为真实双标题，未读到资料时保留编号供核对
  * @param id 当前名单或排序中的稳定文章编号
  * @returns 管理员核对对象名称
@@ -163,10 +134,15 @@ const openEdit = (kind: 'category' | 'topic', item?: Category | Topic) => {
     description: item && 'description' in item ? item.description : ''
   }
 }
-/** 保存分类主题及其归属和显示序号 */
+/** 保存分类主题及归属，保留原内部排序 */
 const saveHierarchy = async () => {
   const item = edit.value
-  if (!item || !item.name.trim() || (item.kind === 'topic' && !item.category_id)) return
+  if (
+    !item ||
+    (item.kind === 'category' && !item.name.trim()) ||
+    (item.kind === 'topic' && (!item.category_id || !item.name_en.trim()))
+  )
+    return
   busy.value = true
   error.value = ''
   try {
@@ -225,7 +201,6 @@ const submitOrder = async () => {
     orderConfirm.value = false
     savedOrder.value = [...order.value.article_ids]
     notice.value = '当前作用域顺序已保存'
-    freePreview.value = null
     emit('changed')
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '保存失败，请重新读取顺序后确认'
@@ -238,53 +213,22 @@ const saveOrder = () => {
   if (scope.value === 'global') orderConfirm.value = true
   else void submitOrder()
 }
-/** 请求服务端计算全局前M篇及名单变化 */
-const previewFree = async () => {
-  if (!freeValid.value || busy.value) return
-  const freeCount = Number(freeInput.value),
-    generation = ++freePreviewGeneration
-  freePreview.value = null
-  freeConfirm.value = false
-  busy.value = true
-  error.value = ''
-  try {
-    const result = await listeningOperation<FreePreview>('POST', '/free-policy/preview', {
-      free_count: freeCount
-    })()
-    // 输入或请求轮次变化时，旧令牌不得恢复到当前确认范围
-    if (
-      generation !== freePreviewGeneration ||
-      !freeValid.value ||
-      Number(freeInput.value) !== freeCount ||
-      result.free_count !== freeCount
-    ) {
-      error.value = '免费篇数已变化，请重新预览名单'
-      return
-    }
-    freePreview.value = result
-  } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : '名单计算失败'
-  } finally {
-    busy.value = false
-  }
-}
-/** 管理员核对完整名单后提交当前确认令牌 */
+/** 直接保存填写的免费M，未知结果先按原操作查询回执 */
 const saveFree = async () => {
-  if (!freePreview.value || !freePreviewCurrent.value || busy.value) return
+  if ((!freeValid.value && !pendingFree.value) || !policy.value || busy.value) return
   busy.value = true
   error.value = ''
   try {
-    policy.value = await listeningOperation<FreePolicy>('PUT', '/free-policy', {
-      preview_token: freePreview.value.preview_token
-    })()
-    freeConfirm.value = false
-    notice.value = '听读免费M已保存'
-    freePreview.value = null
+    pendingFree.value ||= listeningRecoverableOperation<FreePolicy>('PUT', '/free-policy', {
+      free_count: Number(freeInput.value),
+      revision: policy.value.revision
+    })
+    policy.value = await pendingFree.value.run()
+    pendingFree.value = null
     emit('changed')
   } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : '保存失败，请重新预览完整名单'
-    freeConfirm.value = false
-    freePreview.value = null
+    error.value = reason instanceof Error ? reason.message : '保存失败，请重试'
+    if (!pendingFree.value?.unknown) pendingFree.value = null
   } finally {
     busy.value = false
   }
@@ -336,16 +280,16 @@ const affiliation = (id: string) => {
       .join(' / ') || '归属待确认'
   )
 }
-watch(freeInput, () => {
-  freePreviewGeneration++
-  freeConfirm.value = false
-  freePreview.value = null
-})
 watch([scope, topic], () => {
   void loadOrder()
 })
 watch([topic, topics], () => {
-  emit('topicName', topics.value.find((item) => item.id === topic.value)?.name || '')
+  emit(
+    'topicName',
+    topics.value.find((item) => item.id === topic.value)?.name_en ||
+      topics.value.find((item) => item.id === topic.value)?.name ||
+      ''
+  )
 })
 watch(tab, (value) => {
   notice.value = ''
@@ -359,100 +303,34 @@ onMounted(load)
     <AppState :busy="busy" :error="error" @retry="load" />
     <p v-if="notice" class="notice" role="status">{{ notice }}</p>
     <template v-if="tab === 'hierarchy'">
-      <template v-if="surface === 'categories'">
-        <div v-if="!busy && !error" class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>分类名称</th>
-                <th>英文名称</th>
-                <th>主题数量</th>
-                <th>已发布文章</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in categories" :key="item.id">
-                <td>{{ item.name }}</td>
-                <td>{{ item.name_en || '未填写' }}</td>
-                <td>{{ topics.filter((t) => t.category_id === item.id).length }} 个主题</td>
-                <td>
-                  {{
-                    publishedCount(topics.filter((t) => t.category_id === item.id).map((t) => t.id))
-                  }}
-                  篇
-                </td>
-                <td>
-                  <button class="text" @click="openEdit('category', item)">编辑</button
-                  ><button class="text" @click="openEdit('category', item)">调整顺序</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p v-if="!categories.length && !busy && !error" class="notice">暂无分类，请先新增</p>
-      </template>
-      <template v-else>
-        <div class="row topic-filters">
-          <label class="field"
-            ><input v-model="topicSearch" aria-label="搜索主题" placeholder="输入主题名称" /></label
-          ><label class="field"
-            ><select v-model="categoryFilter" aria-label="筛选分类">
-              <option value="">全部分类</option>
-              <option v-for="item in categories" :key="item.id" :value="item.id">
-                {{ item.name }}
-              </option>
-            </select></label
-          >
-        </div>
-        <div v-if="!busy && !error" class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>主题名称</th>
-                <th>所属分类</th>
-                <th>已发布文章</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in visibleTopics" :key="item.id">
-                <td>{{ item.name }}</td>
-                <td>{{ categories.find((c) => c.id === item.category_id)?.name }}</td>
-                <td>{{ publishedCount([item.id]) }} 篇</td>
-                <td>
-                  <div class="row">
-                    <button class="text" @click="openEdit('topic', item)">编辑主题</button
-                    ><RouterLink :to="{ path: '/listening', query: { topic_id: item.id } }"
-                      >管理篇目</RouterLink
-                    ><RouterLink
-                      :to="{ path: '/listening/topic-order', query: { topic_id: item.id } }"
-                      >调整顺序</RouterLink
-                    >
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p v-if="!visibleTopics.length && !busy && !error" class="notice">暂无符合条件的主题</p>
-      </template>
+      <ListeningCatalogList
+        :kind="surface === 'categories' ? 'categories' : 'topics'"
+        :categories="categories"
+        :topics="topics"
+        :articles="articles"
+        @edit="openEdit"
+        @changed="load"
+      />
       <div v-if="edit" class="edit-layout" :class="{ 'category-edit': surface === 'categories' }">
         <form class="panel hierarchy-form" @submit.prevent="saveHierarchy">
           <h2>{{ edit.id ? '编辑' : '新增' }}{{ edit.kind === 'category' ? '分类' : '主题' }}</h2>
           <div class="form-grid">
+            <label v-if="edit.kind === 'topic'" class="field"
+              >英文名称 *<input v-model="edit.name_en" name="name_en" required
+            /></label>
             <label class="field"
-              >{{ edit.kind === 'category' ? '中文名称' : '主题名称'
-              }}<input v-model="edit.name" required /></label
-            ><label v-if="edit.kind === 'topic'" class="field"
+              >{{ edit.kind === 'category' ? '中文名称' : '中文名称（选填）'
+              }}<input v-model="edit.name" name="name" :required="edit.kind === 'category'"
+            /></label>
+            <label v-if="edit.kind === 'topic'" class="field"
               >所属分类<select v-model="edit.category_id" required>
                 <option v-for="item in categories" :key="item.id" :value="item.id">
                   {{ item.name }}
                 </option>
               </select></label
-            ><label class="field">英文名称（选填）<input v-model="edit.name_en" /></label
-            ><label class="field"
-              >显示序号<input v-model.number="edit.sort_order" type="number" step="1" required
+            >
+            <label v-else class="field"
+              >英文名称（选填）<input v-model="edit.name_en" name="name_en"
             /></label>
           </div>
           <label v-if="edit.kind === 'topic'" class="field"
@@ -485,7 +363,9 @@ onMounted(load)
       ><label v-if="scope === 'topic'" class="field"
         >选择主题<select v-model="topic">
           <option value="">请选择</option>
-          <option v-for="item in topics" :key="item.id" :value="item.id">{{ item.name }}</option>
+          <option v-for="item in topics" :key="item.id" :value="item.id">
+            {{ topicLabel(item) }}
+          </option>
         </select></label
       ><template v-if="order"
         ><div
@@ -545,118 +425,24 @@ onMounted(load)
         </div></template
       ></template
     >
-    <template v-else
-      ><p class="notice">
-        {{
-          policy?.configured ? `当前M=${policy.free_count}` : '听读免费M尚未确认，当前听读不开放'
-        }}。场景N和用户学习授权不受此设置影响
+    <template v-else>
+      <p class="notice">
+        当前M={{ policy?.configured ? policy.free_count : '未设置' }} ·
+        场景N和用户学习授权不受此设置影响
       </p>
-      <div class="between free-summary">
-        <span class="badge">当前M={{ policy?.configured ? policy.free_count : '未设置' }}</span
-        ><span class="muted small"
-          >已发布 {{ articles.filter((item) => item.status === 'published').length }} 篇</span
-        >
-      </div>
       <label class="field free-input"
         >免费篇数M<input
           v-model="freeInput"
-          :disabled="busy"
+          :disabled="busy || Boolean(pendingFree)"
           inputmode="numeric"
           placeholder="请输入非负整数，0表示无免费篇"
-        /><small>按全量有效发布文章的全局顺序取前M篇，超过总数则全部免费；完成不补位</small></label
-      ><button class="primary" :disabled="busy || !freeValid" @click="previewFree">
-        预览名单与影响</button
-      ><template v-if="freePreview"
-        ><h3 class="section-heading">将生效的完整名单（{{ freePreview.article_ids.length }}篇）</h3>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>顺序</th>
-                <th>文章</th>
-                <th>分类 / 主题</th>
-                <th>名单变化</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(id, index) in freePreview.article_ids" :key="id">
-                <td>{{ index + 1 }}</td>
-                <td>{{ title(id) }}</td>
-                <td>{{ affiliation(id) }}</td>
-                <td>
-                  <span class="badge">{{
-                    freePreview.added_ids.includes(id) ? '新增免费' : '保持免费'
-                  }}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p v-if="!freePreview.article_ids.length" class="muted">没有免费文章</p>
-        <p>
-          新增 {{ freePreview.added_ids.length }} 篇；移出 {{ freePreview.removed_ids.length }} 篇
-        </p>
-        <ul>
-          <li v-for="id in freePreview.added_ids" :key="`add-${id}`">新增：{{ title(id) }}</li>
-          <li v-for="id in freePreview.removed_ids" :key="`remove-${id}`">移出：{{ title(id) }}</li>
-        </ul>
-        <div class="row">
-          <button :disabled="busy" @click="freePreview = null">取消</button
-          ><button
-            class="primary"
-            :disabled="busy || !freePreviewCurrent"
-            @click="freeConfirm = true"
-          >
-            保存免费设置
-          </button>
-        </div></template
-      ></template
-    >
-    <ElDialog
-      v-model="freeConfirm"
-      title="确认调整听读免费篇数"
-      width="620px"
-      :close-on-click-modal="false"
-    >
-      <template v-if="freePreview"
-        ><div class="policy-summary">
-          <span
-            >当前免费篇数 <strong>{{ policy?.free_count ?? '未设置' }}</strong></span
-          ><span
-            >调整后免费篇数 <strong>{{ freePreview.free_count }}</strong></span
-          >
-        </div>
-        <p class="notice">
-          新增免费 {{ freePreview.added_ids.length }} 篇，移出免费
-          {{ freePreview.removed_ids.length }} 篇。已完成记录保留，当前访问以最新授权和免费名单为准
-        </p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>变化</th>
-                <th>文章</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="id in freePreview.added_ids" :key="id">
-                <td>新增免费</td>
-                <td>{{ title(id) }}</td>
-              </tr>
-              <tr v-for="id in freePreview.removed_ids" :key="id">
-                <td>移出免费</td>
-                <td>{{ title(id) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div></template
-      ><template #footer
-        ><button :disabled="busy" @click="freeConfirm = false">返回核对</button
-        ><button class="primary" :disabled="busy || !freePreviewCurrent" @click="saveFree">
-          确认保存M与名单
-        </button></template
+        /><small>填写非负整数；0表示不开放免费篇，大于总篇数时全部免费</small></label
       >
-    </ElDialog>
+      <p class="muted small">按已发布文章的独立全局顺序取前M篇，完成后不补位</p>
+      <button class="primary" :disabled="busy || !freeValid" @click="saveFree">
+        {{ pendingFree ? '重试保存' : '保存设置' }}
+      </button>
+    </template>
     <ElDialog
       v-model="orderConfirm"
       title="核对全局顺序与免费名单"

@@ -17,6 +17,7 @@ const article = (id: string) => ({
   status: 'published',
   revision: 3,
   version_id: 'v',
+  has_unpublished_changes: id === '2',
   topic_order: 1,
   global_order: 1,
   payload: { ...emptyPayload(), title_zh: `文章${id}`, title_en: `Article ${id}` },
@@ -99,6 +100,34 @@ it('single-row deletion does not include another checked article and cancel reta
     .map((item) => item[0] as Request)
     .find((request) => request.url.endsWith('/batch-delete'))!
   expect(await write.json()).toEqual({ items: [{ id: '1', revision: 3 }] })
+  page.unmount()
+})
+
+it('publishes only the checked article revisions without requiring a preview', async () => {
+  const original = network.getMockImplementation()!
+  const writes: Request[] = []
+  network.mockImplementation(async (request: Request) => {
+    if (request.url.endsWith('/batch-publish')) {
+      writes.push(request)
+      return Response.json({
+        items: [{ id: '2', status: 'success', published_version_id: 'v2', revision: 4 }]
+      })
+    }
+    return original(request)
+  })
+  const { page } = await open()
+  await page.get('tbody tr:nth-child(2) input').setValue(true)
+  const publish = page
+    .findAll('.selection-bar button')
+    .find((item) => item.text().startsWith('批量发布'))
+  expect(publish).toBeDefined()
+  await publish!.trigger('click')
+  await flushPromises()
+  expect(writes).toHaveLength(1)
+  expect(await writes[0]!.json()).toEqual({ items: [{ id: '2', revision: 3 }] })
+  expect(page.findAll('th').map((item) => item.text())).not.toContain('学习范围')
+  expect(page.findAll('th').map((item) => item.text())).toContain('状态')
+  expect(page.find('.result-panel').exists()).toBe(false)
   page.unmount()
 })
 

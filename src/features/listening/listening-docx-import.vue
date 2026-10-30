@@ -8,8 +8,12 @@ import { listeningBase } from '@/services/listening-service'
 import type { ArticlePayload } from './listening-types'
 
 const props = defineProps<{ payload: ArticlePayload; disabled?: boolean; compact?: boolean }>(),
-  emit = defineEmits<{ apply: [payload: ArticlePayload] }>()
-const parsed = ref<{ payload: ArticlePayload; hints: Record<string, string> } | null>(null),
+  emit = defineEmits<{ apply: [payload: ArticlePayload]; topic: [topicId: string] }>()
+const parsed = ref<{
+    payload: ArticlePayload
+    hints: Record<string, string>
+    topic_id?: string | null
+  } | null>(null),
   busy = ref(false),
   error = ref(''),
   open = ref(false),
@@ -61,6 +65,7 @@ const apply = () => {
     audio_id: props.payload.audio_id,
     image_id: props.payload.image_id
   })
+  if (parsed.value.topic_id) emit('topic', parsed.value.topic_id)
   open.value = false
 }
 </script>
@@ -86,7 +91,7 @@ const apply = () => {
     </p>
     <ElDialog v-model="open" title="核对DOCX带入变化" width="1000px" :close-on-click-modal="false">
       <p class="notice">
-        确认后替换表单双标题、正文、译文、表达和词义；保留当前音频与原图。请核对主题归属，尚不保存或发布文章
+        确认后替换表单双标题、正文、译文、表达和词义；保留当前音频与原图。唯一匹配的所属主题同步带入；未匹配时请在表单选择，尚不保存或发布文章
       </p>
       <p v-if="parsed?.hints" class="muted small">
         文档归属提示：{{

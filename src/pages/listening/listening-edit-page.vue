@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, shallowRef } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import AppFilePicker from '@/components/app-file-picker/app-file-picker.vue'
 import AppState from '@/components/app-state/app-state.vue'
 import ListeningContentForm from '@/features/listening/listening-content-form.vue'
 import ListeningDocxImport from '@/features/listening/listening-docx-import.vue'
-import { emptyPayload, statusLabels } from '@/features/listening/listening-model'
+import { emptyPayload, publishErrors, statusLabels } from '@/features/listening/listening-model'
 import ListeningPreviewPanel from '@/features/listening/listening-preview-panel.vue'
 import ListeningTimeline from '@/features/listening/listening-timeline.vue'
 import SceneAudio from '@/features/scenes/scene-audio.vue'
@@ -39,15 +39,11 @@ const article = ref<Article | null>(null),
   form = ref<InstanceType<typeof ListeningContentForm> | null>(null)
 const snapshot = computed(() => JSON.stringify({ topic_id: topic.value, payload: payload.value }))
 const dirty = computed(() => snapshot.value !== savedSnapshot.value)
-const canPublish = computed(() =>
-  Boolean(
-    article.value &&
-    preview.value &&
-    !dirty.value &&
-    !preview.value.errors.length &&
-    preview.value.article.id === article.value.id &&
-    preview.value.article.revision === article.value.revision
-  )
+const pendingPublication = shallowRef<ReturnType<
+  typeof listeningRecoverableOperation<Article>
+> | null>(null)
+const canPublish = computed(
+  () => !publishErrors(payload.value, topic.value).length && article.value?.status !== 'deleted'
 )
 let previewReturnScroll = 0
 let pendingSave: {
@@ -177,24 +173,38 @@ const closePreview = async () => {
   await nextTick()
   window.scrollTo(0, previewReturnScroll)
 }
-/** 发布已预览的版本并展示结果，失败时保留弹窗内的错误说明 */
+/** 手动保存草稿后回到原文章列表，上传或可选预览的自动暂存仍留在编辑页 */
+const saveDraft = async () => {
+  if (busy.value || pendingPublication.value) return
+  const value = await save()
+  if (value) await router.push(String(route.query.back || '/listening'))
+}
+/** 明确发布当前输入，自动保存编辑稿，未知结果按原操作恢复 */
 const publish = async () => {
-  if (!article.value || !preview.value || !canPublish.value) return
+  if (busy.value || (!canPublish.value && !pendingPublication.value)) return
+  const value = pendingPublication.value
+    ? article.value
+    : dirty.value || !article.value
+      ? await save()
+      : article.value
+  if (!value) return
   busy.value = true
   error.value = ''
   notice.value = ''
   try {
-    accept(
-      await listeningOperation<Article>('POST', `/articles/${article.value.id}/publish`, {
-        revision: article.value.revision,
-        preview_token: preview.value.preview_token
-      })()
+    pendingPublication.value ||= listeningRecoverableOperation<Article>(
+      'POST',
+      `/articles/${value.id}/publish`,
+      { revision: value.revision }
     )
+    accept(await pendingPublication.value.run())
+    pendingPublication.value = null
     await closePreview()
-    notice.value = '文章已发布新版本'
-    ElMessage.success(notice.value)
+    ElMessage.success('文章已发布')
+    await router.push(String(route.query.back || '/listening'))
   } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : '发布失败，请刷新确认'
+    error.value = reason instanceof Error ? reason.message : '发布结果未确认，请重试'
+    if (!pendingPublication.value?.unknown) pendingPublication.value = null
   } finally {
     busy.value = false
   }
@@ -254,7 +264,7 @@ onMounted(load)
       <div class="page-heading between">
         <div>
           <h1>{{ article ? '编辑听读文章' : '新建听读文章' }}</h1>
-          <p>保存草稿 → 预览核对 → 明确发布</p>
+          <p>补齐资料后选择发布或保存草稿，预览和试听可选</p>
         </div>
         <div class="row heading-actions">
           <RouterLink class="button-link" :to="String(route.query.back || '/listening')"
@@ -264,6 +274,7 @@ onMounted(load)
             :disabled="busy"
             compact
             @apply="payload = $event"
+            @topic="topic = $event"
           />
         </div>
       </div>
@@ -283,7 +294,7 @@ onMounted(load)
             v-model:topic="topic"
             :topics="topics"
             :categories="categories"
-            :disabled="busy"
+            :disabled="busy || Boolean(pendingPublication)"
           >
             <template #media>
               <section class="panel content-card">
@@ -369,18 +380,18 @@ onMounted(load)
             <span class="muted small" role="status"
               >{{ article ? `${statusLabels[article.status]} · 版本 ${article.revision} · ` : ''
               }}{{ dirty ? '有未保存修改' : '已与服务器同步' }}</span
-            ><button :disabled="busy" @click="save">{{ busy ? '处理中…' : '保存草稿' }}</button
-            ><button :disabled="busy" @click="showPreview">预览并核对发布</button
+            ><button :disabled="busy || Boolean(pendingPublication)" @click="saveDraft">
+              {{ busy ? '处理中…' : '保存草稿' }}</button
+            ><button :disabled="busy || Boolean(pendingPublication)" @click="showPreview">
+              预览（可选）</button
             ><button class="primary" :disabled="busy || !canPublish" @click="publish">
-              确认发布
+              {{ pendingPublication ? '重试发布' : '发布' }}
             </button>
           </div>
           <p class="publish-guidance muted small">
             发布需双标题、有效分类与主题、英文正文、全文译文、完整5组语块和已就绪的全文音频
           </p>
-          <p class="publish-guidance muted small">
-            原图选填。先保存并预览核对当前稿件，再确认发布；管理员试听可选，未试听不影响发布
-          </p>
+          <p class="publish-guidance muted small">原图、预览和试听均可选；发布仍校验全部必填资料</p>
         </aside>
       </div>
       <p v-else class="notice error">文章已删除，不能编辑或重新发布</p>

@@ -1,5 +1,7 @@
 import type { ArticlePayload, TimelineWord } from './listening-types'
 
+import { phraseHighlights } from './phrase-highlights'
+
 /** 创建不补造业务资料的空草稿
  * @returns 待管理员录入的资料
  */
@@ -49,6 +51,7 @@ export const candidateSelection = (
   return {
     selected: selected.map((item) => item.id),
     save,
+    publish: selected.filter((item) => item.state === 'complete').map((item) => item.id),
     remove: selected.filter((item) => item.state !== 'saved').map((item) => item.id),
     excluded: selected.length - save.length
   }
@@ -71,27 +74,67 @@ export const moveArticle = (ids: string[], id: string, direction: number) => {
  * @param body 未改写的英文原文
  * @param words 经服务端校验的词时间轴
  * @param position 当前音频秒数
+ * @param phrases 正文表达顺序
  * @returns 原始字符与当前位置样式
  */
-export const timelineCharacters = (body: string, words: TimelineWord[], position: number) => {
-  const ms = position * 1000,
-    current = words.find((word) => ms >= word.start_ms && ms < word.end_ms)
-  const point = current
-    ? current.start +
-      Math.min(
-        current.end - current.start - 1,
-        Math.floor(
-          ((ms - current.start_ms) / (current.end_ms - current.start_ms)) *
-            (current.end - current.start)
-        )
-      )
-    : -1
+export const timelineCharacters = (
+  body: string,
+  words: TimelineWord[],
+  position: number,
+  phrases: string[] = []
+) => {
+  const frame = characterFrame(words, position * 1000, false),
+    ranges = phraseHighlights(body, phrases)
   return [...body].map((text, index) => ({
     text,
-    active: index === point,
-    trail: Boolean(current && index < point && index >= Math.max(current.start, point - 8)),
-    opacity: point > index ? Math.max(0, 1 - (point - index) / 9) : 1
+    active: index === frame.current,
+    trail: frame.trails.some((item) => item.position === index),
+    opacity: frame.trails.find((item) => item.position === index)?.strength || 0,
+    background: ranges.find((item) => index >= item.start && index < item.end)?.color
   }))
+}
+/** 按媒体毫秒计算逐字高亮和短尾迹
+ * @param words 已校验时间轴
+ * @param milliseconds 媒体毫秒
+ * @param ended 播放结束状态
+ * @returns 当前字符和尾迹
+ */
+const characterFrame = (words: TimelineWord[], milliseconds: number, ended: boolean) => {
+  const frame: {
+    current: number
+    fraction: number
+    trails: { position: number; strength: number }[]
+  } = { current: -1, fraction: 0, trails: [] }
+  if (ended || !words.length) return frame
+  const index = words.findIndex(
+    (word) => milliseconds >= word.start_ms && milliseconds < word.end_ms
+  )
+  const previous = words.reduce(
+    (found, word, index) => (word.end_ms <= milliseconds ? index : found),
+    -1
+  )
+  const anchor = index >= 0 ? index : previous
+  const active = words[anchor]
+  if (!active) return frame
+  if (index >= 0) {
+    const progress =
+      ((milliseconds - active.start_ms) / (active.end_ms - active.start_ms)) *
+      (active.end - active.start)
+    frame.current = active.start + Math.floor(progress)
+    frame.fraction = progress - Math.floor(progress)
+  }
+  for (let i = Math.max(0, anchor - 2 + 1); i <= anchor; i++) {
+    const word = words[i]!
+    if (word.sentence_id !== active.sentence_id) continue
+    for (let position = word.start; position < word.end; position++) {
+      const end =
+        word.start_ms +
+        ((position - word.start + 1) / (word.end - word.start)) * (word.end_ms - word.start_ms)
+      const age = milliseconds - end
+      if (age >= 0 && age < 550) frame.trails.push({ position, strength: 1 - age / 550 })
+    }
+  }
+  return frame
 }
 export const statusLabels: Record<string, string> = {
   draft: '草稿',
@@ -129,3 +172,12 @@ export const importErrorLabels: Record<string, string> = {
   listening_media_reference_invalid: '素材归属无效，请重新选择本候选或目标现有素材',
   listening_word_reference_invalid: '正文关联词义位置已变化，请核对后重试'
 }
+
+/** 展示英文优先主题名，兼容历史主题且不制造空行
+ * @param topic 当前主题双语名称
+ * @param topic.name_en 英文主题名称
+ * @param topic.name 中文或历史名称
+ * @returns 可读的主题名称
+ */
+export const topicLabel = (topic: { name_en?: string; name: string }) =>
+  [topic.name_en, topic.name].filter(Boolean).join(' / ')
