@@ -23,6 +23,26 @@ const path = computed(() =>
 const timeline = ref<Timeline | null>(null),
   busy = ref(false),
   error = ref('')
+const timelineErrors: Record<string, string> = {
+  asr_unconfigured: '自动时间轴服务尚未配置，请配置语音识别服务后重试',
+  asr_permission_denied: '语音识别服务权限不足，请检查服务授权后重试',
+  asr_rate_limited: '语音识别服务繁忙，请稍后重试',
+  asr_budget_exceeded: '今日自动识别次数已用完，请明日重试或联系管理员',
+  asr_request_invalid: '语音识别请求未通过校验，请联系管理员核对配置和音频',
+  asr_input_too_large: '识别音频超出服务限制，请联系管理员核对音频处理方式',
+  asr_decoder_unavailable: '音频预处理服务暂不可用，请联系管理员检查',
+  asr_preprocessing_failed: '音频预处理失败，请核对完整英文音频后重试',
+  asr_recognition_failed: '录音识别失败，请核对完整英文音频后重试',
+  asr_submission_unknown: '识别任务提交结果尚未确认，请联系管理员核对，避免重复提交',
+  asr_poll_unavailable: '暂时无法获取识别结果，系统将继续查询',
+  timeline_coverage_low: '录音与正文匹配不足，请核对完整英文音频和英文正文后重新保存',
+  timeline_invalid: '识别时间轴未通过校验，请核对完整英文音频后重试'
+}
+const timelineError = computed(() =>
+  timeline.value?.error_code
+    ? timelineErrors[timeline.value.error_code] || '时间轴生成失败，请稍后重试或联系管理员'
+    : ''
+)
 let timer: ReturnType<typeof setTimeout> | undefined,
   generation = 0
 /** 查询当前正文与音频关联的真实时间轴状态 */
@@ -82,7 +102,7 @@ onBeforeUnmount(() => {
       <button type="button" :disabled="busy" @click="refresh">刷新状态</button>
     </div>
     <p>{{ statusLabels[timeline?.state || ''] || '暂未获取' }}</p>
-    <p v-if="timeline?.error_code" class="notice error">{{ timeline.error_code }}</p>
+    <p v-if="timelineError" class="notice error" role="alert">{{ timelineError }}</p>
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>
     <p class="muted small">
       正文与音频保存后自动生成；校验通过即可启用。未试听或暂未就绪不阻止满足原必填条件的发布
