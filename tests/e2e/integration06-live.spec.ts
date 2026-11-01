@@ -46,7 +46,9 @@ test('direct categories, source review, optional vocabulary and per-item free ac
   await card.getByTestId('vocabulary-remove').click()
   await page.screenshot({ path: info.outputPath('A25-vocabulary-1440.png'), fullPage: true })
   if (fixture.docx_path) {
-    await page.locator('input[type=file][accept=".docx"]').setInputFiles(fixture.docx_path)
+    const input = page.locator('input[type=file][accept=".docx"]')
+    await expect(input).toBeEnabled()
+    await input.setInputFiles(fixture.docx_path)
     const dialog = page.getByRole('dialog', { name: '核对DOCX带入变化' })
     await expect(dialog).toBeVisible()
     await expect(dialog.getByText(/重点词汇/)).toBeVisible()
@@ -54,7 +56,9 @@ test('direct categories, source review, optional vocabulary and per-item free ac
   }
   if (fixture.zip_path) {
     await page.goto('/listening-imports')
-    await page.locator('input[type=file]').setInputFiles(fixture.zip_path)
+    const input = page.locator('input[type=file]')
+    await expect(input).toBeEnabled()
+    await input.setInputFiles(fixture.zip_path)
     await expect(page.getByRole('heading', { name: '核对本批文章', exact: true })).toBeVisible()
     await expect(page.locator('.candidate')).not.toHaveCount(0)
     await expect(page.getByText(/重点词汇/).first()).toBeVisible()
