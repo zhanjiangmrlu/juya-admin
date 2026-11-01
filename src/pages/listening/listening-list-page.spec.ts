@@ -9,6 +9,7 @@ vi.mock('@/services/http-client', async (original) => {
   const module = await original<typeof import('@/services/http-client')>()
   return { ...module, api: module.createHttpClient('https://admin-api.example', network) }
 })
+import ListeningCatalogPage from './listening-catalog-page.vue'
 import ListeningListPage from './listening-list-page.vue'
 
 const article = (id: string) => ({
@@ -47,18 +48,31 @@ beforeEach(() => {
     return Response.json({ items: [article('1'), article('2')], total: 2, page: 1, limit: 10 })
   })
 })
-const open = async () => {
+/** 挂载听读路由并按需复现应用缓存
+ * @param cached 是否保留文章列表以验证 Tab 返回状态
+ * @returns 页面包装器和用于验证导航的真实路由
+ */
+const open = async (cached = false) => {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
       { path: '/listening', component: ListeningListPage },
+      {
+        path: '/listening/categories',
+        component: ListeningCatalogPage,
+        meta: { listeningSurface: 'categories' }
+      },
       { path: '/listening/:id', component: { template: '<div>文章编辑</div>' } },
       { path: '/listening-imports', component: { template: '<div />' } }
     ]
   })
   await router.push('/listening')
   const page = mount(
-    { template: '<RouterView />' },
+    {
+      template: cached
+        ? '<RouterView v-slot="{ Component }"><KeepAlive :include="[\'ListeningListPage\']"><component :is="Component" /></KeepAlive></RouterView>'
+        : '<RouterView />'
+    },
     {
       attachTo: document.body,
       global: {
@@ -201,4 +215,32 @@ it('labels empty category and status filters in Chinese', async () => {
   expect(filters.text()).toContain('全部状态')
   expect(filters.text()).not.toContain('Select')
   page.unmount()
+})
+
+it('selects the matching tab on the first click when returning to a cached article list', async () => {
+  const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+  const { page, router } = await open(true)
+  try {
+    for (let round = 0; round < 3; round++) {
+      await page.get('#tab-categories').trigger('click')
+      await flushPromises()
+      expect(router.currentRoute.value.path).toBe('/listening/categories')
+      expect(page.get('#tab-categories').attributes('aria-selected')).toBe('true')
+      expect(page.get('h1').text()).toBe('分类管理')
+      await page.get('#tab-articles').trigger('click')
+      await flushPromises()
+      expect(router.currentRoute.value.path).toBe('/listening')
+      expect(page.get('#tab-articles').attributes('aria-selected')).toBe('true')
+      expect(page.get('h1').text()).toBe('听读文章管理')
+    }
+    router.back()
+    await flushPromises()
+    expect(page.get('#tab-categories').attributes('aria-selected')).toBe('true')
+    router.forward()
+    await flushPromises()
+    expect(page.get('#tab-articles').attributes('aria-selected')).toBe('true')
+  } finally {
+    page.unmount()
+    scroll.mockRestore()
+  }
 })

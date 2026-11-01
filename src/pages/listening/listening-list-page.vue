@@ -24,6 +24,7 @@ import type {
   Page
 } from '@/features/listening/listening-types'
 import type { components } from '@/shared/contracts/generated/admin-api'
+import type { TabPaneName } from 'element-plus'
 
 defineOptions({ name: 'ListeningListPage' })
 const route = useRoute(),
@@ -161,6 +162,14 @@ const load = async () => {
   } finally {
     if (run === generation) busy.value = false
   }
+}
+/** 路由负责切换管理页面，阻止缓存列表记住分类 Tab 的内部选中状态
+ * @param name 用户点击的管理页签名称
+ * @returns 始终拒绝组件内部切换，由目标路由显示对应页签
+ */
+const navigateTab = (name: TabPaneName) => {
+  if (name === 'categories') void router.push('/listening/categories')
+  return false
 }
 /** 筛选翻页仅改变明确条件并清空当前页勾选
  * @param patch 本次变化的查询参数
@@ -341,9 +350,7 @@ onMounted(async () => {
           >
         </div>
       </div>
-      <ElTabs
-        model-value="articles"
-        @tab-change="$event === 'categories' && router.push('/listening/categories')"
+      <ElTabs model-value="articles" :before-leave="navigateTab"
         ><ElTabPane label="文章管理" name="articles" /><ElTabPane
           label="分类管理"
           name="categories"
