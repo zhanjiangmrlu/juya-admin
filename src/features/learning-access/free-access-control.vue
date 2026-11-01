@@ -79,6 +79,8 @@ const change = async () => {
 </template>
 <style scoped lang="scss">
 .free-access-control {
+  --el-color-danger: var(--red);
+
   display: inline-flex;
   flex-direction: column;
   align-items: start;
