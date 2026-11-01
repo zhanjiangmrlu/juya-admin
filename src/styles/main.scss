@@ -669,6 +669,25 @@ label.field {
 }
 
 .el-button {
+  --el-button-hover-text-color: color-mix(in srgb, var(--el-button-text-color) 70%, transparent);
+  --el-button-hover-link-text-color: color-mix(
+    in srgb,
+    var(--el-button-text-color) 70%,
+    transparent
+  );
+
+  &.text {
+    --el-button-text-color: var(--green);
+
+    &.danger {
+      --el-button-text-color: var(--red);
+    }
+
+    &:hover:where(:not(:disabled)) {
+      color: var(--el-button-hover-text-color);
+    }
+  }
+
   &.is-link {
     min-height: 32px;
     padding: 0;
@@ -676,6 +695,8 @@ label.field {
   }
 
   &[class~='el-button--primary']:not(.is-link) {
+    --el-button-text-color: var(--ink);
+
     background: var(--action);
     border-color: var(--action);
     color: var(--ink);
