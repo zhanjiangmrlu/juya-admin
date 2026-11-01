@@ -1,3 +1,9 @@
+# 最新测试发布（2026-11-01）
+
+用户新增授权后，整合06代码已推送远程 test，后台及双角色 API／Worker 已部署测试环境，测试库升级0024／contract3。微信包 1.5.0-r17.06.1101 上传成功，体验版由用户手动切换。固定提交、备份及实际核验见[发布记录](https://github.com/zhanjiangmrlu/juya-api/blob/test/docs/verification/integration06-test-release-20261101.md)。下方“未部署”等表述是此前本地交付时的历史状态；本次未部署生产环境。原目录及本地热更新环境保留。
+
+---
+
 # 整合06／修订17本地接续（2026-11-01）
 
 本轮后台已切换直接分类、可选重点词汇与逐项免费契约，工作树为 `codex/revision17-integration06`。当前实现、验证命令及本地浏览器接续见 [整合06后台交接](docs/handoff/revision17/integration06/README.md)。下方整合05及更早记录仅用于历史追溯；旧主题、免费数量与全局免费排序不再是当前入口。未推送或部署。
