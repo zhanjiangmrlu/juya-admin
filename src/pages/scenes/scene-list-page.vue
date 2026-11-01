@@ -692,30 +692,32 @@ onBeforeUnmount(() => {
                 >
               </td>
               <td>
-                <FreeAccessControl
-                  :path="`/api/admin/v1/cards/${card.id}/free-access`"
-                  :is-free="card.is_free"
-                  :revision="card.free_revision"
-                  @changed="freeChanged"
-                /><RouterLink :to="{ path: `/cards/${card.id}`, query: { back: route.fullPath } }"
-                  >编辑</RouterLink
-                ><button
-                  v-if="card.status === 'published'"
-                  type="button"
-                  class="text small"
-                  @click="showPublished(card)"
-                >
-                  查看效果</button
-                ><button
-                  v-if="card.status === 'published'"
-                  type="button"
-                  class="text small"
-                  @click="ask(card, 'offline')"
-                >
-                  下线</button
-                ><button type="button" class="text danger small" @click="ask(card, 'delete')">
-                  删除
-                </button>
+                <div class="table-row-actions">
+                  <FreeAccessControl
+                    :path="`/api/admin/v1/cards/${card.id}/free-access`"
+                    :is-free="card.is_free"
+                    :revision="card.free_revision"
+                    @changed="freeChanged"
+                  /><RouterLink :to="{ path: `/cards/${card.id}`, query: { back: route.fullPath } }"
+                    >编辑</RouterLink
+                  ><button
+                    v-if="card.status === 'published'"
+                    type="button"
+                    class="text small"
+                    @click="showPublished(card)"
+                  >
+                    查看效果</button
+                  ><button
+                    v-if="card.status === 'published'"
+                    type="button"
+                    class="text small"
+                    @click="ask(card, 'offline')"
+                  >
+                    下线</button
+                  ><button type="button" class="text danger small" @click="ask(card, 'delete')">
+                    删除
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -912,7 +914,7 @@ onBeforeUnmount(() => {
     font-size: 13px;
   }
 
-  td .text {
+  td .thumbnail-retry {
     padding: 6px 7px;
     font-size: 13px;
   }

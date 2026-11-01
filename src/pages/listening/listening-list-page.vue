@@ -530,7 +530,7 @@ onMounted(async () => {
                 }}</span>
               </td>
               <td>
-                <div class="row row-actions">
+                <div class="table-row-actions">
                   <FreeAccessControl
                     :path="`/api/admin/v1/listening/articles/${item.id}/free-access`"
                     :is-free="item.is_free"
@@ -790,11 +790,6 @@ onMounted(async () => {
     padding: 12px 16px;
     background: var(--soft);
     margin: 18px 0;
-  }
-
-  .row-actions {
-    gap: 10px;
-    flex-wrap: wrap;
   }
 
   td {
