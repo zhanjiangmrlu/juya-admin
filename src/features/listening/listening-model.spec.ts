@@ -85,3 +85,16 @@ it('shows topic English first, omits empty Chinese and tolerates legacy English'
   expect(topicLabel({ name_en: 'Everyday English', name: '' })).toBe('Everyday English')
   expect(topicLabel({ name_en: '', name: '旧主题' })).toBe('旧主题')
 })
+
+it('does not call a complete candidate publishable while its vocabulary has no verified source', () => {
+  const payload = {
+    ...emptyPayload(),
+    body_en: 'He goes.',
+    vocabulary: [
+      { id: 'w', english: 'go', meaning: '走', phonetic: '', source_hint: '', source: null }
+    ]
+  }
+  expect(
+    candidateSelection([{ id: 'c', state: 'complete', removed: false, payload }], ['c']).publish
+  ).toEqual([])
+})

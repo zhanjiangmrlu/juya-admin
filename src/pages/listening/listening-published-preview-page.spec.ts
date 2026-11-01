@@ -15,9 +15,9 @@ beforeEach(() => {
 })
 const article = {
   id: 'article',
-  topic_id: 'published-topic',
-  published_topic_id: 'published-topic',
-  draft_topic_id: 'draft-topic',
+  category_id: 'category',
+  published_category_id: 'category',
+  draft_category_id: 'draft-category',
   payload: { title_zh: '发布内容' },
   timeline: { state: 'missing' }
 }
@@ -66,12 +66,11 @@ it('loads the effective publication and resolves names from its published topic 
   const page = await open()
   expect(request.mock.calls.map(([path]) => path).sort()).toEqual([
     '/articles/article/published',
-    '/categories',
-    '/topics'
+    '/categories'
   ])
   expect(request.mock.calls.every((call) => call.length === 1)).toBe(true)
   expect(page.findComponent({ name: 'ListeningPreviewPanel' }).props()).toMatchObject({
-    article: { ...article, category_name: '日常生活', topic_name: '午间休息' },
+    article: { ...article, category_name: '日常生活' },
     readonly: true,
     mediaBase: '/api/admin/v1/listening/articles/article/published/media'
   })
@@ -80,15 +79,11 @@ it('loads the effective publication and resolves names from its published topic 
 })
 
 it('renders the publication before catalog metadata finishes loading', async () => {
-  let finishCategories!: (value: unknown) => void, finishTopics!: (value: unknown) => void
+  let finishCategories!: (value: unknown) => void
   request.mockImplementation((path: string) => {
     if (path === '/categories')
       return new Promise((resolve) => {
         finishCategories = resolve
-      })
-    if (path === '/topics')
-      return new Promise((resolve) => {
-        finishTopics = resolve
       })
     return Promise.resolve(article)
   })
@@ -97,14 +92,11 @@ it('renders the publication before catalog metadata finishes loading', async () 
     article
   )
   expect(typeof finishCategories).toBe('function')
-  expect(typeof finishTopics).toBe('function')
   finishCategories(categories)
-  finishTopics(topics)
   await flushPromises()
   expect(page.findComponent({ name: 'ListeningPreviewPanel' }).props('article')).toMatchObject({
     payload: article.payload,
-    category_name: '日常生活',
-    topic_name: '午间休息'
+    category_name: '日常生活'
   })
 })
 

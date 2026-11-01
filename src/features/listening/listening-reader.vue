@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ElButton } from 'element-plus'
+import { computed, ref, watch } from 'vue'
 
 import imageZoom from '@/assets/icons/image-zoom.svg'
+import {
+  type ListeningPronunciationContext,
+  useListeningPronunciation
+} from '@/composables/use-listening-pronunciation'
 import SceneAudio from '@/features/scenes/scene-audio.vue'
 import { listeningMediaURL } from '@/services/listening-service'
 
@@ -12,7 +17,13 @@ import { timelineCharacters } from './listening-model'
 const props = defineProps<{
   article: Pick<Article, 'id' | 'payload' | 'timeline'> & { word_count?: number }
   mediaBase?: string
+  pronunciation?: ListeningPronunciationContext
 }>()
+const speech = useListeningPronunciation(() => props.pronunciation)
+watch(
+  () => props.article,
+  () => speech.stop()
+)
 /** 为正式文章或批次暂存预览选择受控媒体
  * @param id 当前选用的素材编号
  * @returns 管理员受控地址
@@ -113,6 +124,39 @@ const paragraphs = computed(() => {
         {{ text }}
       </p>
     </div>
+    <section
+      v-if="article.payload.vocabulary?.length"
+      data-testid="reader-vocabulary"
+      class="reader-vocabulary"
+    >
+      <h3>重点词汇</h3>
+      <div v-for="word in article.payload.vocabulary" :key="word.id" class="word">
+        <ElButton
+          link
+          :disabled="
+            !pronunciation ||
+            (speech.current.value === word.id && speech.status.value === 'loading')
+          "
+          :data-word="word.id"
+          @click="speech.play(word.id)"
+          ><strong>{{ word.english }}</strong>
+          {{
+            speech.current.value === word.id && speech.status.value === 'loading'
+              ? '加载中…'
+              : '试听单词'
+          }}</ElButton
+        ><span v-if="word.phonetic" class="phonetic">{{ word.phonetic }}</span>
+        <p>{{ word.meaning }}</p>
+        <p class="word-source">{{ word.source?.quote }}</p>
+        <p
+          v-if="speech.current.value === word.id && speech.error.value"
+          class="notice error"
+          role="alert"
+        >
+          {{ speech.error.value }}
+        </p>
+      </div>
+    </section>
     <h3>表达积累</h3>
     <div v-for="(item, index) in article.payload.expressions" :key="index" class="expression">
       <strong>{{ item.english }}</strong>
@@ -218,6 +262,32 @@ const paragraphs = computed(() => {
 
   h3 {
     margin-top: 30px;
+  }
+
+  .reader-vocabulary {
+    .word {
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    strong,
+    .phonetic {
+      font-size: 20px;
+    }
+
+    .phonetic {
+      margin-left: 12px;
+    }
+
+    p {
+      font-size: 16px;
+      line-height: 1.8;
+      margin-top: 8px;
+    }
+
+    .word-source {
+      color: var(--muted);
+    }
   }
 
   .expression {

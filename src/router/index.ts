@@ -8,7 +8,10 @@ const router = createRouter({
     return saved || (to.path === from.path ? undefined : { top: 0 })
   },
   routes: [
-    ...(['categories', 'topics', 'topic-order', 'global-order'] as const).map((surface) => ({
+    { path: '/listening/topics', redirect: '/listening/categories' },
+    { path: '/listening/global-order', redirect: '/listening' },
+    { path: '/listening/topic-order', redirect: '/listening/categories' },
+    ...(['categories', 'category-order'] as const).map((surface) => ({
       path: `/listening/${surface}`,
       component: () => import('@/pages/listening/listening-catalog-page.vue'),
       meta: { title: '听读管理', listeningSurface: surface }

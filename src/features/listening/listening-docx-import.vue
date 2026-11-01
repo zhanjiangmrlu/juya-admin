@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElButton } from 'element-plus'
 import { ref } from 'vue'
 
 import AppFilePicker from '@/components/app-file-picker/app-file-picker.vue'
@@ -7,12 +8,14 @@ import { listeningBase } from '@/services/listening-service'
 
 import type { ArticlePayload } from './listening-types'
 
+import { vocabularyErrors } from './listening-vocabulary-model'
+
 const props = defineProps<{ payload: ArticlePayload; disabled?: boolean; compact?: boolean }>(),
-  emit = defineEmits<{ apply: [payload: ArticlePayload]; topic: [topicId: string] }>()
+  emit = defineEmits<{ apply: [payload: ArticlePayload]; category: [categoryId: string] }>()
 const parsed = ref<{
     payload: ArticlePayload
     hints: Record<string, string>
-    topic_id?: string | null
+    category_id?: string | null
   } | null>(null),
   busy = ref(false),
   error = ref(''),
@@ -65,7 +68,7 @@ const apply = () => {
     audio_id: props.payload.audio_id,
     image_id: props.payload.image_id
   })
-  if (parsed.value.topic_id) emit('topic', parsed.value.topic_id)
+  if (parsed.value.category_id) emit('category', parsed.value.category_id)
   open.value = false
 }
 </script>
@@ -87,11 +90,11 @@ const apply = () => {
       /><small>{{ progress || '解析后先展示当前输入与文档内容，确认后才替换表单' }}</small></label
     >
     <p v-if="error" class="notice error" role="alert">
-      {{ error }}<button v-if="pending" :disabled="busy" @click="read">以原操作重试读取</button>
+      {{ error }}<ElButton v-if="pending" :disabled="busy" @click="read">以原操作重试读取</ElButton>
     </p>
     <ElDialog v-model="open" title="核对DOCX带入变化" width="1000px" :close-on-click-modal="false">
       <p class="notice">
-        确认后替换表单双标题、正文、译文、表达和词义；保留当前音频与原图。唯一匹配的所属主题同步带入；未匹配时请在表单选择，尚不保存或发布文章
+        确认后替换表单双标题、正文、译文、表达、词汇和词义；保留当前音频与原图。唯一匹配的所属分类同步带入；未匹配时请在表单选择，尚不保存或发布文章
       </p>
       <p v-if="parsed?.hints" class="muted small">
         文档归属提示：{{
@@ -116,14 +119,23 @@ const apply = () => {
           </h4>
           <p class="body-text">{{ parsed.payload.body_en }}</p>
           <p class="body-text">{{ parsed.payload.translation_zh }}</p>
-          <p>表达 {{ parsed.payload.expressions.length }} 组</p>
+          <p>
+            表达 {{ parsed.payload.expressions.length }} 组 · 重点词汇
+            {{ parsed.payload.vocabulary?.length || 0 }} 项
+          </p>
+          <p
+            v-if="vocabularyErrors(parsed.payload.body_en, parsed.payload.vocabulary || []).length"
+            class="notice warning"
+          >
+            部分词汇来源待核对，带入后请选择当前正文原句与实际词形
+          </p>
         </div>
       </div>
       <template #footer
-        ><button @click="open = false">取消带入</button
-        ><button class="primary" :disabled="!parsed || busy" @click="apply">
+        ><ElButton @click="open = false">取消带入</ElButton
+        ><ElButton class="primary" :disabled="!parsed || busy" @click="apply">
           确认带入以上资料
-        </button></template
+        </ElButton></template
       >
     </ElDialog>
   </section>

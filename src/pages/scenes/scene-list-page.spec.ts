@@ -575,3 +575,47 @@ it('ignores a delayed publication history response from a previous activation', 
     scroll.mockRestore()
   }
 })
+
+it('offers an independent per-card free action and a read-only total', async () => {
+  request.mockImplementation(async (path: string) =>
+    !path.startsWith('/api/admin/v1/cards?')
+      ? []
+      : {
+          items: [
+            {
+              id: 'a',
+              display_name: 'Card',
+              status: 'published',
+              is_free: false,
+              free_revision: 1,
+              content: { name: 'Card' },
+              issues: [],
+              updated_at: ''
+            }
+          ],
+          total: 1,
+          page: 1,
+          limit: 10,
+          total_pages: 1,
+          learning_policy: { enabled: true, actual_free_count: 12 }
+        }
+  )
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/cards', component: SceneListPage }]
+  })
+  await router.push('/cards')
+  const page = mount(
+    {
+      template:
+        '<RouterView v-slot="{Component}"><KeepAlive><component :is="Component"/></KeepAlive></RouterView>'
+    },
+    { global: { plugins: [router], stubs: { ElDialog: true } } }
+  )
+  await flushPromises()
+  expect(page.text()).not.toContain('免费开放设置')
+  expect(page.text()).toContain('当前免费场景 12 张')
+  expect(page.get('.free-access-control').text()).toContain('启用免费')
+  expect(page.get('tbody').text()).toContain('需学习授权')
+  page.unmount()
+})

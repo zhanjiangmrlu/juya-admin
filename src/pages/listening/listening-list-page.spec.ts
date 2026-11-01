@@ -13,7 +13,10 @@ import ListeningListPage from './listening-list-page.vue'
 
 const article = (id: string) => ({
   id,
-  topic_id: 't',
+  category_id: 'c',
+  category_name: '日常生活',
+  is_free: id === '1',
+  free_revision: 1,
   status: 'published',
   revision: 3,
   version_id: 'v',
@@ -72,9 +75,9 @@ const open = async () => {
   await flushPromises()
   return { page, router }
 }
-it('shows category/topic ownership, real free membership and audio status for each row', async () => {
+it('shows direct category ownership, real free membership and audio status for each row', async () => {
   const { page } = await open()
-  expect(page.get('tbody').text()).toContain('日常生活 / 晨间习惯')
+  expect(page.get('tbody').text()).toContain('日常生活')
   expect(page.get('tbody').text()).toContain('免费开放')
   expect(page.get('tbody').text()).toContain('需学习授权')
   expect(page.get('tbody').text()).toContain('音频待补充')
@@ -180,4 +183,22 @@ it('keeps the list return destination when entering editing from full page previ
   expect(router.currentRoute.value.query.back).toBe('/listening')
   page.unmount()
   scroll.mockRestore()
+})
+
+it('exposes only article/category tabs and per-row free actions instead of numeric or global settings', async () => {
+  const { page } = await open()
+  expect(page.text()).not.toContain('主题管理')
+  expect(page.text()).not.toContain('全局免费排序')
+  expect(page.text()).not.toContain('免费开放设置')
+  expect(page.findAll('.free-access-control')).toHaveLength(2)
+  page.unmount()
+})
+
+it('labels empty category and status filters in Chinese', async () => {
+  const { page } = await open()
+  const filters = page.get('.filters')
+  expect(filters.text()).toContain('全部分类')
+  expect(filters.text()).toContain('全部状态')
+  expect(filters.text()).not.toContain('Select')
+  page.unmount()
 })

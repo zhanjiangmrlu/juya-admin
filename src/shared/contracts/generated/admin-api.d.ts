@@ -13,7 +13,10 @@ export interface paths {
     }
     /** Read Policy */
     get: operations['read_policy_api_admin_v1_learning_access_free_policy_get']
-    /** Save Policy */
+    /**
+     * Save Policy
+     * @description Reject obsolete configuration writes while retaining role authentication.
+     */
     put: operations['save_policy_api_admin_v1_learning_access_free_policy_put']
     post?: never
     delete?: never
@@ -48,7 +51,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Preview Policy */
+    /**
+     * Preview Policy
+     * @description Reject obsolete configuration writes while retaining role authentication.
+     */
     post: operations['preview_policy_api_admin_v1_learning_access_free_policy_preview_post']
     delete?: never
     options?: never
@@ -102,6 +108,54 @@ export interface paths {
     put?: never
     /** Preview Grant */
     post: operations['preview_grant_api_admin_v1_users__user_id__learning_authorization_preview_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/v1/cards/{identifier}/free-access': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Read
+     * @description Read authoritative free state after a pending or unknown response.
+     */
+    get: operations['read_api_admin_v1_cards__identifier__free_access_get']
+    /**
+     * Save
+     * @description Change exactly one flag and persist its receipt and audit in the same transaction.
+     */
+    put: operations['save_api_admin_v1_cards__identifier__free_access_put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/v1/listening/articles/{identifier}/free-access': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Read
+     * @description Read authoritative free state after a pending or unknown response.
+     */
+    get: operations['read_api_admin_v1_listening_articles__identifier__free_access_get']
+    /**
+     * Save
+     * @description Change exactly one flag and persist its receipt and audit in the same transaction.
+     */
+    put: operations['save_api_admin_v1_listening_articles__identifier__free_access_put']
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -834,7 +888,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Audio */
+    /**
+     * Audio
+     * @description Resolve session-bound speech grants and recheck current content before delivery.
+     */
     get: operations['audio_api_admin_v1_pronunciation__credential__get']
     put?: never
     post?: never
@@ -1014,57 +1071,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/admin/v1/listening/topics/order': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    /** Save Order */
-    put: operations['save_order_api_admin_v1_listening_topics_order_put']
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/admin/v1/listening/topics/batch-delete': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Batch Delete */
-    post: operations['batch_delete_api_admin_v1_listening_topics_batch_delete_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/admin/v1/listening/topics/{identifier}/delete': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Single Delete */
-    post: operations['single_delete_api_admin_v1_listening_topics__identifier__delete_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/api/admin/v1/listening/categories': {
     parameters: {
       query?: never
@@ -1072,7 +1078,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Categories */
+    /**
+     * Categories
+     * @description List only live categories in configured order.
+     */
     get: operations['categories_api_admin_v1_listening_categories_get']
     put?: never
     /** Add Category */
@@ -1110,7 +1119,10 @@ export interface paths {
     /** Topics */
     get: operations['topics_api_admin_v1_listening_topics_get']
     put?: never
-    /** Add Topic */
+    /**
+     * Add Topic
+     * @description Reject obsolete configuration writes while retaining role authentication.
+     */
     post: operations['add_topic_api_admin_v1_listening_topics_post']
     delete?: never
     options?: never
@@ -1126,7 +1138,10 @@ export interface paths {
       cookie?: never
     }
     get?: never
-    /** Edit Topic */
+    /**
+     * Edit Topic
+     * @description Reject obsolete configuration writes while retaining role authentication.
+     */
     put: operations['edit_topic_api_admin_v1_listening_topics__topic_id__put']
     post?: never
     delete?: never
@@ -1142,7 +1157,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Articles */
+    /**
+     * Articles
+     * @description Page articles using direct category ownership.
+     */
     get: operations['articles_api_admin_v1_listening_articles_get']
     put?: never
     /** Add Article */
@@ -1297,7 +1315,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Order */
+    /**
+     * Order
+     * @description Read the complete category order and its shared revision.
+     */
     get: operations['order_api_admin_v1_listening_order_get']
     /** Save Order */
     put: operations['save_order_api_admin_v1_listening_order_put']
@@ -1317,7 +1338,10 @@ export interface paths {
     }
     /** Free Policy */
     get: operations['free_policy_api_admin_v1_listening_free_policy_get']
-    /** Free Save */
+    /**
+     * Free Save
+     * @description Reject obsolete configuration writes while retaining role authentication.
+     */
     put: operations['free_save_api_admin_v1_listening_free_policy_put']
     post?: never
     delete?: never
@@ -1335,7 +1359,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Free Preview */
+    /**
+     * Free Preview
+     * @description Reject obsolete configuration writes while retaining role authentication.
+     */
     post: operations['free_preview_api_admin_v1_listening_free_policy_preview_post']
     delete?: never
     options?: never
@@ -1503,6 +1530,54 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/v1/listening/articles/{article_id}/words/{word_id}/pronunciation': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Read
+     * @description Read persistent speech state without starting a cloud task.
+     */
+    get: operations['read_api_admin_v1_listening_articles__article_id__words__word_id__pronunciation_get']
+    put?: never
+    /**
+     * Generate
+     * @description Generate one server-resolved vocabulary word with persistent idempotency.
+     */
+    post: operations['generate_api_admin_v1_listening_articles__article_id__words__word_id__pronunciation_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/v1/listening/imports/{batch_id}/candidates/{candidate_id}/words/{word_id}/pronunciation': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Read Candidate
+     * @description Preview owned staging words without recording any learner facts.
+     */
+    get: operations['read_candidate_api_admin_v1_listening_imports__batch_id__candidates__candidate_id__words__word_id__pronunciation_get']
+    put?: never
+    /**
+     * Generate Candidate
+     * @description Start controlled staging word synthesis against the current batch revision.
+     */
+    post: operations['generate_candidate_api_admin_v1_listening_imports__batch_id__candidates__candidate_id__words__word_id__pronunciation_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/v1/listening/template': {
     parameters: {
       query?: never
@@ -1614,7 +1689,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Read */
+    /**
+     * Read
+     * @description Recheck this owner's skipped candidates when their duplicate source changes.
+     */
     get: operations['read_api_admin_v1_listening_imports__batch_id__get']
     put?: never
     post?: never
@@ -1904,7 +1982,19 @@ export interface components {
       /** Id */
       id: string
       /** Topic Id */
-      topic_id: string
+      topic_id?: string | null
+      /** Category Id */
+      category_id: string
+      /**
+       * Category Name
+       * @default
+       */
+      category_name: string
+      /**
+       * Category Order
+       * @default 0
+       */
+      category_order: number
       /** Status */
       status: string
       /** Revision */
@@ -1930,6 +2020,24 @@ export interface components {
       has_unpublished_changes: boolean
       /** Batch Id */
       batch_id?: string | null
+      /**
+       * Is Free
+       * @default false
+       */
+      is_free: boolean
+      /**
+       * Free Revision
+       * @default 1
+       */
+      free_revision: number
+      /** Draft Category Id */
+      draft_category_id?: string | null
+      /** Draft Category Order */
+      draft_category_order?: number | null
+      /** Published Category Id */
+      published_category_id?: string | null
+      /** Published Category Order */
+      published_category_order?: number | null
       /** Draft Topic Id */
       draft_topic_id?: string | null
       /** Draft Topic Order */
@@ -1941,8 +2049,8 @@ export interface components {
     }
     /** ArticleInput */
     ArticleInput: {
-      /** Topic Id */
-      topic_id: string
+      /** Category Id */
+      category_id: string
       payload: components['schemas']['ListeningPayload']
     }
     /** ArticlePreview */
@@ -1964,8 +2072,8 @@ export interface components {
     }
     /** ArticleUpdate */
     ArticleUpdate: {
-      /** Topic Id */
-      topic_id: string
+      /** Category Id */
+      category_id: string
       payload: components['schemas']['ListeningPayload']
       /** Revision */
       revision: number
@@ -2086,8 +2194,18 @@ export interface components {
       /** State */
       state: string
       payload: components['schemas']['ListeningPayload']
-      /** Topic Id */
-      topic_id: string | null
+      /** Category Id */
+      category_id: string | null
+      /**
+       * Category Name
+       * @default
+       */
+      category_name: string
+      /**
+       * Category Order
+       * @default 0
+       */
+      category_order: number
       /** Errors */
       errors: string[]
       /** Article Id */
@@ -2118,8 +2236,8 @@ export interface components {
     CandidateInput: {
       /** Revision */
       revision: number
-      /** Topic Id */
-      topic_id: string | null
+      /** Category Id */
+      category_id: string | null
       payload: components['schemas']['ListeningPayload']
       /** Target Article Id */
       target_article_id?: string | null
@@ -2143,6 +2261,11 @@ export interface components {
     }
     /** CardView */
     CardView: {
+      /**
+       * Free Revision
+       * @default 1
+       */
+      free_revision: number
       /**
        * Is Free
        * @default false
@@ -2286,8 +2409,8 @@ export interface components {
     }
     /** ContentSnapshot */
     ContentSnapshot: {
-      /** Topic Id */
-      topic_id: string | null
+      /** Category Id */
+      category_id: string | null
       payload: components['schemas']['ListeningPayload']
     }
     /** CreateActionBatch */
@@ -2434,8 +2557,8 @@ export interface components {
       hints: {
         [key: string]: string
       }
-      /** Topic Id */
-      topic_id?: string | null
+      /** Category Id */
+      category_id?: string | null
     }
     /** ErrorBody */
     ErrorBody: {
@@ -2593,6 +2716,22 @@ export interface components {
       code: string
       /** Message */
       message: string
+    }
+    /** FreeAccess */
+    FreeAccess: {
+      /** Is Free */
+      is_free: boolean
+      /** Revision */
+      revision: number
+      /** Effective */
+      effective: boolean
+    }
+    /** FreeAccessUpdate */
+    FreeAccessUpdate: {
+      /** Is Free */
+      is_free: boolean
+      /** Revision */
+      revision: number
     }
     /** FreeCount */
     FreeCount: {
@@ -2916,7 +3055,19 @@ export interface components {
        */
       content_type: 'listening'
       /** Topic Id */
-      topic_id: string
+      topic_id?: string | null
+      /** Category Id */
+      category_id: string
+      /**
+       * Category Name
+       * @default
+       */
+      category_name: string
+      /**
+       * Category Order
+       * @default 0
+       */
+      category_order: number
       /** Title Zh */
       title_zh: string
       /** Title En */
@@ -2992,6 +3143,8 @@ export interface components {
       translation_zh: string
       /** Expressions */
       expressions?: components['schemas']['Expression'][]
+      /** Vocabulary */
+      vocabulary?: components['schemas']['VocabularyWord'][]
       /** Word Meanings */
       word_meanings?: components['schemas']['WordMeaning'][]
       /** Audio Id */
@@ -3070,9 +3223,11 @@ export interface components {
        * Scope
        * @enum {string}
        */
-      scope: 'global' | 'topic'
+      scope: 'category' | 'global' | 'topic'
       /** Topic Id */
       topic_id?: string | null
+      /** Category Id */
+      category_id?: string | null
       /** Article Ids */
       article_ids: string[]
       /** Revision */
@@ -3502,7 +3657,19 @@ export interface components {
        */
       content_type: 'listening'
       /** Topic Id */
-      topic_id: string
+      topic_id?: string | null
+      /** Category Id */
+      category_id: string
+      /**
+       * Category Name
+       * @default
+       */
+      category_name: string
+      /**
+       * Category Order
+       * @default 0
+       */
+      category_order: number
       /** Title Zh */
       title_zh: string
       /** Title En */
@@ -3672,6 +3839,46 @@ export interface components {
        * @default false
        */
       pronunciation_issue: boolean
+    }
+    /** VocabularySource */
+    VocabularySource: {
+      /** Start */
+      start: number
+      /** End */
+      end: number
+      /** Quote */
+      quote: string
+      /** Word Start */
+      word_start: number
+      /** Word End */
+      word_end: number
+      /** Word */
+      word: string
+      /**
+       * Confirmed
+       * @default false
+       */
+      confirmed: boolean
+    }
+    /** VocabularyWord */
+    VocabularyWord: {
+      /**
+       * Source Hint
+       * @default
+       */
+      source_hint: string
+      /** Id */
+      id: string
+      /** English */
+      english: string
+      /** Meaning */
+      meaning: string
+      /**
+       * Phonetic
+       * @default
+       */
+      phonetic: string
+      source?: components['schemas']['VocabularySource'] | null
     }
     /** WordMeaning */
     WordMeaning: {
@@ -4539,6 +4746,462 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['GrantPreview']
+        }
+      }
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Gone */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unprocessable Content */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Service Unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  read_api_admin_v1_cards__identifier__free_access_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        identifier: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FreeAccess']
+        }
+      }
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Gone */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unprocessable Content */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Service Unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  save_api_admin_v1_cards__identifier__free_access_put: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        identifier: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FreeAccessUpdate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FreeAccess']
+        }
+      }
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Gone */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unprocessable Content */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Service Unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  read_api_admin_v1_listening_articles__identifier__free_access_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        identifier: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FreeAccess']
+        }
+      }
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Gone */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unprocessable Content */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Service Unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  save_api_admin_v1_listening_articles__identifier__free_access_put: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        identifier: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FreeAccessUpdate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FreeAccess']
         }
       }
       /** @description Bad Request */
@@ -11682,350 +12345,6 @@ export interface operations {
       }
     }
   }
-  save_order_api_admin_v1_listening_topics_order_put: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CatalogOrderInput']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CatalogOrderInput']
-        }
-      }
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Unauthorized */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Forbidden */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Gone */
-      410: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Unprocessable Content */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Too Many Requests */
-      429: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Service Unavailable */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-    }
-  }
-  batch_delete_api_admin_v1_listening_topics_batch_delete_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['BatchDelete']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CatalogBatchDeleteResult']
-        }
-      }
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Unauthorized */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Forbidden */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Gone */
-      410: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Unprocessable Content */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Too Many Requests */
-      429: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Service Unavailable */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-    }
-  }
-  single_delete_api_admin_v1_listening_topics__identifier__delete_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        identifier: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['juya_api__listening_contracts__Revision']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CatalogDeleteResult']
-        }
-      }
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Unauthorized */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Forbidden */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Gone */
-      410: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Unprocessable Content */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Too Many Requests */
-      429: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-      /** @description Service Unavailable */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorResponse']
-        }
-      }
-    }
-  }
   categories_api_admin_v1_listening_categories_get: {
     parameters: {
       query?: never
@@ -13981,7 +14300,8 @@ export interface operations {
   order_api_admin_v1_listening_order_get: {
     parameters: {
       query: {
-        scope: 'global' | 'topic'
+        scope: 'category' | 'global' | 'topic'
+        category_id?: string | null
         topic_id?: string | null
       }
       header?: never
@@ -15595,6 +15915,473 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['MixedDay']
+        }
+      }
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Gone */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unprocessable Content */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Service Unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  read_api_admin_v1_listening_articles__article_id__words__word_id__pronunciation_get: {
+    parameters: {
+      query?: {
+        version_id?: string | null
+        revision?: number | null
+      }
+      header?: never
+      path: {
+        article_id: string
+        word_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SpeechState']
+        }
+      }
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Gone */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unprocessable Content */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Service Unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  generate_api_admin_v1_listening_articles__article_id__words__word_id__pronunciation_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        article_id: string
+        word_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SpeechReference']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SpeechState']
+        }
+      }
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Gone */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unprocessable Content */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Service Unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  read_candidate_api_admin_v1_listening_imports__batch_id__candidates__candidate_id__words__word_id__pronunciation_get: {
+    parameters: {
+      query: {
+        revision: number
+      }
+      header?: never
+      path: {
+        batch_id: string
+        candidate_id: string
+        word_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SpeechState']
+        }
+      }
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Gone */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Unprocessable Content */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Service Unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  generate_candidate_api_admin_v1_listening_imports__batch_id__candidates__candidate_id__words__word_id__pronunciation_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        batch_id: string
+        candidate_id: string
+        word_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SpeechReference']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SpeechState']
         }
       }
       /** @description Bad Request */

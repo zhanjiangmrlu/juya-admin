@@ -6,7 +6,7 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
 import { useResource } from '@/composables/use-resource'
-import FreePolicyDialog from '@/features/learning-access/free-policy-dialog.vue'
+import FreeAccessControl from '@/features/learning-access/free-access-control.vue'
 import SceneBatchPublication from '@/features/scenes/scene-batch-publication.vue'
 import SceneCardActions from '@/features/scenes/scene-card-actions.vue'
 import SceneCatalogOrder from '@/features/scenes/scene-catalog-order.vue'
@@ -31,12 +31,13 @@ const route = useRoute(),
   search = ref(String(route.query.search || ''))
 const status = computed(() => String(route.query.status || 'all')),
   page = computed(() => Number(route.query.page || 1))
-/** 免费配置保存后只刷新当前列表，不改变筛选和位置 */
-const savedFreePolicy = () => {
-  freeSettings.value = false
-  void refresh()
+/** 免费保存后刷新真实状态并恢复当前滚动位置 */
+const freeChanged = async () => {
+  const top = window.scrollY
+  await refresh()
+  await nextTick()
+  window.scrollTo(0, top)
 }
-const freeSettings = ref(false)
 const focusedCard = ref('')
 const thumbnailErrors = ref<Record<string, boolean>>({}),
   thumbnailRetries = ref<Record<string, number>>({}),
@@ -515,11 +516,9 @@ onBeforeUnmount(() => {
         <span
           ><strong>免费开放</strong
           ><small v-if="data?.learning_policy">{{
-            data.learning_policy.enabled
-              ? `当前免费场景 ${data.learning_policy.actual_free_count} 张，其余场景需学习授权`
-              : '尚未启用，请先设置数量并核对免费名单'
+            `当前免费场景 ${data.learning_policy.actual_free_count} 张，其余场景需学习授权`
           }}</small></span
-        ><button type="button" @click="freeSettings = true">免费开放设置</button>
+        ><small>在每条内容的操作区启用或关闭</small>
       </div>
       <p v-if="route.query.batch_id" class="notice between">
         <span>本次导入 · 只显示本批已保存的卡片</span
@@ -598,7 +597,7 @@ onBeforeUnmount(() => {
         empty-text="可以新建卡片，保存资料后预览并发布"
         @retry="refresh"
       />
-      <div v-if="data && data.total && !busy && !error" class="table-wrap">
+      <div v-if="data && data.total" class="table-wrap">
         <table>
           <thead>
             <tr>
@@ -672,7 +671,10 @@ onBeforeUnmount(() => {
                 <span class="badge" :class="card.status">{{
                   statusLabels[card.status] || card.status
                 }}</span
-                ><span v-if="card.is_free" class="badge">免费开放</span>
+                ><span v-if="card.is_free" class="badge">{{
+                  card.status === 'published' ? '免费开放' : '免费已开启 · 发布后生效'
+                }}</span
+                ><span v-else class="muted small">需学习授权</span>
                 <p
                   v-if="card.status === 'published' && card.has_unpublished_changes"
                   class="badge draft"
@@ -690,7 +692,12 @@ onBeforeUnmount(() => {
                 >
               </td>
               <td>
-                <RouterLink :to="{ path: `/cards/${card.id}`, query: { back: route.fullPath } }"
+                <FreeAccessControl
+                  :path="`/api/admin/v1/cards/${card.id}/free-access`"
+                  :is-free="card.is_free"
+                  :revision="card.free_revision"
+                  @changed="freeChanged"
+                /><RouterLink :to="{ path: `/cards/${card.id}`, query: { back: route.fullPath } }"
                   >编辑</RouterLink
                 ><button
                   v-if="card.status === 'published'"
@@ -802,7 +809,6 @@ onBeforeUnmount(() => {
       ></ElDialog
     >
   </div>
-  <FreePolicyDialog v-if="freeSettings" @close="freeSettings = false" @saved="savedFreePolicy" />
 </template>
 <style scoped lang="scss">
 .free-policy-bar {

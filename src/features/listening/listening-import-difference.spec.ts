@@ -14,7 +14,7 @@ it('renders complete tags, all expression groups and word references using reada
   const page = mount(ListeningImportDifference, {
     props: {
       before: {
-        topic_id: 't',
+        category_id: 't',
         payload: {
           ...emptyPayload(),
           tags: ['旧标签', '日常'],
@@ -25,7 +25,7 @@ it('renders complete tags, all expression groups and word references using reada
         }
       },
       after: {
-        topic_id: 't',
+        category_id: 't',
         payload: {
           ...emptyPayload(),
           tags: ['新标签', '生活'],
@@ -35,7 +35,7 @@ it('renders complete tags, all expression groups and word references using reada
           ]
         }
       },
-      topics: []
+      categories: []
     }
   })
   expect(page.text()).toContain('旧标签、日常')

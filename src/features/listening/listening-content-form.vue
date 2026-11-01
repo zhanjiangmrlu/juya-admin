@@ -1,34 +1,20 @@
 <script setup lang="ts">
+import { ElButton, ElForm, ElInput, ElOption, ElSelect } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 
-import type { ArticlePayload, Category, Topic } from './listening-types'
+import type { ArticlePayload, Category } from './listening-types'
+import type { ListeningPronunciationContext } from '@/composables/use-listening-pronunciation'
 
-import { topicLabel } from './listening-model'
+import ListeningVocabularyEditor from './listening-vocabulary-editor.vue'
 
 const payload = defineModel<ArticlePayload>({ required: true })
-const topic = defineModel<string>('topic', { required: true })
-const props = defineProps<{
-  topics: Topic[]
-  categories?: Category[]
+const category = defineModel<string>('category', { required: true })
+defineProps<{
+  categories: Category[]
   disabled?: boolean
   compact?: boolean
+  pronunciation?: ListeningPronunciationContext
 }>()
-const category = ref('')
-const visibleTopics = computed(() =>
-  props.topics.filter((item) => !category.value || item.category_id === category.value)
-)
-watch(
-  () => [topic.value, props.topics] as const,
-  () => {
-    if (topic.value)
-      category.value = props.topics.find((item) => item.id === topic.value)?.category_id || ''
-  },
-  { immediate: true }
-)
-/** 切换分类后清除不属于该分类的主题，避免错误归属 */
-const changeCategory = () => {
-  if (!visibleTopics.value.some((item) => item.id === topic.value)) topic.value = ''
-}
 const meanings = ref(''),
   meaningError = ref('')
 const tags = computed({
@@ -80,35 +66,27 @@ const addExpression = () => {
 defineExpose({ meaningError })
 </script>
 <template>
-  <fieldset class="content-form" :class="{ compact }" :disabled="disabled">
+  <ElForm class="content-form" :class="{ compact }" :disabled="disabled">
     <section class="panel content-card">
       <h2>文章资料</h2>
       <div class="form-columns">
         <label class="field"
-          >中文标题 *<input v-model="payload.title_zh" placeholder="请输入中文标题"
+          >中文标题 *<ElInput v-model="payload.title_zh" placeholder="请输入中文标题"
         /></label>
         <label class="field"
-          >英文标题 *<input v-model="payload.title_en" placeholder="Enter an English title"
+          >英文标题 *<ElInput v-model="payload.title_en" placeholder="Enter an English title"
         /></label>
-        <label v-if="categories?.length" class="field"
-          >分类 *<select v-model="category" aria-label="所属分类" @change="changeCategory">
-            <option value="">请选择已有分类</option>
-            <option v-for="item in categories" :key="item.id" :value="item.id">
-              {{ item.name }}
-            </option>
-          </select></label
-        >
         <label class="field"
-          >所属主题 *<select v-model="topic" aria-label="所属主题">
-            <option value="">请选择主题</option>
-            <option v-for="item in visibleTopics" :key="item.id" :value="item.id">
-              {{ topicLabel(item) }}
-            </option>
-          </select></label
-        >
+          >所属分类 *<ElSelect v-model="category" aria-label="所属分类" placeholder="请选择已有分类"
+            ><ElOption
+              v-for="item in categories"
+              :key="item.id"
+              :value="item.id"
+              :label="item.name" /></ElSelect
+        ></label>
       </div>
       <label class="field"
-        >内容标签（选填）<input v-model="tags" placeholder="多个标签以逗号分隔"
+        >内容标签（选填）<ElInput v-model="tags" placeholder="多个标签以逗号分隔"
       /></label>
     </section>
     <div class="body-columns">
@@ -119,7 +97,12 @@ defineExpose({ meaningError })
         </div>
         <label class="field"
           ><span class="sr-only">英文正文</span
-          ><textarea v-model="payload.body_en" rows="8" placeholder="粘贴或输入英文正文" />
+          ><ElInput
+            v-model="payload.body_en"
+            type="textarea"
+            :rows="8"
+            placeholder="粘贴或输入英文正文"
+          />
         </label>
       </section>
       <section class="panel content-card">
@@ -129,9 +112,10 @@ defineExpose({ meaningError })
         </div>
         <label class="field"
           ><span class="sr-only">全文中文译文</span
-          ><textarea
+          ><ElInput
             v-model="payload.translation_zh"
-            rows="6"
+            type="textarea"
+            :rows="6"
             placeholder="粘贴或输入已准备好的中文译文"
           />
         </label>
@@ -140,7 +124,7 @@ defineExpose({ meaningError })
     <section class="panel content-card">
       <div class="between">
         <h2>5组语块与替换例句 *</h2>
-        <button type="button" @click="addExpression">添加表达</button>
+        <ElButton native-type="button" @click="addExpression">添加表达</ElButton>
       </div>
       <p class="muted small">每组包括英文语块、中文释义和一条替换例句</p>
       <div class="table-wrap">
@@ -157,24 +141,37 @@ defineExpose({ meaningError })
           <tbody>
             <tr v-for="(item, index) in payload.expressions" :key="index">
               <td>{{ index + 1 }}</td>
-              <td><input v-model="item.english" :aria-label="`表达${index + 1}英文`" /></td>
-              <td><input v-model="item.chinese" :aria-label="`表达${index + 1}中文`" /></td>
+              <td><ElInput v-model="item.english" :aria-label="`表达${index + 1}英文`" /></td>
+              <td><ElInput v-model="item.chinese" :aria-label="`表达${index + 1}中文`" /></td>
               <td>
-                <textarea v-model="item.example" rows="2" :aria-label="`表达${index + 1}例句`" />
+                <ElInput
+                  v-model="item.example"
+                  type="textarea"
+                  :rows="2"
+                  :aria-label="`表达${index + 1}例句`"
+                />
               </td>
               <td>
-                <button
-                  type="button"
+                <ElButton
+                  native-type="button"
                   class="text danger"
                   @click="payload.expressions.splice(index, 1)"
                 >
                   移除
-                </button>
+                </ElButton>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+    </section>
+    <section class="panel content-card">
+      <ListeningVocabularyEditor
+        v-model="payload.vocabulary"
+        :body="payload.body_en"
+        :disabled="disabled"
+        :pronunciation="pronunciation"
+      />
     </section>
     <slot name="media" />
     <section class="panel content-card">
@@ -184,12 +181,17 @@ defineExpose({ meaningError })
         <summary>已确认本篇词义（{{ payload.word_meanings.length }}项）</summary>
         <p class="muted small">start/end为英文原文Unicode码点偏移</p>
         <label class="field"
-          >词义资料JSON<textarea v-model="meanings" rows="7" @change="applyMeanings" />
+          >词义资料JSON<ElInput
+            v-model="meanings"
+            type="textarea"
+            :rows="7"
+            @change="applyMeanings"
+          />
         </label>
         <p v-if="meaningError" class="notice error" role="alert">{{ meaningError }}</p>
       </details>
     </section>
-  </fieldset>
+  </ElForm>
 </template>
 <style scoped lang="scss">
 .content-form {

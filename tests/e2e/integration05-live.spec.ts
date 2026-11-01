@@ -2,6 +2,9 @@ import { readFileSync } from 'node:fs'
 
 import { expect, test } from '@playwright/test'
 
+// 整合05及更早契约仅保留历史追溯；当前分类/词汇/逐项免费由integration06-live覆盖
+test.skip(true, 'Historical contract superseded by integration06-live.spec.ts')
+
 const fixturePath = process.env.JUYA_INTEGRATION05_FIXTURE || ''
 const statePath = process.env.JUYA_INTEGRATION05_STATE || ''
 test.skip(!fixturePath || !statePath, 'Requires an explicitly isolated integration05 local fixture')

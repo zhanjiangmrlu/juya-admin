@@ -629,3 +629,61 @@ button.danger:not(.text) {
   border-color: var(--red);
   color: #fff;
 }
+
+// Element Plus控件沿用后台既有色板与46px表单节奏
+.el-input {
+  [class~='el-input__wrapper'] {
+    min-height: 46px;
+    border-radius: 8px;
+  }
+
+  input {
+    min-height: 0;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+.el-select {
+  [class~='el-select__wrapper'] {
+    min-height: 46px;
+    border-radius: 8px;
+  }
+
+  input {
+    min-height: 0;
+    border: 0;
+    padding: 0;
+    background: transparent;
+  }
+}
+
+label.field {
+  > .el-input,
+  > .el-select,
+  > .el-textarea {
+    margin-top: 7px;
+  }
+}
+
+.el-button {
+  &.is-link {
+    min-height: 32px;
+    padding: 0;
+    background: transparent;
+  }
+
+  &[class~='el-button--primary']:not(.is-link) {
+    background: var(--action);
+    border-color: var(--action);
+    color: var(--ink);
+  }
+}
+
+.el-tabs {
+  --el-tabs-header-height: 44px;
+
+  margin-bottom: 24px;
+}

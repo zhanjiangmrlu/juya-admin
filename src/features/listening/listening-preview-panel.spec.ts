@@ -32,3 +32,42 @@ it('uses the supplied published media boundary for playback and image preview', 
   expect(page.findAll('button').map((button) => button.text())).not.toContain('确认发布')
   page.unmount()
 })
+
+it('hides an empty optional vocabulary section and displays separate senses after translation', async () => {
+  const payload = emptyPayload()
+  const page = mount(ListeningPreviewPanel, {
+    props: { article: { id: 'a', payload, timeline: { state: 'missing' } } },
+    global: { stubs: { ElDialog: true } }
+  })
+  expect(page.find('[data-testid="reader-vocabulary"]').exists()).toBe(false)
+  await page.setProps({
+    article: {
+      id: 'a',
+      payload: {
+        ...payload,
+        vocabulary: [
+          {
+            id: 'w1',
+            english: 'room',
+            meaning: '房间',
+            phonetic: '',
+            source_hint: '',
+            source: null
+          },
+          {
+            id: 'w2',
+            english: 'room',
+            meaning: '余地',
+            phonetic: '',
+            source_hint: '',
+            source: null
+          }
+        ]
+      },
+      timeline: { state: 'missing' }
+    }
+  })
+  expect(page.get('[data-testid="reader-vocabulary"]').text()).toContain('房间')
+  expect(page.get('[data-testid="reader-vocabulary"]').text()).toContain('余地')
+  page.unmount()
+})

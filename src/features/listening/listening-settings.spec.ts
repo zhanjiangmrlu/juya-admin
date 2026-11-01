@@ -59,7 +59,7 @@ it('moves an article by dragging and cancels locally without another read', asyn
     return Response.json({ items: [] })
   })
   const page = mount(ListeningSettings, {
-    props: { initial: 'order', surface: 'global-order' },
+    props: { initial: 'order', surface: 'category-order', categoryId: 'c' },
     global: { stubs: { RouterLink: true, ElDialog: true } }
   })
   await flushPromises()
@@ -75,90 +75,6 @@ it('moves an article by dragging and cancels locally without another read', asyn
     .trigger('click')
   expect(page.findAll('.order-title strong').map((item) => item.text())).toEqual(['a', 'b'])
   expect(reads).toHaveLength(initialReads)
-  page.unmount()
-})
-
-it.each([true, false])(
-  'saves M directly and retains input on a failed save (success=%s)',
-  async (success) => {
-    const writes: Request[] = []
-    network.mockImplementation(async (request: Request) => {
-      if (request.method === 'PUT') {
-        writes.push(request)
-        return success
-          ? Response.json({ configured: true, free_count: 3, revision: 8, article_ids: [] })
-          : Response.json(
-              { error: { code: 'listening_free_changed', message: '免费设置已变化' } },
-              { status: 409 }
-            )
-      }
-      if (request.url.endsWith('/free-policy'))
-        return Response.json({ configured: true, free_count: 1, revision: 7, article_ids: [] })
-      return Response.json({ items: [], total: 0 })
-    })
-    const page = mount(ListeningSettings, {
-      props: { initial: 'free' },
-      global: { stubs: { RouterLink: true, ElDialog: true } }
-    })
-    await flushPromises()
-    await page.get('.free-input input').setValue('3')
-    const saveButton = page.findAll('button').find((item) => item.text() === '保存设置')
-    expect(saveButton).toBeDefined()
-    await saveButton!.trigger('click')
-    await flushPromises()
-    expect(writes).toHaveLength(1)
-    expect(await writes[0]!.json()).toEqual({ free_count: 3, revision: 7 })
-    expect(
-      network.mock.calls
-        .map((call) => (call[0] as Request).url)
-        .some((url) => url.endsWith('/free-policy/preview'))
-    ).toBe(false)
-    if (success) expect(page.emitted('changed')).toHaveLength(1)
-    else {
-      expect(page.get<HTMLInputElement>('.free-input input').element.value).toBe('3')
-      expect(page.text()).toContain('免费设置已变化')
-      expect(page.emitted('changed')).toBeUndefined()
-    }
-    page.unmount()
-  }
-)
-
-it('resolves an unknown M save by receipt using its original request key', async () => {
-  let firstKey = ''
-  const writes: Request[] = []
-  network.mockImplementation(async (request: Request) => {
-    if (request.url.includes('/operations/')) {
-      expect(request.url.endsWith(firstKey)).toBe(true)
-      return Response.json({
-        result: { configured: true, free_count: 3, revision: 8, article_ids: [] }
-      })
-    }
-    if (request.method === 'PUT') {
-      writes.push(request)
-      firstKey = request.headers.get('Idempotency-Key')!
-      throw new Error('response lost')
-    }
-    if (request.url.endsWith('/free-policy'))
-      return Response.json({ configured: true, free_count: 1, revision: 7, article_ids: [] })
-    return Response.json({ items: [], total: 0 })
-  })
-  const page = mount(ListeningSettings, {
-    props: { initial: 'free' },
-    global: { stubs: { RouterLink: true, ElDialog: true } }
-  })
-  await flushPromises()
-  await page.get('.free-input input').setValue('3')
-  const saveButton = page.findAll('button').find((item) => item.text() === '保存设置')
-  expect(saveButton).toBeDefined()
-  await saveButton!.trigger('click')
-  await flushPromises()
-  await page
-    .findAll('button')
-    .find((item) => item.text() === '重试保存')!
-    .trigger('click')
-  await flushPromises()
-  expect(writes).toHaveLength(1)
-  expect(page.emitted('changed')).toHaveLength(1)
   page.unmount()
 })
 
@@ -320,5 +236,22 @@ it('submits a versioned catalog order without exposing numeric sequence inputs',
     ]
   })
   expect(writes[0]!.url).toContain('/categories/order')
+  page.unmount()
+})
+
+it('reads category article order without a free-policy or topic request', async () => {
+  network.mockImplementation(async (request: Request) =>
+    request.url.includes('/order?')
+      ? Response.json({ article_ids: [], revision: 1 })
+      : Response.json({ items: [], total: 0 })
+  )
+  const page = mount(ListeningSettings, {
+    props: { initial: 'order', surface: 'category-order', categoryId: 'c' },
+    global: { stubs: { RouterLink: true, ElDialog: true } }
+  })
+  await flushPromises()
+  const urls = network.mock.calls.map((call) => (call[0] as Request).url)
+  expect(urls.some((url) => url.includes('/order?scope=category&category_id=c'))).toBe(true)
+  expect(urls.some((url) => /free-policy|topics/.test(url))).toBe(false)
   page.unmount()
 })

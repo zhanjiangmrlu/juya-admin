@@ -1,27 +1,24 @@
 <script setup lang="ts">
+import { ElButton, ElCheckbox } from 'element-plus'
 import { computed, ref, shallowRef, watch } from 'vue'
 
 import { listeningRecoverableOperation } from '@/services/listening-service'
 
-import type { Article, Category, Topic } from './listening-types'
+import type { Article, Category } from './listening-types'
 import type { components } from '@/shared/contracts/generated/admin-api'
 
 const props = defineProps<{
-  kind: 'categories' | 'topics'
   categories: Category[]
-  topics: Topic[]
   articles: Article[]
 }>()
 const emit = defineEmits<{
-  edit: [kind: 'category' | 'topic', item: Category | Topic]
+  edit: [kind: 'category', item: Category]
   changed: []
 }>()
 type CatalogResult = components['schemas']['CatalogBatchDeleteResult']
 const selected = ref<string[]>([]),
   page = ref(1),
-  search = ref(''),
-  category = ref(''),
-  targets = ref<(Category | Topic)[]>([]),
+  targets = ref<Category[]>([]),
   dialog = ref(false),
   busy = ref(false),
   error = ref(''),
@@ -33,16 +30,8 @@ const pendingOrder = shallowRef<ReturnType<typeof listeningRecoverableOperation<
   null
 )
 const ordering = ref('')
-const label = computed(() => (props.kind === 'categories' ? '分类' : '主题'))
-const filtered = computed(() =>
-  props.kind === 'categories'
-    ? props.categories
-    : props.topics.filter(
-        (row) =>
-          (!category.value || row.category_id === category.value) &&
-          `${row.name_en} ${row.name}`.toLowerCase().includes(search.value.trim().toLowerCase())
-      )
-)
+const label = '分类'
+const filtered = computed(() => props.categories)
 const pages = computed(() => Math.max(1, Math.ceil(filtered.value.length / 10)))
 const rows = computed(() => filtered.value.slice((page.value - 1) * 10, page.value * 10))
 const all = computed(() =>
@@ -50,19 +39,25 @@ const all = computed(() =>
 )
 const partial = computed(() => selected.value.length > 0 && !all.value)
 
-/** 计算分类或主题当前有效发布数量
- * @param item 当前分类或主题
- * @returns 当前有效发布篇数
+/** 计算分类直接归属或发布版引用的文章数
+ * @param item 当前有效分类
+ * @param published 是否仅统计当前发布归属
+ * @returns 当前分类文章数量
  */
-const publishedCount = (item: Category | Topic) => {
-  const ids =
-    'category_id' in item
-      ? [item.id]
-      : props.topics.filter((topic) => topic.category_id === item.id).map((topic) => topic.id)
-  return props.articles.filter(
-    (article) =>
-      article.status === 'published' && ids.includes(article.published_topic_id || article.topic_id)
+const articleCount = (item: Category, published = false) =>
+  props.articles.filter((article) =>
+    published
+      ? article.status === 'published' &&
+        (article.published_category_id || article.category_id) === item.id
+      : article.category_id === item.id || article.published_category_id === item.id
   ).length
+/** 切换一条当前页分类勾选
+ * @param id 当前分类编号
+ */
+const select = (id: string) => {
+  selected.value = selected.value.includes(id)
+    ? selected.value.filter((item) => item !== id)
+    : [...selected.value, id]
 }
 /** 当前页全选，不包括其他分页 */
 const toggleAll = () => {
@@ -71,7 +66,7 @@ const toggleAll = () => {
 /** 固定本次删除名单，行内删除只接收该行
  * @param items 管理员明确选中的目录项
  */
-const confirm = (items: (Category | Topic)[]) => {
+const confirm = (items: Category[]) => {
   if (pending.value || busy.value) return
   targets.value = items.map((item) => ({ ...item }))
   dialog.value = Boolean(items.length)
@@ -84,7 +79,7 @@ const remove = async () => {
   try {
     pending.value ||= listeningRecoverableOperation<CatalogResult>(
       'POST',
-      `/${props.kind}/batch-delete`,
+      `/categories/batch-delete`,
       { items: targets.value.map(({ id, revision }) => ({ id, revision })) }
     )
     results.value = await pending.value.run()
@@ -120,15 +115,15 @@ const saveOrder = async () => {
  * @param item 当前需要移动的分类或主题
  * @param direction 向前为-1，向后为1
  */
-const move = async (item: Category | Topic, direction: number) => {
+const move = async (item: Category, direction: number) => {
   if (busy.value || pending.value || pendingOrder.value) return
   const neighbor = filtered.value[filtered.value.indexOf(item) + direction]
   if (!neighbor) return
-  const full = [...(props.kind === 'categories' ? props.categories : props.topics)]
+  const full = [...props.categories]
   const from = full.indexOf(item),
     to = full.indexOf(neighbor)
   ;[full[from], full[to]] = [full[to]!, full[from]!]
-  pendingOrder.value = listeningRecoverableOperation('PUT', `/${props.kind}/order`, {
+  pendingOrder.value = listeningRecoverableOperation('PUT', `/categories/order`, {
     items: full.map(({ id, revision }) => ({ id, revision }))
   })
   await saveOrder()
@@ -145,11 +140,6 @@ const referenceText = (references: Record<string, number> = {}) =>
         `${({ topics: '主题', articles: '文章', deleted_articles: '已删除文章历史', candidates: '导入候选（含历史）' } as Record<string, string>)[kind] || '关联记录'}${count}项`
     )
     .join('，')
-watch([search, category, () => props.kind], () => {
-  page.value = 1
-  selected.value = []
-  results.value = null
-})
 watch(page, () => {
   selected.value = []
 })
@@ -159,24 +149,18 @@ watch(pages, (total) => {
 </script>
 <template>
   <div class="catalog-list">
-    <div v-if="kind === 'topics'" class="row topic-filters">
-      <label class="field"
-        ><input v-model="search" aria-label="搜索主题" placeholder="搜索中英文主题名称"
-      /></label>
-      <select v-model="category" aria-label="筛选分类">
-        <option value="">全部分类</option>
-        <option v-for="item in categories" :key="item.id" :value="item.id">{{ item.name }}</option>
-      </select>
-    </div>
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>
-    <button v-if="pendingOrder" :disabled="busy" @click="saveOrder">重试保存顺序</button>
+    <ElButton v-if="pendingOrder" :disabled="busy" @click="saveOrder">重试保存顺序</ElButton>
     <div v-if="selected.length" class="between selection-bar">
       <span>已选当前页{{ selected.length }}个{{ label }}</span>
       <div class="row">
-        <button :disabled="busy" @click="selected = []">取消选择</button
-        ><button :disabled="busy" @click="confirm(rows.filter((row) => selected.includes(row.id)))">
+        <ElButton :disabled="busy" @click="selected = []">取消选择</ElButton
+        ><ElButton
+          :disabled="busy"
+          @click="confirm(rows.filter((row) => selected.includes(row.id)))"
+        >
           批量删除
-        </button>
+        </ElButton>
       </div>
     </div>
     <div class="table-wrap">
@@ -184,9 +168,8 @@ watch(pages, (total) => {
         <thead>
           <tr>
             <th class="selection-column">
-              <input
-                type="checkbox"
-                :checked="all"
+              <ElCheckbox
+                :model-value="all"
                 :indeterminate="partial"
                 :disabled="busy || !rows.length"
                 :aria-label="'全选当前页' + label"
@@ -194,8 +177,7 @@ watch(pages, (total) => {
               />
             </th>
             <th>{{ label }}名称</th>
-            <th v-if="kind === 'categories'">主题数量</th>
-            <th v-else>所属分类</th>
+            <th>文章总数</th>
             <th>已发布文章</th>
             <th>操作</th>
           </tr>
@@ -203,78 +185,63 @@ watch(pages, (total) => {
         <tbody>
           <tr v-for="item in rows" :key="item.id">
             <td>
-              <input
-                v-model="selected"
-                type="checkbox"
-                :value="item.id"
+              <ElCheckbox
+                :model-value="selected.includes(item.id)"
                 :disabled="busy"
-                :aria-label="'选择' + label + '：' + (item.name_en || item.name)"
+                :aria-label="'选择分类：' + item.name"
+                @change="select(item.id)"
               />
             </td>
             <td>
-              <strong>{{ kind === 'topics' ? item.name_en || item.name : item.name }}</strong
-              ><small v-if="kind === 'topics' ? item.name_en && item.name : item.name_en">{{
-                kind === 'topics' ? item.name : item.name_en
-              }}</small>
+              <strong>{{ item.name }}</strong>
             </td>
-            <td v-if="kind === 'categories'">
-              {{ topics.filter((topic) => topic.category_id === item.id).length }}个主题
-            </td>
-            <td v-else>
-              {{
-                categories.find((row) => row.id === ('category_id' in item ? item.category_id : ''))
-                  ?.name
-              }}
-            </td>
-            <td>{{ publishedCount(item) }}篇</td>
+            <td>{{ articleCount(item) }}篇</td>
+            <td>{{ articleCount(item, true) }}篇</td>
             <td>
               <div class="row">
-                <button
+                <ElButton
                   class="text"
                   :disabled="busy || Boolean(pendingOrder)"
-                  @click="emit('edit', kind === 'categories' ? 'category' : 'topic', item)"
+                  @click="emit('edit', 'category', item)"
                 >
-                  编辑</button
-                ><button
+                  编辑</ElButton
+                ><ElButton
                   class="text"
                   :disabled="busy || Boolean(pendingOrder)"
                   @click="ordering = ordering === item.id ? '' : item.id"
                 >
-                  调整顺序</button
+                  调整顺序</ElButton
+                ><RouterLink :to="{ path: '/listening', query: { category_id: item.id } }"
+                  >管理文章</RouterLink
                 ><RouterLink
-                  v-if="kind === 'topics'"
-                  :to="{ path: '/listening', query: { topic_id: item.id } }"
-                  >管理篇目</RouterLink
-                ><RouterLink
-                  v-if="kind === 'topics'"
-                  :to="{ path: '/listening/topic-order', query: { topic_id: item.id } }"
-                  >篇目排序</RouterLink
-                ><button
+                  :to="{ path: '/listening/category-order', query: { category_id: item.id } }"
+                  >文章排序</RouterLink
+                ><ElButton
                   class="text danger"
                   :disabled="busy || Boolean(pendingOrder)"
                   @click="confirm([item])"
                 >
                   删除
-                </button>
+                </ElButton>
               </div>
               <div v-if="ordering === item.id" class="row">
-                <button
+                <ElButton
                   class="text"
-                  :aria-label="'上移' + (item.name_en || item.name)"
+                  :aria-label="'上移' + item.name"
                   :disabled="busy || filtered.indexOf(item) === 0 || Boolean(pendingOrder)"
                   @click="move(item, -1)"
                 >
-                  上移</button
-                ><button
+                  上移</ElButton
+                ><ElButton
                   class="text"
-                  :aria-label="'下移' + (item.name_en || item.name)"
+                  :aria-label="'下移' + item.name"
                   :disabled="
                     busy || filtered.indexOf(item) === filtered.length - 1 || Boolean(pendingOrder)
                   "
                   @click="move(item, 1)"
                 >
                   下移
-                </button>
+                </ElButton>
               </div>
             </td>
           </tr>
@@ -285,9 +252,9 @@ watch(pages, (total) => {
     <div class="between pagination">
       <span>共{{ filtered.length }}个{{ label }} · 每页10项</span>
       <div class="row">
-        <button :disabled="busy || page <= 1" @click="page--">上一页</button
+        <ElButton :disabled="busy || page <= 1" @click="page--">上一页</ElButton
         ><span>{{ page }} / {{ pages }}</span
-        ><button :disabled="busy || page >= pages" @click="page++">下一页</button>
+        ><ElButton :disabled="busy || page >= pages" @click="page++">下一页</ElButton>
       </div>
     </div>
     <div
@@ -314,16 +281,15 @@ watch(pages, (total) => {
       ><p>仅删除本次选择且无任何引用的{{ label }}，有引用的项目会保留并说明原因</p>
       <ul>
         <li v-for="item in targets" :key="item.id">
-          {{ item.name_en || item.name
-          }}<span v-if="item.name_en && item.name"> / {{ item.name }}</span>
+          {{ item.name }}<span v-if="item.name_en && item.name"> / {{ item.name }}</span>
         </li>
       </ul>
       <p v-if="error" class="notice error">{{ error }}</p>
       <template #footer
-        ><button :disabled="busy || Boolean(pending)" @click="dialog = false">取消</button
-        ><button class="danger" :disabled="busy" @click="remove">
+        ><ElButton :disabled="busy || Boolean(pending)" @click="dialog = false">取消</ElButton
+        ><ElButton class="danger" :disabled="busy" @click="remove">
           {{ pending ? '重试删除' : `确认删除${targets.length}个${label}` }}
-        </button></template
+        </ElButton></template
       ></ElDialog
     >
   </div>

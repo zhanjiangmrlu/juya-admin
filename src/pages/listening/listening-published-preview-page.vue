@@ -7,7 +7,7 @@ import { useResource } from '@/composables/use-resource'
 import ListeningPreviewPanel from '@/features/listening/listening-preview-panel.vue'
 import { listeningBase, listeningRequest } from '@/services/listening-service'
 
-import type { Article, Category, Topic } from '@/features/listening/listening-types'
+import type { Article, Category } from '@/features/listening/listening-types'
 
 const route = useRoute(),
   router = useRouter(),
@@ -15,15 +15,17 @@ const route = useRoute(),
 const { data, busy, error, refresh } = useResource(() =>
   listeningRequest<Article>(`/articles/${articleId}/published`)
 )
-const categories = useResource(() => listeningRequest<{ items: Category[] }>('/categories')),
-  topics = useResource(() => listeningRequest<{ items: Topic[] }>('/topics'))
+const categories = useResource(() => listeningRequest<{ items: Category[] }>('/categories'))
 const previewArticle = computed(() => {
   if (!data.value) return null
-  // 发布主题优先，草稿移入的新主题不影响此处名称
-  const topicId = data.value.published_topic_id || data.value.topic_id,
-    topic = topics.data.value?.items.find((item) => item.id === topicId),
-    category = categories.data.value?.items.find((item) => item.id === topic?.category_id)
-  return { ...data.value, category_name: category?.name, topic_name: topic?.name }
+  const categoryId = data.value.published_category_id || data.value.category_id
+  return {
+    ...data.value,
+    category_id: categoryId,
+    category_name:
+      categories.data.value?.items.find((item) => item.id === categoryId)?.name ||
+      data.value.category_name
+  }
 })
 const mediaBase = `${(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')}${listeningBase}/articles/${articleId}/published/media`
 /** 返回用户记录的来源位置，直接进入时回到用户列表 */
@@ -35,7 +37,6 @@ onMounted(() => {
   void refresh()
   // 目录名称独立读取，失败或延迟不阻塞发布正文
   void categories.refresh()
-  void topics.refresh()
 })
 </script>
 <template>
@@ -52,6 +53,14 @@ onMounted(() => {
       v-if="previewArticle && !busy && !error"
       :article="previewArticle"
       :media-base="mediaBase"
+      :pronunciation="
+        previewArticle.version_id
+          ? {
+              path: `/api/admin/v1/listening/articles/${previewArticle.id}`,
+              reference: { version_id: previewArticle.version_id }
+            }
+          : undefined
+      "
       source-label="当前发布版 · 只读预览"
       :readonly="true"
     />

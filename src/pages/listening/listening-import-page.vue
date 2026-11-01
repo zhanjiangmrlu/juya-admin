@@ -10,11 +10,11 @@ import ListeningImportTarget from '@/features/listening/listening-import-target.
 import {
   candidateSelection,
   importErrorLabels,
-  statusLabels,
-  topicLabel
+  statusLabels
 } from '@/features/listening/listening-model'
 import ListeningPreviewPanel from '@/features/listening/listening-preview-panel.vue'
 import ListeningTimeline from '@/features/listening/listening-timeline.vue'
+import { vocabularyErrors } from '@/features/listening/listening-vocabulary-model'
 import { api } from '@/services/http-client'
 import {
   listeningBase,
@@ -29,11 +29,11 @@ import type {
   Article,
   Candidate,
   CandidateEditor,
+  Category,
   ImportBatch,
   ImportPreview,
   ImportResult,
-  Page,
-  Topic
+  Page
 } from '@/features/listening/listening-types'
 
 const route = useRoute(),
@@ -41,7 +41,7 @@ const route = useRoute(),
 const mode = ref<'zip' | 'docx'>(route.query.mode === 'docx' ? 'docx' : 'zip'),
   batch = ref<ImportBatch | null>(null),
   recoverable = ref<ImportBatch[]>([]),
-  topics = ref<Topic[]>([]),
+  categories = ref<Category[]>([]),
   selected = ref<string[]>([]),
   step = ref(1),
   busy = ref(false),
@@ -67,6 +67,9 @@ const pendingUpload = shallowRef<{
   key: string
   revision: number
 } | null>(null)
+const pendingCandidate = shallowRef<ReturnType<
+  typeof listeningRecoverableOperation<ImportBatch>
+> | null>(null)
 const pendingSave = shallowRef<ReturnType<
   typeof listeningRecoverableOperation<ImportResult>
 > | null>(null)
@@ -190,11 +193,11 @@ const dropFiles = (event: DragEvent) => {
  * @param candidate 当前候选及素材对应
  */
 const editCandidate = async (candidate: Candidate) => {
-  if (pendingSave.value) return
+  if (pendingSave.value || pendingCandidate.value) return
   editing.value = {
     candidate,
     payload: JSON.parse(JSON.stringify(candidate.payload)),
-    topic: candidate.topic_id || '',
+    category: candidate.category_id || '',
     mode: candidate.target_article_id ? 'update' : 'create',
     target: null,
     targetId: candidate.target_article_id || null,
@@ -250,20 +253,22 @@ const saveCandidate = async () => {
   error.value = ''
   try {
     accept(
-      await listeningOperation<ImportBatch>(
+      await (pendingCandidate.value ||= listeningRecoverableOperation<ImportBatch>(
         'PUT',
         `/imports/${batch.value.id}/candidates/${editing.value.candidate.id}`,
         {
           revision: batch.value.revision,
-          topic_id: editing.value.topic || null,
+          category_id: editing.value.category || null,
           target_article_id: editing.value.mode === 'update' ? editing.value.targetId : null,
           target_revision: editing.value.mode === 'update' ? editing.value.targetRevision : null,
           payload: JSON.parse(JSON.stringify(editing.value.payload))
         }
-      )()
+      )).run()
     )
+    pendingCandidate.value = null
     editing.value = null
   } catch (reason) {
+    if (!pendingCandidate.value?.unknown) pendingCandidate.value = null
     error.value = reason instanceof Error ? reason.message : '暂存失败，修改仍保留'
   } finally {
     busy.value = false
@@ -383,7 +388,7 @@ onBeforeRouteLeave(
 onMounted(async () => {
   busy.value = true
   try {
-    topics.value = (await listeningRequest<{ items: Topic[] }>('/topics')).items
+    categories.value = (await listeningRequest<{ items: Category[] }>('/categories')).items
     const pending: ImportBatch[] = []
     let page = 1,
       total = 0
@@ -446,15 +451,22 @@ onMounted(async () => {
             :label="mode === 'zip' ? '选择ZIP文件' : '选择DOCX及配套资料'"
             :accept="mode === 'zip' ? '.zip' : '.docx,.mp3,.m4a,.wav,.aac,.png,.jpg,.jpeg,.webp'"
             multiple
-            :disabled="busy || Boolean(pendingSave)"
+            :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
             @change="chooseFiles"
           />
         </div>
         <p v-if="uploadText" role="status">{{ uploadText }}</p>
         <div v-if="pendingUpload" class="row">
-          <button :disabled="busy || Boolean(pendingSave)" @click="sendUpload">
+          <button
+            :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
+            @click="sendUpload"
+          >
             以原操作重试上传</button
-          ><button v-if="batch" :disabled="busy || Boolean(pendingSave)" @click="resume(batch.id)">
+          ><button
+            v-if="batch"
+            :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
+            @click="resume(batch.id)"
+          >
             查询实际批次
           </button>
         </div>
@@ -495,7 +507,7 @@ onMounted(async () => {
         <button
           v-if="candidates.length"
           class="primary"
-          :disabled="busy || Boolean(pendingSave)"
+          :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
           @click="step = 2"
         >
           继续核对 {{ candidates.length }} 项
@@ -515,10 +527,13 @@ onMounted(async () => {
         </div>
         <h3>DOCX填写内容</h3>
         <ul>
-          <li>中文标题、英文标题、英文正文</li>
-          <li>全文中文译文，保留自然段</li>
-          <li>5组语块、中文释义与替换例句</li>
-          <li>分类及主题可在核对时选择</li>
+          <li>中文标题使用唯一一级标题；正文分区前填写“英文标题：”和“分类：”</li>
+          <li>英文正文、全文中文译文、语块使用二级标题，正文保留自然段</li>
+          <li>语块表三列：英文／中文释义／替换例句，恰好5组</li>
+          <li>
+            “重点词汇”为选填二级标题，表格四列：词汇／本句释义／音标／对应英文原句；无词汇或旧含主题模板仍有效
+          </li>
+          <li>英文标题、分类元信息放在正文分区前；分类须按已有名称唯一匹配</li>
         </ul>
         <p class="muted small">完整音频支持MP3／M4A／WAV／AAC。原图选填，缺图不影响发布</p>
         <p class="muted small">同目录资料优先对应；有多个候选时请人工选择，不自动混配</p>
@@ -529,7 +544,12 @@ onMounted(async () => {
       <h2>服务端未完成批次</h2>
       <div v-for="item in recoverable" :key="item.id" class="between">
         <span>{{ item.id }} · {{ item.mode.toUpperCase() }} · {{ item.status }}</span
-        ><button :disabled="busy || Boolean(pendingSave)" @click="resume(item.id)">继续处理</button>
+        ><button
+          :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
+          @click="resume(item.id)"
+        >
+          继续处理
+        </button>
       </div>
     </section>
     <template v-if="step === 2 && batch"
@@ -542,7 +562,12 @@ onMounted(async () => {
             {{ selection.excluded }}
           </p>
         </div>
-        <button :disabled="busy || Boolean(pendingSave)" @click="step = 1">继续添加资料</button>
+        <button
+          :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
+          @click="step = 1"
+        >
+          继续添加资料
+        </button>
       </div>
       <p class="notice">重复资料自动跳过；无法读取项可以移除，不能保存。修改须先成功暂存</p>
       <p class="muted small">
@@ -552,13 +577,17 @@ onMounted(async () => {
       </p>
       <div class="row review-actions">
         <button
-          :disabled="busy || Boolean(pendingSave)"
+          :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
           @click="
             selected = candidates.filter((item) => item.state !== 'saved').map((item) => item.id)
           "
         >
           勾选当前未保存项</button
-        ><button :disabled="busy || Boolean(pendingSave)" @click="clearSelection">取消选择</button
+        ><button
+          :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
+          @click="clearSelection"
+        >
+          取消选择</button
         ><button
           class="danger"
           :disabled="busy || !selection.remove.length || Boolean(editing)"
@@ -595,7 +624,12 @@ onMounted(async () => {
                     v-model="selected"
                     type="checkbox"
                     :value="item.id"
-                    :disabled="busy || Boolean(pendingSave) || item.state === 'saved'"
+                    :disabled="
+                      busy ||
+                      Boolean(pendingSave) ||
+                      Boolean(pendingCandidate) ||
+                      item.state === 'saved'
+                    "
                     :aria-label="`选择${item.payload.title_zh || item.path}`"
                   />
                 </td>
@@ -603,9 +637,9 @@ onMounted(async () => {
                   <strong>{{ item.payload.title_zh || '标题待补充' }}</strong>
                   <p class="muted small">{{ item.payload.title_en || '英文标题待补充' }}</p>
                   <small class="muted">{{
-                    topics.find((topic) => topic.id === item.topic_id)
-                      ? topicLabel(topics.find((topic) => topic.id === item.topic_id)!)
-                      : '主题待确认'
+                    categories.find((category) => category.id === item.category_id)
+                      ? categories.find((category) => category.id === item.category_id)!.name
+                      : '分类待确认'
                   }}</small>
                 </td>
                 <td>
@@ -614,7 +648,7 @@ onMounted(async () => {
                   <small
                     >{{ item.payload.body_en ? '英文正文已读取' : '正文待补充' }} · 表达{{
                       item.payload.expressions.length
-                    }}组</small
+                    }}组 · 重点词汇 {{ item.payload.vocabulary?.length || 0 }}项</small
                   >
                 </td>
                 <td>
@@ -623,6 +657,14 @@ onMounted(async () => {
                   }}</span>
                 </td>
                 <td>
+                  <p
+                    v-if="
+                      vocabularyErrors(item.payload.body_en, item.payload.vocabulary || []).length
+                    "
+                    class="issue-text"
+                  >
+                    重点词汇来源待核对，请选择当前正文原句和实际词形
+                  </p>
                   <p v-if="item.parse_error" class="issue-text">
                     {{ item.parse_error.stage }} · {{ item.parse_error.field }}：{{
                       item.parse_error.message
@@ -669,14 +711,24 @@ onMounted(async () => {
                   ><template v-else-if="['complete', 'incomplete'].includes(item.state)"
                     ><button
                       class="text"
-                      :disabled="busy || Boolean(pendingSave) || Boolean(editing)"
+                      :disabled="
+                        busy ||
+                        Boolean(pendingSave) ||
+                        Boolean(pendingCandidate) ||
+                        Boolean(editing)
+                      "
                       @click="editCandidate(item)"
                     >
                       核对 / 补充资料</button
                     ><button
                       type="button"
                       class="text"
-                      :disabled="busy || Boolean(pendingSave) || Boolean(editing)"
+                      :disabled="
+                        busy ||
+                        Boolean(pendingSave) ||
+                        Boolean(pendingCandidate) ||
+                        Boolean(editing)
+                      "
                       @click="candidatePreview = item"
                     >
                       预览与试听（可选）
@@ -693,7 +745,7 @@ onMounted(async () => {
                       :target="editing.target"
                       :target-revision="editing.targetRevision"
                       :target-error="editing.targetError"
-                      :disabled="busy || Boolean(pendingSave)"
+                      :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
                       @select="selectTarget"
                     />
                     <label class="field"
@@ -740,18 +792,28 @@ onMounted(async () => {
                         </option>
                       </select></label
                     >
-                    <p v-if="!topics.length" class="notice">
-                      当前没有可选主题，请先到<RouterLink to="/listening/topics"
-                        >主题管理</RouterLink
-                      >创建主题，再返回本批选择所属主题
+                    <p v-if="!categories.length" class="notice">
+                      当前没有可选分类，请先到<RouterLink to="/listening/categories"
+                        >分类管理</RouterLink
+                      >创建分类，再返回本批选择所属分类
                     </p>
                     <ListeningContentForm
                       :ref="setCandidateForm"
                       v-model="editing.payload"
-                      v-model:topic="editing.topic"
-                      :topics="topics"
+                      v-model:category="editing.category"
+                      :categories="categories"
+                      :pronunciation="
+                        batch &&
+                        JSON.stringify(editing.payload) ===
+                          JSON.stringify(editing.candidate.payload)
+                          ? {
+                              path: `/api/admin/v1/listening/imports/${batch.id}/candidates/${editing.candidate.id}`,
+                              reference: { revision: batch.revision }
+                            }
+                          : undefined
+                      "
                       compact
-                      :disabled="busy || Boolean(pendingSave)"
+                      :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
                     />
                     <section
                       v-if="editing.mode === 'update' && editing.target"
@@ -760,22 +822,25 @@ onMounted(async () => {
                       <h3>更新前后差异核对</h3>
                       <ListeningImportDifference
                         :before="{
-                          topic_id: editing.target.topic_id,
+                          category_id: editing.target.category_id,
                           payload: editing.target.payload
                         }"
-                        :after="{ topic_id: editing.topic || null, payload: editing.payload }"
-                        :topics="topics"
+                        :after="{ category_id: editing.category || null, payload: editing.payload }"
+                        :categories="categories"
                       />
                     </section>
                     <div class="row">
-                      <button :disabled="busy || Boolean(pendingSave)" @click="editing = null">
+                      <button
+                        :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
+                        @click="editing = null"
+                      >
                         放弃本次修改</button
                       ><button
                         class="primary"
                         :disabled="busy || Boolean(pendingSave)"
                         @click="saveCandidate"
                       >
-                        保存到本批暂存
+                        {{ pendingCandidate ? '查询并恢复暂存' : '保存到本批暂存' }}
                       </button>
                     </div>
                   </div>
@@ -794,14 +859,24 @@ onMounted(async () => {
         >
         <div class="row">
           <button
-            :disabled="busy || !selection.save.length || Boolean(editing) || Boolean(pendingSave)"
+            :disabled="
+              busy ||
+              !selection.save.length ||
+              Boolean(editing) ||
+              Boolean(pendingSave) ||
+              Boolean(pendingCandidate)
+            "
             @click="next('draft')"
           >
             保存为草稿</button
           ><button
             class="primary"
             :disabled="
-              busy || !selection.publish.length || Boolean(editing) || Boolean(pendingSave)
+              busy ||
+              !selection.publish.length ||
+              Boolean(editing) ||
+              Boolean(pendingSave) ||
+              Boolean(pendingCandidate)
             "
             @click="next('publish')"
           >
@@ -858,11 +933,16 @@ onMounted(async () => {
         <RouterLink class="button-link" to="/listening">返回文章管理</RouterLink
         ><button
           v-if="result.items.some((item) => item.status === 'failed')"
-          :disabled="busy || Boolean(pendingSave)"
+          :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
           @click="retryFailed"
         >
           查询并仅核对原失败项</button
-        ><button :disabled="busy || Boolean(pendingSave)" @click="backToReview">返回核对</button>
+        ><button
+          :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
+          @click="backToReview"
+        >
+          返回核对
+        </button>
       </div>
     </section>
     <ElDialog
@@ -880,8 +960,16 @@ onMounted(async () => {
         </div>
       </div>
       <template #footer
-        ><button :disabled="busy || Boolean(pendingSave)" @click="removeOpen = false">取消</button
-        ><button class="danger" :disabled="busy || Boolean(pendingSave)" @click="removeCandidates">
+        ><button
+          :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
+          @click="removeOpen = false"
+        >
+          取消</button
+        ><button
+          class="danger"
+          :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
+          @click="removeCandidates"
+        >
           确认删除{{ selection.remove.length }}项
         </button></template
       ></ElDialog
@@ -901,6 +989,14 @@ onMounted(async () => {
           :revision="batch.revision"
           @changed="candidatePreview.timeline = $event" /><ListeningPreviewPanel
           :article="candidatePreview"
+          :pronunciation="
+            batch
+              ? {
+                  path: `/api/admin/v1/listening/imports/${batch.id}/candidates/${candidatePreview.id}`,
+                  reference: { revision: batch.revision }
+                }
+              : undefined
+          "
           :media-base="listeningImportMediaBase(batch.id)" /></template
     ></ElDialog>
   </div>

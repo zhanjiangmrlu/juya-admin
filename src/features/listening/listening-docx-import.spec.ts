@@ -13,8 +13,8 @@ import ListeningDocxImport from './listening-docx-import.vue'
 it('applies uniquely matched ownership only after confirmation and keeps current media', async () => {
   upload.mockResolvedValue({
     payload: { ...emptyPayload(), title_zh: '新标题' },
-    hints: { 主题: 'A topic' },
-    topic_id: 't'
+    hints: { 分类: '分类一' },
+    category_id: 't'
   })
   const page = mount(ListeningDocxImport, {
     props: {
@@ -34,7 +34,7 @@ it('applies uniquely matched ownership only after confirmation and keeps current
   await input.trigger('change')
   await flushPromises()
   expect(page.emitted('apply')).toBeUndefined()
-  expect(page.emitted('topic')).toBeUndefined()
+  expect(page.emitted('category')).toBeUndefined()
   await page
     .findAll('button')
     .find((item) => item.text() === '确认带入以上资料')!
@@ -44,6 +44,6 @@ it('applies uniquely matched ownership only after confirmation and keeps current
     audio_id: 'original-audio',
     image_id: 'original-image'
   })
-  expect(page.emitted('topic')).toEqual([['t']])
+  expect(page.emitted('category')).toEqual([['t']])
   page.unmount()
 })

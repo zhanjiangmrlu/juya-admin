@@ -29,7 +29,7 @@ it.each(['partial', 'unknown'])(
         path: `${i + 1}/content.docx`,
         state,
         payload: { ...payload, title_zh: `资料${i + 1}` },
-        topic_id: 't',
+        category_id: 't',
         resources: { audio: [], image: [] },
         errors: [],
         removed: false,
@@ -83,7 +83,7 @@ it.each(['partial', 'unknown'])(
           return Response.json(receipt)
         }
       }
-      if (path.endsWith('/topics')) return Response.json({ items: [{ id: 't', name: '主题' }] })
+      if (path.endsWith('/categories')) return Response.json({ items: [{ id: 't', name: '主题' }] })
       if (path.endsWith('/imports/b')) return Response.json(batch)
       return Response.json({ items: [], total: 0 })
     })
@@ -145,7 +145,7 @@ it('loads every server-filtered unfinished page including an older batch beyond 
   const pages: string[] = []
   network.mockImplementation(async (request: Request) => {
     const url = new URL(request.url)
-    if (url.pathname.endsWith('/topics')) return Response.json({ items: [] })
+    if (url.pathname.endsWith('/categories')) return Response.json({ items: [] })
     pages.push(url.search)
     const page = Number(url.searchParams.get('page'))
     return Response.json({
@@ -184,7 +184,7 @@ it('selects a stable existing target, stages without writing articles and review
   const target = {
     id: 'existing',
     revision: 4,
-    topic_id: 't',
+    category_id: 't',
     payload: oldPayload,
     status: 'published'
   }
@@ -202,7 +202,7 @@ it('selects a stable existing target, stages without writing articles and review
         path: 'content.docx',
         state: 'complete',
         payload,
-        topic_id: 't',
+        category_id: 't',
         resources: { audio: [], image: [] },
         errors: [],
         removed: false,
@@ -235,8 +235,8 @@ it('selects a stable existing target, stages without writing articles and review
               operation: 'update',
               target_article_id: 'existing',
               target_revision: 4,
-              before: { topic_id: 't', payload: oldPayload },
-              after: { topic_id: 't', payload }
+              before: { category_id: 't', payload: oldPayload },
+              after: { category_id: 't', payload }
             }
           ]
         })
@@ -251,7 +251,7 @@ it('selects a stable existing target, stages without writing articles and review
         })
       throw new Error(`Unexpected write ${path}`)
     }
-    if (path.endsWith('/topics')) return Response.json({ items: [{ id: 't', name: '主题' }] })
+    if (path.endsWith('/categories')) return Response.json({ items: [{ id: 't', name: '主题' }] })
     if (path.endsWith('/articles/existing')) return Response.json(target)
     if (path.endsWith('/articles'))
       return Response.json({ items: [target], total: 1, page: 1, limit: 10 })
@@ -359,4 +359,75 @@ it('retains an unknown upload queue for the original-key retry', async () => {
   expect(page.findAll('button').some((item) => item.text() === '以原操作重试上传')).toBe(true)
   page.unmount()
   upload.mockRestore()
+})
+
+it('queries an unknown candidate update before repeating its frozen change', async () => {
+  const candidate = {
+    id: 'c',
+    package_id: 'p',
+    path: 'content.docx',
+    state: 'incomplete',
+    payload: { ...emptyPayload(), title_zh: '词汇资料' },
+    category_id: 'category',
+    resources: { audio: [], image: [] },
+    errors: [],
+    removed: false,
+    article_id: null,
+    duplicate_of: null,
+    timeline: { state: 'missing' }
+  }
+  const batch = {
+    id: 'b',
+    mode: 'zip',
+    revision: 1,
+    status: 'review',
+    packages: [],
+    counts: { total: 1, incomplete: 1 },
+    candidates: [candidate]
+  }
+  const writes: Request[] = []
+  network.mockImplementation(async (request: Request) => {
+    const path = new URL(request.url).pathname
+    if (path.includes('/operations/')) return Response.json({ result: { ...batch, revision: 2 } })
+    if (request.method === 'PUT') {
+      writes.push(request)
+      throw new Error('lost')
+    }
+    if (path.endsWith('/categories'))
+      return Response.json({
+        items: [{ id: 'category', name: '分类', name_en: '', sort_order: 0, revision: 1 }]
+      })
+    if (path.endsWith('/imports/b')) return Response.json(batch)
+    return Response.json({ items: [], total: 0 })
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/listening-imports', component: ListeningImportPage }]
+  })
+  await router.push('/listening-imports?batch_id=b')
+  const page = mount(
+    { template: '<RouterView/>' },
+    { global: { plugins: [router], stubs: { ElDialog: true } } }
+  )
+  await flushPromises()
+  await page
+    .findAll('button')
+    .find((button) => button.text() === '核对 / 补充资料')!
+    .trigger('click')
+  await flushPromises()
+  await page
+    .findAll('button')
+    .find((button) => button.text() === '保存到本批暂存')!
+    .trigger('click')
+  await flushPromises()
+  await page
+    .findAll('button')
+    .find((button) => /保存到本批暂存|查询并恢复暂存/.test(button.text()))!
+    .trigger('click')
+  await flushPromises()
+  expect(writes).toHaveLength(1)
+  expect(network.mock.calls.some((call) => (call[0] as Request).url.includes('/operations/'))).toBe(
+    true
+  )
+  page.unmount()
 })

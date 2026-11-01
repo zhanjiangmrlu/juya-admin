@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { ArticlePayload, Topic } from './listening-types'
+import type { ArticlePayload, Category } from './listening-types'
 
 const props = defineProps<{
-  before: { topic_id: string | null; payload: Partial<ArticlePayload> } | null
-  after: { topic_id: string | null; payload: Partial<ArticlePayload> }
-  topics: Topic[]
+  before: { category_id: string | null; payload: Partial<ArticlePayload> } | null
+  after: { category_id: string | null; payload: Partial<ArticlePayload> }
+  categories: Category[]
 }>()
 const labels = {
   title_zh: '中文标题',
@@ -15,6 +15,7 @@ const labels = {
   body_en: '英文正文',
   translation_zh: '全文中文译文',
   expressions: '表达与例句',
+  vocabulary: '重点词汇及来源',
   word_meanings: '本篇词义位置',
   audio_id: '完整音频素材',
   image_id: '选填配图素材'
@@ -40,6 +41,13 @@ const display = (value: unknown, field: keyof typeof labels) => {
           `${index + 1}. ${item.english}\n中文释义：${item.chinese}\n替换例句：${item.example}`
       )
       .join('\n\n')
+  if (field === 'vocabulary')
+    return (value as ArticlePayload['vocabulary'])
+      .map(
+        (item, index) =>
+          `${index + 1}. ${item.english} ${item.phonetic}\n本句释义：${item.meaning}\n对应原句：${item.source?.quote || '待核对'}\n实际词形：${item.source?.word || '待核对'}`
+      )
+      .join('\n\n')
   if (field === 'word_meanings')
     return (value as ArticlePayload['word_meanings'])
       .map(
@@ -49,12 +57,12 @@ const display = (value: unknown, field: keyof typeof labels) => {
       .join('\n\n')
   return String(value)
 }
-/** 将真实主题编号对应到已读取名称，未匹配时保留编号供核对
- * @param id 草稿或候选的主题编号
- * @returns 当前可识别的主题
+/** 将真实分类编号对应到已读取名称，未匹配时保留编号供核对
+ * @param id 草稿或候选的分类编号
+ * @returns 当前可识别的分类
  */
 const topic = (id: string | null | undefined) =>
-  props.topics.find((item) => item.id === id)?.name || id || '未设置'
+  props.categories.find((item) => item.id === id)?.name || id || '未设置'
 const differences = computed(() => {
   const rows: { field: string; label: string; before: string; after: string }[] = Object.entries(
     labels
@@ -73,12 +81,12 @@ const differences = computed(() => {
         ]
       : []
   })
-  if (!props.before || props.before.topic_id !== props.after.topic_id)
+  if (!props.before || props.before.category_id !== props.after.category_id)
     rows.unshift({
-      field: 'topic_id',
-      label: '所属主题',
-      before: props.before ? topic(props.before.topic_id) : '尚未创建',
-      after: topic(props.after.topic_id)
+      field: 'category_id',
+      label: '所属分类',
+      before: props.before ? topic(props.before.category_id) : '尚未创建',
+      after: topic(props.after.category_id)
     })
   return rows
 })

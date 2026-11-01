@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 
 import type { Article } from './listening-types'
+import type { ListeningPronunciationContext } from '@/composables/use-listening-pronunciation'
 
 import { statusLabels } from './listening-model'
 import ListeningReader from './listening-reader.vue'
@@ -9,16 +10,16 @@ import ListeningReader from './listening-reader.vue'
 const props = withDefaults(
   defineProps<{
     article: Pick<Article, 'id' | 'payload' | 'timeline'> &
-      Omit<Partial<Article>, 'topic_id'> & {
-        topic_id?: string | null
+      Omit<Partial<Article>, 'category_id'> & {
+        category_id?: string | null
         category_name?: string
-        topic_name?: string
       }
     mediaBase?: string
+    pronunciation?: ListeningPronunciationContext
     sourceLabel?: string
     readonly?: boolean
   }>(),
-  { mediaBase: undefined, sourceLabel: '当前编辑稿', readonly: true }
+  { pronunciation: undefined, mediaBase: undefined, sourceLabel: '当前编辑稿', readonly: true }
 )
 const completeExpressions = computed(
   () =>
@@ -31,7 +32,22 @@ const completeExpressions = computed(
   <div class="listening-preview-panel">
     <p class="notice preview-notice">管理员只读预览，不写入用户学习、收藏或打卡记录</p>
     <section class="panel reading-panel">
-      <ListeningReader :article="article" :media-base="mediaBase" />
+      <ListeningReader
+        :article="article"
+        :media-base="mediaBase"
+        :pronunciation="
+          pronunciation ||
+          (article.revision
+            ? {
+                path: `/api/admin/v1/listening/articles/${article.id}`,
+                reference:
+                  sourceLabel.startsWith('当前发布版') && article.version_id
+                    ? { version_id: article.version_id }
+                    : { revision: article.revision }
+              }
+            : undefined)
+        "
+      />
     </section>
     <aside class="panel preview-metadata">
       <h2>预览资料</h2>
@@ -40,9 +56,9 @@ const completeExpressions = computed(
           <dt>预览来源</dt>
           <dd>{{ sourceLabel }}</dd>
         </div>
-        <div v-if="article.category_name || article.topic_name">
-          <dt>分类 / 主题</dt>
-          <dd>{{ [article.category_name, article.topic_name].filter(Boolean).join(' / ') }}</dd>
+        <div v-if="article.category_name">
+          <dt>所属分类</dt>
+          <dd>{{ article.category_name }}</dd>
         </div>
         <div v-if="article.status">
           <dt>文章状态</dt>

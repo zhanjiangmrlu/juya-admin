@@ -24,7 +24,7 @@ export type Candidate = Omit<components['schemas']['Candidate'], 'payload'> & {
 export interface CandidateEditor {
   candidate: Candidate
   payload: ArticlePayload
-  topic: string
+  category: string
   mode: 'create' | 'update'
   target: Article | null
   targetId: string | null

@@ -11,7 +11,7 @@ vi.mock('@/services/http-client', async (original) => {
 import ListeningEditPage from './listening-edit-page.vue'
 const saved = {
   id: 'created',
-  topic_id: 'topic',
+  category_id: 'topic',
   revision: 1,
   status: 'draft',
   payload: emptyPayload()
@@ -24,8 +24,10 @@ it('recovers the original creation receipt before saving changed input as an upd
   const writes: Request[] = []
   network.mockImplementation(async (request: Request) => {
     if (request?.method === 'GET' && request.url.endsWith('/categories'))
-      return Response.json({ items: [] })
-    if (request?.method === 'GET' && request.url.endsWith('/topics'))
+      return Response.json({
+        items: [{ id: 'topic', name: '分类', revision: 1, sort_order: 0, name_en: '' }]
+      })
+    if (request?.method === 'GET' && request.url.endsWith('/categories'))
       return Response.json({ items: [{ id: 'topic', name: '主题' }] })
     if (request.url.includes('/operations/'))
       return Response.json({ status: 'succeeded', result: saved })
@@ -49,9 +51,9 @@ it('recovers the original creation receipt before saving changed input as an upd
         plugins: [router],
         stubs: {
           ListeningContentForm: {
-            props: ['modelValue', 'topic'],
-            emits: ['update:modelValue', 'update:topic'],
-            template: `<div><button class="fill" @click="$emit('update:topic','topic');$emit('update:modelValue',{...modelValue,title_zh:'original'})">fill</button><button class="change" @click="$emit('update:modelValue',{...modelValue,title_zh:'changed'})">change</button></div>`
+            props: ['modelValue', 'category'],
+            emits: ['update:modelValue', 'update:category'],
+            template: `<div><button class="fill" @click="$emit('update:category','topic');$emit('update:modelValue',{...modelValue,title_zh:'original'})">fill</button><button class="change" @click="$emit('update:modelValue',{...modelValue,title_zh:'changed'})">change</button></div>`
           },
           ListeningDocxImport: true,
           ListeningTimeline: true,
@@ -105,7 +107,7 @@ it.each([true, false])(
     network.mockImplementation(async (request: Request) => {
       if (request.method !== 'GET') writes.push(request.clone())
       if (request.url.endsWith('/categories')) return Response.json({ items: [] })
-      if (request.url.endsWith('/topics'))
+      if (request.url.endsWith('/categories'))
         return Response.json({ items: [{ id: 'topic', name: '主题', name_en: 'A topic' }] })
       if (request.url.endsWith('/articles/existing')) return Response.json(draft)
       if (request.url.endsWith('/publish'))
@@ -162,7 +164,7 @@ it('keeps preview optional and retains editable content when returning from it',
   network.mockImplementation(async (request: Request) => {
     if (request.method !== 'GET') writes.push(request)
     if (request.url.endsWith('/categories')) return Response.json({ items: [] })
-    if (request.url.endsWith('/topics'))
+    if (request.url.endsWith('/categories'))
       return Response.json({ items: [{ id: 'topic', name: '主题' }] })
     if (request.url.endsWith('/articles/existing')) return Response.json(draft)
     if (request.url.endsWith('/preview'))
@@ -220,7 +222,7 @@ it('unlocks publication after an unknown request is definitely rejected and perm
   const writes: Request[] = []
   network.mockImplementation(async (request: Request) => {
     if (request.url.endsWith('/categories')) return Response.json({ items: [] })
-    if (request.url.endsWith('/topics'))
+    if (request.url.endsWith('/categories'))
       return Response.json({ items: [{ id: 'topic', name: '主题', name_en: 'Topic' }] })
     if (request.url.includes('/operations/'))
       return Response.json({ error: { code: 'operation_unknown' } }, { status: 404 })

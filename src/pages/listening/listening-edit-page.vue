@@ -20,14 +20,13 @@ import {
   listeningRequest
 } from '@/services/listening-service'
 
-import type { Article, ArticlePayload, Category, Topic } from '@/features/listening/listening-types'
+import type { Article, ArticlePayload, Category } from '@/features/listening/listening-types'
 
 const route = useRoute(),
   router = useRouter()
 const article = ref<Article | null>(null),
   payload = ref(emptyPayload()),
-  topic = ref(''),
-  topics = ref<Topic[]>([]),
+  category = ref(''),
   categories = ref<Category[]>([]),
   busy = ref(false),
   error = ref(''),
@@ -37,13 +36,15 @@ const article = ref<Article | null>(null),
   previewOpen = ref(false),
   upload = ref(''),
   form = ref<InstanceType<typeof ListeningContentForm> | null>(null)
-const snapshot = computed(() => JSON.stringify({ topic_id: topic.value, payload: payload.value }))
+const snapshot = computed(() =>
+  JSON.stringify({ category_id: category.value, payload: payload.value })
+)
 const dirty = computed(() => snapshot.value !== savedSnapshot.value)
 const pendingPublication = shallowRef<ReturnType<
   typeof listeningRecoverableOperation<Article>
 > | null>(null)
 const canPublish = computed(
-  () => !publishErrors(payload.value, topic.value).length && article.value?.status !== 'deleted'
+  () => !publishErrors(payload.value, category.value).length && article.value?.status !== 'deleted'
 )
 let previewReturnScroll = 0
 let pendingSave: {
@@ -56,7 +57,7 @@ let pendingSave: {
 const accept = (value: Article) => {
   article.value = value
   payload.value = structuredClone(value.payload)
-  topic.value = value.topic_id
+  category.value = value.category_id
   savedSnapshot.value = snapshot.value
   pendingSave = null
 }
@@ -65,12 +66,7 @@ const load = async () => {
   busy.value = true
   error.value = ''
   try {
-    const [topicResult, categoryResult] = await Promise.all([
-      listeningRequest<{ items: Topic[] }>('/topics'),
-      listeningRequest<{ items: Category[] }>('/categories')
-    ])
-    topics.value = topicResult.items
-    categories.value = categoryResult.items
+    categories.value = (await listeningRequest<{ items: Category[] }>('/categories')).items
     if (route.params.id !== 'new')
       accept(await listeningRequest<Article>(`/articles/${route.params.id}`))
     else savedSnapshot.value = snapshot.value
@@ -84,8 +80,8 @@ const load = async () => {
  * @returns 服务端已确认的文章，失败为空
  */
 const save = async (): Promise<Article | null> => {
-  if (!topic.value) {
-    error.value = '请选择主题后保存草稿'
+  if (!category.value) {
+    error.value = '请选择分类后保存草稿'
     return null
   }
   if (form.value?.meaningError) {
@@ -97,7 +93,7 @@ const save = async (): Promise<Article | null> => {
   notice.value = ''
   try {
     const body = {
-      topic_id: topic.value,
+      category_id: category.value,
       payload: JSON.parse(JSON.stringify(payload.value)) as ArticlePayload,
       ...(article.value ? { revision: article.value.revision } : {})
     }
@@ -112,11 +108,14 @@ const save = async (): Promise<Article | null> => {
         return confirmed
       }
       // 原创建已确认才可把当前输入作为该身份的新版本更新
-      const current = JSON.parse(currentSnapshot) as { topic_id: string; payload: ArticlePayload }
+      const current = JSON.parse(currentSnapshot) as {
+        category_id: string
+        payload: ArticlePayload
+      }
       payload.value = current.payload
-      topic.value = current.topic_id
+      category.value = current.category_id
       body.revision = confirmed.revision
-      body.topic_id = current.topic_id
+      body.category_id = current.category_id
       body.payload = current.payload
     }
     if (!pendingSave)
@@ -274,7 +273,7 @@ onMounted(load)
             :disabled="busy"
             compact
             @apply="payload = $event"
-            @topic="topic = $event"
+            @category="category = $event"
           />
         </div>
       </div>
@@ -291,10 +290,17 @@ onMounted(load)
           <ListeningContentForm
             ref="form"
             v-model="payload"
-            v-model:topic="topic"
-            :topics="topics"
+            v-model:category="category"
             :categories="categories"
             :disabled="busy || Boolean(pendingPublication)"
+            :pronunciation="
+              article && !dirty
+                ? {
+                    path: `/api/admin/v1/listening/articles/${article.id}`,
+                    reference: { revision: article.revision }
+                  }
+                : undefined
+            "
           >
             <template #media>
               <section class="panel content-card">
@@ -389,7 +395,7 @@ onMounted(load)
             </button>
           </div>
           <p class="publish-guidance muted small">
-            发布需双标题、有效分类与主题、英文正文、全文译文、完整5组语块和已就绪的全文音频
+            发布需双标题、有效分类、英文正文、全文译文、完整5组语块和已就绪的全文音频
           </p>
           <p class="publish-guidance muted small">原图、预览和试听均可选；发布仍校验全部必填资料</p>
         </aside>
@@ -419,11 +425,7 @@ onMounted(load)
       <ListeningPreviewPanel
         :article="{
           ...preview.article,
-          topic_name: topics.find((item) => item.id === preview?.article.topic_id)?.name,
-          category_name: categories.find(
-            (item) =>
-              item.id === topics.find((item) => item.id === preview?.article.topic_id)?.category_id
-          )?.name
+          category_name: categories.find((item) => item.id === preview?.article.category_id)?.name
         }"
       />
     </section>

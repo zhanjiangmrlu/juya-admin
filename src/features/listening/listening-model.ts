@@ -1,5 +1,6 @@
 import type { ArticlePayload, TimelineWord } from './listening-types'
 
+import { vocabularyErrors } from './listening-vocabulary-model'
 import { phraseHighlights } from './phrase-highlights'
 
 /** 创建不补造业务资料的空草稿
@@ -13,16 +14,17 @@ export const emptyPayload = (): ArticlePayload => ({
   translation_zh: '',
   expressions: Array.from({ length: 5 }, () => ({ english: '', chinese: '', example: '' })),
   word_meanings: [],
+  vocabulary: [],
   audio_id: null,
   image_id: null
 })
 /** 提示本地已知的必填缺项，音频就绪及最终校验仍以服务端为准
  * @param payload 当前编辑资料
- * @param topicId 已确认的主题归属
+ * @param categoryId 已确认的分类归属
  * @returns 可定位的缺项说明
  */
-export const publishErrors = (payload: ArticlePayload, topicId: string): string[] => [
-  ...(!topicId ? ['请选择有效主题'] : []),
+export const publishErrors = (payload: ArticlePayload, categoryId: string): string[] => [
+  ...(!categoryId ? ['请选择有效分类'] : []),
   ...(!payload.title_zh.trim() ? ['请填写中文标题'] : []),
   ...(!payload.title_en.trim() ? ['请填写英文标题'] : []),
   ...(!payload.body_en.trim() ? ['请填写英文正文'] : []),
@@ -33,6 +35,7 @@ export const publishErrors = (payload: ArticlePayload, topicId: string): string[
   )
     ? ['需要恰好5组完整表达、中文释义和替换例句']
     : []),
+  ...vocabularyErrors(payload.body_en, payload.vocabulary || []),
   ...(!payload.audio_id ? ['请上传完整英文音频'] : [])
 ]
 /** 区分候选的移除资格及保存资格
@@ -41,7 +44,12 @@ export const publishErrors = (payload: ArticlePayload, topicId: string): string[
  * @returns 真实有效选择、可保存与可移除的范围
  */
 export const candidateSelection = (
-  candidates: { id: string; state: string; removed: boolean }[],
+  candidates: {
+    id: string
+    state: string
+    removed: boolean
+    payload?: Pick<ArticlePayload, 'body_en' | 'vocabulary'>
+  }[],
   selectedIds: string[]
 ) => {
   const selected = candidates.filter((item) => !item.removed && selectedIds.includes(item.id))
@@ -51,7 +59,14 @@ export const candidateSelection = (
   return {
     selected: selected.map((item) => item.id),
     save,
-    publish: selected.filter((item) => item.state === 'complete').map((item) => item.id),
+    publish: selected
+      .filter(
+        (item) =>
+          item.state === 'complete' &&
+          (!item.payload ||
+            !vocabularyErrors(item.payload.body_en, item.payload.vocabulary || []).length)
+      )
+      .map((item) => item.id),
     remove: selected.filter((item) => item.state !== 'saved').map((item) => item.id),
     excluded: selected.length - save.length
   }
@@ -154,8 +169,8 @@ export const statusLabels: Record<string, string> = {
   missing: '暂无时间轴'
 }
 export const importErrorLabels: Record<string, string> = {
-  'topic_id:confirmation_required':
-    '文章所属主题待确认，请点击“核对 / 补充资料”，选择所属主题后保存到本批暂存',
+  'category_id:confirmation_required':
+    '文章所属分类待确认，请点击“核对 / 补充资料”，选择已有分类后保存到本批暂存',
   'title_zh:required_for_publish': '中文标题待补充，请在“核对 / 补充资料”中填写',
   'title_en:required_for_publish': '英文标题待补充，请在“核对 / 补充资料”中填写',
   'body_en:required_for_publish': '英文正文待补充，请在“核对 / 补充资料”中填写',
