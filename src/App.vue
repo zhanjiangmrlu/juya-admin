@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import AppBrand from '@/components/app-brand/app-brand.vue'
 import AppIcon from '@/components/app-icon/app-icon.vue'
+import AppRouteLoadError from '@/components/app-route-load-error/app-route-load-error.vue'
 import { installAudioFocus } from '@/services/audio-focus'
 import { requestLogoutPermission } from '@/services/logout-guard'
 import { useAdminStore } from '@/stores/admin-store'
@@ -87,6 +88,7 @@ onBeforeUnmount(() => window.removeEventListener('admin-session-expired', expire
         <span>{{ breadcrumb }}</span
         ><span class="muted">{{ headerDate }} 内容管理员</span>
       </header>
+      <AppRouteLoadError />
       <p v-if="error" class="notice error" role="alert">{{ error }}</p>
       <main class="page">
         <RouterView v-slot="{ Component }"
