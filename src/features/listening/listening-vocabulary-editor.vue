@@ -128,17 +128,20 @@ watch(
       </div>
       <div class="word-grid">
         <label class="field"
-          >词汇 *<ElInput
+          ><span class="field-label">词汇 *</span
+          ><ElInput
             v-model="item.english"
             :aria-label="`词汇${index + 1}英文`"
             :disabled="disabled"
             @input="item.source && (item.source.confirmed = false)"
         /></label>
         <label class="field"
-          >音标（选填）<ElInput v-model="item.phonetic" :disabled="disabled"
+          ><span class="field-label">音标（选填）</span
+          ><ElInput v-model="item.phonetic" :disabled="disabled"
         /></label>
         <label class="field"
-          >本句释义 *<ElInput
+          ><span class="field-label">本句释义 *</span
+          ><ElInput
             v-model="item.meaning"
             :aria-label="`词汇${index + 1}释义`"
             :disabled="disabled"
@@ -148,7 +151,8 @@ watch(
         文档原句待核对：{{ item.source_hint }}
       </p>
       <label class="field"
-        >对应英文原句 *<ElSelect
+        ><span class="field-label">对应英文原句 *</span
+        ><ElSelect
           :model-value="item.source?.start"
           :aria-label="`词汇${index + 1}原句`"
           :disabled="disabled"
@@ -162,7 +166,8 @@ watch(
       ></label>
       <div v-if="item.source" class="source-grid">
         <label class="field"
-          >正文实际词形 *<ElSelect
+          ><span class="field-label">正文实际词形 *</span
+          ><ElSelect
             :model-value="
               item.source.word_end > item.source.word_start ? item.source.word_start : undefined
             "
@@ -208,25 +213,76 @@ watch(
   }
 
   .vocabulary-card {
+    min-width: 0;
     background: var(--paper);
     border: 1px solid var(--line);
     border-radius: 11px;
     padding: 20px;
     margin-top: 16px;
+
+    > .between {
+      flex-wrap: wrap;
+      gap: 12px;
+
+      > :where(strong) {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      > :where(.row) {
+        flex-wrap: wrap;
+      }
+    }
   }
 
   .word-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1.3fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr);
     gap: 16px;
     margin-top: 18px;
   }
 
-  .source-grid {
+  .field {
     display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 7px;
+
+    > .el-input,
+    > .el-select {
+      width: 100%;
+      min-width: 0;
+      margin-top: 0;
+    }
+  }
+
+  .field-label {
+    display: block;
+  }
+
+  .source-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
     gap: 20px;
     align-items: center;
-    flex-wrap: wrap;
+
+    .el-checkbox {
+      min-width: 0;
+      height: auto;
+      margin-right: 0;
+      white-space: normal;
+    }
+  }
+
+  :deep([class~='el-checkbox__input']) {
+    flex-shrink: 0;
+  }
+
+  :deep([class~='el-checkbox__label']) {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.6;
   }
 
   .source-confirmed {
@@ -246,8 +302,9 @@ watch(
   }
 
   @media (width <= 900px) {
-    .word-grid {
-      grid-template-columns: 1fr;
+    .word-grid,
+    .source-grid {
+      grid-template-columns: minmax(0, 1fr);
       gap: 0;
     }
 
