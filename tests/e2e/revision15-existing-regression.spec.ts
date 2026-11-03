@@ -43,12 +43,13 @@ const snapshot = {
  * @param route 浏览器发出的API请求
  */
 const fallback = async (route: Route) => {
-  const path = new URL(route.request().url()).pathname
+  const url = new URL(route.request().url())
+  const path = url.pathname
   await route.fulfill({
     json: path.endsWith('/auth/session')
       ? { id: 'admin-synthetic', username: 'admin', csrf_token: 'synthetic' }
       : path.endsWith('/users')
-        ? rows
+        ? { ...rows, page: Number(url.searchParams.get('page') || 1) }
         : /\/users\/[^/]+$/.test(path)
           ? user
           : path.endsWith('/statistics')
@@ -91,7 +92,8 @@ test('A05 restores explicit and browser returns, resets changed filters and reta
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(650)
     await expect(page.getByLabel('搜索用户')).toHaveValue('Readonly')
   }
-  await page.getByRole('button', { name: '全部注册', exact: true }).click()
+  await page.getByRole('combobox', { name: '注册日期筛选' }).press('ArrowDown')
+  await page.getByRole('option', { name: '全部注册日期', exact: true }).click()
   await expect(page).toHaveURL(/registered=all.*page=1/)
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
   await page.getByRole('link', { name: '返回数据统计' }).click()

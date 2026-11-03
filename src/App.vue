@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ElConfigProvider } from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -12,6 +14,9 @@ const route = useRoute(),
   router = useRouter(),
   admin = useAdminStore(),
   error = ref('')
+const managementLocale = computed(() =>
+  /^\/(users|statistics|feedback)(\/|$)/.test(route.path) ? zhCn : undefined
+)
 const releaseAudioFocus = installAudioFocus()
 onBeforeUnmount(releaseAudioFocus)
 const navigation = [
@@ -91,11 +96,13 @@ onBeforeUnmount(() => window.removeEventListener('admin-session-expired', expire
       <AppRouteLoadError />
       <p v-if="error" class="notice error" role="alert">{{ error }}</p>
       <main class="page">
-        <RouterView v-slot="{ Component }"
-          ><KeepAlive
-            :include="['SceneListPage', 'ListeningListPage', 'UserListPage', 'FeedbackListPage']"
-            ><component :is="Component" /></KeepAlive
-        ></RouterView>
+        <ElConfigProvider :locale="managementLocale">
+          <RouterView v-slot="{ Component }"
+            ><KeepAlive
+              :include="['SceneListPage', 'ListeningListPage', 'UserListPage', 'FeedbackListPage']"
+              ><component :is="Component" /></KeepAlive
+          ></RouterView>
+        </ElConfigProvider>
       </main>
     </div>
   </div>

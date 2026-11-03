@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElButton, ElCard, ElImage, ElTag } from 'element-plus'
 import { ref } from 'vue'
 
 import FeedbackImagePreview from '@/features/feedback/feedback-image-preview.vue'
@@ -34,15 +35,16 @@ const renewImage = async (image: FeedbackImage) => {
 }
 </script>
 <template>
-  <section class="panel feedback-history">
+  <ElCard class="panel feedback-history" shadow="never">
     <h2>{{ detail.id }} · {{ detail.user_code }}</h2>
     <div class="between">
       <strong>{{ FEEDBACK_CATEGORY_LABELS[detail.category] }}</strong
-      ><span
+      ><ElTag
         class="badge"
+        disable-transitions
         :class="{ draft: ['pending', 'needs_info'].includes(detail.status) }"
         data-current-status
-        >{{ FEEDBACK_STATUS_LABELS[detail.status] }}</span
+        >{{ FEEDBACK_STATUS_LABELS[detail.status] }}</ElTag
       >
     </div>
     <div class="feedback-source">
@@ -74,40 +76,39 @@ const renewImage = async (image: FeedbackImage) => {
         </p>
         <div v-if="event.images.length" class="feedback-screenshots">
           <div v-for="image in event.images" :key="image.id">
-            <button
+            <ElButton
               v-if="failed[image.id]"
-              type="button"
               :disabled="Boolean(renewing)"
               @click="renewImage(image)"
             >
               {{ renewing === image.id ? '重新获取中…' : '截图加载失败，点击重试' }}
-            </button>
-            <button
-              v-else
-              type="button"
-              class="screenshot-button"
-              @click="preview = images[image.id] || image"
-            >
-              <img
+            </ElButton>
+            <ElButton v-else class="screenshot-button" @click="preview = images[image.id] || image">
+              <ElImage
                 :src="feedbackImageURL((images[image.id] || image).url)"
-                :width="image.width"
-                :height="image.height"
+                fit="contain"
+                :style="{ width: `${Math.min(160, (image.width / image.height) * 100)}px` }"
                 alt="查看反馈截图"
                 @error="failed[image.id] = true"
               />
-            </button>
+            </ElButton>
           </div>
         </div>
       </article>
     </div>
     <p v-if="imageError" class="notice error" role="alert">{{ imageError }}</p>
     <FeedbackImagePreview v-if="preview" :image="preview" @close="preview = null" />
-  </section>
+  </ElCard>
 </template>
 <style scoped lang="scss">
 .feedback-history {
   min-width: 0;
   align-self: start;
+  padding: 0;
+
+  :deep([class~='el-card__body']) {
+    padding: 28px;
+  }
 
   h2 {
     font-weight: 700;
@@ -161,16 +162,15 @@ const renewImage = async (image: FeedbackImage) => {
 
   .screenshot-button {
     display: block;
+    height: auto;
     padding: 0;
     overflow: hidden;
   }
 
-  .screenshot-button img {
+  .screenshot-button .el-image {
     display: block;
-    width: auto;
     height: 100px;
     max-width: 160px;
-    object-fit: contain;
   }
 }
 </style>

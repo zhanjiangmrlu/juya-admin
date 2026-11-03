@@ -42,11 +42,11 @@ it('opens a listening checkin source through the published read-only route', asy
   })
   await flushPromises()
   await page
-    .findAll('.tabs button')
+    .findAll('[role=tab]')
     .find((button) => button.text().includes('打卡记录'))!
     .trigger('click')
   await flushPromises()
-  await page.get('.checkin-heading').trigger('click')
+  await page.get('[role=button][aria-expanded]').trigger('click')
   await flushPromises()
   expect(page.get('.day-card a').text()).toBe('查看发布内容')
   expect(page.get('.day-card a').attributes('href')).toBe('/listening/article/published-preview')

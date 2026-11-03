@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElButton, ElLink } from 'element-plus'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from 'vue-router'
 
@@ -301,36 +302,41 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
-  <div class="feedback-detail-page">
+  <div class="feedback-detail-page management-page">
     <div class="page-heading between">
       <div>
         <h1>处理反馈</h1>
         <p>回复与状态会同步到用户的原反馈记录。</p>
       </div>
-      <RouterLink :to="back" class="button-link" data-action="feedback-back"
-        >返回反馈列表</RouterLink
-      >
+      <RouterLink v-slot="{ href, navigate }" :to="back" custom>
+        <ElLink
+          :href="href"
+          :underline="false"
+          class="button-link"
+          data-action="feedback-back"
+          @click="navigate"
+          >返回反馈列表</ElLink
+        >
+      </RouterLink>
     </div>
-    <AppState :busy="loading" :error="error" @retry="load" />
+    <AppState element-plus :busy="loading" :error="error" @retry="load" />
     <p v-if="readError" class="notice error" role="alert">
       {{ readError
-      }}<button type="button" class="text" data-action="retry-read" @click="acknowledge">
-        重试已读同步
-      </button>
+      }}<ElButton text data-action="retry-read" @click="acknowledge"> 重试已读同步 </ElButton>
     </p>
     <p v-if="actionError" class="notice error" role="alert">{{ actionError }}</p>
     <p v-if="notice" class="notice" role="status">{{ notice }}</p>
     <p v-if="conflict" class="notice">
-      <button :disabled="loading" @click="load">重新获取最新记录</button>
+      <ElButton :disabled="loading" @click="load">重新获取最新记录</ElButton>
     </p>
     <div v-if="pending" class="notice between">
       <span>上次回复结果待确认</span>
       <div class="row">
-        <button data-action="resolve-feedback" :disabled="busy" @click="recover">
-          查询原操作结果</button
-        ><button v-if="retryAllowed && frozenBody" :disabled="busy" @click="send">
+        <ElButton data-action="resolve-feedback" :disabled="busy" @click="recover">
+          查询原操作结果</ElButton
+        ><ElButton v-if="retryAllowed && frozenBody" :disabled="busy" @click="send">
           用原操作键重试回复
-        </button>
+        </ElButton>
       </div>
     </div>
     <div v-if="detail" class="feedback-layout">
@@ -346,13 +352,14 @@ onBeforeUnmount(() => {
     <ElDialog
       v-model="leaveOpen"
       title="离开反馈处理？"
+      class="management-dialog"
       width="460px"
       :close-on-click-modal="false"
       @close="leave(false)"
       ><p>尚未提交的输入会丢失。待确认操作可重新查询，离开不会把反馈标记为已处理。</p>
       <template #footer
-        ><button @click="leave(false)">继续编辑</button
-        ><button @click="leave(true)">放弃本地输入并离开</button></template
+        ><ElButton @click="leave(false)">继续编辑</ElButton
+        ><ElButton @click="leave(true)">放弃本地输入并离开</ElButton></template
       ></ElDialog
     >
   </div>
@@ -362,10 +369,6 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
   gap: 40px;
-
-  :deep(.panel) {
-    padding: 28px;
-  }
 }
 
 @media (width <= 1050px) {

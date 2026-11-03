@@ -63,3 +63,53 @@ it('never labels an in-flight renewal preview as revocation when another action 
   expect(request.mock.calls[0][1].body.action).toBe('renew')
   page.unmount()
 })
+
+it('previews a date as YYYY-MM-DD and normalizes the cleared picker to an empty string', async () => {
+  request.mockReset().mockRejectedValue(new Error('请核对到期日期'))
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/', component: UserAuthorization }]
+  })
+  await router.push('/')
+  const page = mount(UserAuthorization, {
+    props: {
+      userId: 'user',
+      userCode: 'Juya001',
+      authorization: {
+        status: 'none',
+        starts_on: null,
+        expires_on: null,
+        expires_at: null,
+        revision: 1
+      }
+    },
+    global: { plugins: [router], stubs: { ElDialog: true } }
+  })
+  await page
+    .findAll('button')
+    .find((button) => button.text() === '指定到期日')!
+    .trigger('click')
+  const date = page.get('input[aria-label="授权到期日期"]')
+  await date.setValue('2026-12-31')
+  await date.trigger('change')
+  await flushPromises()
+  await page
+    .findAll('button')
+    .find((button) => button.text() === '核对日期')!
+    .trigger('click')
+  await flushPromises()
+  expect(request.mock.calls.at(-1)?.[1].body).toEqual({
+    action: 'set_expiry',
+    expires_on: '2026-12-31'
+  })
+  await page.get('.el-date-editor').trigger('mouseenter')
+  await page.get('.clear-icon').trigger('click')
+  await page
+    .findAll('button')
+    .find((button) => button.text() === '核对日期')!
+    .trigger('click')
+  await flushPromises()
+  expect(request.mock.calls.at(-1)?.[1].body).toEqual({ action: 'set_expiry', expires_on: '' })
+  expect(request.mock.calls.every(([path]) => path.endsWith('/preview'))).toBe(true)
+  page.unmount()
+})

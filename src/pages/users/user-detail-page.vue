@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElCard, ElDescriptions, ElDescriptionsItem, ElStatistic, ElTag } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -53,7 +54,7 @@ onMounted(() => {
 })
 </script>
 <template>
-  <div class="user-detail-page">
+  <div class="user-detail-page management-page">
     <div class="page-heading between">
       <div>
         <h1>{{ data?.nickname || '学习者' }} · 用户详情</h1>
@@ -63,7 +64,7 @@ onMounted(() => {
         >返回用户列表</RouterLink
       >
     </div>
-    <AppState :busy="busy" :error="error" @retry="refresh" />
+    <AppState element-plus :busy="busy" :error="error" @retry="refresh" />
     <template v-if="data && !busy">
       <UserAuthorization
         v-if="data.authorization"
@@ -74,7 +75,7 @@ onMounted(() => {
         @history-requested="showAuthorizationHistory"
       />
       <div class="profile-overview">
-        <section class="panel account-panel">
+        <ElCard shadow="never" class="account-panel">
           <h2>账号资料</h2>
           <div class="profile-heading">
             <img v-if="data.avatar_id" :src="mediaURL(data.avatar_id)" class="avatar" alt="" /><span
@@ -83,82 +84,64 @@ onMounted(() => {
               ><AppIcon name="user" :size="17" /></span
             ><strong>{{ data.nickname || '学习者' }}</strong>
           </div>
-          <dl class="profile-fields">
-            <div>
-              <dt>用户编号</dt>
-              <dd>{{ data.user_code }}</dd>
-            </div>
-            <div>
-              <dt>注册时间</dt>
-              <dd>{{ dateText(data.registered_at) }}</dd>
-            </div>
-            <div>
-              <dt>手机号</dt>
-              <dd>
-                {{ data.phone || '未填写' }}
-                <small v-if="data.phone" class="badge draft">{{
-                  contactSourceText(data.phone_source)
-                }}</small>
-              </dd>
-            </div>
-            <div>
-              <dt>微信号</dt>
-              <dd>
-                {{ data.wechat_contact || '未填写' }}
-                <small v-if="data.wechat_contact" class="badge draft">{{
-                  contactSourceText(data.wechat_source)
-                }}</small>
-              </dd>
-            </div>
-            <div>
-              <dt>登录方式</dt>
-              <dd>微信身份登录</dd>
-            </div>
-            <div>
-              <dt>最近登录</dt>
-              <dd>{{ dateText(data.last_login_at) }}</dd>
-            </div>
-            <div>
-              <dt>最近学习</dt>
-              <dd>{{ dateText(data.statistics.last_studied_at) }}</dd>
-            </div>
-          </dl>
+          <ElDescriptions :column="1" class="profile-fields">
+            <ElDescriptionsItem label="用户编号">{{ data.user_code }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="注册时间">{{
+              dateText(data.registered_at)
+            }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="手机号">
+              {{ data.phone || '未填写' }}
+              <ElTag v-if="data.phone" type="warning" size="small">{{
+                contactSourceText(data.phone_source)
+              }}</ElTag>
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="微信号">
+              {{ data.wechat_contact || '未填写' }}
+              <ElTag v-if="data.wechat_contact" type="warning" size="small">{{
+                contactSourceText(data.wechat_source)
+              }}</ElTag>
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="登录方式">微信身份登录</ElDescriptionsItem>
+            <ElDescriptionsItem label="最近登录">{{
+              dateText(data.last_login_at)
+            }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="最近学习">{{
+              dateText(data.statistics.last_studied_at)
+            }}</ElDescriptionsItem>
+          </ElDescriptions>
           <p class="profile-note">已填联系资料及其来源在此只读保留，不能代用户编辑。</p>
-        </section>
-        <section class="panel learning-panel">
+        </ElCard>
+        <ElCard shadow="never" class="learning-panel">
           <h2>总学习数据</h2>
           <div class="user-metrics">
             <div v-for="metric in metrics" :key="metric.label">
-              <span>{{ metric.label }}</span>
-              <strong
-                >{{ metric.value ?? '暂未获取'
-                }}<small v-if="metric.value != null">{{ metric.unit }}</small></strong
+              <ElStatistic v-if="metric.value != null" :title="metric.label" :value="metric.value"
+                ><template #suffix>{{ metric.unit }}</template></ElStatistic
               >
+              <div v-else class="missing-metric">
+                <span>{{ metric.label }}</span
+                ><strong>暂未获取</strong>
+              </div>
             </div>
           </div>
-          <dl class="profile-fields learning-fields">
-            <div>
-              <dt>今日状态</dt>
-              <dd>
-                <span class="badge" :class="{ draft: !data.statistics.checked_in_today }">{{
-                  data.statistics.checked_in_today ? '今日已打卡' : '今日待打卡'
-                }}</span>
-              </dd>
-            </div>
-            <div>
-              <dt>收藏数量</dt>
-              <dd>
-                场景 {{ data.statistics.favorite_count ?? '暂未获取' }} 张／听读
-                {{ data.statistics.listening_favorite_count ?? '暂未获取' }} 篇
-              </dd>
-            </div>
-            <div>
-              <dt>最长连续</dt>
-              <dd>{{ data.statistics.longest_streak ?? '暂未获取' }} 天</dd>
-            </div>
-          </dl>
+          <ElDescriptions :column="1" class="profile-fields learning-fields">
+            <ElDescriptionsItem label="今日状态">
+              <ElTag
+                :type="data.statistics.checked_in_today ? 'success' : 'warning'"
+                size="small"
+                >{{ data.statistics.checked_in_today ? '今日已打卡' : '今日待打卡' }}</ElTag
+              >
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="收藏数量">
+              场景 {{ data.statistics.favorite_count ?? '暂未获取' }} 张／听读
+              {{ data.statistics.listening_favorite_count ?? '暂未获取' }} 篇
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="最长连续"
+              >{{ data.statistics.longest_streak ?? '暂未获取' }} 天</ElDescriptionsItem
+            >
+          </ElDescriptions>
           <p class="profile-note">场景与听读分别累计，共用每日打卡，不手工改写成绩。</p>
-        </section>
+        </ElCard>
       </div>
       <p v-if="previewError" class="notice error" role="alert">{{ previewError }}</p>
       <UserLearningRecords :user-id="userId" @preview="showPreview" />
@@ -184,10 +167,13 @@ onMounted(() => {
   gap: 24px;
   margin-bottom: 24px;
 
-  .panel {
-    margin-bottom: 0;
+  .el-card {
     min-height: 480px;
-    padding: 24px;
+    border-radius: 14px;
+
+    :deep([class~='el-card__body']) {
+      padding: 24px;
+    }
   }
 
   h2 {
@@ -215,32 +201,34 @@ onMounted(() => {
 }
 
 .profile-fields {
-  display: grid;
-  gap: 0;
-  margin: 0;
   font-size: 12px;
 
-  > div {
-    display: grid;
-    grid-template-columns: 104px minmax(0, 1fr);
+  :deep([class~='el-descriptions__cell']) {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
     padding: 11px 0;
     border-bottom: 1px solid var(--line);
-    gap: 16px;
-    align-items: baseline;
   }
 
-  dt {
+  :deep([class~='el-descriptions__label']) {
+    font-size: 12px;
+    line-height: 1.72;
     color: var(--ink);
+    flex-shrink: 0;
+    width: 104px;
+    margin-right: 0;
   }
 
-  dd {
-    margin: 0;
+  :deep([class~='el-descriptions__content']) {
+    font-size: 12px;
+    line-height: 1.72;
     color: var(--muted);
     text-align: right;
     overflow-wrap: anywhere;
   }
 
-  small {
+  :deep(.el-tag) {
     font-size: 10px;
     font-weight: 400;
     padding: 2px 6px;
@@ -259,23 +247,25 @@ onMounted(() => {
     min-width: 0;
   }
 
-  strong {
+  :deep([class~='el-statistic__head']),
+  .missing-metric span {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  :deep([class~='el-statistic__content']),
+  .missing-metric strong {
     display: block;
     font-size: 28px;
     font-weight: 500;
     line-height: 1.4;
     margin-top: 9px;
-
-    small {
-      font-size: 12px;
-      font-weight: 400;
-      margin-left: 3px;
-    }
   }
 
-  span {
-    font-size: 11px;
-    color: var(--muted);
+  :deep([class~='el-statistic__suffix']) {
+    font-size: 12px;
+    font-weight: 400;
+    margin-left: 3px;
   }
 }
 

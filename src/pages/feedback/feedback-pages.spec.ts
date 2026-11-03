@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { ElForm, ElInput, ElPagination, ElTable, ElTag } from 'element-plus'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
@@ -90,6 +91,10 @@ it('queries server search and status without clearing list unread', async () => 
     page: '1',
     limit: '10'
   })
+  expect(page.findComponent(ElForm).exists()).toBe(true)
+  expect(page.findComponent(ElInput).exists()).toBe(true)
+  expect(page.findComponent(ElTable).exists()).toBe(true)
+  expect(page.findComponent(ElTag).exists()).toBe(true)
   expect(page.find('img[alt="未读用户补充"]').exists()).toBe(true)
   expect(page.text()).toContain('晨间活动')
   expect(page.text()).toContain('Juya001')
@@ -168,7 +173,7 @@ it('requires text for resolution and preserves text and server state on conflict
   await page.get('[data-status="resolved"]').trigger('click')
   expect(page.get('[data-action="send-feedback"]').attributes('disabled')).toBeDefined()
   await page.get('textarea').setValue('已核对并修正说明')
-  await page.get('form.feedback-handle').trigger('submit')
+  await page.get('.feedback-handle form').trigger('submit')
   await flushPromises()
   expect((page.get('textarea').element as HTMLTextAreaElement).value).toBe('已核对并修正说明')
   expect(page.get('[data-current-status]').text()).toBe('待处理')
@@ -201,7 +206,7 @@ it('queries an unknown reply then reloads the current timeline without posting a
   })
   const { page } = await open('/feedback/FB1001')
   await page.get('textarea').setValue('我们正在核对')
-  await page.get('form.feedback-handle').trigger('submit')
+  await page.get('.feedback-handle form').trigger('submit')
   await flushPromises()
   expect(page.find('[data-action="resolve-feedback"]').exists()).toBe(true)
   const mutation = request.mock.calls.find(([, options]) => options?.method === 'POST')!
@@ -230,7 +235,7 @@ it('retains the confirmed recovery snapshot when refreshing the latest timeline 
   })
   const { page } = await open('/feedback/FB1001')
   await page.get('textarea').setValue('正在核对')
-  await page.get('form.feedback-handle').trigger('submit')
+  await page.get('.feedback-handle form').trigger('submit')
   await flushPromises()
   await page.get('[data-action="resolve-feedback"]').trigger('click')
   await flushPromises()
@@ -247,7 +252,7 @@ it('restores an expired session draft only for its original administrator and qu
   })
   const first = await open('/feedback/draft-one')
   await first.page.get('textarea').setValue('会话到期前的私密草稿')
-  await first.page.get('form.feedback-handle').trigger('submit')
+  await first.page.get('.feedback-handle form').trigger('submit')
   await flushPromises()
   useAdminStore().clear()
   first.page.unmount()
@@ -373,3 +378,24 @@ it.each(['activate', 'same-filter', 'changed-filter'])(
     page.unmount()
   }
 )
+
+it('changes only the routed page through pagination while keeping search and status', async () => {
+  request.mockResolvedValue({ items: [{ ...feedback, events: [] }], total: 30, page: 2, limit: 10 })
+  const { page, router } = await open('/feedback?status=pending&search=释义&page=2')
+  expect(page.findComponent(ElPagination).exists()).toBe(true)
+  await page.get('.btn-next').trigger('click')
+  await flushPromises()
+  expect(router.currentRoute.value.query).toMatchObject({
+    search: '释义',
+    status: 'pending',
+    page: '3'
+  })
+  const url = new URL(request.mock.calls.at(-1)![0], 'https://example.test')
+  expect(Object.fromEntries(url.searchParams)).toEqual({
+    search: '释义',
+    status: 'pending',
+    page: '3',
+    limit: '10'
+  })
+  page.unmount()
+})

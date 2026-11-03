@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { ElCard, ElForm, ElImage, ElInput } from 'element-plus'
 import { beforeEach, expect, it, vi } from 'vitest'
 
 const { request } = vi.hoisted(() => ({ request: vi.fn() }))
@@ -32,6 +33,10 @@ it('counts Unicode codepoints and does not infer a status from a plain reply', a
       blocked: false
     }
   })
+  expect(page.findComponent(ElCard).exists()).toBe(true)
+  expect(page.findComponent(ElForm).exists()).toBe(true)
+  expect(page.findComponent(ElInput).exists()).toBe(true)
+  expect(page.get('textarea').attributes('maxlength')).toBeUndefined()
   expect(page.text()).toContain('500／500')
   expect(page.get('[data-action="send-feedback"]').attributes('disabled')).toBeUndefined()
   await page.get('form').trigger('submit')
@@ -75,18 +80,22 @@ it('keeps source unavailable and timeline safe while a private screenshot fails 
     },
     global: { stubs: { ElDialog: true } }
   })
+  expect(page.findComponent(ElCard).exists()).toBe(true)
+  expect(page.findComponent(ElImage).exists()).toBe(true)
+  expect(page.findComponent(ElImage).props('previewSrcList')).toEqual([])
   expect(page.text()).toContain('来源已删除')
   expect(page.get('h2').text()).toBe('one · Juya001')
   expect(page.find('a').exists()).toBe(false)
   expect(page.find('img[src=x]').exists()).toBe(false)
-  const thumbnail = page.get('img[alt="查看反馈截图"]')
-  expect(thumbnail.attributes('src')).toContain('first-grant')
-  await thumbnail.trigger('error')
+  const thumbnail = page.getComponent(ElImage)
+  expect(thumbnail.props('src')).toContain('first-grant')
+  thumbnail.vm.$emit('error', new Event('error'))
+  await flushPromises()
   expect(page.text()).toContain('原说明')
   await page.get('.feedback-screenshots button').trigger('click')
   await flushPromises()
   expect(request).toHaveBeenCalledWith('/api/admin/v1/feedback/images/opaque-image-id/url')
-  expect(page.get('img[alt="查看反馈截图"]').attributes('src')).toContain('new-grant')
+  expect(page.getComponent(ElImage).props('src')).toContain('new-grant')
   expect(request.mock.calls.every(([, options]) => !options?.method)).toBe(true)
   page.unmount()
 })
@@ -97,19 +106,37 @@ it('renews an expired preview instead of reuploading an attachment', async () =>
     props: { image },
     global: { stubs: { ElDialog: { template: '<div><slot/><slot name="footer"/></div>' } } }
   })
-  await page.get('img').trigger('error')
+  page.getComponent(ElImage).vm.$emit('error', new Event('error'))
+  await flushPromises()
   expect(page.text()).toContain('截图地址可能已过期')
   await page
     .findAll('button')
     .find((button) => button.text() === '重新获取截图')!
     .trigger('click')
   await flushPromises()
-  expect(page.get('img').attributes('src')).toContain('renewed-preview')
+  expect(page.getComponent(ElImage).props('src')).toContain('renewed-preview')
   expect(request).toHaveBeenCalledTimes(1)
   await page
     .findAll('button')
     .find((button) => button.text() === '关闭')!
     .trigger('click')
   expect(page.emitted('close')).toHaveLength(1)
+  page.unmount()
+})
+
+it('cancels a selected status without changing the current server status', async () => {
+  const page = mount(FeedbackReplyForm, {
+    props: {
+      text: '  😀  ',
+      status: 'processing',
+      current: 'needs_info',
+      busy: false,
+      blocked: false
+    }
+  })
+  expect(page.text()).toContain('1／500')
+  await page.get('[data-status="processing"]').trigger('click')
+  expect(page.emitted('update:status')).toEqual([['']])
+  expect(page.get('[data-status="needs_info"]').classes()).toContain('current')
   page.unmount()
 })

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElPagination, ElTable, ElTableColumn } from 'element-plus'
 import { onMounted, ref, watch } from 'vue'
 
 import AppState from '@/components/app-state/app-state.vue'
@@ -31,10 +32,10 @@ const stateText = (value: Record<string, unknown>) => {
   return value.expires_on ? `${label}，至 ${String(value.expires_on)}` : label
 }
 /** 切换授权审计页并读取该页
- * @param delta 前后翻页的页码增量
+ * @param value 管理员选择的审计页码
  */
-const turnPage = (delta: number) => {
-  page.value += delta
+const turnPage = (value: number) => {
+  page.value = value
   void refresh()
 }
 watch(
@@ -50,6 +51,7 @@ onMounted(refresh)
   <section id="authorization-history" class="panel authorization-history">
     <h2>最近授权操作</h2>
     <AppState
+      element-plus
       :busy="busy"
       :error="error"
       :empty="data?.total === 0"
@@ -58,34 +60,36 @@ onMounted(refresh)
       @retry="refresh"
     />
     <div v-if="data && data.total && !busy && !error" class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>操作时间</th>
-            <th>管理员</th>
-            <th>操作</th>
-            <th>变更前</th>
-            <th>变更后</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in data.items" :key="item.id">
-            <td>{{ dateText(item.occurred_at) }}</td>
-            <td>{{ item.admin_id }}</td>
-            <td>{{ actions[item.action] || item.action }}</td>
-            <td>{{ stateText(item.before) }}</td>
-            <td>{{ stateText(item.after) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <ElTable :data="data.items" row-key="id">
+        <ElTableColumn label="操作时间" :min-width="173"
+          ><template #default="{ row }">{{ dateText(row.occurred_at) }}</template></ElTableColumn
+        >
+        <ElTableColumn prop="admin_id" label="管理员" :min-width="130" />
+        <ElTableColumn label="操作" :min-width="110"
+          ><template #default="{ row }">{{
+            actions[row.action] || row.action
+          }}</template></ElTableColumn
+        >
+        <ElTableColumn label="变更前" :min-width="154"
+          ><template #default="{ row }">{{ stateText(row.before) }}</template></ElTableColumn
+        >
+        <ElTableColumn label="变更后" :min-width="154"
+          ><template #default="{ row }">{{ stateText(row.after) }}</template></ElTableColumn
+        >
+      </ElTable>
     </div>
-    <div v-if="data && data.total > data.limit" class="pagination">
-      <button :disabled="page <= 1 || busy" @click="turnPage(-1)">上一页</button
-      ><span>共 {{ data.total }} 条</span
-      ><button :disabled="page * data.limit >= data.total || busy" @click="turnPage(1)">
-        下一页
-      </button>
-    </div>
+    <ElPagination
+      v-if="data && data.total > data.limit"
+      class="history-pagination"
+      :current-page="page"
+      :page-size="data.limit"
+      :total="data.total"
+      :disabled="busy"
+      layout="total, prev, pager, next"
+      prev-text="上一页"
+      next-text="下一页"
+      @current-change="turnPage"
+    />
     <p class="history-note">失败不提前改授权；超时先查询同次操作结果，续期重试不会重复加月。</p>
   </section>
 </template>
@@ -99,24 +103,19 @@ onMounted(refresh)
     margin-bottom: 18px;
   }
 
-  table {
-    table-layout: fixed;
-    min-width: 720px;
-  }
-
-  th,
-  td {
+  :deep([class~='el-table__cell']) {
     font-size: 12px;
     overflow-wrap: anywhere;
   }
 
-  td {
+  :deep(td[class~='el-table__cell']) {
     padding-top: 18px;
     padding-bottom: 18px;
   }
 
-  th:first-child {
-    width: 24%;
+  .history-pagination {
+    justify-content: flex-end;
+    margin-top: 16px;
   }
 
   .history-note {

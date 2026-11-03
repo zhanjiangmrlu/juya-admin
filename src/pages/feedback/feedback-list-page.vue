@@ -1,5 +1,15 @@
 <script setup lang="ts">
 import {
+  ElButton,
+  ElForm,
+  ElInput,
+  ElLink,
+  ElPagination,
+  ElTable,
+  ElTableColumn,
+  ElTag
+} from 'element-plus'
+import {
   computed,
   nextTick,
   onActivated,
@@ -105,33 +115,32 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
-  <div class="feedback-list-page">
+  <div class="feedback-list-page management-page">
     <div class="page-heading">
       <h1>问题反馈</h1>
       <p>查看用户提交的问题，在同一条记录中持续沟通。</p>
     </div>
-    <form class="filters feedback-filters" @submit.prevent="filter({ search })">
-      <input
+    <ElForm class="filters feedback-filters" @submit.prevent="filter({ search })">
+      <ElInput
         v-model="search"
         type="search"
         aria-label="搜索反馈"
         placeholder="搜索反馈编号、用户或内容"
       />
-      <button type="submit" class="primary">查询</button>
+      <ElButton native-type="submit" type="primary">查询</ElButton>
       <div class="segments" aria-label="处理状态">
-        <button type="button" :aria-pressed="!status" @click="filter({ status: '' })">全部</button>
-        <button
+        <ElButton :aria-pressed="!status" @click="filter({ status: '' })">全部</ElButton>
+        <ElButton
           v-for="(label, value) in FEEDBACK_STATUS_LABELS"
           :key="value"
-          type="button"
           :aria-pressed="status === value"
           @click="filter({ status: value })"
+          >{{ label }}</ElButton
         >
-          {{ label }}
-        </button>
       </div>
-    </form>
+    </ElForm>
     <AppState
+      element-plus
       :busy="busy"
       :error="error"
       :empty="data?.total === 0 && !busy"
@@ -140,74 +149,83 @@ onBeforeUnmount(() => {
       @retry="refresh"
     />
     <div v-if="data?.items.length" class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>反馈编号／用户</th>
-            <th>问题分类</th>
-            <th>问题摘要</th>
-            <th>状态</th>
-            <th>最后更新</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in data.items" :key="item.id">
-            <td>
-              <span>{{ item.id }}</span
-              ><img
-                v-if="item.unread"
-                class="feedback-unread"
-                src="@/assets/icons/feedback-unread.svg"
-                alt="未读用户补充"
-              />
-              <p>{{ item.user_code }}</p>
-            </td>
-            <td>{{ FEEDBACK_CATEGORY_LABELS[item.category] }}</td>
-            <td>
-              <p>{{ item.summary }}</p>
-              <p class="small muted">
-                {{ item.source_title || '账号资料 · 通用反馈'
-                }}<template v-if="item.card_id && !item.source_available">
-                  ·
-                  {{
-                    item.source_unavailable_reason === 'deleted' ? '来源已删除' : '来源暂不可用'
-                  }}</template
-                >
-              </p>
-              <p v-if="item.source_title_en" class="small muted">{{ item.source_title_en }}</p>
-            </td>
-            <td>
-              <span
-                class="badge"
-                :class="{ draft: ['pending', 'needs_info'].includes(item.status) }"
-                >{{ FEEDBACK_STATUS_LABELS[item.status as FeedbackStatus] }}</span
+      <ElTable :data="data.items" row-key="id" class="feedback-table" table-layout="fixed">
+        <ElTableColumn label="反馈编号／用户" :min-width="15">
+          <template #default="{ row: item }">
+            <span>{{ item.id }}</span
+            ><img
+              v-if="item.unread"
+              class="feedback-unread"
+              src="@/assets/icons/feedback-unread.svg"
+              alt="未读用户补充"
+            />
+            <p>{{ item.user_code }}</p>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="问题分类" :min-width="12">
+          <template #default="{ row: item }">{{
+            FEEDBACK_CATEGORY_LABELS[item.category as keyof typeof FEEDBACK_CATEGORY_LABELS]
+          }}</template>
+        </ElTableColumn>
+        <ElTableColumn label="问题摘要" :min-width="34">
+          <template #default="{ row: item }">
+            <p>{{ item.summary }}</p>
+            <p class="small muted">
+              {{ item.source_title || '账号资料 · 通用反馈'
+              }}<template v-if="item.card_id && !item.source_available">
+                ·
+                {{
+                  item.source_unavailable_reason === 'deleted' ? '来源已删除' : '来源暂不可用'
+                }}</template
               >
-            </td>
-            <td>{{ dateText(item.updated_at) }}</td>
-            <td>
-              <RouterLink
-                :to="{
-                  path: `/feedback/${encodeURIComponent(item.id)}`,
-                  query: { back: route.fullPath }
-                }"
-                @click="rememberScroll"
-                >查看并处理</RouterLink
-              >
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </p>
+            <p v-if="item.source_title_en" class="small muted">{{ item.source_title_en }}</p>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="状态" :min-width="11">
+          <template #default="{ row: item }"
+            ><ElTag
+              class="badge"
+              :class="{ draft: ['pending', 'needs_info'].includes(item.status) }"
+              disable-transitions
+              >{{ FEEDBACK_STATUS_LABELS[item.status as FeedbackStatus] }}</ElTag
+            ></template
+          >
+        </ElTableColumn>
+        <ElTableColumn label="最后更新" :min-width="17">
+          <template #default="{ row: item }">{{ dateText(item.updated_at) }}</template>
+        </ElTableColumn>
+        <ElTableColumn label="操作" :min-width="11">
+          <template #default="{ row: item }">
+            <RouterLink
+              v-slot="{ href, navigate }"
+              :to="{
+                path: `/feedback/${encodeURIComponent(item.id)}`,
+                query: { back: route.fullPath }
+              }"
+              custom
+            >
+              <ElLink :href="href" :underline="false" @click="navigate">查看并处理</ElLink>
+            </RouterLink>
+          </template>
+        </ElTableColumn>
+      </ElTable>
     </div>
     <div v-if="data && !error" class="pagination">
-      <span class="muted">共 {{ data.total }} 条反馈</span
-      ><template v-if="data.total > 10"
-        ><button :disabled="page <= 1 || busy" @click="filter({ page: page - 1 })">上一页</button
-        ><span>第 {{ page }} 页</span
-        ><button :disabled="page * 10 >= data.total || busy" @click="filter({ page: page + 1 })">
-          下一页
-        </button></template
+      <span class="muted">共 {{ data.total }} 条反馈</span>
+      <ElPagination
+        v-if="data.total > 10"
+        :current-page="page"
+        :page-size="10"
+        :total="data.total"
+        :disabled="busy"
+        layout="prev, slot, next"
+        prev-text="上一页"
+        next-text="下一页"
+        @current-change="filter({ page: $event })"
       >
+        <span>第 {{ page }} 页</span>
+      </ElPagination>
     </div>
   </div>
 </template>
@@ -215,7 +233,7 @@ onBeforeUnmount(() => {
 .feedback-filters {
   margin-bottom: 20px;
 
-  input {
+  .el-input {
     max-width: 380px;
   }
 
@@ -225,41 +243,38 @@ onBeforeUnmount(() => {
 }
 
 .feedback-list-page {
-  table {
-    table-layout: fixed;
-  }
+  .feedback-table {
+    --el-table-row-hover-bg-color: #f6f9f1;
+    --el-table-header-bg-color: #edf5e6;
 
-  th:first-child {
-    width: 15%;
-  }
+    min-width: 850px;
+    font-size: 13px;
 
-  th:nth-child(2) {
-    width: 12%;
-  }
+    :deep(td[class~='el-table__cell']) {
+      height: 93px;
+    }
 
-  th:nth-child(3) {
-    width: 34%;
-  }
+    :deep(.cell) {
+      padding: 0 14px;
+      line-height: 1.72;
+      overflow-wrap: anywhere;
+    }
 
-  th:nth-child(4) {
-    width: 11%;
-  }
+    :deep(th .cell) {
+      white-space: nowrap;
+    }
 
-  th:nth-child(5) {
-    width: 17%;
-  }
-
-  th:last-child {
-    width: 11%;
-  }
-
-  td {
-    height: 93px;
-    overflow-wrap: anywhere;
+    .el-link {
+      font-size: 13px;
+    }
   }
 
   .pagination {
     justify-content: flex-end;
+
+    .el-pagination {
+      gap: 12px;
+    }
   }
 
   .feedback-unread {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElPagination, ElTable, ElTableColumn, ElTag } from 'element-plus'
 import { onMounted, ref } from 'vue'
 
 import AppState from '@/components/app-state/app-state.vue'
@@ -16,10 +17,10 @@ const records = useResource(() =>
   )
 )
 /** 切换听读已学记录页并读取实际集合
- * @param direction 前一页为-1，后一页为1
+ * @param value 管理员选择的听读记录页码
  */
-const changePage = (direction: number) => {
-  page.value += direction
+const changePage = (value: number) => {
+  page.value = value
   void records.refresh()
 }
 onMounted(records.refresh)
@@ -27,6 +28,7 @@ onMounted(records.refresh)
 <template>
   <section class="article-records">
     <AppState
+      element-plus
       :busy="records.busy.value"
       :error="records.error.value"
       :empty="records.data.value?.total === 0"
@@ -35,87 +37,70 @@ onMounted(records.refresh)
       @retry="records.refresh"
     />
     <div v-if="records.data.value" class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>听读文章</th>
-            <th>状态／首次完成／最近学习</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in records.data.value.items" :key="item.id">
-            <td>
-              <div class="article-title">
-                <strong>{{ item.title_zh }}</strong>
-                <p>{{ item.title_en }}</p>
-              </div>
-            </td>
-            <td>
-              <span class="badge" :class="{ offline: !item.available }">{{
-                item.available ? '已发布' : '暂不可用'
-              }}</span>
-              <p>首次完成：{{ dateText(item.first_completed_at) }}</p>
-              <p>最近学习：{{ dateText(item.last_completed_at) }}</p>
-            </td>
-            <td>
-              <RouterLink v-if="item.available" :to="`/listening/${item.id}/published-preview`"
-                >查看发布内容</RouterLink
-              ><span v-else>暂不可用 · 成绩保留</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div v-if="records.data.value.total > 20" class="pagination">
-        <span>共 {{ records.data.value.total }} 篇</span
-        ><button :disabled="page <= 1 || records.busy.value" @click="changePage(-1)">上一页</button
-        ><span>第 {{ page }} 页</span
-        ><button
-          :disabled="page * 20 >= records.data.value.total || records.busy.value"
-          @click="changePage(1)"
+      <ElTable :data="records.data.value.items" row-key="id">
+        <ElTableColumn label="听读文章" :min-width="357"
+          ><template #default="{ row: item }"
+            ><div class="article-title">
+              <strong>{{ item.title_zh }}</strong>
+              <p>{{ item.title_en }}</p>
+            </div></template
+          ></ElTableColumn
         >
-          下一页
-        </button>
-      </div>
+        <ElTableColumn label="状态／首次完成／最近学习" :min-width="340"
+          ><template #default="{ row: item }"
+            ><ElTag :type="item.available ? 'success' : 'info'" size="small">{{
+              item.available ? '已发布' : '暂不可用'
+            }}</ElTag>
+            <p>首次完成：{{ dateText(item.first_completed_at) }}</p>
+            <p>最近学习：{{ dateText(item.last_completed_at) }}</p></template
+          ></ElTableColumn
+        >
+        <ElTableColumn label="操作" :min-width="153"
+          ><template #default="{ row: item }"
+            ><RouterLink v-if="item.available" :to="`/listening/${item.id}/published-preview`"
+              >查看发布内容</RouterLink
+            ><span v-else>暂不可用 · 成绩保留</span></template
+          ></ElTableColumn
+        >
+      </ElTable>
+      <ElPagination
+        v-if="records.data.value.total > 20"
+        class="records-pagination"
+        :current-page="page"
+        :page-size="20"
+        :total="records.data.value.total"
+        :disabled="records.busy.value"
+        layout="total, prev, pager, next"
+        prev-text="上一页"
+        next-text="下一页"
+        @current-change="changePage"
+      />
     </div>
   </section>
 </template>
 <style scoped lang="scss">
 .article-records {
-  table {
-    table-layout: fixed;
-
-    th:first-child {
-      width: 42%;
-    }
-
-    th:nth-child(2) {
-      width: 40%;
-    }
-
-    th:last-child {
-      width: 18%;
-    }
-  }
-
-  td {
+  :deep(td[class~='el-table__cell']) {
     padding-top: 20px;
     padding-bottom: 20px;
     font-size: 12px;
   }
 
-  td > p {
+  :deep(.cell > p) {
     font-size: 11px;
     margin-top: 4px;
     color: var(--muted);
   }
 
-  .article-title {
-    p {
-      margin-top: 4px;
-      font-size: 12px;
-      color: var(--muted);
-    }
+  .article-title p {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .records-pagination {
+    justify-content: flex-end;
+    padding: 16px 20px;
   }
 }
 </style>

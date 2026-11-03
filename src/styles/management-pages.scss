@@ -1,0 +1,119 @@
+// 仅管理模块适配 Element Plus，阅读器和其他业务保留原主题
+.management-page,
+.management-dialog,
+.management-popper {
+  --el-text-color-primary: var(--ink);
+  --el-text-color-regular: var(--muted);
+  --el-border-color: var(--line);
+  --el-border-color-light: var(--line);
+  --el-border-color-lighter: var(--line);
+  --el-fill-color-blank: var(--paper);
+  --el-color-primary: var(--green);
+  --el-color-primary-light-9: var(--soft);
+
+  .el-button + .el-button {
+    margin-left: 0;
+  }
+
+  .el-button.is-link {
+    height: auto;
+    min-height: 0;
+    font-weight: inherit;
+  }
+
+  .el-card {
+    color: var(--ink);
+    border-color: var(--line);
+    border-radius: 12px;
+    box-shadow: none;
+  }
+
+  .el-tag {
+    font-weight: 400;
+    border: 0;
+    border-radius: 4px;
+    color: var(--green);
+    background: var(--soft);
+
+    &.offline,
+    &[class~='el-tag--info'] {
+      background: #eceee9;
+      color: #606a61;
+    }
+
+    &.draft,
+    &[class~='el-tag--warning'] {
+      background: #fff0db;
+      color: var(--amber);
+    }
+  }
+
+  .el-table {
+    --el-table-header-bg-color: #edf5e6;
+    --el-table-row-hover-bg-color: #f6f9f1;
+    --el-table-header-text-color: var(--muted);
+    --el-table-text-color: var(--ink);
+
+    font-family: inherit;
+    font-size: 13px;
+
+    table {
+      min-width: 0;
+      border-collapse: separate;
+    }
+
+    :where(th, td)[class~='el-table__cell'] {
+      padding: 0;
+      font-size: inherit;
+      vertical-align: middle;
+    }
+
+    :where(th)[class~='el-table__cell'] {
+      height: 58px;
+      font-weight: 500;
+    }
+
+    .cell {
+      padding: 0 14px;
+      line-height: 1.72;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .el-descriptions {
+    table {
+      min-width: 0;
+    }
+
+    td {
+      height: auto;
+      font-size: 12px;
+    }
+  }
+
+  .el-pagination {
+    gap: 12px;
+    font-weight: 400;
+    color: var(--muted);
+
+    button {
+      min-height: 40px;
+      width: auto;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      font: inherit;
+      background: var(--paper);
+
+      &:where(:hover:not(:disabled)) {
+        background: var(--soft);
+      }
+    }
+  }
+
+  .el-statistic {
+    --el-statistic-content-color: var(--ink);
+
+    font-family: inherit;
+  }
+}

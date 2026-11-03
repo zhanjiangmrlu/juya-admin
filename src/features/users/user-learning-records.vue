@@ -1,4 +1,15 @@
 <script setup lang="ts">
+import {
+  ElButton,
+  ElCollapse,
+  ElCollapseItem,
+  ElPagination,
+  ElTable,
+  ElTableColumn,
+  ElTabPane,
+  ElTabs,
+  ElTag
+} from 'element-plus'
 import { onMounted, ref } from 'vue'
 
 import AppState from '@/components/app-state/app-state.vue'
@@ -40,7 +51,8 @@ const checkins = useResource(() =>
 /** 分别保留两个记录标签的加载状态
  * @param value 目标标签
  */
-const switchTab = (value: 'learned' | 'listening' | 'checkins') => {
+const switchTab = (value: string | number) => {
+  if (value !== 'learned' && value !== 'listening' && value !== 'checkins') return
   tab.value = value
   if (value === 'checkins' && !checkins.data.value) void checkins.refresh()
 }
@@ -80,6 +92,30 @@ const expand = async (date: string) => {
     if (expanded.value === date) dayBusy.value = false
   }
 }
+/** 响应单项手风琴切换，关闭时让正在返回的明细失效
+ * @param value 当前展开的北京时间日期，空字符串代表全部关闭
+ */
+const changeDay = (value: string | number | (string | number)[]) => {
+  if (!value || Array.isArray(value)) {
+    expanded.value = ''
+    return
+  }
+  void expand(String(value))
+}
+/** 切换场景学习记录并读取所选页
+ * @param value 管理员选择的场景记录页码
+ */
+const changeLearnedPage = (value: number) => {
+  page.value = value
+  void learned.refresh()
+}
+/** 切换打卡记录并读取所选页
+ * @param value 管理员选择的打卡记录页码
+ */
+const changeCheckinPage = (value: number) => {
+  checkinPage.value = value
+  void checkins.refresh()
+}
 onMounted(() => {
   void learned.refresh()
 })
@@ -87,220 +123,167 @@ onMounted(() => {
 <template>
   <section class="panel learning-records">
     <h2>学习记录</h2>
-    <div class="tabs">
-      <button type="button" :class="{ active: tab === 'learned' }" @click="switchTab('learned')">
-        已学场景 {{ learned.data.value?.total ?? '' }}</button
-      ><button
-        type="button"
-        :class="{ active: tab === 'listening' }"
-        @click="switchTab('listening')"
-      >
-        已学听读</button
-      ><button type="button" :class="{ active: tab === 'checkins' }" @click="switchTab('checkins')">
-        打卡记录 {{ checkins.data.value?.total ?? '' }}
-      </button>
-    </div>
-    <div v-show="tab === 'learned'">
-      <AppState
-        :busy="learned.busy.value"
-        :error="learned.error.value"
-        :empty="learned.data.value?.total === 0"
-        empty-title="用户还没有学习记录"
-        empty-text="用户主动完成学习后，这里会显示真实记录"
-        @retry="learned.refresh"
-      />
-      <div v-if="learned.data.value && !learned.busy.value" class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>场景卡片</th>
-              <th>状态／首次完成／最近学习</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="card in learned.data.value.items" :key="card.id">
-              <td>
-                <div class="learned-card">
+    <ElTabs :model-value="tab" @tab-change="switchTab">
+      <ElTabPane :label="`已学场景 ${learned.data.value?.total ?? ''}`" name="learned">
+        <AppState
+          element-plus
+          :busy="learned.busy.value"
+          :error="learned.error.value"
+          :empty="learned.data.value?.total === 0"
+          empty-title="用户还没有学习记录"
+          empty-text="用户主动完成学习后，这里会显示真实记录"
+          @retry="learned.refresh"
+        />
+        <div v-if="learned.data.value && !learned.busy.value" class="table-wrap">
+          <ElTable :data="learned.data.value.items" row-key="id">
+            <ElTableColumn label="场景卡片" :min-width="349"
+              ><template #default="{ row: card }"
+                ><div class="learned-card">
                   <img
                     v-if="card.thumbnail_id"
                     :src="mediaURL(card.thumbnail_id)"
                     alt=""
-                  /><SceneTitle :name="card.name" :title-en="card.title_en" :show-missing="false" />
-                </div>
-              </td>
-              <td>
-                <span class="badge" :class="{ offline: !card.available }">{{
+                  /><SceneTitle
+                    :name="card.name"
+                    :title-en="card.title_en"
+                    :show-missing="false"
+                  /></div></template
+            ></ElTableColumn>
+            <ElTableColumn label="状态／首次完成／最近学习" :min-width="314"
+              ><template #default="{ row: card }"
+                ><ElTag :type="card.available ? 'success' : 'info'" size="small">{{
                   card.available
                     ? '已发布'
                     : card.unavailable_reason === 'deleted'
                       ? '已删除'
                       : '已下线'
-                }}</span>
+                }}</ElTag>
                 <p>首次：{{ dateText(card.first_completed_at) }}</p>
-                <p>最近：{{ dateText(card.last_completed_at) }}</p>
-              </td>
-              <td>
-                <button
+                <p>最近：{{ dateText(card.last_completed_at) }}</p></template
+              ></ElTableColumn
+            >
+            <ElTableColumn label="操作" :min-width="187"
+              ><template #default="{ row: card }"
+                ><ElButton
                   v-if="card.available"
-                  type="button"
-                  class="text"
+                  link
+                  type="primary"
                   @click="emit('preview', card.id)"
-                >
-                  查看发布内容</button
-                ><span v-else class="muted small">成绩保留</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-if="learned.data.value.total > 20" class="pagination">
-          <button
-            :disabled="page <= 1"
-            @click="
-              () => {
-                page--
-                learned.refresh()
-              }
-            "
-          >
-            上一页</button
-          ><span>第 {{ page }} 页</span
-          ><button
-            :disabled="page * 20 >= learned.data.value.total"
-            @click="
-              () => {
-                page++
-                learned.refresh()
-              }
-            "
-          >
-            下一页
-          </button>
-        </div>
-      </div>
-    </div>
-    <div v-show="tab === 'checkins'">
-      <AppState
-        :busy="checkins.busy.value"
-        :error="checkins.error.value"
-        :empty="checkins.data.value?.total === 0"
-        empty-title="用户还没有打卡记录"
-        empty-text="主动完成一张场景卡或一篇听读会自动计入当天打卡"
-        @retry="checkins.refresh"
-      />
-      <div v-if="checkins.data.value">
-        <div v-for="record in checkins.data.value.items" :key="record.date" class="checkin">
-          <button type="button" class="checkin-heading" @click="expand(record.date)">
-            <strong>{{ record.date }}</strong
-            ><span
-              >完成 {{ record.card_count }} 张场景卡 ·
-              {{ record.article_count ?? '暂未获取' }} 篇听读
-              {{ expanded === record.date ? '⌃' : '⌄' }}</span
+                  >查看发布内容</ElButton
+                ><span v-else class="muted small">成绩保留</span></template
+              ></ElTableColumn
             >
-          </button>
-          <div v-if="expanded === record.date" class="day-cards">
-            <AppState :busy="dayBusy" :error="dayError" @retry="expand(record.date)" />
-            <div v-for="card in day?.items" :key="card.id" class="between day-card">
-              <div>
-                <SceneTitle
-                  :name="card.name"
-                  :title-en="card.title_en"
-                  :show-missing="false"
-                /><small class="muted">{{ dateText(card.completed_at) }}</small>
-              </div>
-              <button
-                v-if="card.available"
-                type="button"
-                class="text"
-                @click="emit('preview', card.id)"
+          </ElTable>
+          <ElPagination
+            v-if="learned.data.value.total > 20"
+            class="records-pagination"
+            :current-page="page"
+            :page-size="20"
+            :total="learned.data.value.total"
+            :disabled="learned.busy.value"
+            layout="prev, pager, next"
+            prev-text="上一页"
+            next-text="下一页"
+            @current-change="changeLearnedPage"
+          />
+        </div>
+      </ElTabPane>
+      <ElTabPane label="已学听读" name="listening"
+        ><ListeningUserRecords v-if="tab === 'listening'" :user-id="userId"
+      /></ElTabPane>
+      <ElTabPane :label="`打卡记录 ${checkins.data.value?.total ?? ''}`" name="checkins">
+        <AppState
+          element-plus
+          :busy="checkins.busy.value"
+          :error="checkins.error.value"
+          :empty="checkins.data.value?.total === 0"
+          empty-title="用户还没有打卡记录"
+          empty-text="主动完成一张场景卡或一篇听读会自动计入当天打卡"
+          @retry="checkins.refresh"
+        />
+        <div v-if="checkins.data.value">
+          <ElCollapse :model-value="expanded" accordion @change="changeDay">
+            <ElCollapseItem
+              v-for="record in checkins.data.value.items"
+              :key="record.date"
+              :name="record.date"
+              class="checkin"
+            >
+              <template #title
+                ><div class="checkin-heading">
+                  <strong>{{ record.date }}</strong
+                  ><span
+                    >完成 {{ record.card_count }} 张场景卡 ·
+                    {{ record.article_count ?? '暂未获取' }} 篇听读</span
+                  >
+                </div></template
               >
-                查看发布版</button
-              ><span v-else class="muted">{{
-                card.unavailable_reason === 'deleted' ? '已删除 · 成绩保留' : '暂不可用 · 成绩保留'
-              }}</span>
-            </div>
-            <p v-if="articleDayError" class="notice error" role="alert">{{ articleDayError }}</p>
-            <div
-              v-for="item in articleDay?.article_items"
-              :key="`listening-${item.id}`"
-              class="between day-card"
-            >
-              <div>
-                <strong>{{ item.title_zh }}</strong>
-                <p>{{ item.title_en }}</p>
-                <small class="muted">{{ dateText(item.completed_at) }} · 听读</small>
+              <div v-if="expanded === record.date" class="day-cards">
+                <AppState
+                  element-plus
+                  :busy="dayBusy"
+                  :error="dayError"
+                  @retry="expand(record.date)"
+                />
+                <div v-for="card in day?.items" :key="card.id" class="between day-card">
+                  <div>
+                    <SceneTitle
+                      :name="card.name"
+                      :title-en="card.title_en"
+                      :show-missing="false"
+                    /><small class="muted">{{ dateText(card.completed_at) }}</small>
+                  </div>
+                  <ElButton
+                    v-if="card.available"
+                    link
+                    type="primary"
+                    @click="emit('preview', card.id)"
+                  >
+                    查看发布版</ElButton
+                  ><span v-else class="muted">{{
+                    card.unavailable_reason === 'deleted'
+                      ? '已删除 · 成绩保留'
+                      : '暂不可用 · 成绩保留'
+                  }}</span>
+                </div>
+                <p v-if="articleDayError" class="notice error" role="alert">
+                  {{ articleDayError }}
+                </p>
+                <div
+                  v-for="item in articleDay?.article_items"
+                  :key="`listening-${item.id}`"
+                  class="between day-card"
+                >
+                  <div>
+                    <strong>{{ item.title_zh }}</strong>
+                    <p>{{ item.title_en }}</p>
+                    <small class="muted">{{ dateText(item.completed_at) }} · 听读</small>
+                  </div>
+                  <RouterLink v-if="item.available" :to="`/listening/${item.id}/published-preview`"
+                    >查看发布内容</RouterLink
+                  ><span v-else class="muted">暂不可用 · 成绩保留</span>
+                </div>
               </div>
-              <RouterLink v-if="item.available" :to="`/listening/${item.id}/published-preview`"
-                >查看发布内容</RouterLink
-              ><span v-else class="muted">暂不可用 · 成绩保留</span>
-            </div>
-          </div>
+            </ElCollapseItem>
+          </ElCollapse>
+          <ElPagination
+            v-if="checkins.data.value.total > 20"
+            class="records-pagination"
+            :current-page="checkinPage"
+            :page-size="20"
+            :total="checkins.data.value.total"
+            :disabled="checkins.busy.value"
+            layout="prev, pager, next"
+            prev-text="上一页"
+            next-text="下一页"
+            @current-change="changeCheckinPage"
+          />
         </div>
-        <div v-if="checkins.data.value.total > 20" class="pagination">
-          <button
-            :disabled="checkinPage <= 1"
-            @click="
-              () => {
-                checkinPage--
-                checkins.refresh()
-              }
-            "
-          >
-            上一页</button
-          ><span>第 {{ checkinPage }} 页</span
-          ><button
-            :disabled="checkinPage * 20 >= checkins.data.value.total"
-            @click="
-              () => {
-                checkinPage++
-                checkins.refresh()
-              }
-            "
-          >
-            下一页
-          </button>
-        </div>
-      </div>
-    </div>
-    <ListeningUserRecords v-if="tab === 'listening'" :user-id="userId" />
+      </ElTabPane>
+    </ElTabs>
     <p class="records-note">后台查看内容为只读预览，不代用户完成、收藏或打卡。</p>
   </section>
 </template>
-<style scoped lang="scss">
-.checkin {
-  border-bottom: 1px solid var(--line);
-
-  .checkin-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    border: 0;
-    border-radius: 0;
-    padding: 18px 0;
-    background: none;
-    text-align: left;
-
-    span {
-      font-size: 12px;
-      color: var(--muted);
-    }
-  }
-
-  .day-cards {
-    padding: 0 18px 18px;
-    background: var(--soft);
-    border-radius: 8px;
-    margin-bottom: 12px;
-  }
-
-  .day-card {
-    padding-top: 14px;
-    font-size: 13px;
-  }
-}
-</style>
-
 <style scoped lang="scss">
 .learning-records {
   padding: 24px;
@@ -309,56 +292,30 @@ onMounted(() => {
     margin-bottom: 18px;
   }
 
-  .tabs {
-    gap: 22px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid var(--line);
-
-    button {
-      padding: 8px 0 12px;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-      font-size: 12px;
-    }
-
-    .active {
-      border-bottom: 2px solid var(--ink);
-      font-weight: 700;
-    }
-  }
-
   .records-note {
     margin-top: 12px;
     font-size: 11px;
     color: var(--muted);
   }
 
-  table {
-    table-layout: fixed;
+  .records-pagination {
+    justify-content: flex-end;
+    padding: 16px 20px;
+  }
 
-    th:first-child {
-      width: 41%;
-    }
+  :deep([class~='el-tabs__item']) {
+    font-size: 12px;
+  }
 
-    th:nth-child(2) {
-      width: 37%;
-    }
+  :deep(td[class~='el-table__cell']) {
+    font-size: 13px;
+    padding-top: 22px;
+    padding-bottom: 22px;
+  }
 
-    th:last-child {
-      width: 22%;
-    }
-
-    td {
-      font-size: 13px;
-      padding-top: 22px;
-      padding-bottom: 22px;
-    }
-
-    p {
-      font-size: 12px;
-      margin-top: 4px;
-    }
+  :deep(.cell > p) {
+    font-size: 12px;
+    margin-top: 4px;
   }
 
   .learned-card {
@@ -375,12 +332,57 @@ onMounted(() => {
     }
   }
 
+  :deep(.el-collapse) {
+    border: 0;
+  }
+
+  :deep([class~='el-collapse-item__header']) {
+    min-height: 60px;
+    height: auto;
+    border: 0;
+  }
+
+  :deep([class~='el-collapse-item__wrap']) {
+    border: 0;
+  }
+
+  :deep([class~='el-collapse-item__content']) {
+    padding-bottom: 0;
+  }
+
+  .checkin-heading span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
   .checkin {
     padding: 0 20px;
     border: 1px solid var(--line);
     border-radius: 10px;
     background: var(--paper);
     margin-top: 12px;
+
+    .checkin-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 18px 0;
+      gap: 8px;
+    }
+
+    .day-cards {
+      padding: 0 18px 18px;
+      background: var(--soft);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .day-card {
+      padding-top: 14px;
+      font-size: 13px;
+    }
   }
 }
 </style>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElButton, ElCard, ElForm, ElInput } from 'element-plus'
 import { computed } from 'vue'
 
 import { FEEDBACK_STATUS_LABELS } from '@/shared/constants/feedback'
@@ -35,46 +36,63 @@ const label = computed(() =>
 )
 </script>
 <template>
-  <form class="panel feedback-handle" @submit.prevent="$emit('send')">
-    <h2>回复与处理</h2>
-    <div class="status-grid" aria-label="明确处理动作">
-      <button
-        v-for="(statusLabel, value) in FEEDBACK_STATUS_LABELS"
-        :key="value"
-        type="button"
-        :data-status="value"
-        :disabled="value === 'pending' || busy || blocked"
-        :aria-pressed="status === value"
-        :class="{ current: current === value }"
-        @click="$emit('update:status', status === value ? '' : value)"
+  <ElCard class="panel feedback-handle" shadow="never"
+    ><ElForm @submit.prevent="$emit('send')">
+      <h2>回复与处理</h2>
+      <div class="status-grid" aria-label="明确处理动作">
+        <ElButton
+          v-for="(statusLabel, value) in FEEDBACK_STATUS_LABELS"
+          :key="value"
+          :data-status="value"
+          :disabled="value === 'pending' || busy || blocked"
+          :aria-pressed="status === value"
+          :class="{ current: current === value }"
+          @click="$emit('update:status', status === value ? '' : value)"
+        >
+          {{ statusLabel }}
+        </ElButton>
+      </div>
+      <p class="reply-help">
+        要求补充及标记已处理时请填写说明。用户追加说明后重新待处理。普通回复保留当前状态。
+      </p>
+      <label for="feedback-reply">回复内容</label>
+      <ElInput
+        id="feedback-reply"
+        type="textarea"
+        :model-value="text"
+        :disabled="busy || blocked"
+        :rows="8"
+        placeholder="请填写回复，方便用户继续核对。"
+        @update:model-value="$emit('update:text', $event)"
+      />
+      <p class="reply-count" :class="{ invalid: count > 500 }">{{ count }}／500</p>
+      <p v-if="['needs_info', 'resolved'].includes(status) && !count" class="small muted">
+        此动作需要填写说明或回复
+      </p>
+      <ElButton
+        native-type="submit"
+        type="primary"
+        class="block"
+        data-action="send-feedback"
+        :disabled="!valid"
       >
-        {{ statusLabel }}
-      </button>
-    </div>
-    <p class="reply-help">
-      要求补充及标记已处理时请填写说明。用户追加说明后重新待处理。普通回复保留当前状态。
-    </p>
-    <label for="feedback-reply">回复内容</label>
-    <textarea
-      id="feedback-reply"
-      :value="text"
-      :disabled="busy || blocked"
-      rows="8"
-      placeholder="请填写回复，方便用户继续核对。"
-      @input="$emit('update:text', ($event.target as HTMLTextAreaElement).value)"
-    />
-    <p class="reply-count" :class="{ invalid: count > 500 }">{{ count }}／500</p>
-    <p v-if="['needs_info', 'resolved'].includes(status) && !count" class="small muted">
-      此动作需要填写说明或回复
-    </p>
-    <button type="submit" class="primary block" data-action="send-feedback" :disabled="!valid">
-      {{ busy ? '正在确认…' : label }}
-    </button>
-  </form>
+        {{ busy ? '正在确认…' : label }}
+      </ElButton>
+    </ElForm></ElCard
+  >
 </template>
 <style scoped lang="scss">
 .feedback-handle {
   align-self: start;
+  padding: 0;
+
+  :deep([class~='el-card__body']) {
+    padding: 28px;
+  }
+
+  .el-button + .el-button {
+    margin-left: 0;
+  }
 
   h2 {
     font-weight: 700;
@@ -115,7 +133,7 @@ const label = computed(() =>
     margin-bottom: 10px;
   }
 
-  textarea {
+  :deep(textarea) {
     min-height: 220px;
     resize: vertical;
   }

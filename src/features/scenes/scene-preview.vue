@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ElButton } from 'element-plus'
+
 import type { components } from '@/shared/contracts/generated/admin-api'
 import type { ScenePronunciationContext } from '@/shared/types/scene-components'
 
@@ -15,6 +17,7 @@ defineEmits<{ close: []; publish: [] }>()
 <template>
   <ElDialog
     class="scene-preview"
+    :class="{ 'management-dialog': mode === 'published' }"
     :model-value="true"
     :title="
       mode === 'import'
@@ -41,19 +44,18 @@ defineEmits<{ close: []; publish: [] }>()
     <template #footer
       ><p v-if="error" class="notice error" role="alert">{{ error }}</p>
       <div class="row preview-footer">
-        <button type="button" :disabled="busy" @click="$emit('close')">
+        <ElButton :disabled="busy" @click="$emit('close')">
           {{
             mode === 'import' ? '返回核对' : mode === 'published' ? '关闭预览' : '返回修改'
-          }}</button
-        ><button
+          }}</ElButton
+        ><ElButton
           v-if="mode === 'draft'"
-          type="button"
-          class="primary"
+          type="primary"
           :disabled="busy"
           @click="$emit('publish')"
         >
           {{ busy ? '正在发布…' : '确认发布' }}
-        </button>
+        </ElButton>
       </div></template
     ></ElDialog
   >

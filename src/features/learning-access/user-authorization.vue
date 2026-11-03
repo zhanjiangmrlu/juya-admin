@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElButton, ElDatePicker, ElTag } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 
@@ -42,6 +43,12 @@ const choose = (value: typeof action.value) => {
   action.value = value
   preview.value = null
   error.value = ''
+}
+/** 将日期控件清空结果统一为字符串，避免向核对接口传递空对象
+ * @param value 管理员选择的到期日期或清空值
+ */
+const updateExpiry = (value: string | null | undefined) => {
+  expiresOn.value = typeof value === 'string' ? value : ''
 }
 /** 核对稳定用户、当前状态与最终日期，不修改授权 */
 const inspect = async () => {
@@ -117,7 +124,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
         <h2>学习授权</h2>
         <p>统一开放有效已发布场景、主题听读及正文点词。</p>
       </div>
-      <span class="badge">{{ labels[authorization.status] }}</span>
+      <ElTag :type="active ? 'success' : 'info'">{{ labels[authorization.status] }}</ElTag>
     </div>
     <div class="authorization-content">
       <dl>
@@ -131,43 +138,46 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
         </div>
       </dl>
       <div class="authorization-actions">
-        <button
-          type="button"
-          class="primary"
+        <ElButton
+          type="primary"
           :disabled="busy || operation.unknown.value || operation.busy.value"
           @click="openDefault"
         >
           {{ active ? '续期一个月' : '开通一个月' }}
-        </button>
-        <button
-          type="button"
+        </ElButton>
+        <ElButton
           :disabled="busy || operation.unknown.value || operation.busy.value"
           @click="choose('set_expiry')"
         >
           指定到期日
-        </button>
-        <button
+        </ElButton>
+        <ElButton
           v-if="active"
-          type="button"
-          class="danger"
+          type="danger"
+          plain
           :disabled="busy || operation.unknown.value || operation.busy.value"
           @click="openRevoke"
         >
           撤销授权
-        </button>
-        <button type="button" class="text small" @click="emit('historyRequested')">
-          查看操作记录
-        </button>
+        </ElButton>
+        <ElButton link size="small" @click="emit('historyRequested')"> 查看操作记录 </ElButton>
       </div>
     </div>
     <div v-if="action === 'set_expiry'" class="expiry-input">
       <label
-        >到期日期<input
-          v-model="expiresOn"
+        >到期日期<ElDatePicker
+          popper-class="management-popper"
+          :model-value="expiresOn"
           type="date"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
           aria-label="授权到期日期"
-          :disabled="busy || operation.unknown.value || operation.busy.value" /></label
-      ><button :disabled="busy || operation.unknown.value" @click="inspect">核对日期</button>
+          :disabled="busy || operation.unknown.value || operation.busy.value"
+          @update:model-value="updateExpiry"
+      /></label>
+      <ElButton :disabled="busy || operation.unknown.value || operation.busy.value" @click="inspect"
+        >核对日期</ElButton
+      >
     </div>
 
     <p v-if="error || operation.error.value" class="notice error" role="alert">
@@ -175,6 +185,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
     </p>
     <ElDialog
       v-if="preview"
+      class="management-dialog"
       :model-value="true"
       :title="actionLabels[confirmedAction]"
       width="520px"
@@ -198,14 +209,14 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
         {{ operation.error.value }}
       </p>
       <template #footer
-        ><button
+        ><ElButton
           :disabled="busy || operation.unknown.value || operation.busy.value"
           @click="cancel"
         >
-          取消</button
-        ><button v-if="operation.stale.value" class="primary" @click="refreshGrant">
-          刷新后重新核对</button
-        ><button v-else class="primary" :disabled="operation.busy.value" @click="save">
+          取消</ElButton
+        ><ElButton v-if="operation.stale.value" type="primary" @click="refreshGrant">
+          刷新后重新核对</ElButton
+        ><ElButton v-else type="primary" :disabled="operation.busy.value" @click="save">
           {{
             operation.busy.value
               ? '正在保存…'
@@ -213,7 +224,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', guard))
                 ? '查询／重试保存'
                 : '确认保存'
           }}
-        </button></template
+        </ElButton></template
       >
     </ElDialog>
   </section>

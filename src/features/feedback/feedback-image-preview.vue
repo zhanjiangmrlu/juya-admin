@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElButton, ElImage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 
 import AppState from '@/components/app-state/app-state.vue'
@@ -45,22 +46,23 @@ watch(
   <ElDialog
     :model-value="true"
     title="反馈截图"
+    class="management-dialog"
     width="min(1100px,95vw)"
     align-center
     append-to-body
     @close="emit('close')"
   >
-    <AppState :busy="busy" :error="error" @retry="renew" />
+    <AppState element-plus :busy="busy" :error="error" @retry="renew" />
     <div v-if="!error && source" class="feedback-image">
-      <img
+      <ElImage
         :src="source"
         alt="用户提交的反馈截图"
         @error="error = '截图地址可能已过期，请重新获取'"
       />
     </div>
     <template #footer
-      ><button :disabled="busy" @click="renew">重新获取截图</button
-      ><button @click="emit('close')">关闭</button></template
+      ><ElButton :disabled="busy" @click="renew">重新获取截图</ElButton
+      ><ElButton @click="emit('close')">关闭</ElButton></template
     >
   </ElDialog>
 </template>
@@ -70,7 +72,11 @@ watch(
   overflow: auto;
   text-align: center;
 
-  img {
+  .el-image {
+    max-width: 100%;
+  }
+
+  :deep(img) {
     max-width: 100%;
     height: auto;
   }

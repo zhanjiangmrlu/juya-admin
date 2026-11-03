@@ -144,3 +144,23 @@ it('uses the server fallback page after the current filter no longer has a secon
   expect(page.text()).toContain('共 20 位用户')
   page.unmount()
 })
+
+it('changes the visible list page while retaining filters, source and the fixed page size', async () => {
+  const { page, router } = await open()
+  await page
+    .findAll('button')
+    .find((button) => button.text() === '上一页')!
+    .trigger('click')
+  await flushPromises()
+  expect(router.currentRoute.value.query).toMatchObject({
+    search: 'Readonly',
+    registered: 'today',
+    checkin: 'unchecked',
+    page: '1',
+    from: 'statistics'
+  })
+  const query = new URL(request.mock.calls.at(-1)![0], 'https://example.test').searchParams
+  expect(query.get('limit')).toBe('20')
+  expect(query.get('page')).toBe('1')
+  page.unmount()
+})

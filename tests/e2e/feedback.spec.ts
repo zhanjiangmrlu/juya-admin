@@ -5,6 +5,7 @@ import type { FeedbackDetail } from '../../src/shared/types/feedback'
 const feedback: FeedbackDetail = {
   id: 'FB1001',
   user_id: 'U1001',
+  user_code: 'Juya001',
   category: 'content',
   status: 'pending',
   summary: '释义需要核对',
@@ -57,7 +58,23 @@ test('actual routed list preserves query and scroll when returning from a detail
     await route.fulfill({ json })
   })
   await page.goto('/feedback?status=pending&page=2')
-  await expect(page.locator('tbody tr')).toHaveCount(10)
+  await expect(page.locator('.el-table tbody tr')).toHaveCount(10)
+  const dimensions = await page.locator('.el-table').evaluate((table) => ({
+    width: table.getBoundingClientRect().width,
+    columns: [...table.querySelectorAll('thead th')].map(
+      (cell) => cell.getBoundingClientRect().width
+    ),
+    rows: [...table.querySelectorAll('tbody tr')].map((row) => row.getBoundingClientRect().height)
+  }))
+  for (const [index, ratio] of [0.15, 0.12, 0.34, 0.11, 0.17, 0.11].entries())
+    expect(Math.abs(dimensions.columns[index]! / dimensions.width - ratio)).toBeLessThan(0.003)
+  expect(dimensions.rows.every((height) => Math.abs(height - 93) <= 1)).toBe(true)
+  await expect(page.locator('tbody tr').first()).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+  await page.locator('tbody tr').first().hover()
+  await expect(page.locator('tbody tr').first().locator('td').first()).toHaveCSS(
+    'background-color',
+    'rgb(246, 249, 241)'
+  )
   await page.screenshot({ path: 'test-results/revision15-feedback-list.png', fullPage: true })
   await page.evaluate(() => window.scrollTo(0, 300))
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(300)
@@ -66,6 +83,27 @@ test('actual routed list preserves query and scroll when returning from a detail
   await page.screenshot({ path: 'test-results/revision15-feedback-detail.png', fullPage: true })
   await expect(page.locator('.feedback-source')).toContainText('来源已删除')
   await expect(page.locator('.feedback-source a')).toHaveCount(0)
+  await expect(page.locator('.feedback-layout > .el-card')).toHaveCount(2)
+  await expect(page.locator('.feedback-layout')).toHaveCSS('column-gap', '40px')
+  await page.getByRole('button', { name: '已处理', exact: true }).click()
+  await expect(page.getByRole('button', { name: '发送并标记已处理' })).toBeDisabled()
+  await page.getByLabel('回复内容').fill(`  ${'😀'.repeat(500)}  `)
+  await expect(page.locator('.reply-count')).toHaveText('500／500')
+  await expect(page.getByRole('button', { name: '发送并标记已处理' })).toBeEnabled()
+  await page.getByRole('button', { name: '已处理', exact: true }).click()
+  await expect(page.getByRole('button', { name: '发送回复', exact: true })).toBeEnabled()
+  await page.getByLabel('回复内容').fill('😀'.repeat(501))
+  await expect(page.getByRole('button', { name: '发送回复', exact: true })).toBeDisabled()
+  await page.getByRole('link', { name: '返回反馈列表' }).click()
+  const leaveDialog = page.getByRole('dialog', { name: '离开反馈处理？' })
+  await expect(leaveDialog).toBeVisible()
+  await leaveDialog.getByRole('button', { name: '继续编辑' }).click()
+  await expect(page.getByLabel('回复内容')).toHaveValue('😀'.repeat(501))
+  await page.getByLabel('回复内容').fill('')
+  await page.setViewportSize({ width: 1000, height: 1000 })
+  const cards = await page.locator('.feedback-layout > .el-card').all()
+  expect((await cards[1]!.boundingBox())!.y).toBeGreaterThan((await cards[0]!.boundingBox())!.y)
+  await page.setViewportSize({ width: 1440, height: 1000 })
   await page.getByRole('link', { name: '返回反馈列表' }).click()
   await expect(page).toHaveURL(/feedback\?status=pending&page=2$/)
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(300)
@@ -110,4 +148,66 @@ test('expired administrator login restores the same-owner draft without submitti
   expect(
     await page.evaluate(() => JSON.stringify({ ...sessionStorage, ...localStorage }))
   ).not.toContain('会话到期前的草稿')
+})
+
+test('failed private screenshots renew and open the custom dialog without the default image viewer', async ({
+  page
+}) => {
+  const image = {
+    id: 'private-image',
+    state: 'ready',
+    url: '/api/admin/v1/feedback/images/expired-grant',
+    content_type: 'image/png',
+    width: 300,
+    height: 200,
+    size: 68
+  }
+  await page.route('**/api/admin/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path.endsWith('/expired-grant')) {
+      await route.fulfill({ status: 403, body: '' })
+      return
+    }
+    if (path.endsWith('/renewed-grant')) {
+      await route.fulfill({
+        contentType: 'image/png',
+        body: Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=',
+          'base64'
+        )
+      })
+      return
+    }
+    const json = path.endsWith('/auth/session')
+      ? { id: 'admin-one', username: 'admin', csrf_token: 'synthetic-token' }
+      : path.endsWith('/private-image/url')
+        ? { ...image, url: '/api/admin/v1/feedback/images/renewed-grant' }
+        : { ...feedback, unread: false, events: [{ ...feedback.events[0], images: [image] }] }
+    await route.fulfill({ json })
+  })
+  await page.goto('/feedback/FB1001')
+  await page.getByRole('button', { name: '截图加载失败，点击重试' }).click()
+  await expect(page.getByAltText('查看反馈截图')).toBeVisible()
+  const thumbnailGeometry = await page.locator('.screenshot-button').evaluate((button) => {
+    const outer = button.getBoundingClientRect()
+    const image = button.querySelector('.el-image')!.getBoundingClientRect()
+    return {
+      buttonHeight: outer.height,
+      imageHeight: image.height,
+      top: image.top - outer.top,
+      bottom: outer.bottom - image.bottom
+    }
+  })
+  expect(thumbnailGeometry.imageHeight).toBe(100)
+  expect(thumbnailGeometry.buttonHeight).toBeGreaterThanOrEqual(100)
+  expect(thumbnailGeometry.top).toBeGreaterThanOrEqual(0)
+  expect(thumbnailGeometry.bottom).toBeGreaterThanOrEqual(0)
+  await page.getByRole('button', { name: '查看反馈截图' }).click()
+  const dialog = page.getByRole('dialog', { name: '反馈截图' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByAltText('用户提交的反馈截图')).toBeVisible()
+  await expect(page.locator('.el-image-viewer__wrapper')).toHaveCount(0)
+  await dialog.getByRole('button', { name: '关闭', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.locator('.feedback-message')).toContainText('请核对这句说明')
 })

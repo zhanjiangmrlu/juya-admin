@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElButton, ElCard, ElSkeleton, ElSkeletonItem, ElStatistic } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -57,6 +58,12 @@ const metrics = computed(
         : [])
     ] as const
 )
+/** 根据指标进入对应列表，统计尚未获取时禁止跳转
+ * @param metric 当前点击或键盘激活的统计指标及其目标筛选
+ */
+const openMetric = (metric: (typeof metrics.value)[number]) => {
+  if (data.value) void router.push({ path: metric.path, query: metric.query })
+}
 let active = true,
   foregroundPending = false
 /** 合并请求期间的前台事件，结算成功或失败后再读取一次服务器日期 */
@@ -85,15 +92,13 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
-  <div>
+  <div class="management-page">
     <div class="page-heading between">
       <div>
         <h1>数据统计</h1>
         <p>查看用户与两类学习内容的总体情况。</p>
       </div>
-      <button type="button" :disabled="busy" @click="refresh">
-        <AppIcon name="refresh" />刷新
-      </button>
+      <ElButton :disabled="busy" @click="refresh"> <AppIcon name="refresh" />刷新 </ElButton>
     </div>
     <div class="overview-period">
       <span>统计日期（北京时间）：{{ data?.statistical_date || '暂未获取' }}</span
@@ -103,28 +108,39 @@ onBeforeUnmount(() => {
         }}</span
       >
     </div>
-    <AppState :error="error" @retry="refresh" />
+    <AppState :error="error" element-plus @retry="refresh" />
     <div class="overview-grid">
-      <button
+      <ElCard
         v-for="metric in metrics"
         :key="metric.id"
-        type="button"
         class="overview-metric"
-        :disabled="!data"
+        shadow="never"
+        role="button"
+        :tabindex="data ? 0 : -1"
+        :aria-disabled="!data"
         :data-metric="metric.id"
-        @click="router.push({ path: metric.path, query: metric.query })"
+        @click="openMetric(metric)"
+        @keydown.enter.prevent="openMetric(metric)"
+        @keydown.space.prevent="openMetric(metric)"
       >
-        <span class="metric-title">{{ metric.label }}</span
-        ><span v-if="data" class="metric-number"
-          ><strong class="metric-value">{{ data[metric.key] }}</strong
-          ><small>{{ metric.unit }}</small></span
-        ><span
+        <span class="metric-title">{{ metric.label }}</span>
+        <div v-if="data" class="metric-number">
+          <ElStatistic class="metric-value" :value="data[metric.key]" group-separator="" />
+          <small>{{ metric.unit }}</small>
+        </div>
+        <ElSkeleton
           v-else-if="busy"
           class="metric-skeleton"
+          animated
           role="status"
           aria-label="正在加载统计"
-        /><span v-else class="unavailable">暂未获取</span
-        ><span class="metric-link"
+        >
+          <template #template>
+            <ElSkeletonItem class="metric-placeholder" />
+          </template>
+        </ElSkeleton>
+        <span v-else class="unavailable">暂未获取</span>
+        <span class="metric-link"
           >{{
             metric.id === 'cards'
               ? '查看已发布卡片'
@@ -135,9 +151,9 @@ onBeforeUnmount(() => {
                   : '查看全部用户'
           }}<AppIcon name="arrow" :size="16"
         /></span>
-      </button>
+      </ElCard>
     </div>
-    <section class="panel overview-notes">
+    <ElCard shadow="never" class="overview-notes">
       <h2>统计口径</h2>
       <p>用户按账号去重，重新登录和更新资料不重复计新增，不包含管理员。</p>
       <p>今日新增按北京时间注册日期计算，与今日打卡分开。</p>
@@ -146,10 +162,16 @@ onBeforeUnmount(() => {
       <p v-if="data && data.published_article_count === undefined">
         听读统计暂未获取，请刷新后核对。
       </p>
-    </section>
+    </ElCard>
   </div>
 </template>
 <style scoped lang="scss">
+.page-heading {
+  :deep([class~='el-button'] > span) {
+    gap: 7px;
+  }
+}
+
 .overview-period {
   display: flex;
   align-items: center;
@@ -166,16 +188,35 @@ onBeforeUnmount(() => {
 }
 
 .overview-metric {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  text-align: left;
-  padding: 23px;
   min-height: 191px;
+  border-color: var(--line);
   border-radius: 12px;
+  background: var(--paper);
+  cursor: pointer;
+  text-align: left;
 
-  &:disabled {
-    opacity: 1;
+  &[aria-disabled='true'] {
+    cursor: default;
+  }
+
+  &:hover {
+    background: var(--soft);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 3px;
+  }
+
+  :deep([class~='el-card__body']) {
+    display: flex;
+    min-height: 189px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 7px;
+    padding: 23px;
+    font-weight: 500;
+    line-height: 22px;
   }
 
   .metric-title {
@@ -191,6 +232,10 @@ onBeforeUnmount(() => {
   }
 
   .metric-value {
+    --el-statistic-content-font-size: 36px;
+    --el-statistic-content-font-weight: 500;
+    --el-statistic-content-color: var(--ink);
+
     font-size: 36px;
     line-height: 1.15;
     font-weight: 500;
@@ -217,8 +262,14 @@ onBeforeUnmount(() => {
   }
 
   .metric-skeleton {
-    background: #e8eee2;
-    animation: pulse 1.3s ease-in-out infinite alternate;
+    --el-skeleton-color: #e8eee2;
+    --el-skeleton-to-color: #dfe8d6;
+  }
+
+  .metric-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
   }
 
   .unavailable {
@@ -229,8 +280,14 @@ onBeforeUnmount(() => {
 }
 
 .overview-notes {
-  margin-top: 28px;
-  padding: 24px;
+  margin: 28px 0 24px;
+  border-color: var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+
+  :deep([class~='el-card__body']) {
+    padding: 24px;
+  }
 
   h2 {
     font-size: 18px;
@@ -242,12 +299,6 @@ onBeforeUnmount(() => {
     font-size: 12px;
     margin: 12px 0;
     line-height: 1.9;
-  }
-}
-
-@keyframes pulse {
-  to {
-    opacity: 0.45;
   }
 }
 </style>

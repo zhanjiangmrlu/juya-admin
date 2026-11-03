@@ -25,7 +25,7 @@ it('separates current published listening articles from scene counts and links t
   expect(page.get('[data-metric="cards"]').text()).toContain('3')
   expect(page.text()).toContain('已发布听读文章')
 })
-/** 挂载统计页及三个真实指标的路由目标
+/** 挂载统计页及用户、场景和听读指标的路由目标
  * @returns 统计组件和路由
  */
 const open = async () => {
@@ -34,7 +34,8 @@ const open = async () => {
     routes: [
       { path: '/statistics', component: StatisticsPage },
       { path: '/users', component: { template: '<p>用户</p>' } },
-      { path: '/cards', component: { template: '<p>卡片</p>' } }
+      { path: '/cards', component: { template: '<p>卡片</p>' } },
+      { path: '/listening', component: { template: '<p>听读</p>' } }
     ]
   })
   await router.push('/statistics?search=old&registered=today&checkin=checked&page=9')
@@ -106,7 +107,7 @@ it.each([
     )
     const { page, router } = await open()
     expect(page.findAll('.metric-value').map((item) => item.text())).toEqual(['0', '0', '0'])
-    expect(page.get(`[data-metric="${metric}"]`).attributes('disabled')).toBeUndefined()
+    expect(page.get(`[data-metric="${metric}"]`).attributes('aria-disabled')).toBe('false')
     await page.get(`[data-metric="${metric}"]`).trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.path).toBe(path)
@@ -123,7 +124,7 @@ it('shows unavailable after a first 503 and retries without inventing zero', asy
     .mockResolvedValueOnce(Response.json(snapshot))
   const { page } = await open()
   expect(page.findAll('.metric-value')).toHaveLength(0)
-  expect(page.findAll('.overview-metric:disabled')).toHaveLength(3)
+  expect(page.findAll('.overview-metric[aria-disabled="true"]')).toHaveLength(3)
   expect(page.text()).toContain('暂未获取')
   await page.get('[role=alert] button').trigger('click')
   await flushPromises()
@@ -177,6 +178,8 @@ it('keeps unknown metrics out of the UI and resets list filters when a metric is
   )
   await flushPromises()
   expect(page.text()).toContain('8')
+  expect(page.find('[data-metric="articles"]').exists()).toBe(false)
+  expect(page.text()).toContain('听读统计暂未获取，请刷新后核对')
   await page.get('[data-metric="new-users"]').trigger('click')
   await flushPromises()
   expect(router.currentRoute.value.path).toBe('/users')
@@ -187,4 +190,32 @@ it('keeps unknown metrics out of the UI and resets list filters when a metric is
   })
   expect(router.currentRoute.value.query.search).toBeUndefined()
   page.unmount()
+})
+
+for (const key of ['Enter', ' ']) {
+  it(`opens a published listening metric with the ${key === ' ' ? 'Space' : key} key`, async () => {
+    network.mockResolvedValue(Response.json({ ...snapshot, published_article_count: 0 }))
+    const { page, router } = await open()
+    const metric = page.get('[data-metric="articles"]')
+    expect(metric.attributes('role')).toBe('button')
+    expect(metric.attributes('tabindex')).toBe('0')
+    await metric.trigger('keydown', { key })
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/listening')
+    expect(router.currentRoute.value.query).toEqual({ status: 'published', from: 'statistics' })
+  })
+}
+
+it('keeps unavailable cards out of keyboard navigation and ignores activation', async () => {
+  network.mockResolvedValue(
+    Response.json({ error: { code: 'unavailable', message: '暂不可用' } }, { status: 503 })
+  )
+  const { page, router } = await open()
+  const metric = page.get('[data-metric="users"]')
+  expect(metric.attributes('tabindex')).toBe('-1')
+  await metric.trigger('keydown', { key: 'Enter' })
+  await metric.trigger('keydown', { key: ' ' })
+  await metric.trigger('click')
+  await flushPromises()
+  expect(router.currentRoute.value.path).toBe('/statistics')
 })
