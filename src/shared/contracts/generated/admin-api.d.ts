@@ -1691,7 +1691,9 @@ export interface paths {
     }
     /**
      * Read
-     * @description Recheck this owner's skipped candidates when their duplicate source changes.
+     * @description 重核本人的重复候选及旧来源确认问题，不改写候选正文
+     *
+     *     batch_id 为批次编号，request 提供当前时间，admin 为已鉴权管理员，db 为事务会话
      */
     get: operations['read_api_admin_v1_listening_imports__batch_id__get']
     put?: never
