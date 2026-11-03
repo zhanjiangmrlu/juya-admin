@@ -1,6 +1,11 @@
 import { expect, it } from 'vitest'
 
-import { sentenceOptions, vocabularyErrors, wordOptions } from './listening-vocabulary-model'
+import {
+  resolveVocabularySource,
+  sentenceOptions,
+  vocabularyErrors,
+  wordOptions
+} from './listening-vocabulary-model'
 
 it('keeps Unicode code point offsets and separate repeated sentences', () => {
   const body = '😀 Go home.\nGo home.'
@@ -14,7 +19,7 @@ it('keeps Unicode code point offsets and separate repeated sentences', () => {
     word: 'home'
   })
 })
-it('requires explicit source confirmation and invalidates stale body offsets', () => {
+it('accepts located inflected words without manual confirmation and invalidates stale offsets', () => {
   const word = {
     id: 'w',
     english: 'go',
@@ -31,7 +36,7 @@ it('requires explicit source confirmation and invalidates stale body offsets', (
       confirmed: false
     }
   }
-  expect(vocabularyErrors('He goes.', [word])).toContain('词汇1：请确认原句及词形对应')
+  expect(vocabularyErrors('He goes.', [word])).toEqual([])
   word.source.confirmed = true
   expect(vocabularyErrors('He goes.', [word])).toEqual([])
   expect(vocabularyErrors('😀 He goes.', [word])).toContain(
@@ -40,7 +45,7 @@ it('requires explicit source confirmation and invalidates stale body offsets', (
   expect(vocabularyErrors('He goes.', [])).toEqual([])
 })
 
-it('accepts a unique exact original word and requires confirmation when another source is possible', () => {
+it('accepts the specified exact source when the same word occurs elsewhere', () => {
   const word = {
     id: 'w',
     english: 'goes',
@@ -58,7 +63,7 @@ it('accepts a unique exact original word and requires confirmation when another 
     }
   }
   expect(vocabularyErrors('He goes.', [word])).toEqual([])
-  expect(vocabularyErrors('He goes. She goes.', [word])).toContain('词汇1：请确认原句及词形对应')
+  expect(vocabularyErrors('He goes. She goes.', [word])).toEqual([])
 })
 
 it('offers the exact server sentence boundaries and rejects partial sentence or invalid English entries', () => {
@@ -89,4 +94,91 @@ it('offers the exact server sentence boundaries and rejects partial sentence or 
       { ...word, english: 'Hello 123', source: { ...word.source, end: 6, quote: 'Hello.' } }
     ])
   ).not.toEqual([])
+})
+
+it.each([
+  ['😀 They went.', 'go', 'They went.', null],
+  [
+    '😀 They went.',
+    'go',
+    '😀 They  went.',
+    {
+      start: 0,
+      end: 12,
+      quote: '😀 They went.',
+      word_start: 7,
+      word_end: 11,
+      word: 'went',
+      confirmed: true
+    }
+  ],
+  [
+    'He studies.',
+    'study',
+    'He studies.',
+    {
+      start: 0,
+      end: 11,
+      quote: 'He studies.',
+      word_start: 3,
+      word_end: 10,
+      word: 'studies',
+      confirmed: true
+    }
+  ],
+  [
+    'We stopped.',
+    'stop',
+    'We stopped.',
+    {
+      start: 0,
+      end: 11,
+      quote: 'We stopped.',
+      word_start: 3,
+      word_end: 10,
+      word: 'stopped',
+      confirmed: true
+    }
+  ],
+  [
+    'He goes. He goes.',
+    'go',
+    'He goes.',
+    {
+      start: 0,
+      end: 8,
+      quote: 'He goes.',
+      word_start: 3,
+      word_end: 7,
+      word: 'goes',
+      confirmed: true
+    }
+  ],
+  ['He goes and went.', 'go', 'He goes and went.', null],
+  ['She plays.', 'go', 'She plays.', null],
+  ['He goes. She goes.', 'go', '', null]
+])('resolves only genuine current positions for %s', (body, english, source_hint, expected) => {
+  expect(
+    resolveVocabularySource(body, {
+      id: 'w',
+      english,
+      source_hint,
+      meaning: '释义',
+      phonetic: '',
+      source: null
+    })
+  ).toEqual(expected)
+})
+
+it('validates an older hint-only candidate without mutating its saved source', () => {
+  const word = {
+    id: 'w',
+    english: 'go',
+    meaning: '去',
+    phonetic: '',
+    source_hint: 'She goes.',
+    source: null
+  }
+  expect(vocabularyErrors('He goes. She goes.', [word])).toEqual([])
+  expect(word.source).toBeNull()
 })

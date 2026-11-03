@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ElButton, ElCheckbox, ElInput, ElOption, ElSelect } from 'element-plus'
+import { ElButton, ElInput, ElOption, ElSelect } from 'element-plus'
 import { computed, watch } from 'vue'
 
 import confirmedIcon from '@/assets/icons/vocabulary-confirmed.svg'
@@ -9,6 +9,7 @@ import {
 } from '@/composables/use-listening-pronunciation'
 
 import {
+  resolveVocabularySource,
   sentenceOptions,
   vocabularyErrors,
   type VocabularyWord,
@@ -54,25 +55,51 @@ const remove = (index: number) => {
   speech.stop()
   words.value = words.value.filter((_, i) => i !== index)
 }
-/** 选择当前正文中明确的一处原句，词形需重新确认
+/** 手动调整原句时自动匹配该句中的词形
  * @param item 正在编辑的独立词条
  * @param start 原句在当前正文中的码点位置
  */
 const selectSentence = (item: VocabularyWord, start: number) => {
   const source = sentences.value.find((sentence) => sentence.start === start)
+  item.source_hint = source?.quote || ''
   item.source = source
     ? { ...source, word_start: source.start, word_end: source.start, word: '', confirmed: false }
     : null
+  item.source = resolveVocabularySource(props.body, item) || item.source
 }
-/** 固定该句中的实际词形位置，不自动猜测词义
+/** 保存管理员调整后的真实词形位置
  * @param item 正在编辑的独立词条
  * @param start 管理员选中词形的正文绝对位置
  */
 const selectWord = (item: VocabularyWord, start: number) => {
   if (!item.source) return
   const word = wordOptions(props.body, item.source).find((word) => word.word_start === start)
-  if (word) item.source = { ...item.source, ...word, confirmed: false }
+  if (word) item.source = { ...item.source, ...word, confirmed: true }
 }
+/** 按当前正文更新词汇来源，无法匹配时保留文档原句供修正 */
+const matchSources = () => {
+  const next = words.value.map((item) => {
+    const matched = resolveVocabularySource(props.body, item)
+    // 手动指定原句后保留待选词形状态，未知变形也可以从真实正文中调整
+    const pending =
+      item.source &&
+      !item.source.word &&
+      sentences.value.some(
+        (sentence) =>
+          sentence.start === item.source!.start &&
+          sentence.end === item.source!.end &&
+          sentence.quote === item.source!.quote
+      )
+    const source = matched || (pending ? item.source : null)
+    return {
+      ...item,
+      source,
+      source_hint: item.source_hint || (!source ? item.source?.quote : '') || ''
+    }
+  })
+  if (JSON.stringify(next) !== JSON.stringify(words.value)) words.value = next
+}
+watch(() => [props.body, words.value], matchSources, { immediate: true, deep: true })
 watch(
   () => [props.body, props.pronunciation],
   () => speech.stop()
@@ -133,7 +160,7 @@ watch(
             v-model="item.english"
             :aria-label="`词汇${index + 1}英文`"
             :disabled="disabled"
-            @input="item.source && (item.source.confirmed = false)"
+            @input="item.source = null"
         /></label>
         <label class="field"
           ><span class="field-label">音标（选填）</span
@@ -147,9 +174,7 @@ watch(
             :disabled="disabled"
         /></label>
       </div>
-      <p v-if="!item.source && item.source_hint" class="notice">
-        文档原句待核对：{{ item.source_hint }}
-      </p>
+      <p v-if="!item.source && item.source_hint" class="notice">文档原句：{{ item.source_hint }}</p>
       <label class="field"
         ><span class="field-label">对应英文原句 *</span
         ><ElSelect
@@ -179,11 +204,8 @@ watch(
               v-for="word in wordOptions(body, item.source)"
               :key="word.word_start"
               :value="word.word_start"
-              :label="`${word.word}（位置${word.word_start}）`" /></ElSelect></label
-        ><ElCheckbox v-model="item.source.confirmed" :disabled="disabled || !item.source.word"
-          >确认采用本句及词形对应（{{ item.english }} →
-          {{ item.source.word || '待选择' }}）</ElCheckbox
-        >
+              :label="`${word.word}（位置${word.word_start}）`" /></ElSelect
+        ></label>
       </div>
       <p v-if="vocabularyErrors(body, [item]).length" class="notice error" role="alert">
         {{
@@ -265,24 +287,6 @@ watch(
     grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
     gap: 20px;
     align-items: center;
-
-    .el-checkbox {
-      min-width: 0;
-      height: auto;
-      margin-right: 0;
-      white-space: normal;
-    }
-  }
-
-  :deep([class~='el-checkbox__input']) {
-    flex-shrink: 0;
-  }
-
-  :deep([class~='el-checkbox__label']) {
-    min-width: 0;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    line-height: 1.6;
   }
 
   .source-confirmed {

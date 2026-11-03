@@ -256,7 +256,7 @@ onBeforeUnmount(() => {
     <div class="between">
       <div>
         <h1>卡片管理</h1>
-        <p class="muted small">调整全部已发布卡片顺序，仅影响学习列表展示。</p>
+        <p class="muted small">调整全部已发布卡片顺序；手机端免费卡片优先，同组内按此顺序展示。</p>
       </div>
       <div class="row">
         <button type="button" :disabled="saving" @click="close">取消排序</button

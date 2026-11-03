@@ -168,10 +168,7 @@ let alive = true,
 let managementTimer: ReturnType<typeof setTimeout> | null = null,
   managementGeneration = 0,
   managementChecks = 0
-const canSort = computed(
-  () => status.value === 'published' && !route.query.search && !route.query.batch_id
-)
-/** 进入全局排序前清空普通列表选择 */
+/** 从任意列表筛选进入完整已发布集合排序，并清空普通列表选择 */
 const enterSorting = () => {
   clearSelection()
   sorting.value = true
@@ -496,13 +493,7 @@ onBeforeUnmount(() => {
         <p>双语标题与当前发布状态同步至用户端。</p>
       </div>
       <div class="row">
-        <button
-          v-if="!sorting"
-          type="button"
-          :disabled="!canSort"
-          :title="canSort ? '调整全局已发布顺序' : '请筛选已发布并清除名称和本次导入条件'"
-          @click="enterSorting"
-        >
+        <button v-if="!sorting" type="button" title="调整全部已发布卡片顺序" @click="enterSorting">
           调整顺序</button
         ><RouterLink class="button-link" to="/imports">批量导入</RouterLink
         ><RouterLink class="button-link primary" to="/cards/new"

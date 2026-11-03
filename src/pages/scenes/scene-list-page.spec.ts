@@ -15,6 +15,47 @@ afterEach(() => {
   sessionStorage.clear()
 })
 
+it.each(['/cards', '/cards?status=draft', '/cards?search=coffee&batch_id=batch'])(
+  'opens global published sorting directly from %s and preserves the list filters',
+  async (path) => {
+    request.mockImplementation(async (url: string) => {
+      if (url === '/api/admin/v1/catalog-order') return { items: [], version: 'v1' }
+      if (url.startsWith('/api/admin/v1/cards?'))
+        return { items: [], total: 0, page: 1, limit: 10, total_pages: 0 }
+      return []
+    })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/cards', component: SceneListPage },
+        { path: '/:pathMatch(.*)*', component: { template: '<div />' } }
+      ]
+    })
+    await router.push(path)
+    const wrapper = mount(
+      { template: '<RouterView />' },
+      {
+        global: { plugins: [router], stubs: { ElDialog: true } }
+      }
+    )
+    await flushPromises()
+    const button = wrapper.findAll('button').find((item) => item.text() === '调整顺序')!
+    expect(button.attributes('disabled')).toBeUndefined()
+    await button.trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.catalog-order').exists()).toBe(true)
+    expect(request).toHaveBeenCalledWith('/api/admin/v1/catalog-order')
+    await wrapper
+      .findAll('button')
+      .find((item) => item.text() === '取消排序')!
+      .trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.catalog-order').exists()).toBe(false)
+    expect(router.currentRoute.value.fullPath).toBe(path)
+    wrapper.unmount()
+  }
+)
+
 it('filters with status segments and clears the previous page selection', async () => {
   request.mockImplementation(async (path: string) => {
     if (!path.startsWith('/api/admin/v1/cards?')) return []
