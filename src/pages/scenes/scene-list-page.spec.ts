@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { ElCheckbox, ElPagination, ElTable } from 'element-plus'
 import { afterEach, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 const { request } = vi.hoisted(() => ({ request: vi.fn() }))
@@ -93,7 +94,7 @@ it('filters with status segments and clears the previous page selection', async 
     }
   )
   await flushPromises()
-  await wrapper.get('input[aria-label="选择本页卡片"]').setValue(true)
+  await wrapper.get('[aria-label="选择本页卡片"] input').setValue(true)
   const draft = wrapper.findAll('button[aria-pressed]').find((button) => button.text() === '草稿')
   expect(draft, '草稿筛选应为可操作的分段按钮').toBeDefined()
   await draft!.trigger('click')
@@ -103,7 +104,7 @@ it('filters with status segments and clears the previous page selection', async 
     status: 'draft',
     page: '1'
   })
-  expect(wrapper.get('input[aria-label="选择本页卡片"]').element).toHaveProperty('checked', false)
+  expect(wrapper.get('[aria-label="选择本页卡片"] input').element).toHaveProperty('checked', false)
   expect(
     request.mock.calls.some(([path]) => path.includes('status=draft') && path.includes('limit=10'))
   ).toBe(true)
@@ -178,7 +179,7 @@ it.each(['offline', 'delete'] as const)(
       }
     )
     await flushPromises()
-    await wrapper.get('input[aria-label="选择本页卡片"]').setValue(true)
+    await wrapper.get('[aria-label="选择本页卡片"] input').setValue(true)
     await wrapper
       .findAll('button')
       .find((button) => button.text() === (action === 'offline' ? '批量下线' : '批量删除'))!
@@ -273,7 +274,7 @@ it('requests server pages of ten, clears selection on paging and shows real boun
   expect(
     request.mock.calls.find(([path]) => path.startsWith('/api/admin/v1/cards?'))?.[0]
   ).toContain('limit=10')
-  await wrapper.get('input[aria-label="选择本页卡片"]').setValue(true)
+  await wrapper.get('[aria-label="选择本页卡片"] input').setValue(true)
   expect(wrapper.text()).toContain('已选择 10 张')
   await wrapper
     .findAll('button')
@@ -510,7 +511,7 @@ it.each([false, true])(
     )
     try {
       await flushPromises()
-      await wrapper.get('input[aria-label="选择本页卡片"]').setValue(true)
+      await wrapper.get('[aria-label="选择本页卡片"] input').setValue(true)
       await wrapper
         .findAll('button')
         .find((button) => button.text() === '批量发布')!
@@ -659,4 +660,65 @@ it('offers an independent per-card free action and a read-only total', async () 
   expect(page.get('.free-access-control').text()).toContain('启用免费')
   expect(page.get('tbody').text()).toContain('需学习授权')
   page.unmount()
+})
+
+it('keeps controlled scene selection and resets it when Element Plus pagination changes page', async () => {
+  request.mockImplementation(async (path: string) => {
+    if (!path.startsWith('/api/admin/v1/cards?')) return []
+    const page = Number(new URL(path, 'http://test').searchParams.get('page'))
+    return {
+      items: ['one', 'two'].map((id) => ({
+        id: `${page}-${id}`,
+        display_name: id,
+        display_title_en: id,
+        status: 'published',
+        content: { name: id },
+        issues: [],
+        updated_at: ''
+      })),
+      total: 20,
+      page,
+      limit: 10,
+      total_pages: 2
+    }
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/cards', component: SceneListPage }]
+  })
+  await router.push('/cards?search=coffee&batch_id=batch')
+  const wrapper = mount(
+    {
+      template:
+        '<RouterView v-slot="{ Component }"><KeepAlive><component :is="Component" /></KeepAlive></RouterView>'
+    },
+    {
+      global: { plugins: [router], stubs: { ElDialog: true } }
+    }
+  )
+  try {
+    await flushPromises()
+    expect(wrapper.findComponent(ElTable).exists()).toBe(true)
+    await wrapper.get('[aria-label="选择 one"] input').setValue(true)
+    const all = wrapper
+      .findAllComponents(ElCheckbox)
+      .find((item) => item.attributes('aria-label') === '选择本页卡片')!
+    expect(all.props('indeterminate')).toBe(true)
+    await wrapper.get('[aria-label="选择本页卡片"] input').setValue(true)
+    expect(wrapper.text()).toContain('已选择 2 张')
+    await wrapper.get('[aria-label="选择本页卡片"] input').setValue(false)
+    expect(wrapper.text()).toContain('已选择 0 张')
+    await wrapper.get('[aria-label="选择 one"] input').setValue(true)
+    await wrapper.findComponent(ElPagination).get('.btn-next').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.query).toMatchObject({
+      search: 'coffee',
+      batch_id: 'batch',
+      page: '2'
+    })
+    expect(wrapper.text()).toContain('已选择 0 张')
+    expect(wrapper.findAll('tbody input:checked')).toHaveLength(0)
+  } finally {
+    wrapper.unmount()
+  }
 })

@@ -164,3 +164,19 @@ it('changes the visible list page while retaining filters, source and the fixed 
   expect(query.get('page')).toBe('1')
   page.unmount()
 })
+
+it.each([0, 5, 20])(
+  'keeps pagination visible and both directions disabled for %i users',
+  async (total) => {
+    request.mockImplementation(async (path: string) =>
+      path.includes('/users?') ? { ...rows, items: total ? [user] : [], total, page: 1 } : user
+    )
+    const { page } = await open()
+    await flushPromises()
+    expect(page.get('.user-pagination').text()).toContain(`共 ${total} 位用户`)
+    expect(page.find('.user-pagination .el-pagination').exists()).toBe(true)
+    expect(page.get('.user-pagination .btn-prev').attributes('disabled')).toBeDefined()
+    expect(page.get('.user-pagination .btn-next').attributes('disabled')).toBeDefined()
+    page.unmount()
+  }
+)

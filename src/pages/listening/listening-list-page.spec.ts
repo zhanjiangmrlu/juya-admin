@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { ElCheckbox, ElPagination, ElTable } from 'element-plus'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
@@ -242,5 +243,113 @@ it('selects the matching tab on the first click when returning to a cached artic
   } finally {
     page.unmount()
     scroll.mockRestore()
+  }
+})
+
+it('keeps controlled article selection and clears it on pagination and filter changes', async () => {
+  const original = network.getMockImplementation()!
+  network.mockImplementation(async (request: Request) => {
+    if (new URL(request.url).pathname.endsWith('/articles'))
+      return Response.json({ items: [article('1'), article('2')], total: 20, page: 1, limit: 10 })
+    return original(request)
+  })
+  const { page, router } = await open()
+  try {
+    expect(page.findComponent(ElTable).exists()).toBe(true)
+    await page.get('[aria-label="选择文章1"] input').setValue(true)
+    const all = page
+      .findAllComponents(ElCheckbox)
+      .find((item) => item.attributes('aria-label') === '全选当前页文章')!
+    expect(all.props('indeterminate')).toBe(true)
+    await page.get('[aria-label="全选当前页文章"] input').setValue(true)
+    expect(page.get('.selection-bar').text()).toContain('已选当前页 2 篇')
+    await page.get('[aria-label="全选当前页文章"] input').setValue(false)
+    expect(page.find('.selection-bar').exists()).toBe(false)
+    await page.get('[aria-label="选择文章1"] input').setValue(true)
+    await page.findComponent(ElPagination).get('.btn-next').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.query.page).toBe('2')
+    expect(page.find('.selection-bar').exists()).toBe(false)
+    await page.get('[aria-label="选择文章1"] input').setValue(true)
+    await page.get('.filters input[aria-label="搜索中英文标题"]').setValue('coffee')
+    await page.get('.filters').trigger('submit')
+    await flushPromises()
+    expect(router.currentRoute.value.query).toMatchObject({ q: 'coffee', page: '1' })
+    expect(page.find('.selection-bar').exists()).toBe(false)
+  } finally {
+    page.unmount()
+  }
+})
+
+it('refreshes real free membership without losing current selection or scroll position', async () => {
+  const original = network.getMockImplementation()!
+  let enabled = false
+  network.mockImplementation(async (request: Request) => {
+    const path = new URL(request.url).pathname
+    if (path.endsWith('/articles/2/free-access')) {
+      enabled = true
+      return Response.json({ is_free: true, revision: 2 })
+    }
+    if (path.endsWith('/articles'))
+      return Response.json({
+        items: [
+          article('1'),
+          { ...article('2'), is_free: enabled, free_revision: enabled ? 2 : 1 }
+        ],
+        total: 2,
+        page: 1,
+        limit: 10
+      })
+    if (path.endsWith('/free-policy'))
+      return Response.json({ article_ids: enabled ? ['1', '2'] : ['1'], revision: 1 })
+    return original(request)
+  })
+  const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+  Object.defineProperty(window, 'scrollY', { value: 420, configurable: true })
+  const { page, router } = await open()
+  try {
+    await page.get('tbody tr:nth-child(2) input').setValue(true)
+    await page.get('tbody tr:nth-child(2) .free-access-control button').trigger('click')
+    await flushPromises()
+    expect(page.get('tbody tr:nth-child(2)').text()).toContain('免费开放')
+    expect(page.get('.free-overview').text()).toContain('当前免费听读 2 篇')
+    expect(page.get('.selection-bar').text()).toContain('已选当前页 1 篇')
+    expect(router.currentRoute.value.fullPath).toBe('/listening')
+    expect(scroll).toHaveBeenLastCalledWith(0, 420)
+  } finally {
+    page.unmount()
+    scroll.mockRestore()
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
+  }
+})
+
+it('marks only failed article deletions and keeps retry limited to the original failures', async () => {
+  const original = network.getMockImplementation()!
+  network.mockImplementation(async (request: Request) => {
+    const path = new URL(request.url).pathname
+    if (path.endsWith('/batch-delete'))
+      return Response.json({ items: [{ id: '1', status: 'failed', error: '资料已变化' }] })
+    if (path.endsWith('/articles/1')) return Response.json(article('1'))
+    return original(request)
+  })
+  const { page } = await open()
+  try {
+    await page.get('tbody tr:first-child .danger').trigger('click')
+    await page
+      .findAll('button')
+      .find((button) => button.text() === '确认删除1篇')!
+      .trigger('click')
+    await flushPromises()
+    expect(page.get('tbody tr:first-child').classes()).toContain('failed-row')
+    expect(page.get('tbody tr:nth-child(2)').classes()).not.toContain('failed-row')
+    await page
+      .findAll('button')
+      .find((button) => button.text() === '刷新并重新确认原失败项')!
+      .trigger('click')
+    await flushPromises()
+    expect(page.get('.confirmation-objects').text()).toContain('文章1')
+    expect(page.get('.confirmation-objects').text()).not.toContain('文章2')
+  } finally {
+    page.unmount()
   }
 })

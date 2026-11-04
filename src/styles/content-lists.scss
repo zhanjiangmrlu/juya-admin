@@ -1,0 +1,139 @@
+/* stylelint-disable selector-pseudo-class-no-unknown -- 本文件仅编译到 Vue scoped 样式，使用其 :deep 语法 */
+// 仅由两个内容列表的 scoped 样式引用，不影响排序、编辑及预览区域
+:where(.content-list) {
+  .el-button {
+    height: auto;
+    margin: 0;
+    font: inherit;
+    line-height: 22px;
+    font-weight: 500;
+    border-radius: 9px;
+
+    &:disabled {
+      --el-button-disabled-text-color: var(--ink);
+      --el-button-disabled-bg-color: var(--paper);
+      --el-button-disabled-border-color: var(--line);
+    }
+
+    &.small {
+      font-size: 13px;
+    }
+
+    &.text {
+      border: 0;
+    }
+  }
+
+  .el-button:not(.text, .is-link, .primary) {
+    --el-button-text-color: var(--ink);
+    --el-button-border-color: var(--line);
+  }
+
+  .table-row-actions .el-button {
+    font: inherit;
+  }
+
+  .segments .el-button {
+    font-size: 13px;
+  }
+
+  .el-checkbox {
+    height: auto;
+    margin: 0;
+    color: var(--ink);
+    font-size: inherit;
+    font-weight: inherit;
+
+    :deep([class~='el-checkbox__inner']) {
+      width: 17px;
+      height: 17px;
+      border-color: #767676;
+      border-radius: 3px;
+
+      &::after {
+        left: 5px;
+        top: 2px;
+      }
+    }
+
+    :deep([class~='el-checkbox__label']) {
+      padding-left: 12px;
+      font: inherit;
+    }
+
+    :deep(.is-checked),
+    :deep(.is-indeterminate) {
+      [class~='el-checkbox__inner'] {
+        border-color: var(--muted);
+        background: var(--muted);
+      }
+    }
+  }
+
+  .el-table {
+    --el-table-header-bg-color: #edf5e6;
+    --el-table-row-hover-bg-color: #f6f9f1;
+    --el-table-header-text-color: var(--muted);
+    --el-table-text-color: var(--ink);
+
+    min-width: 850px;
+    font-family: inherit;
+    font-size: 13px;
+
+    :deep(table) {
+      min-width: 0;
+      border-collapse: separate;
+    }
+
+    :deep([class~='el-table__cell']) {
+      padding: 0;
+      vertical-align: middle;
+      font-size: inherit;
+    }
+
+    :deep(th[class~='el-table__cell']) {
+      font-weight: 500;
+    }
+
+    :deep(.cell) {
+      padding: 0 14px;
+      line-height: 1.72;
+      overflow-wrap: anywhere;
+      word-break: normal;
+    }
+
+    :deep(.list-select-cell .cell) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      overflow: visible;
+    }
+
+    :deep([class~='el-table__inner-wrapper']::before) {
+      display: none;
+    }
+  }
+
+  .el-pagination {
+    padding: 0;
+    gap: 12px;
+    font: inherit;
+    color: var(--ink);
+
+    :deep(button) {
+      width: auto;
+      height: auto;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--paper);
+      font: inherit;
+      line-height: 22px;
+
+      &:hover:where(:not(:disabled)) {
+        background: var(--soft);
+      }
+    }
+  }
+}

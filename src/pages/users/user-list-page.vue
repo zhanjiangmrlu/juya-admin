@@ -295,7 +295,6 @@ onBeforeUnmount(() => {
       <div v-if="data && !error" class="user-pagination">
         <span class="pagination-total">共 {{ data.total }} 位用户 · 注册时间倒序</span>
         <ElPagination
-          v-if="data.total > 20"
           :current-page="page"
           :page-size="20"
           :total="data.total"

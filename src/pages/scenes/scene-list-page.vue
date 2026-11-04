@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
+import {
+  ElButton,
+  ElCheckbox,
+  ElConfigProvider,
+  ElInput,
+  ElMessage,
+  ElPagination,
+  ElTable,
+  ElTableColumn
+} from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
@@ -35,6 +45,7 @@ const status = computed(() => String(route.query.status || 'all')),
 const freeChanged = async () => {
   const top = window.scrollY
   await refresh()
+  await nextTick()
   await nextTick()
   window.scrollTo(0, top)
 }
@@ -252,7 +263,9 @@ watch(data, (value) => {
 })
 watch(
   data,
-  () => {
+  async () => {
+    await nextTick()
+    await nextTick()
     if (focusedCard.value) {
       document
         .querySelector(`[data-card-id="${CSS.escape(focusedCard.value)}"]`)
@@ -288,30 +301,26 @@ const allSelected = computed(
 )
 /** 选择当前页可见卡片
  * @param id 当前卡片编号
- * @param event 管理员的勾选动作
+ * @param checked 管理员是否勾选当前卡片
  */
-const selectCard = (id: string, event: Event) => {
-  const input = event.target as HTMLInputElement
-  if (input.checked && !selected.value.includes(id)) {
+const selectCard = (id: string, checked: boolean) => {
+  if (checked && !selected.value.includes(id)) {
     if (selected.value.length >= 50) {
-      input.checked = false
       actionError.value = '一次最多选择50张，请先取消部分选择'
       return
     }
     selected.value = [...selected.value, id]
-  } else if (!input.checked) selected.value = selected.value.filter((value) => value !== id)
+  } else if (!checked) selected.value = selected.value.filter((value) => value !== id)
 }
 /** 本页全选只作用于当前显示集合
- * @param event 本页全选复选框变化
+ * @param checked 是否勾选当前页全部卡片
  */
-const selectPage = (event: Event) => {
-  const input = event.target as HTMLInputElement,
-    ids = data.value?.items.map((card) => card.id) || []
-  const next = input.checked
+const selectPage = (checked: boolean) => {
+  const ids = data.value?.items.map((card) => card.id) || []
+  const next = checked
     ? [...new Set([...selected.value, ...ids])]
     : selected.value.filter((id) => !ids.includes(id))
   if (next.length > 50) {
-    input.checked = false
     actionError.value = '一次最多选择50张，请先取消部分选择'
     return
   }
@@ -461,6 +470,8 @@ onActivated(async () => {
   void loadManagement()
   await refresh()
   await nextTick()
+  // 表格列注册后再次等待表体更新，确保恢复位置时页面已撑高
+  await nextTick()
   if (position?.path === route.fullPath && route.path === '/cards')
     window.scrollTo(position.left, position.top)
 })
@@ -484,272 +495,309 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div class="card-list-page">
-    <div v-if="!sorting" class="page-heading between">
-      <div>
-        <RouterLink v-if="route.query.from === 'statistics'" to="/statistics" class="back-link"
-          >‹ 返回数据统计</RouterLink
-        >
-        <h1>卡片管理</h1>
-        <p>双语标题与当前发布状态同步至用户端。</p>
-      </div>
-      <div class="row">
-        <button v-if="!sorting" type="button" title="调整全部已发布卡片顺序" @click="enterSorting">
-          调整顺序</button
-        ><RouterLink class="button-link" to="/imports">批量导入</RouterLink
-        ><RouterLink class="button-link primary" to="/cards/new"
-          ><AppIcon name="plus" />新建卡片</RouterLink
-        >
-      </div>
-    </div>
-    <SceneCatalogOrder v-if="sorting" @close="closeSorting" />
-    <div v-else class="card-list-content">
-      <div class="free-policy-bar between">
-        <span
-          ><strong>免费开放</strong
-          ><small v-if="data?.learning_policy">{{
-            `当前免费场景 ${data.learning_policy.actual_free_count} 张，其余场景需学习授权`
-          }}</small></span
-        ><small>在每条内容的操作区启用或关闭</small>
-      </div>
-      <p v-if="route.query.batch_id" class="notice between">
-        <span>本次导入 · 只显示本批已保存的卡片</span
-        ><button type="button" class="text" @click="filter({ batch_id: undefined })">
-          清除本次导入筛选
-        </button>
-      </p>
-      <form class="filters card-filters" @submit.prevent="filter({ search })">
-        <input
-          v-model="search"
-          type="search"
-          aria-label="搜索中文或英文标题"
-          placeholder="搜索中文或英文标题"
-        />
-        <button type="submit" class="primary">查询</button>
-        <div class="segments" aria-label="发布状态">
-          <button
-            v-for="item in [
-              { value: 'all', label: '全部' },
-              { value: 'published', label: '已发布' },
-              { value: 'draft', label: '草稿' },
-              { value: 'offline', label: '已下线' }
-            ]"
-            :key="item.value"
-            type="button"
-            :aria-pressed="status === item.value"
-            @click="filter({ status: item.value })"
-          >
-            {{ item.label }}
-          </button>
-        </div>
-      </form>
-      <div v-if="data?.items.length" class="selection-bar">
-        <label class="page-selection"
-          ><input
-            type="checkbox"
-            :checked="allSelected"
-            :indeterminate="selected.length > 0 && !allSelected"
-            aria-label="选择本页卡片"
-            @change="selectPage"
-          />选择本页</label
-        >
-        <span>已选择 {{ selected.length }} 张</span>
-        <div class="row">
-          <button type="button" class="small" :disabled="!selected.length" @click="openBatch()">
-            批量发布
-          </button>
-          <button
-            type="button"
-            class="small"
-            :disabled="!selected.length"
-            @click="openActions('offline')"
-          >
-            批量下线
-          </button>
-          <button
-            type="button"
-            class="small"
-            :disabled="!selected.length"
-            @click="openActions('delete')"
-          >
-            批量删除
-          </button>
-          <button v-if="selected.length" type="button" class="text small" @click="selected = []">
-            取消选择
-          </button>
-        </div>
-        <small>仅本页选择，不跨页累计</small>
-      </div>
-      <p v-if="actionError && !confirmation" class="notice error" role="alert">{{ actionError }}</p>
-      <AppState
-        :busy="busy"
-        :error="error"
-        :empty="data?.total === 0"
-        empty-title="暂无场景卡片"
-        empty-text="可以新建卡片，保存资料后预览并发布"
-        @retry="refresh"
-      />
-      <div v-if="data && data.total" class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th class="select-cell">选</th>
-              <th>场景卡片</th>
-              <th>状态</th>
-              <th>最近修改</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="card in data.items" :key="card.id" :data-card-id="card.id">
-              <td class="select-cell">
-                <input
-                  type="checkbox"
-                  :checked="selected.includes(card.id)"
-                  :aria-label="`选择 ${card.display_name || card.content.name}`"
-                  @change="selectCard(card.id, $event)"
-                />
-              </td>
-              <td>
-                <div class="row">
-                  <button
-                    v-if="card.display_image_id"
-                    type="button"
-                    class="thumbnail-button"
-                    :aria-label="`查看 ${card.display_name} 场景大图`"
-                    @click.stop="image = card"
-                  >
-                    <img
-                      v-if="
-                        thumbnailSource(card) &&
-                        !thumbnailErrors[card.display_thumbnail_id || card.display_image_id || '']
-                      "
-                      :src="thumbnailSource(card)"
-                      class="thumbnail"
-                      alt=""
-                      loading="lazy"
-                      @error="failThumbnail(card)"
-                    /><span v-else class="thumbnail-placeholder">{{
-                      thumbnailErrors[card.display_thumbnail_id || card.display_image_id || '']
-                        ? '缩略图加载失败'
-                        : '正在生成缩略图…'
-                    }}</span></button
-                  ><button
-                    v-if="thumbnailErrors[card.display_thumbnail_id || card.display_image_id || '']"
-                    type="button"
-                    class="text small thumbnail-retry"
-                    :aria-label="`重试 ${card.display_name} 缩略图`"
-                    @click.stop="retryThumbnail(card)"
-                  >
-                    重试</button
-                  ><span v-if="!card.display_image_id" class="small muted">暂无场景图</span>
-                  <div class="card-title-cell">
-                    <SceneTitle
-                      class="name"
-                      :name="card.display_name"
-                      :title-en="card.display_title_en"
-                    />
-                    <p
-                      v-if="card.status !== 'published' || !card.has_unpublished_changes"
-                      class="small muted"
-                    >
-                      {{ card.content.vocabulary?.length || 0 }} 个词汇 ·
-                      {{ card.content.chunks?.length || 0 }} 个语块
-                    </p>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="badge" :class="card.status">{{
-                  statusLabels[card.status] || card.status
-                }}</span
-                ><span v-if="card.is_free" class="badge">{{
-                  card.status === 'published' ? '免费开放' : '免费已开启 · 发布后生效'
-                }}</span
-                ><span v-else class="muted small">需学习授权</span>
-                <p
-                  v-if="card.status === 'published' && card.has_unpublished_changes"
-                  class="badge draft"
-                >
-                  有未发布修改
-                </p>
-                <p v-if="card.issues.length && card.status !== 'published'" class="small muted">
-                  待补充 {{ card.issues.length }} 项
-                </p>
-              </td>
-              <td>
-                <time class="card-modified"
-                  ><span>{{ dateText(card.updated_at).split(' ')[0] }}</span
-                  ><span>{{ dateText(card.updated_at).split(' ')[1] }}</span></time
-                >
-              </td>
-              <td>
-                <div class="table-row-actions">
-                  <FreeAccessControl
-                    :path="`/api/admin/v1/cards/${card.id}/free-access`"
-                    :is-free="card.is_free"
-                    :revision="card.free_revision"
-                    @changed="freeChanged"
-                  /><RouterLink :to="{ path: `/cards/${card.id}`, query: { back: route.fullPath } }"
-                    >编辑</RouterLink
-                  ><button
-                    v-if="card.status === 'published'"
-                    type="button"
-                    class="text small"
-                    @click="showPublished(card)"
-                  >
-                    查看效果</button
-                  ><button
-                    v-if="card.status === 'published'"
-                    type="button"
-                    class="text small"
-                    @click="ask(card, 'offline')"
-                  >
-                    下线</button
-                  ><button type="button" class="text danger small" @click="ask(card, 'delete')">
-                    删除
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div v-if="data && !error" class="pagination">
-        <span class="pagination-total">共 {{ data.total }} 张 · 每页10条</span
-        ><button :disabled="page <= 1 || busy" @click="filter({ page: page - 1 })">上一页</button
-        ><span v-if="data.total">第 {{ data.page }} / {{ data.total_pages }} 页</span
-        ><span v-else>暂无卡片</span
-        ><button :disabled="page >= data.total_pages || busy" @click="filter({ page: page + 1 })">
-          下一页
-        </button>
-      </div>
-      <div v-if="managementBatches.length || hasPendingAction" class="batch-history">
-        <button v-if="hasPendingAction" type="button" @click="openActions('delete')">
-          查询待确认管理操作
-        </button>
-        <details v-if="managementBatches.length">
-          <summary>最近批量管理操作</summary>
-          <div v-for="value in managementBatches" :key="value.id" class="between">
-            <span
-              >{{ dateText(value.created_at) }} · 批量{{
-                value.action === 'delete' ? '删除' : '下线'
-              }}
-              · {{ value.items.length }}张</span
-            ><button @click="openActions(value.action, value.id)">查看结果</button>
+    <ElConfigProvider v-if="!sorting" :locale="zhCn">
+      <div class="content-list">
+        <div class="page-heading between">
+          <div>
+            <RouterLink v-if="route.query.from === 'statistics'" to="/statistics" class="back-link"
+              >‹ 返回数据统计</RouterLink
+            >
+            <h1>卡片管理</h1>
+            <p>双语标题与当前发布状态同步至用户端。</p>
           </div>
-        </details>
-      </div>
-      <details v-if="batches.length" class="batch-history">
-        <summary>最近批量发布</summary>
-        <div v-for="batch in batches" :key="batch.id" class="between">
-          <span class="small">{{ dateText(batch.created_at) }} · {{ batchSummary(batch) }}</span
-          ><button type="button" class="text small" @click="openBatch(batch.id)">查看结果</button>
+          <div class="row">
+            <ElButton
+              v-if="!sorting"
+              native-type="button"
+              title="调整全部已发布卡片顺序"
+              @click="enterSorting"
+            >
+              调整顺序</ElButton
+            ><RouterLink class="button-link" to="/imports">批量导入</RouterLink
+            ><RouterLink class="button-link primary" to="/cards/new"
+              ><AppIcon name="plus" />新建卡片</RouterLink
+            >
+          </div>
         </div>
-      </details>
-      <p v-if="historyError" class="notice error">
-        发布记录暂未获取<button type="button" class="text" @click="loadBatches()">重新获取</button>
-      </p>
-    </div>
+        <div class="card-list-content">
+          <div class="free-policy-bar between">
+            <span
+              ><strong>免费开放</strong
+              ><small v-if="data?.learning_policy">{{
+                `当前免费场景 ${data.learning_policy.actual_free_count} 张，其余场景需学习授权`
+              }}</small></span
+            ><small>在每条内容的操作区启用或关闭</small>
+          </div>
+          <p v-if="route.query.batch_id" class="notice between">
+            <span>本次导入 · 只显示本批已保存的卡片</span
+            ><ElButton native-type="button" class="text" @click="filter({ batch_id: undefined })">
+              清除本次导入筛选
+            </ElButton>
+          </p>
+          <form class="filters card-filters" @submit.prevent="filter({ search })">
+            <ElInput
+              v-model="search"
+              type="search"
+              aria-label="搜索中文或英文标题"
+              placeholder="搜索中文或英文标题"
+            />
+            <ElButton native-type="submit" class="primary">查询</ElButton>
+            <div class="segments" aria-label="发布状态">
+              <ElButton
+                v-for="item in [
+                  { value: 'all', label: '全部' },
+                  { value: 'published', label: '已发布' },
+                  { value: 'draft', label: '草稿' },
+                  { value: 'offline', label: '已下线' }
+                ]"
+                :key="item.value"
+                native-type="button"
+                :aria-pressed="status === item.value"
+                @click="filter({ status: item.value })"
+              >
+                {{ item.label }}
+              </ElButton>
+            </div>
+          </form>
+          <div v-if="data?.items.length" class="selection-bar">
+            <ElCheckbox
+              class="page-selection"
+              :model-value="allSelected"
+              :indeterminate="selected.length > 0 && !allSelected"
+              aria-label="选择本页卡片"
+              @change="selectPage($event === true)"
+              >选择本页</ElCheckbox
+            >
+            <span>已选择 {{ selected.length }} 张</span>
+            <div class="row">
+              <ElButton
+                native-type="button"
+                class="small"
+                :disabled="!selected.length"
+                @click="openBatch()"
+              >
+                批量发布
+              </ElButton>
+              <ElButton
+                native-type="button"
+                class="small"
+                :disabled="!selected.length"
+                @click="openActions('offline')"
+              >
+                批量下线
+              </ElButton>
+              <ElButton
+                native-type="button"
+                class="small"
+                :disabled="!selected.length"
+                @click="openActions('delete')"
+              >
+                批量删除
+              </ElButton>
+              <ElButton
+                v-if="selected.length"
+                native-type="button"
+                class="text small"
+                @click="selected = []"
+              >
+                取消选择
+              </ElButton>
+            </div>
+            <small>仅本页选择，不跨页累计</small>
+          </div>
+          <p v-if="actionError && !confirmation" class="notice error" role="alert">
+            {{ actionError }}
+          </p>
+          <AppState
+            :busy="busy"
+            :error="error"
+            :empty="data?.total === 0"
+            empty-title="暂无场景卡片"
+            empty-text="可以新建卡片，保存资料后预览并发布"
+            @retry="refresh"
+          />
+          <div v-if="data && data.total" class="table-wrap">
+            <ElTable :data="data.items" row-key="id" class="scene-table" table-layout="fixed">
+              <!-- @vue-generic {CardView} -->
+              <ElTableColumn label="选" :min-width="4" align="center" class-name="list-select-cell"
+                ><template #default="{ row: card }"
+                  ><ElCheckbox
+                    :model-value="selected.includes(card.id)"
+                    :aria-label="`选择 ${card.display_name || card.content.name}`"
+                    @change="selectCard(card.id, $event === true)" /></template
+              ></ElTableColumn>
+              <!-- @vue-generic {CardView} -->
+              <ElTableColumn label="场景卡片" :min-width="34"
+                ><template #default="{ row: card }">
+                  <div class="row" :data-card-id="card.id">
+                    <ElButton
+                      v-if="card.display_image_id"
+                      native-type="button"
+                      class="thumbnail-button"
+                      :aria-label="`查看 ${card.display_name} 场景大图`"
+                      @click.stop="image = card"
+                    >
+                      <img
+                        v-if="
+                          thumbnailSource(card) &&
+                          !thumbnailErrors[card.display_thumbnail_id || card.display_image_id || '']
+                        "
+                        :src="thumbnailSource(card)"
+                        class="thumbnail"
+                        alt=""
+                        loading="lazy"
+                        @error="failThumbnail(card)"
+                      /><span v-else class="thumbnail-placeholder">{{
+                        thumbnailErrors[card.display_thumbnail_id || card.display_image_id || '']
+                          ? '缩略图加载失败'
+                          : '正在生成缩略图…'
+                      }}</span></ElButton
+                    ><ElButton
+                      v-if="
+                        thumbnailErrors[card.display_thumbnail_id || card.display_image_id || '']
+                      "
+                      native-type="button"
+                      class="text small thumbnail-retry"
+                      :aria-label="`重试 ${card.display_name} 缩略图`"
+                      @click.stop="retryThumbnail(card)"
+                    >
+                      重试</ElButton
+                    ><span v-if="!card.display_image_id" class="small muted">暂无场景图</span>
+                    <div class="card-title-cell">
+                      <SceneTitle
+                        class="name"
+                        :name="card.display_name"
+                        :title-en="card.display_title_en"
+                      />
+                      <p
+                        v-if="card.status !== 'published' || !card.has_unpublished_changes"
+                        class="small muted"
+                      >
+                        {{ card.content.vocabulary?.length || 0 }} 个词汇 ·
+                        {{ card.content.chunks?.length || 0 }} 个语块
+                      </p>
+                    </div>
+                  </div>
+                </template></ElTableColumn
+              >
+              <!-- @vue-generic {CardView} -->
+              <ElTableColumn label="状态" :min-width="20"
+                ><template #default="{ row: card }">
+                  <span class="badge" :class="card.status">{{
+                    statusLabels[card.status] || card.status
+                  }}</span
+                  ><span v-if="card.is_free" class="badge">{{
+                    card.status === 'published' ? '免费开放' : '免费已开启 · 发布后生效'
+                  }}</span
+                  ><span v-else class="muted small">需学习授权</span>
+                  <p
+                    v-if="card.status === 'published' && card.has_unpublished_changes"
+                    class="badge draft"
+                  >
+                    有未发布修改
+                  </p>
+                  <p v-if="card.issues.length && card.status !== 'published'" class="small muted">
+                    待补充 {{ card.issues.length }} 项
+                  </p>
+                </template></ElTableColumn
+              >
+              <!-- @vue-generic {CardView} -->
+              <ElTableColumn label="最近修改" :min-width="16"
+                ><template #default="{ row: card }">
+                  <time class="card-modified"
+                    ><span>{{ dateText(card.updated_at).split(' ')[0] }}</span
+                    ><span>{{ dateText(card.updated_at).split(' ')[1] }}</span></time
+                  >
+                </template></ElTableColumn
+              >
+              <!-- @vue-generic {CardView} -->
+              <ElTableColumn label="操作" :min-width="26"
+                ><template #default="{ row: card }">
+                  <div class="table-row-actions">
+                    <FreeAccessControl
+                      :path="`/api/admin/v1/cards/${card.id}/free-access`"
+                      :is-free="card.is_free"
+                      :revision="card.free_revision"
+                      @changed="freeChanged"
+                    /><RouterLink
+                      :to="{ path: `/cards/${card.id}`, query: { back: route.fullPath } }"
+                      >编辑</RouterLink
+                    ><ElButton
+                      v-if="card.status === 'published'"
+                      native-type="button"
+                      class="text small"
+                      @click="showPublished(card)"
+                    >
+                      查看效果</ElButton
+                    ><ElButton
+                      v-if="card.status === 'published'"
+                      native-type="button"
+                      class="text small"
+                      @click="ask(card, 'offline')"
+                    >
+                      下线</ElButton
+                    ><ElButton
+                      native-type="button"
+                      class="text danger small"
+                      @click="ask(card, 'delete')"
+                    >
+                      删除
+                    </ElButton>
+                  </div>
+                </template></ElTableColumn
+              >
+            </ElTable>
+          </div>
+          <div v-if="data && !error" class="pagination">
+            <span class="pagination-total">共 {{ data.total }} 张 · 每页10条</span>
+            <ElPagination
+              :current-page="page"
+              :page-size="10"
+              :total="data.total"
+              :disabled="busy"
+              layout="prev, slot, next"
+              prev-text="上一页"
+              next-text="下一页"
+              @current-change="filter({ page: $event })"
+            >
+              <span v-if="data.total">第 {{ data.page }} / {{ data.total_pages }} 页</span>
+              <span v-else>暂无卡片</span>
+            </ElPagination>
+          </div>
+          <div v-if="managementBatches.length || hasPendingAction" class="batch-history">
+            <ElButton v-if="hasPendingAction" native-type="button" @click="openActions('delete')">
+              查询待确认管理操作
+            </ElButton>
+            <details v-if="managementBatches.length">
+              <summary>最近批量管理操作</summary>
+              <div v-for="value in managementBatches" :key="value.id" class="between">
+                <span
+                  >{{ dateText(value.created_at) }} · 批量{{
+                    value.action === 'delete' ? '删除' : '下线'
+                  }}
+                  · {{ value.items.length }}张</span
+                ><ElButton @click="openActions(value.action, value.id)">查看结果</ElButton>
+              </div>
+            </details>
+          </div>
+          <details v-if="batches.length" class="batch-history">
+            <summary>最近批量发布</summary>
+            <div v-for="batch in batches" :key="batch.id" class="between">
+              <span class="small">{{ dateText(batch.created_at) }} · {{ batchSummary(batch) }}</span
+              ><ElButton native-type="button" class="text small" @click="openBatch(batch.id)"
+                >查看结果</ElButton
+              >
+            </div>
+          </details>
+          <p v-if="historyError" class="notice error">
+            发布记录暂未获取<ElButton native-type="button" class="text" @click="loadBatches()"
+              >重新获取</ElButton
+            >
+          </p>
+        </div>
+      </div>
+    </ElConfigProvider>
+    <SceneCatalogOrder v-else @close="closeSorting" />
     <SceneImagePreview v-if="image" :card="image" @close="image = null" @invalid="imageInvalid" />
     <SceneCardActions
       v-if="actionOpen"
@@ -804,6 +852,8 @@ onBeforeUnmount(() => {
   </div>
 </template>
 <style scoped lang="scss">
+@use '@/styles/content-lists';
+
 .free-policy-bar {
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -820,8 +870,11 @@ onBeforeUnmount(() => {
   margin-bottom: 20px;
   gap: 12px;
 
-  input {
-    max-width: 380px;
+  > .el-input {
+    --el-input-border-color: #ced9c5;
+
+    flex: 0 1 380px;
+    width: 380px;
   }
 
   .segments {
@@ -842,7 +895,7 @@ onBeforeUnmount(() => {
   .page-selection {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0;
     white-space: nowrap;
   }
 
@@ -863,51 +916,24 @@ onBeforeUnmount(() => {
     border-radius: 12px 12px 0 0;
   }
 
-  table {
-    table-layout: fixed;
-  }
+  .scene-table {
+    :deep(th[class~='el-table__cell']) {
+      height: 55px;
+    }
 
-  th:first-child {
-    width: 4%;
-  }
+    :deep(td[class~='el-table__cell']) {
+      height: 123px;
+      padding: 18px 0;
+    }
 
-  th:nth-child(2) {
-    width: 34%;
-  }
+    .thumbnail-retry {
+      padding: 6px 7px;
+      font-size: 13px;
+    }
 
-  th:nth-child(3) {
-    width: 20%;
-  }
-
-  th:nth-child(4) {
-    width: 16%;
-  }
-
-  th:last-child {
-    width: 26%;
-  }
-
-  th {
-    height: 54px;
-    padding-top: 14px;
-    padding-bottom: 14px;
-  }
-
-  tbody tr {
-    height: 123px;
-  }
-
-  td .badge + .badge {
-    margin-left: 5px;
-  }
-
-  td:last-child {
-    font-size: 13px;
-  }
-
-  td .thumbnail-retry {
-    padding: 6px 7px;
-    font-size: 13px;
+    :deep(.badge + .badge) {
+      margin-left: 5px;
+    }
   }
 
   .pagination {
