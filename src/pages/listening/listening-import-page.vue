@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { type ComponentPublicInstance, computed, nextTick, onMounted, ref, shallowRef } from 'vue'
+import {
+  type ComponentPublicInstance,
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  shallowRef
+} from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import AppFilePicker from '@/components/app-file-picker/app-file-picker.vue'
@@ -66,6 +74,9 @@ const pendingUpload = shallowRef<{
   form: FormData
   key: string
   revision: number
+  remaining: File[][]
+  completed: number
+  total: number
 } | null>(null)
 const pendingCandidate = shallowRef<ReturnType<
   typeof listeningRecoverableOperation<ImportBatch>
@@ -73,6 +84,10 @@ const pendingCandidate = shallowRef<ReturnType<
 const pendingSave = shallowRef<ReturnType<
   typeof listeningRecoverableOperation<ImportResult>
 > | null>(null)
+let disposed = false
+onBeforeUnmount(() => {
+  disposed = true
+})
 /** 持有当前展开的唯一候选表单实例，避免循环模板将引用收集为数组
  * @param value 当前挂载的候选表单实例，卸载时为空
  */
@@ -84,6 +99,7 @@ const setCandidateForm = (value: Element | ComponentPublicInstance | null) => {
  * @param defaults 是否重新选中所有可保存候选
  */
 const accept = (value: ImportBatch, defaults = false) => {
+  if (disposed) return
   batch.value = value
   result.value = null
   mode.value = value.mode === 'docx' ? 'docx' : 'zip'
@@ -110,7 +126,7 @@ const resume = async (id: string) => {
   error.value = ''
   try {
     accept(await listeningRequest<ImportBatch>(`/imports/${id}`), true)
-    step.value = candidates.value.length ? 2 : 1
+    step.value = pendingUpload.value ? 1 : candidates.value.length ? 2 : 1
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '批次恢复失败'
   } finally {
@@ -125,27 +141,58 @@ const ensureBatch = async () => {
     accept(await listeningOperation<ImportBatch>('POST', '/imports', { mode: mode.value })())
   return batch.value!
 }
-/** 发送当前上传操作，网络未知时保留同键重试 */
+/** 为当前资料组冻结重试内容
+ * @param groups 尚未上传的资料组
+ * @param revision 当前服务端批次版本
+ * @param completed 已确认暂存的资料组数
+ * @param total 本轮选择的资料组总数
+ */
+const prepareUpload = (groups: File[][], revision: number, completed: number, total: number) => {
+  const files = groups[0]!,
+    form = new FormData()
+  for (const file of files) form.append('files', file)
+  uploadPercent.value = null
+  pendingUpload.value = {
+    files,
+    form,
+    key: crypto.randomUUID(),
+    revision,
+    remaining: groups.slice(1),
+    completed,
+    total
+  }
+}
+/** 逐包发送ZIP并保存进度，当前包响应未知时保留原键及后续队列 */
 const sendUpload = async () => {
   if (!pendingUpload.value || !batch.value) return
   busy.value = true
   error.value = ''
   try {
-    const value = await api.upload<ImportBatch>(
-      `${listeningBase}/imports/${batch.value.id}/files?revision=${pendingUpload.value.revision}`,
-      pendingUpload.value.form,
-      pendingUpload.value.key,
-      (progress) => {
-        uploadPercent.value = progress.percent
-        uploadText.value =
-          progress.percent === null
-            ? `已传输 ${progress.loaded} 字节`
-            : `已传输 ${progress.percent}%${progress.percent === 100 ? '，服务端正在解析及处理素材' : ''}`
+    while (pendingUpload.value) {
+      const current = pendingUpload.value
+      uploadText.value = `正在上传第 ${current.completed + 1}/${current.total} 组资料`
+      const value = await api.upload<ImportBatch>(
+        `${listeningBase}/imports/${batch.value.id}/files?revision=${current.revision}`,
+        current.form,
+        current.key,
+        (progress) => {
+          uploadPercent.value = progress.percent
+          const transferred =
+            progress.percent === null
+              ? `已传输 ${progress.loaded} 字节`
+              : `已传输 ${progress.percent}%${progress.percent === 100 ? '，服务端正在解析及处理素材' : ''}`
+          uploadText.value = `第 ${current.completed + 1}/${current.total} 组资料 · ${transferred}`
+        }
+      )
+      if (disposed) return
+      accept(value, true)
+      if (current.remaining.length) {
+        prepareUpload(current.remaining, value.revision, current.completed + 1, current.total)
+      } else {
+        pendingUpload.value = null
       }
-    )
-    accept(value, true)
+    }
     uploadText.value = '资料已在服务端暂存，请核对真实读取结果'
-    pendingUpload.value = null
     step.value = candidates.value.length ? 2 : 1
   } catch (reason) {
     error.value =
@@ -158,15 +205,14 @@ const sendUpload = async () => {
  * @param files 管理员明确选择或拖入的文件
  */
 const uploadFiles = async (files: File[]) => {
-  if (!files.length || busy.value || pendingSave.value) return
+  if (!files.length || busy.value || pendingSave.value || pendingUpload.value) return
   busy.value = true
   error.value = ''
   try {
-    const value = await ensureBatch(),
-      form = new FormData()
-    for (const file of files) form.append('files', file)
-    uploadPercent.value = null
-    pendingUpload.value = { files, form, key: crypto.randomUUID(), revision: value.revision }
+    const value = await ensureBatch()
+    if (disposed) return
+    const groups = value.mode === 'zip' ? files.map((file) => [file]) : [files]
+    prepareUpload(groups, value.revision, 0, groups.length)
     await sendUpload()
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '创建批次失败'
@@ -382,9 +428,14 @@ const clearSelection = () => {
   selected.value = []
   preview.value = null
 }
-onBeforeRouteLeave(
-  () => !editing.value || window.confirm('当前候选修改尚未暂存，离开将放弃这部分修改，是否继续？')
-)
+onBeforeRouteLeave(() => {
+  if (
+    pendingUpload.value &&
+    !window.confirm('仍有资料尚未确认上传，离开后需要重新选择未完成的文件，是否继续？')
+  )
+    return false
+  return !editing.value || window.confirm('当前候选修改尚未暂存，离开将放弃这部分修改，是否继续？')
+})
 onMounted(async () => {
   busy.value = true
   try {
@@ -451,7 +502,9 @@ onMounted(async () => {
             :label="mode === 'zip' ? '选择ZIP文件' : '选择DOCX及配套资料'"
             :accept="mode === 'zip' ? '.zip' : '.docx,.mp3,.m4a,.wav,.aac,.png,.jpg,.jpeg,.webp'"
             multiple
-            :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
+            :disabled="
+              busy || Boolean(pendingUpload) || Boolean(pendingSave) || Boolean(pendingCandidate)
+            "
             @change="chooseFiles"
           />
         </div>
@@ -481,12 +534,17 @@ onMounted(async () => {
               ><span>{{ busy ? '正在传输 / 读取' : '结果待确认' }}</span>
             </div>
             <p class="muted small">
-              {{ (file.size / 1024 / 1024).toFixed(2) }} MB · 本次合并传输
+              {{ (file.size / 1024 / 1024).toFixed(2) }} MB ·
+              {{ mode === 'zip' ? '当前资料包' : 'DOCX与配套素材一起传输' }}
               {{ uploadPercent === null ? '进度由浏览器实时回传' : `${uploadPercent}%` }}
             </p>
             <progress v-if="uploadPercent !== null" :value="uploadPercent" max="100" />
             <p class="muted small">{{ uploadText }}</p>
           </div>
+          <p v-if="pendingUpload.remaining.length" class="muted small">
+            已完成 {{ pendingUpload.completed }}/{{ pendingUpload.total }} 组，另有
+            {{ pendingUpload.remaining.length }} 组等待上传
+          </p>
         </div>
         <div v-if="batch?.packages.length" class="package-queue">
           <h3>已暂存资料包</h3>
@@ -507,7 +565,9 @@ onMounted(async () => {
         <button
           v-if="candidates.length"
           class="primary"
-          :disabled="busy || Boolean(pendingSave) || Boolean(pendingCandidate)"
+          :disabled="
+            busy || Boolean(pendingUpload) || Boolean(pendingSave) || Boolean(pendingCandidate)
+          "
           @click="step = 2"
         >
           继续核对 {{ candidates.length }} 项
