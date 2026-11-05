@@ -5,5 +5,5 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   plugins: [vue()],
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
-  test: { environment: 'jsdom', include: ['src/**/*.spec.ts'], maxWorkers: 1 }
+  test: { environment: 'jsdom', include: ['tests/unit/**/*.spec.ts'], maxWorkers: 1 }
 })

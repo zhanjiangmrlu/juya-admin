@@ -6,6 +6,8 @@
 
 Node.js22.22+（22系列）、pnpm11.25.0。复制 `.env.example` 配置本地管理 API。使用 `pnpm install`、`pnpm dev` 启动；`pnpm check`、`pnpm test`、`pnpm build` 验证。
 
+测试统一放在与 `src` 同级的 `tests/` 目录：`tests/unit/` 存放单元测试，并镜像 `src/` 的业务目录结构；`tests/e2e/` 存放 Playwright 端到端测试。单元测试通过 `@/` 导入被测源码，运行 `pnpm test`；端到端测试运行 `pnpm test:e2e`。
+
 后端 `scripts/export-openapi.py` 导出管理端契约后，将 `openapi/admin.json` 更新到本仓库，再运行 `pnpm generate:api`。页面类型直接使用生成契约，不兼容旧接口。
 
 已接通登录、Cookie会话恢复、CSRF、真实上传进度、手动编辑、来源片段、草稿及发布快照、下线删除、只读用户与记录、三项统计。保留真实 ZIP／DOCX 导入、批量发布、全局排序、双语标题及音频处理流程。字体和设计图标本地化；图片与音频通过鉴权接口加载。

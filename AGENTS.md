@@ -32,7 +32,7 @@
    - **保留框架和工具约定的名称，例如 `App.vue`、`env.d.ts`、`index.ts`；自动生成的契约文件按生成工具约定命名，不手动改名。**
    - **组件导入变量、显式声明的组件名称和 Vue 模板中的组件标签统一使用 `PascalCase`，例如 `AppPagination`、`UserRelatedRecords`；文件名仍使用 `kebab-case`。**
    - **路由页面放在 `src/pages/<业务目录>/`，使用“业务名称 + 页面用途 + `-page.vue`”命名，例如 `users/user-list-page.vue`、`users/user-detail-page.vue`。**
-   - **跨业务复用的公共组件放在 `src/components/`，沿用“同名目录 + 同名文件”的结构，例如 `app-pagination/app-pagination.vue`，测试与组件放在同一目录；业务专用组件放在对应的 `src/features/<业务目录>/`。**
+   - **跨业务复用的公共组件放在 `src/components/`，沿用“同名目录 + 同名文件”的结构，例如 `app-pagination/app-pagination.vue`；业务专用组件放在对应的 `src/features/<业务目录>/`。测试统一放在与 `src` 同级的 `tests/` 目录，单元测试放在 `tests/unit/` 并镜像 `src/` 的业务目录结构，端到端测试放在 `tests/e2e/`。**
    - **新增基础公共组件统一使用 `app-` 前缀，例如 `app-button.vue`；业务组件使用“业务名称 + 职责”命名，例如 `scene-preview.vue`、`user-related-records.vue`，避免 `common.vue`、`item.vue` 等含义不明确的名称。**
    - **Composable 文件使用 `use-xxx.ts`，导出的组合式函数使用 `useXxx`，例如 `use-user-list.ts` 对应 `useUserList`；普通变量和函数使用 `camelCase`。**
    - **业务文件后缀应体现实际职责，沿用 `-model.ts`、`-adapter.ts`、`-store.ts` 等已有约定；测试文件与被测文件同名并使用 `.spec.ts`，例如 `app-pagination.spec.ts`、`use-user-list.spec.ts`。**
