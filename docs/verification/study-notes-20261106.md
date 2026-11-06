@@ -11,7 +11,7 @@
 Node22.23.3；本地完成：
 
 - `pnpm check`
-- `pnpm test`：62文件305项通过，保留既有jsdom音频pause提示
+- `pnpm test`：62文件310项通过，保留既有jsdom音频pause提示
 - `pnpm build`
 - 相关Playwright：6项通过，含5项隔离SQLite/API/worker真实上传发布及ZIP流程，1项受控网络状态边界
 
@@ -32,4 +32,6 @@ fixture目录需要私有credentials.json（username/password/cardId/versionId/o
 
 本次仅本地实现与验证，未推送、部署、上传OSS或微信，未迁移既有业务数据库。
 
-两轮独立复审已关闭全部前端阻断。最终浏览器合集明确使用Task1b最终内部修复后的隔离API/worker，6/6通过，包含旧ZIP更新已有set(B)/unresolved与未存B→坏C→保存→重开→取消路径。headful Chrome另已目视确认真实PDF正文与1/1页。证据保留在私有fixture的evidence目录；本次临时8392/8393服务验证后关闭，既有5173/8291保持。
+整合07最终审查及定向复审确认，旧 ZIP 按已选目标展示有效附件及待处理状态，改选或清空目标会淘汰旧目标的轮询结果。空文件、超限及非PDF名称分别提示，旧 B 保留，尝试重试不会误发 B。包内选择 D 后显示并保存 D，取消可还原 C 的错误和有效 B。
+
+最终浏览器合集使用本轮修复后的隔离API/worker，6/6通过，包含旧ZIP更新已有set(B)/unresolved与未存B→坏C→保存→重开→取消路径。headful Chrome另已目视确认真实PDF正文与1/1页。证据保留在私有fixture的evidence目录；本次临时8392/8393服务验证后关闭，既有5173/8291保持。

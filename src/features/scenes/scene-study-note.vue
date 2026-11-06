@@ -20,6 +20,7 @@ type SelectionSnapshot = {
   file: File | null
   key: string
   unknown: boolean
+  rejection: string
   previous: SelectionSnapshot | null
 }
 const props = defineProps<{
@@ -37,6 +38,7 @@ const emit = defineEmits<{
 const selected = ref<File | null>(null),
   accepted = ref<Media | null>(null),
   error = ref(''),
+  rejection = ref(''),
   busy = ref(false),
   transferring = ref(false),
   viewId = ref(''),
@@ -109,6 +111,7 @@ const remember = () => {
     file: selected.value,
     key,
     unknown,
+    rejection: rejection.value,
     previous
   }
 }
@@ -119,6 +122,7 @@ const stop = () => {
   busy.value = false
   transferring.value = false
   error.value = ''
+  rejection.value = ''
   unknown = false
 }
 /** 查询已接收的PDF，取消后的迟到状态不得重新关联
@@ -147,7 +151,7 @@ const poll = async (media: Media, token: number) => {
 }
 /** 复用同一上传键恢复未知收据，收到编号即可保存待处理草稿 */
 const send = async () => {
-  if (busy.value || (!selected.value && !accepted.value)) return
+  if (busy.value || rejection.value || (!selected.value && !accepted.value)) return
   const token = generation
   busy.value = true
   error.value = ''
@@ -221,6 +225,7 @@ const cancel = () => {
   if (restore) {
     key = restore.key
     unknown = restore.unknown
+    rejection.value = restore.rejection
   }
   change(restore?.decision || { action: 'keep' })
 }
@@ -244,6 +249,7 @@ const selectCandidate = (value: string | number | boolean | undefined) => {
   stop()
   const candidate = props.draft?.candidates?.find((item) => item.media_id === value)
   if (!candidate?.media_id) return
+  selected.value = null
   accepted.value = {
     id: candidate.media_id,
     state: candidate.state,
@@ -264,17 +270,19 @@ const choose = (event: Event) => {
     file = input.files?.[0]
   input.value = ''
   if (!file) return
-  if (!file.size || file.size > props.limit || !file.name.toLowerCase().endsWith('.pdf')) {
-    remember()
-    stop()
-    error.value = `请选择非空PDF，最大 ${(props.limit / 1024 / 1024).toFixed(2)} MB`
-    change({ action: 'unresolved' })
-    return
-  }
   remember()
   stop()
   accepted.value = null
   selected.value = file
+  if (!file.size) rejection.value = '文件为空，请重新选择'
+  else if (file.size > props.limit)
+    rejection.value = `文件超过大小限制（${(props.limit / 1024 / 1024).toFixed(2)} MB），请压缩或更换文件`
+  else if (!file.name.toLowerCase().endsWith('.pdf'))
+    rejection.value = '文件后缀须为PDF，请重新选择'
+  if (rejection.value) {
+    change({ action: 'unresolved' })
+    return
+  }
   key = crypto.randomUUID()
   unknown = false
   progress.value = { loaded: 0, total: null, percent: null }
@@ -290,6 +298,7 @@ watch(
     accepted.value = null
     selected.value = null
     localAction.value = null
+    rejection.value = ''
     busy.value = false
     transferring.value = false
     error.value = ''
@@ -298,9 +307,11 @@ watch(
 watch(
   () => props.draft?.pending_attachment,
   (media) => {
-    if (!media || accepted.value || localAction.value || busy.value) return
-    accepted.value = media
-    if (media.state !== 'ready' && media.state !== 'failed') void poll(media, generation)
+    if (localAction.value || selected.value) return
+    if (accepted.value?.id === media?.id && accepted.value?.state === media?.state) return
+    stop()
+    accepted.value = media || null
+    if (media && media.state !== 'ready' && media.state !== 'failed') void poll(media, generation)
   },
   { immediate: true }
 )
@@ -361,7 +372,7 @@ onBeforeUnmount(() => {
         ><ElRadio value="remove">不添加学习笔记／移除原笔记</ElRadio>
       </ElRadioGroup>
     </div>
-    <p v-if="selected || pending" class="small">
+    <p v-if="!rejection && (selected || pending)" class="small">
       待处理：{{ selected?.name || pending?.original_name }} ·
       {{
         pending?.state === 'ready'
@@ -373,11 +384,11 @@ onBeforeUnmount(() => {
     </p>
     <AppUploadProgress v-if="transferring" :progress="progress" />
     <p
-      v-if="error || (pending?.state === 'failed' && pending.error)"
+      v-if="rejection || error || (pending?.state === 'failed' && pending.error)"
       class="notice error"
       role="alert"
     >
-      {{ error || pending?.error }}
+      {{ rejection ? `${selected?.name}：${rejection}` : error || pending?.error }}
     </p>
     <div class="row tools">
       <label
@@ -391,7 +402,10 @@ onBeforeUnmount(() => {
           :disabled="disabled || transferring || !limit"
           @change="choose"
       /></label>
-      <ElButton v-if="selected || pending" :disabled="disabled || busy" @click="send"
+      <ElButton
+        v-if="!rejection && (selected || pending)"
+        :disabled="disabled || busy"
+        @click="send"
         >重试／继续查询</ElButton
       >
       <ElButton

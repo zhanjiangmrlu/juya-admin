@@ -26,11 +26,12 @@ const old = {
 const draft = { action: 'keep' as const, attachment: old, can_publish: true }
 /** 在独立组件中选择用于校验的PDF
  * @param page 当前挂载的笔记组件
+ * @param file 模拟本次选择的本地文件
  */
-const choose = async (page: ReturnType<typeof mount>) => {
+const choose = async (page: ReturnType<typeof mount>, file = new File(['pdf'], '新笔记.pdf')) => {
   const input = page.get('input[type=file]')
   Object.defineProperty(input.element, 'files', {
-    value: [new File(['pdf'], '新笔记.pdf')],
+    value: [file],
     configurable: true
   })
   await input.trigger('change')
@@ -296,5 +297,97 @@ it('restores the previous unknown upload key and receipt query after cancelling 
   await flushPromises()
   expect(request).toHaveBeenLastCalledWith(`/api/admin/v1/operations/${originalKey}`)
   expect(upload).toHaveBeenCalledTimes(2)
+  page.unmount()
+})
+
+it.each([
+  [new File([], '空.pdf'), '为空'],
+  [new File(['oversize'], '超限.pdf'), '超过'],
+  [new File(['x'], '格式.txt'), 'PDF']
+])('keeps a locally rejected selection separate from the ready fallback', async (file, reason) => {
+  upload.mockResolvedValueOnce({ ...old, id: 'B', original_name: 'B.pdf' })
+  const page = mount(SceneStudyNote, { props: { draft, limit: 3 } })
+  await choose(page, new File(['B'], 'B.pdf'))
+  await choose(page, file)
+  const unresolved = [{ action: 'unresolved', previous_media_id: 'B' }]
+  expect(page.emitted('update:modelValue')?.at(-1)).toEqual(unresolved)
+  expect(page.get('.file-card').text()).toContain('B.pdf')
+  expect(page.get('[role=alert]').text()).toContain(file.name)
+  expect(page.get('[role=alert]').text()).toContain(reason)
+  const retry = page.findAll('button').find((button) => button.text().includes('重试／继续查询'))
+  if (retry) await retry.trigger('click')
+  expect(upload).toHaveBeenCalledTimes(1)
+  expect(page.emitted('update:modelValue')?.at(-1)).toEqual(unresolved)
+  expect(page.emitted('blocked')?.at(-1)).toEqual([true])
+  await page.get('[data-action="cancel-study-note"]').trigger('click')
+  expect(page.emitted('update:modelValue')?.at(-1)).toEqual([{ action: 'set', media_id: 'B' }])
+  await choose(page, file)
+  upload.mockResolvedValueOnce({ ...old, id: 'D', original_name: 'D.pdf' })
+  await choose(page, new File(['D'], 'D.pdf'))
+  expect(page.emitted('update:modelValue')?.at(-1)).toEqual([
+    { action: 'set', media_id: 'D', previous_media_id: 'B' }
+  ])
+  expect(page.emitted('blocked')?.at(-1)).toEqual([false])
+  page.unmount()
+})
+
+it('switches the projected ZIP target without retaining a stale pending file or staging its decision', async () => {
+  vi.useFakeTimers()
+  let finish!: (value: unknown) => void
+  request.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+  )
+  const previous = { ...old, id: 'C', original_name: '旧目标C.pdf', state: 'processing' }
+  const page = mount(SceneStudyNote, {
+    props: {
+      draft: { ...draft, action: 'set', can_publish: false, pending_attachment: previous },
+      limit: 10
+    }
+  })
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(request).toHaveBeenCalled()
+  await page.setProps({ draft: { ...draft, attachment: { ...old, original_name: '新目标B.pdf' } } })
+  finish({ ...previous, state: 'failed', error: '旧目标校验失败' })
+  await flushPromises()
+  expect(page.text()).not.toContain('旧目标')
+  expect(page.get('.file-card').text()).toContain('新目标B.pdf')
+  await page.setProps({ draft: { action: 'keep', can_publish: true } })
+  expect(page.text()).toContain('尚未添加学习笔记')
+  expect(page.emitted('update:modelValue')).toBeUndefined()
+  page.unmount()
+})
+
+it('saves the ZIP choice by its own name and restores the rejected local file on cancel', async () => {
+  upload.mockResolvedValueOnce({ ...old, id: 'B', original_name: 'B.pdf' })
+  const candidate = {
+    file_id: 'package-d',
+    name: 'D.pdf',
+    media_id: 'D',
+    state: 'ready',
+    size: 9,
+    error_code: null,
+    parent_id: 'source-zip'
+  }
+  const page = mount(SceneStudyNote, {
+    props: { draft: { ...draft, candidates: [candidate] }, limit: 10 }
+  })
+  await choose(page, new File(['b'], 'B.pdf'))
+  await choose(page, new File([], 'C.pdf'))
+  await page.get('input[type=radio][value=D]').setValue()
+  expect(page.emitted('update:modelValue')?.at(-1)).toEqual([
+    { action: 'set', media_id: 'D', previous_media_id: 'B' }
+  ])
+  expect(page.text()).toMatch(/待处理：D\.pdf/)
+  expect(page.text()).not.toContain('C.pdf')
+  expect(page.emitted('blocked')?.at(-1)).toEqual([false])
+  await page.get('[data-action="cancel-study-note"]').trigger('click')
+  expect(page.get('[role=alert]').text()).toContain('C.pdf')
+  expect(page.get('.file-card').text()).toContain('B.pdf')
+  expect(page.emitted('update:modelValue')?.at(-1)).toEqual([
+    { action: 'unresolved', previous_media_id: 'B' }
+  ])
   page.unmount()
 })
