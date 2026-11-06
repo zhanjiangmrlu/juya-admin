@@ -817,6 +817,7 @@ onBeforeUnmount(() => {
     <ScenePreview
       v-if="preview"
       :content="preview.content"
+      :study-note="preview.study_note"
       :pronunciation="{ cardId: preview.card_id, reference: { version_id: preview.version_id } }"
       mode="published"
       @close="preview = null"

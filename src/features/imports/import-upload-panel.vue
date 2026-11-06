@@ -189,7 +189,7 @@ const sizeText = (size: number) =>
 const statusText = (file: ImportFile | null) => {
   if (!file) return '等待接收'
   if (file.state === 'failed') {
-    const message = importErrors[file.error_code || ''] || '处理失败，请修正或重试'
+    const message = file.error || importErrors[file.error_code || ''] || '处理失败，请修正或重试'
     return canRetryFile(file) ? message : `${message}；请修正后重新选择文件上传`
   }
   if (file.processing_stage === 'converting') return '已上传，正在兼容处理为 MP3'
@@ -241,6 +241,9 @@ const acceptedFile = (upload: ImportUpload) =>
 </script>
 <template>
   <section class="import-upload">
+    <p v-if="batch.mode === 'zip'" class="small muted">
+      场景ZIP模板：每张卡独立目录，包含DOCX、场景图、完整音频，可选一份PDF学习笔记；多份PDF须核对选择。不含PDF的旧包保留原笔记。听读资料包不适用此模板。
+    </p>
     <h2>上传{{ batch.mode === 'zip' ? 'ZIP资料包' : 'DOCX及配套资料' }}</h2>
     <p class="muted small">
       每张卡片需要名称、场景图、完整音频、中英文对话和词汇；语块选填。文件限额由当前环境校验。

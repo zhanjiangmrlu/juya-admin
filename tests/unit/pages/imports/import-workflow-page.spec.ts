@@ -28,6 +28,7 @@ it('keeps ZIPs selected on the first screen queued until upload is explicitly st
       return {
         image_limit_bytes: 1000,
         audio_limit_bytes: 1000,
+        study_note_limit_bytes: 20971520,
         archive_limit_bytes: 1000,
         import_card_limit: 100
       }
@@ -77,6 +78,7 @@ it('restores a batch, persists review changes and only saves actual cards after 
       chunks: []
     },
     selected: true,
+    study_note: { action: 'keep' as const, can_publish: true },
     readable: true,
     state: 'incomplete',
     thumbnail_id: null,
@@ -118,7 +120,12 @@ it('restores a batch, persists review changes and only saves actual cards after 
     async (path: string, options?: { method?: string; body?: Record<string, unknown> }) => {
       if (path === '/api/admin/v1/imports?resumable_only=true') return [current]
       if (path.endsWith('/configuration'))
-        return { image_limit_bytes: 10000, audio_limit_bytes: 10000, archive_limit_bytes: 10000 }
+        return {
+          image_limit_bytes: 10000,
+          audio_limit_bytes: 10000,
+          study_note_limit_bytes: 20971520,
+          archive_limit_bytes: 10000
+        }
       if (options?.method === 'PATCH') {
         const next = { ...current.items[0]!, ...options.body, revision: 2 }
         current = { ...current, items: [next] }
@@ -161,6 +168,16 @@ it('restores a batch, persists review changes and only saves actual cards after 
   await page.get('[data-action="resume-import"]').trigger('click')
   await flushPromises()
   await page.get('button[aria-expanded="false"]').trigger('click')
+  const contentForm = page.findComponent({ name: 'SceneContentForm' })
+  const noteField = page.findComponent({ name: 'SceneStudyNote' })
+  contentForm.vm.$emit('uploading', true)
+  noteField.vm.$emit('transfer', true)
+  await flushPromises()
+  contentForm.vm.$emit('uploading', false)
+  await flushPromises()
+  expect(page.get('[data-action="review-next"]').attributes('disabled')).toBeDefined()
+  noteField.vm.$emit('transfer', false)
+  await flushPromises()
   await page.get('input[placeholder="例如：在咖啡店点单"]').setValue('Reviewed')
   await page.get('[data-action="review-next"]').trigger('click')
   await flushPromises()

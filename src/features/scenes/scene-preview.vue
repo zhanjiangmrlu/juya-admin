@@ -5,7 +5,10 @@ import type { components } from '@/shared/contracts/generated/admin-api'
 import type { ScenePronunciationContext } from '@/shared/types/scene-components'
 
 import SceneReader from './scene-reader.vue'
+import StudyNotePreview from './study-note-preview.vue'
 defineProps<{
+  studyNote?:
+    components['schemas']['StudyNoteDraft'] | components['schemas']['StudyNoteMetadata'] | null
   content: components['schemas']['SceneContent']
   mode: 'draft' | 'published' | 'import'
   pronunciation?: ScenePronunciationContext
@@ -39,7 +42,8 @@ defineEmits<{ close: []; publish: [] }>()
         :content="content"
         :pronunciation="pronunciation"
         @close="!busy && $emit('close')"
-      />
+        ><template #study-note> <StudyNotePreview :note="studyNote" /></template
+      ></SceneReader>
     </div>
     <template #footer
       ><p v-if="error" class="notice error" role="alert">{{ error }}</p>
@@ -99,6 +103,13 @@ defineEmits<{ close: []; publish: [] }>()
     padding: 0;
     max-height: none;
     background: var(--bg);
+  }
+
+  .note-entry {
+    display: flex;
+    margin-left: auto;
+    color: #41664d;
+    min-height: 44px;
   }
 
   .preview-scroll {

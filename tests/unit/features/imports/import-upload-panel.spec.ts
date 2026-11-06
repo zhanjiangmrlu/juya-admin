@@ -24,6 +24,7 @@ const batch: ImportBatch = {
   unused_file_ids: []
 }
 const limits = {
+  study_note_limit_bytes: 20971520,
   archive_limit_bytes: 1000,
   image_limit_bytes: 1000,
   audio_limit_bytes: 1000,

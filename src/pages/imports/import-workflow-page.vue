@@ -18,6 +18,7 @@ import ImportUploadPanel from '@/features/imports/import-upload-panel.vue'
 import SceneContentForm from '@/features/scenes/scene-content-form.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import SceneReader from '@/features/scenes/scene-reader.vue'
+import SceneStudyNote from '@/features/scenes/scene-study-note.vue'
 import { queryURL } from '@/services/display'
 import { api, ApiError } from '@/services/http-client'
 import { registerLogoutGuard } from '@/services/logout-guard'
@@ -50,7 +51,8 @@ const batch = ref<ImportBatch | null>(null),
   busy = ref(false),
   uploading = ref(false),
   pendingUploads = ref(0),
-  editingMedia = ref(false),
+  contentMedia = ref(false),
+  noteMedia = ref(false),
   error = ref(''),
   notice = ref(''),
   polling = ref(false),
@@ -58,6 +60,7 @@ const batch = ref<ImportBatch | null>(null),
   showPreview = ref(false),
   targetOpen = ref(false),
   leaveOpen = ref(false)
+const editingMedia = computed(() => contentMedia.value || noteMedia.value)
 const limits = ref<components['schemas']['UploadConfiguration'] | null>(null),
   confirmation = ref<ImportConfirmation | null>(null),
   retryScope = ref<string[] | null>(null),
@@ -1094,6 +1097,7 @@ onBeforeUnmount(() => {
                       :item-id="active.item.id"
                       :disabled="busy"
                     />
+
                     <SceneContentForm
                       :key="active.item.id"
                       v-model="active.edit.content"
@@ -1104,8 +1108,21 @@ onBeforeUnmount(() => {
                       save-before-pronounce-label="暂存并试听"
                       :disabled="busy || active.item.state === 'saving'"
                       @pronounce="stagedSpeech.play"
-                      @uploading="editingMedia = $event"
-                    />
+                      @uploading="contentMedia = $event"
+                      ><template #study-note>
+                        <SceneStudyNote
+                          :key="`note-${active.item.id}`"
+                          v-model="active.edit.study_note"
+                          :draft="active.item.study_note"
+                          :limit="limits?.study_note_limit_bytes || 0"
+                          :disabled="busy || active.item.state === 'saving'"
+                          :source="
+                            [active.item.source_zip_name, active.item.source_folder]
+                              .filter(Boolean)
+                              .join(' / ')
+                          "
+                          @transfer="noteMedia = $event" /></template
+                    ></SceneContentForm>
                   </template>
                   <div v-else class="panel notice error">
                     <h2>此资料无法读取</h2>
@@ -1177,6 +1194,7 @@ onBeforeUnmount(() => {
       v-if="showPreview && active"
       mode="import"
       :content="active.edit.content"
+      :study-note="active.item.study_note"
       :pronunciation="
         batch
           ? {

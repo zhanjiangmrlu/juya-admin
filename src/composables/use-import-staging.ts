@@ -18,6 +18,8 @@ const editValue = (item: ImportItem): ImportEdit => ({
       chunks: item.content.chunks || []
     })
   ),
+  // 展示的keep不是管理员操作，未编辑笔记时必须省略以保留旧包更新目标的草稿
+  study_note: undefined,
   selected: item.selected && item.state !== 'duplicate',
   target_card_id: item.target_card_id,
   target_revision: item.target_revision,
@@ -59,6 +61,7 @@ export const useImportStaging = (batchId: () => string) => {
         existing.item.state = item.state
         existing.item.suggested_target_id = item.suggested_target_id
         existing.item.issues = item.issues
+        existing.item.study_note = item.study_note
         continue
       }
       const edit = editValue(item)

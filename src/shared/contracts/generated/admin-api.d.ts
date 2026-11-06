@@ -11,11 +11,14 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Read Policy */
+    /**
+     * 查询词汇免费配置
+     * @description 查询当前词汇免费配置及实际免费数量；免费状态以逐项免费设置为准。
+     */
     get: operations['read_policy_api_admin_v1_learning_access_free_policy_get']
     /**
-     * Save Policy
-     * @description Reject obsolete configuration writes while retaining role authentication.
+     * 旧词汇免费配置保存（已停用）
+     * @description 保留管理员身份校验；此旧配置写入接口已停用，返回 410，请使用分类管理和逐项免费设置。
      */
     put: operations['save_policy_api_admin_v1_learning_access_free_policy_put']
     post?: never
@@ -32,7 +35,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Policy History */
+    /**
+     * 查询词汇免费配置历史
+     * @description 分页查询词汇免费配置的审计历史及变更前后值。
+     */
     get: operations['policy_history_api_admin_v1_learning_access_free_policy_history_get']
     put?: never
     post?: never
@@ -52,8 +58,8 @@ export interface paths {
     get?: never
     put?: never
     /**
-     * Preview Policy
-     * @description Reject obsolete configuration writes while retaining role authentication.
+     * 旧词汇免费配置预览（已停用）
+     * @description 保留管理员身份校验；此旧配置写入接口已停用，返回 410，请使用分类管理和逐项免费设置。
      */
     post: operations['preview_policy_api_admin_v1_learning_access_free_policy_preview_post']
     delete?: never
@@ -69,9 +75,15 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Read Grant */
+    /**
+     * 查询学员学习授权
+     * @description 查询指定学员当前学习授权、有效期和授权版本。
+     */
     get: operations['read_grant_api_admin_v1_users__user_id__learning_authorization_get']
-    /** Save Grant */
+    /**
+     * 确认修改学员学习授权
+     * @description 使用当前管理员的预览凭证确认授权调整；授权版本或业务日期已变化时须重新预览。
+     */
     put: operations['save_grant_api_admin_v1_users__user_id__learning_authorization_put']
     post?: never
     delete?: never
@@ -87,7 +99,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Grant History */
+    /**
+     * 查询学员授权历史
+     * @description 分页查询指定学员的授权审计历史及变更前后值。
+     */
     get: operations['grant_history_api_admin_v1_users__user_id__learning_authorization_history_get']
     put?: never
     post?: never
@@ -106,7 +121,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Preview Grant */
+    /**
+     * 预览学员授权调整
+     * @description 预览授予、续期、调整到期日或撤销授权的前后结果，并返回确认凭证。
+     */
     post: operations['preview_grant_api_admin_v1_users__user_id__learning_authorization_preview_post']
     delete?: never
     options?: never
@@ -122,13 +140,13 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Read
-     * @description Read authoritative free state after a pending or unknown response.
+     * 查询词汇卡片免费状态
+     * @description 读取指定词汇卡片的免费标记、独立版本号和实际生效状态，可用于核对未知写入结果。
      */
     get: operations['read_api_admin_v1_cards__identifier__free_access_get']
     /**
-     * Save
-     * @description Change exactly one flag and persist its receipt and audit in the same transaction.
+     * 设置词汇卡片免费状态
+     * @description 校验免费设置版本后仅修改指定词汇卡片的免费标记，在同一事务保存操作回执与审计记录。
      */
     put: operations['save_api_admin_v1_cards__identifier__free_access_put']
     post?: never
@@ -146,13 +164,13 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Read
-     * @description Read authoritative free state after a pending or unknown response.
+     * 查询听读文章免费状态
+     * @description 读取指定听读文章的免费标记、独立版本号和实际生效状态，可用于核对未知写入结果。
      */
     get: operations['read_api_admin_v1_listening_articles__identifier__free_access_get']
     /**
-     * Save
-     * @description Change exactly one flag and persist its receipt and audit in the same transaction.
+     * 设置听读文章免费状态
+     * @description 校验免费设置版本后仅修改指定听读文章的免费标记，在同一事务保存操作回执与审计记录。
      */
     put: operations['save_api_admin_v1_listening_articles__identifier__free_access_put']
     post?: never
@@ -171,7 +189,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Login */
+    /**
+     * 管理员登录
+     * @description 校验管理员登录凭据，建立管理端专用会话并返回当前管理员信息。
+     */
     post: operations['login_api_admin_v1_auth_login_post']
     delete?: never
     options?: never
@@ -186,7 +207,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Session */
+    /**
+     * 查询管理员会话
+     * @description 校验管理端会话并返回当前管理员身份。
+     */
     get: operations['session_api_admin_v1_auth_session_get']
     put?: never
     post?: never
@@ -205,7 +229,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Logout */
+    /**
+     * 退出管理员登录
+     * @description 注销当前管理端会话。
+     */
     post: operations['logout_api_admin_v1_auth_logout_post']
     delete?: never
     options?: never
@@ -221,12 +248,15 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Listing
-     * @description 按最新发布倒序分页；未发布卡片使用创建时间，定位沿用相同排序
+     * 分页查询词汇卡片
+     * @description 按最新发布时间倒序分页，未发布卡片使用创建时间；定位查询使用相同排序。
      */
     get: operations['listing_api_admin_v1_cards_get']
     put?: never
-    /** Create */
+    /**
+     * 创建词汇卡片草稿
+     * @description 使用提交的卡片内容创建候选草稿，并返回卡片详情及草稿版本。
+     */
     post: operations['create_api_admin_v1_cards_post']
     delete?: never
     options?: never
@@ -241,12 +271,21 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Detail */
+    /**
+     * 查询词汇卡片详情
+     * @description 读取指定词汇卡片的管理端详情，包括草稿及当前状态。
+     */
     get: operations['detail_api_admin_v1_cards__card_id__get']
-    /** Save */
+    /**
+     * 保存词汇卡片草稿
+     * @description 校验草稿版本并保存候选内容，返回更新后的卡片详情。
+     */
     put: operations['save_api_admin_v1_cards__card_id__put']
     post?: never
-    /** Delete */
+    /**
+     * 删除词汇卡片
+     * @description 校验卡片版本后执行删除操作，并返回删除结果。
+     */
     delete: operations['delete_api_admin_v1_cards__card_id__delete']
     options?: never
     head?: never
@@ -260,7 +299,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Published Preview */
+    /**
+     * 查看词汇卡片已发布版本
+     * @description 只读查询当前有效发布版本的正文，供管理员预览。
+     */
     get: operations['published_preview_api_admin_v1_cards__card_id__published_get']
     put?: never
     post?: never
@@ -279,7 +321,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Preview */
+    /**
+     * 核对词汇卡片发布内容
+     * @description 校验当前草稿版本并生成发布预览，供后续确认发布使用。
+     */
     post: operations['preview_api_admin_v1_cards__card_id__preview_post']
     delete?: never
     options?: never
@@ -296,7 +341,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Publish */
+    /**
+     * 发布词汇卡片
+     * @description 使用已核对的草稿版本和预览编号确认发布。
+     */
     post: operations['publish_api_admin_v1_cards__card_id__publish_post']
     delete?: never
     options?: never
@@ -313,7 +361,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Offline */
+    /**
+     * 下架词汇卡片
+     * @description 校验卡片版本后下架指定卡片，返回更新后的管理端详情。
+     */
     post: operations['offline_api_admin_v1_cards__card_id__offline_post']
     delete?: never
     options?: never
@@ -328,10 +379,16 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Recent */
+    /**
+     * 查询近期词汇批量操作
+     * @description 查询当前管理员近期创建的词汇卡片批量操作及逐项处理结果。
+     */
     get: operations['recent_api_admin_v1_card_action_batches_get']
     put?: never
-    /** Create */
+    /**
+     * 创建词汇卡片批量操作
+     * @description 为本页选择的最多十张不重复卡片创建批量管理任务，记录可执行项和跳过项。
+     */
     post: operations['create_api_admin_v1_card_action_batches_post']
     delete?: never
     options?: never
@@ -346,7 +403,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Read */
+    /**
+     * 查询词汇批量操作详情
+     * @description 读取当前管理员的指定批量任务及逐项状态。
+     */
     get: operations['read_api_admin_v1_card_action_batches__batch_id__get']
     put?: never
     post?: never
@@ -365,7 +425,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Retry */
+    /**
+     * 重试词汇卡片批量操作
+     * @description 重试本人批量任务中符合重试条件的项目，并返回最新批次状态。
+     */
     post: operations['retry_api_admin_v1_card_action_batches__batch_id__retry_post']
     delete?: never
     options?: never
@@ -382,7 +445,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Upload */
+    /**
+     * 上传管理端私有素材
+     * @description 上传私有素材并返回素材编号和处理状态；允许的类型和大小可从上传配置查询。
+     */
     post: operations['upload_api_admin_v1_media_post']
     delete?: never
     options?: never
@@ -399,7 +465,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Retry */
+    /**
+     * 重试管理端素材处理
+     * @description 对当前管理员可操作的素材重新执行允许重试的处理流程。
+     */
     post: operations['retry_api_admin_v1_media__media_id__retry_post']
     delete?: never
     options?: never
@@ -414,7 +483,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Configuration */
+    /**
+     * 查询素材上传配置
+     * @description 查询素材上传类型及大小等当前配置限制。
+     */
     get: operations['configuration_api_admin_v1_media_configuration_get']
     put?: never
     post?: never
@@ -431,7 +503,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Read */
+    /**
+     * 读取管理端私有素材
+     * @description 校验管理员对素材的访问权限后交付可用素材内容。
+     */
     get: operations['read_api_admin_v1_media__media_id__get']
     put?: never
     post?: never
@@ -448,7 +523,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Status */
+    /**
+     * 查询管理端素材状态
+     * @description 读取当前管理员可访问素材的元数据与处理状态。
+     */
     get: operations['status_api_admin_v1_media__media_id__status_get']
     put?: never
     post?: never
@@ -465,7 +543,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Overview */
+    /**
+     * 查询管理后台统计
+     * @description 只读查询管理后台概览统计。
+     */
     get: operations['overview_api_admin_v1_statistics_get']
     put?: never
     post?: never
@@ -482,7 +563,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Listing */
+    /**
+     * 分页查询学员
+     * @description 按查询条件分页读取学员列表，不修改学员成绩或联系方式。
+     */
     get: operations['listing_api_admin_v1_users_get']
     put?: never
     post?: never
@@ -499,7 +583,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Detail */
+    /**
+     * 查询学员详情
+     * @description 只读查询指定学员的管理端详情。
+     */
     get: operations['detail_api_admin_v1_users__user_id__get']
     put?: never
     post?: never
@@ -516,7 +603,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Learned */
+    /**
+     * 查询学员词汇学习记录
+     * @description 分页读取指定学员的词汇学习完成记录。
+     */
     get: operations['learned_api_admin_v1_users__user_id__learning_records_get']
     put?: never
     post?: never
@@ -533,7 +623,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Checkins */
+    /**
+     * 查询学员词汇打卡记录
+     * @description 分页读取指定学员的词汇学习打卡记录。
+     */
     get: operations['checkins_api_admin_v1_users__user_id__checkins_get']
     put?: never
     post?: never
@@ -550,7 +643,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Day Detail */
+    /**
+     * 查询学员指定日期词汇记录
+     * @description 按业务日期读取指定学员当天的词汇学习记录。
+     */
     get: operations['day_detail_api_admin_v1_users__user_id__checkins__day__get']
     put?: never
     post?: never
@@ -567,9 +663,15 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Read Order */
+    /**
+     * 查询词汇卡片排序
+     * @description 读取词汇卡片目录顺序及排序版本。
+     */
     get: operations['read_order_api_admin_v1_catalog_order_get']
-    /** Save Order */
+    /**
+     * 保存词汇卡片排序
+     * @description 校验排序版本后保存词汇卡片目录顺序。
+     */
     put: operations['save_order_api_admin_v1_catalog_order_put']
     post?: never
     delete?: never
@@ -585,10 +687,16 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Recent */
+    /**
+     * 查询近期词汇批量发布
+     * @description 查询当前管理员近期的词汇卡片批量发布任务及结果。
+     */
     get: operations['recent_api_admin_v1_publication_batches_get']
     put?: never
-    /** Create */
+    /**
+     * 创建词汇卡片批量发布
+     * @description 按卡片版本和已核对的预览编号创建批量发布任务，同一卡片不可重复选择。
+     */
     post: operations['create_api_admin_v1_publication_batches_post']
     delete?: never
     options?: never
@@ -603,7 +711,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Read */
+    /**
+     * 查询词汇批量发布详情
+     * @description 读取当前管理员指定批量发布任务的逐项结果。
+     */
     get: operations['read_api_admin_v1_publication_batches__batch_id__get']
     put?: never
     post?: never
@@ -622,7 +733,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Retry */
+    /**
+     * 重试词汇卡片批量发布
+     * @description 重试本人批量发布任务中符合重试条件的项目。
+     */
     post: operations['retry_api_admin_v1_publication_batches__batch_id__retry_post']
     delete?: never
     options?: never
@@ -638,12 +752,15 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Recent
-     * @description Recovery is the complete owned set; the default recent-history query stays compatible.
+     * 查询词汇导入批次
+     * @description 默认查询近期导入记录；恢复模式返回当前管理员拥有的完整批次集合。
      */
     get: operations['recent_api_admin_v1_imports_get']
     put?: never
-    /** Create */
+    /**
+     * 创建词汇导入批次
+     * @description 为当前管理员创建可恢复的词汇内容导入批次。
+     */
     post: operations['create_api_admin_v1_imports_post']
     delete?: never
     options?: never
@@ -658,7 +775,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Example */
+    /**
+     * 下载词汇导入示例
+     * @description 下载词汇内容导入示例文件。
+     */
     get: operations['example_api_admin_v1_imports_example_get']
     put?: never
     post?: never
@@ -675,11 +795,17 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Read */
+    /**
+     * 查询词汇导入批次详情
+     * @description 读取本人指定导入批次的源文件、候选项和处理状态。
+     */
     get: operations['read_api_admin_v1_imports__batch_id__get']
     put?: never
     post?: never
-    /** Delete Batch */
+    /**
+     * 删除词汇导入批次
+     * @description 校验本人导入批次状态后删除该批次，返回删除结果。
+     */
     delete: operations['delete_batch_api_admin_v1_imports__batch_id__delete']
     options?: never
     head?: never
@@ -695,7 +821,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Upload */
+    /**
+     * 上传词汇导入文件
+     * @description 向本人导入批次上传源文件，并返回文件处理状态。
+     */
     post: operations['upload_api_admin_v1_imports__batch_id__files_post']
     delete?: never
     options?: never
@@ -713,8 +842,8 @@ export interface paths {
     get?: never
     put?: never
     /**
-     * Remove Files
-     * @description Discard selected ZIP staging atomically; immutable media and receipts remain.
+     * 移除词汇导入源文件
+     * @description 原子移除选中的 ZIP 暂存内容，保留不可变素材和操作回执。
      */
     post: operations['remove_files_api_admin_v1_imports__batch_id__files_remove_post']
     delete?: never
@@ -733,8 +862,8 @@ export interface paths {
     get?: never
     put?: never
     /**
-     * Remove Items
-     * @description Remove only reviewed item revisions, retaining siblings and source archives.
+     * 移除词汇导入候选项
+     * @description 仅移除已核对版本的指定候选项，保留同批其他候选项及源压缩包。
      */
     post: operations['remove_items_api_admin_v1_imports__batch_id__items_remove_post']
     delete?: never
@@ -752,7 +881,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Retry File */
+    /**
+     * 重试词汇导入文件处理
+     * @description 重试本人批次内指定源文件的处理，返回最新文件状态。
+     */
     post: operations['retry_file_api_admin_v1_imports__batch_id__files__file_id__retry_post']
     delete?: never
     options?: never
@@ -769,7 +901,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Match */
+    /**
+     * 匹配词汇导入候选项
+     * @description 按提交的匹配选择处理本人导入批次中的候选内容。
+     */
     post: operations['match_api_admin_v1_imports__batch_id__resolve_post']
     delete?: never
     options?: never
@@ -790,7 +925,10 @@ export interface paths {
     delete?: never
     options?: never
     head?: never
-    /** Stage */
+    /**
+     * 编辑词汇导入候选项
+     * @description 校验候选版本后保存本人导入批次中指定候选项的暂存修改。
+     */
     patch: operations['stage_api_admin_v1_imports__batch_id__items__item_id__patch']
     trace?: never
   }
@@ -801,7 +939,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Review */
+    /**
+     * 核对词汇导入结果
+     * @description 读取本人导入批次的保存前核对结果。
+     */
     get: operations['review_api_admin_v1_imports__batch_id__confirmation_get']
     put?: never
     post?: never
@@ -820,7 +961,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Save */
+    /**
+     * 保存词汇导入内容
+     * @description 根据提交的核对信息保存本人导入批次的候选内容，并返回批次结果。
+     */
     post: operations['save_api_admin_v1_imports__batch_id__save_post']
     delete?: never
     options?: never
@@ -835,7 +979,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Operation */
+    /**
+     * 查询管理端写入结果
+     * @description 按当前管理员身份及幂等键读取已持久化的成功结果；尚无成功回执时返回未找到。
+     */
     get: operations['operation_api_admin_v1_operations__key__get']
     put?: never
     post?: never
@@ -852,10 +999,16 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Read */
+    /**
+     * 查询词汇卡片单词发音
+     * @description 读取指定词汇的已持久化发音状态与可用音频信息。
+     */
     get: operations['read_api_admin_v1_cards__card_id__words__word_id__pronunciation_get']
     put?: never
-    /** Generate */
+    /**
+     * 生成词汇卡片单词发音
+     * @description 校验卡片中的指定词汇引用后请求受控发音合成，返回发音状态。
+     */
     post: operations['generate_api_admin_v1_cards__card_id__words__word_id__pronunciation_post']
     delete?: never
     options?: never
@@ -870,10 +1023,16 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Read Import */
+    /**
+     * 查询词汇导入候选单词发音
+     * @description 读取本人导入候选中指定词汇的发音状态。
+     */
     get: operations['read_import_api_admin_v1_imports__batch_id__items__item_id__words__word_id__pronunciation_get']
     put?: never
-    /** Generate Import */
+    /**
+     * 生成词汇导入候选单词发音
+     * @description 校验本人导入批次及候选词汇后请求受控发音合成。
+     */
     post: operations['generate_import_api_admin_v1_imports__batch_id__items__item_id__words__word_id__pronunciation_post']
     delete?: never
     options?: never
@@ -889,8 +1048,8 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Audio
-     * @description Resolve session-bound speech grants and recheck current content before delivery.
+     * 读取受控词汇发音音频
+     * @description 解析与会话绑定的发音访问凭证，并在交付音频前重新校验当前内容。
      */
     get: operations['audio_api_admin_v1_pronunciation__credential__get']
     put?: never
@@ -908,7 +1067,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Listing */
+    /**
+     * 分页查询学员反馈
+     * @description 按条件分页查询管理员可访问的反馈会话。
+     */
     get: operations['listing_api_admin_v1_feedback_get']
     put?: never
     post?: never
@@ -925,7 +1087,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Unread */
+    /**
+     * 查询反馈未读数量
+     * @description 查询当前管理员的反馈未读统计。
+     */
     get: operations['unread_api_admin_v1_feedback_unread_get']
     put?: never
     post?: never
@@ -942,7 +1107,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Image Url */
+    /**
+     * 获取反馈图片访问地址
+     * @description 校验反馈图片访问权限后签发受控图片地址。
+     */
     get: operations['image_url_api_admin_v1_feedback_images__image_id__url_get']
     put?: never
     post?: never
@@ -959,7 +1127,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Image */
+    /**
+     * 读取反馈图片
+     * @description 校验图片访问凭证及当前访问权限后交付反馈图片。
+     */
     get: operations['image_api_admin_v1_feedback_images__credential__get']
     put?: never
     post?: never
@@ -976,7 +1147,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Detail */
+    /**
+     * 查询反馈会话详情
+     * @description 读取管理员可访问的反馈会话及消息。
+     */
     get: operations['detail_api_admin_v1_feedback__feedback_id__get']
     put?: never
     post?: never
@@ -994,7 +1168,10 @@ export interface paths {
       cookie?: never
     }
     get?: never
-    /** Read */
+    /**
+     * 标记反馈消息已读
+     * @description 保存当前管理员对指定反馈消息的已读位置。
+     */
     put: operations['read_api_admin_v1_feedback__feedback_id__read_put']
     post?: never
     delete?: never
@@ -1012,7 +1189,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Reply */
+    /**
+     * 回复学员反馈
+     * @description 由当前管理员向指定反馈会话追加回复。
+     */
     post: operations['reply_api_admin_v1_feedback__feedback_id__messages_post']
     delete?: never
     options?: never
@@ -1028,7 +1208,10 @@ export interface paths {
       cookie?: never
     }
     get?: never
-    /** Save Order */
+    /**
+     * 保存听读分类排序
+     * @description 校验各分类版本后保存完整的听读分类顺序。
+     */
     put: operations['save_order_api_admin_v1_listening_categories_order_put']
     post?: never
     delete?: never
@@ -1046,7 +1229,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Batch Delete */
+    /**
+     * 批量删除听读分类
+     * @description 逐项校验分类版本及引用关系，仅删除无下属文章引用的分类，返回逐项结果。
+     */
     post: operations['batch_delete_api_admin_v1_listening_categories_batch_delete_post']
     delete?: never
     options?: never
@@ -1063,7 +1249,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Single Delete */
+    /**
+     * 删除听读分类
+     * @description 校验分类版本及引用关系，仅删除无下属文章引用的分类。
+     */
     post: operations['single_delete_api_admin_v1_listening_categories__identifier__delete_post']
     delete?: never
     options?: never
@@ -1079,12 +1268,15 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Categories
-     * @description List only live categories in configured order.
+     * 查询听读分类
+     * @description 按配置顺序列出未删除的听读分类。
      */
     get: operations['categories_api_admin_v1_listening_categories_get']
     put?: never
-    /** Add Category */
+    /**
+     * 创建听读分类
+     * @description 创建听读分类并返回分类详情。
+     */
     post: operations['add_category_api_admin_v1_listening_categories_post']
     delete?: never
     options?: never
@@ -1100,7 +1292,10 @@ export interface paths {
       cookie?: never
     }
     get?: never
-    /** Edit Category */
+    /**
+     * 编辑听读分类
+     * @description 校验分类版本后保存名称等分类信息。
+     */
     put: operations['edit_category_api_admin_v1_listening_categories__category_id__put']
     post?: never
     delete?: never
@@ -1116,12 +1311,15 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Topics */
+    /**
+     * 查询旧听读主题
+     * @description 读取兼容接口提供的旧听读主题列表。
+     */
     get: operations['topics_api_admin_v1_listening_topics_get']
     put?: never
     /**
-     * Add Topic
-     * @description Reject obsolete configuration writes while retaining role authentication.
+     * 旧听读主题创建（已停用）
+     * @description 保留管理员身份校验；此旧配置写入接口已停用，返回 410，请使用分类管理和逐项免费设置。
      */
     post: operations['add_topic_api_admin_v1_listening_topics_post']
     delete?: never
@@ -1139,8 +1337,8 @@ export interface paths {
     }
     get?: never
     /**
-     * Edit Topic
-     * @description Reject obsolete configuration writes while retaining role authentication.
+     * 旧听读主题编辑（已停用）
+     * @description 保留管理员身份校验；此旧配置写入接口已停用，返回 410，请使用分类管理和逐项免费设置。
      */
     put: operations['edit_topic_api_admin_v1_listening_topics__topic_id__put']
     post?: never
@@ -1158,12 +1356,15 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Articles
-     * @description Page articles using direct category ownership.
+     * 分页查询听读文章
+     * @description 按文章直接所属分类和筛选条件分页查询管理端文章。
      */
     get: operations['articles_api_admin_v1_listening_articles_get']
     put?: never
-    /** Add Article */
+    /**
+     * 创建听读文章草稿
+     * @description 在指定分类下创建听读文章草稿。
+     */
     post: operations['add_article_api_admin_v1_listening_articles_post']
     delete?: never
     options?: never
@@ -1180,7 +1381,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Batch Delete */
+    /**
+     * 批量删除听读文章
+     * @description 按提交的文章选择和版本执行批量删除，返回逐项结果。
+     */
     post: operations['batch_delete_api_admin_v1_listening_articles_batch_delete_post']
     delete?: never
     options?: never
@@ -1197,7 +1401,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Batch Offline */
+    /**
+     * 批量下架听读文章
+     * @description 按提交的文章选择和版本执行批量下架，返回逐项结果。
+     */
     post: operations['batch_offline_api_admin_v1_listening_articles_batch_offline_post']
     delete?: never
     options?: never
@@ -1214,7 +1421,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Batch Publish */
+    /**
+     * 批量发布听读文章
+     * @description 校验选中文章的版本和发布条件后逐项发布，返回发布及跳过结果。
+     */
     post: operations['batch_publish_api_admin_v1_listening_articles_batch_publish_post']
     delete?: never
     options?: never
@@ -1229,9 +1439,15 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Read Article */
+    /**
+     * 查询听读文章详情
+     * @description 读取指定听读文章的管理端草稿及状态。
+     */
     get: operations['read_article_api_admin_v1_listening_articles__article_id__get']
-    /** Edit Article */
+    /**
+     * 保存听读文章草稿
+     * @description 校验文章版本后保存草稿内容及分类信息。
+     */
     put: operations['edit_article_api_admin_v1_listening_articles__article_id__put']
     post?: never
     delete?: never
@@ -1249,7 +1465,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Preview */
+    /**
+     * 核对听读文章发布内容
+     * @description 校验当前文章草稿并生成发布前核对预览。
+     */
     post: operations['preview_api_admin_v1_listening_articles__article_id__preview_post']
     delete?: never
     options?: never
@@ -1266,7 +1485,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Publish */
+    /**
+     * 发布听读文章
+     * @description 校验文章版本及发布核对信息后发布文章。
+     */
     post: operations['publish_api_admin_v1_listening_articles__article_id__publish_post']
     delete?: never
     options?: never
@@ -1283,7 +1505,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Offline */
+    /**
+     * 下架听读文章
+     * @description 校验文章版本后下架指定听读文章。
+     */
     post: operations['offline_api_admin_v1_listening_articles__article_id__offline_post']
     delete?: never
     options?: never
@@ -1300,7 +1525,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Delete */
+    /**
+     * 删除听读文章
+     * @description 校验文章版本后删除指定听读文章。
+     */
     post: operations['delete_api_admin_v1_listening_articles__article_id__delete_post']
     delete?: never
     options?: never
@@ -1316,11 +1544,14 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Order
-     * @description Read the complete category order and its shared revision.
+     * 查询听读文章排序
+     * @description 按查询范围读取完整文章顺序及共享目录版本；旧主题范围映射到对应分类。
      */
     get: operations['order_api_admin_v1_listening_order_get']
-    /** Save Order */
+    /**
+     * 保存分类内听读文章排序
+     * @description 仅支持分类内排序；校验共享目录版本后保存该分类完整且无重复的文章顺序。
+     */
     put: operations['save_order_api_admin_v1_listening_order_put']
     post?: never
     delete?: never
@@ -1336,11 +1567,14 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Free Policy */
+    /**
+     * 查询听读免费配置
+     * @description 查询听读免费配置及当前免费文章信息；免费状态以逐项免费设置为准。
+     */
     get: operations['free_policy_api_admin_v1_listening_free_policy_get']
     /**
-     * Free Save
-     * @description Reject obsolete configuration writes while retaining role authentication.
+     * 旧听读免费配置保存（已停用）
+     * @description 保留管理员身份校验；此旧配置写入接口已停用，返回 410，请使用分类管理和逐项免费设置。
      */
     put: operations['free_save_api_admin_v1_listening_free_policy_put']
     post?: never
@@ -1360,8 +1594,8 @@ export interface paths {
     get?: never
     put?: never
     /**
-     * Free Preview
-     * @description Reject obsolete configuration writes while retaining role authentication.
+     * 旧听读免费配置预览（已停用）
+     * @description 保留管理员身份校验；此旧配置写入接口已停用，返回 410，请使用分类管理和逐项免费设置。
      */
     post: operations['free_preview_api_admin_v1_listening_free_policy_preview_post']
     delete?: never
@@ -1379,7 +1613,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Upload */
+    /**
+     * 上传听读文章素材
+     * @description 为指定听读文章上传音频或图片等素材，返回素材处理状态。
+     */
     post: operations['upload_api_admin_v1_listening_articles__article_id__media_post']
     delete?: never
     options?: never
@@ -1394,7 +1631,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Read Media */
+    /**
+     * 读取听读文章草稿素材
+     * @description 校验文章与素材的引用关系后交付管理端可访问的素材。
+     */
     get: operations['read_media_api_admin_v1_listening_articles__article_id__media__media_id__get']
     put?: never
     post?: never
@@ -1412,8 +1652,8 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Published Article
-     * @description Read the active publication for administrator history without learner mutations.
+     * 查看听读文章已发布版本
+     * @description 读取当前有效发布内容，供管理员查看发布记录，不写入学习者记录。
      */
     get: operations['published_article_api_admin_v1_listening_articles__article_id__published_get']
     put?: never
@@ -1432,8 +1672,8 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Published Media
-     * @description Stream only media referenced by the article's current effective publication.
+     * 读取听读文章已发布素材
+     * @description 仅交付文章当前有效发布版本所引用的素材。
      */
     get: operations['published_media_api_admin_v1_listening_articles__article_id__published_media__media_id__get']
     put?: never
@@ -1451,9 +1691,15 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Timeline */
+    /**
+     * 查询听读文章时间轴
+     * @description 读取文章当前音频时间轴及处理、核对状态。
+     */
     get: operations['timeline_api_admin_v1_listening_articles__article_id__timeline_get']
-    /** Timeline Upload */
+    /**
+     * 上传听读文章时间轴
+     * @description 校验文章版本后提交手工时间轴数据。
+     */
     put: operations['timeline_upload_api_admin_v1_listening_articles__article_id__timeline_put']
     post?: never
     delete?: never
@@ -1471,7 +1717,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Timeline Retry */
+    /**
+     * 重试听读时间轴处理
+     * @description 校验文章版本后重试当前音频的时间轴处理。
+     */
     post: operations['timeline_retry_api_admin_v1_listening_articles__article_id__timeline_retry_post']
     delete?: never
     options?: never
@@ -1488,7 +1737,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Timeline Review */
+    /**
+     * 确认听读文章时间轴
+     * @description 校验文章版本后确认已核对的时间轴。
+     */
     post: operations['timeline_review_api_admin_v1_listening_articles__article_id__timeline_review_post']
     delete?: never
     options?: never
@@ -1503,7 +1755,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** User Records */
+    /**
+     * 查询学员听读记录
+     * @description 分页只读查询指定学员的听读文章学习记录。
+     */
     get: operations['user_records_api_admin_v1_listening_users__user_id__records_get']
     put?: never
     post?: never
@@ -1520,7 +1775,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** User Checkin */
+    /**
+     * 查询学员指定日期综合学习记录
+     * @description 按业务日期只读查询指定学员当天的词汇和听读学习记录。
+     */
     get: operations['user_checkin_api_admin_v1_listening_users__user_id__checkins__day__get']
     put?: never
     post?: never
@@ -1538,14 +1796,14 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Read
-     * @description Read persistent speech state without starting a cloud task.
+     * 查询听读文章词汇发音
+     * @description 读取已持久化的发音状态，不启动云端合成任务。
      */
     get: operations['read_api_admin_v1_listening_articles__article_id__words__word_id__pronunciation_get']
     put?: never
     /**
-     * Generate
-     * @description Generate one server-resolved vocabulary word with persistent idempotency.
+     * 生成听读文章词汇发音
+     * @description 由服务端解析指定词汇并生成单词发音，使用持久化幂等记录。
      */
     post: operations['generate_api_admin_v1_listening_articles__article_id__words__word_id__pronunciation_post']
     delete?: never
@@ -1562,14 +1820,14 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Read Candidate
-     * @description Preview owned staging words without recording any learner facts.
+     * 查询听读导入候选词汇发音
+     * @description 预览本人导入批次中的候选词汇发音，不记录学习行为。
      */
     get: operations['read_candidate_api_admin_v1_listening_imports__batch_id__candidates__candidate_id__words__word_id__pronunciation_get']
     put?: never
     /**
-     * Generate Candidate
-     * @description Start controlled staging word synthesis against the current batch revision.
+     * 生成听读导入候选词汇发音
+     * @description 校验当前导入批次版本后，启动候选词汇的受控发音合成。
      */
     post: operations['generate_candidate_api_admin_v1_listening_imports__batch_id__candidates__candidate_id__words__word_id__pronunciation_post']
     delete?: never
@@ -1585,7 +1843,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Download Template */
+    /**
+     * 下载听读导入模板
+     * @description 下载听读内容导入使用的 DOCX 模板。
+     */
     get: operations['download_template_api_admin_v1_listening_template_get']
     put?: never
     post?: never
@@ -1604,7 +1865,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Docx Preview */
+    /**
+     * 解析预览听读文档
+     * @description 解析上传的 DOCX 文档并返回正文、提示及匹配分类，供导入前核对。
+     */
     post: operations['docx_preview_api_admin_v1_listening_docx_preview_post']
     delete?: never
     options?: never
@@ -1619,7 +1883,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Staged Media */
+    /**
+     * 读取听读导入暂存素材
+     * @description 校验本人导入批次与候选素材引用关系后交付可用素材。
+     */
     get: operations['staged_media_api_admin_v1_listening_imports__batch_id__media__media_id__get']
     put?: never
     post?: never
@@ -1636,9 +1903,15 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Candidate Timeline */
+    /**
+     * 查询听读导入候选时间轴
+     * @description 读取本人导入候选当前音频的时间轴及核对状态。
+     */
     get: operations['candidate_timeline_api_admin_v1_listening_imports__batch_id__candidates__candidate_id__timeline_get']
-    /** Candidate Timeline Upload */
+    /**
+     * 上传听读导入候选时间轴
+     * @description 校验本人批次版本及候选素材后提交手工时间轴。
+     */
     put: operations['candidate_timeline_upload_api_admin_v1_listening_imports__batch_id__candidates__candidate_id__timeline_put']
     post?: never
     delete?: never
@@ -1656,7 +1929,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Candidate Timeline Action */
+    /**
+     * 重试或确认听读导入候选时间轴
+     * @description 校验本人批次版本后，按 action 执行时间轴重试或核对确认。
+     */
     post: operations['candidate_timeline_action_api_admin_v1_listening_imports__batch_id__candidates__candidate_id__timeline__action__post']
     delete?: never
     options?: never
@@ -1671,10 +1947,16 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Listing */
+    /**
+     * 分页查询听读导入批次
+     * @description 分页读取当前管理员的听读导入批次及处理状态。
+     */
     get: operations['listing_api_admin_v1_listening_imports_get']
     put?: never
-    /** Create */
+    /**
+     * 创建听读导入批次
+     * @description 为当前管理员创建听读资料暂存批次。
+     */
     post: operations['create_api_admin_v1_listening_imports_post']
     delete?: never
     options?: never
@@ -1690,10 +1972,8 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Read
-     * @description 重核本人的重复候选及旧来源确认问题，不改写候选正文
-     *
-     *     batch_id 为批次编号，request 提供当前时间，admin 为已鉴权管理员，db 为事务会话
+     * 查询听读导入批次详情
+     * @description 读取本人批次，重新核对重复候选及旧来源确认问题，不改写候选正文。
      */
     get: operations['read_api_admin_v1_listening_imports__batch_id__get']
     put?: never
@@ -1713,7 +1993,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Upload */
+    /**
+     * 上传听读导入文件
+     * @description 向本人导入批次上传文档和配套素材，返回候选及文件处理结果。
+     */
     post: operations['upload_api_admin_v1_listening_imports__batch_id__files_post']
     delete?: never
     options?: never
@@ -1729,7 +2012,10 @@ export interface paths {
       cookie?: never
     }
     get?: never
-    /** Edit */
+    /**
+     * 编辑听读导入候选
+     * @description 校验本人批次版本后保存指定候选的正文、分类及目标文章绑定。
+     */
     put: operations['edit_api_admin_v1_listening_imports__batch_id__candidates__candidate_id__put']
     post?: never
     delete?: never
@@ -1747,7 +2033,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Remove */
+    /**
+     * 移除听读导入候选
+     * @description 校验本人批次版本后移除选中的候选内容。
+     */
     post: operations['remove_api_admin_v1_listening_imports__batch_id__remove_post']
     delete?: never
     options?: never
@@ -1764,7 +2053,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Preview */
+    /**
+     * 核对听读导入保存或发布
+     * @description 预览所选候选的新建或更新内容，返回绑定批次版本、候选指纹和提交方式的确认凭证。
+     */
     post: operations['preview_api_admin_v1_listening_imports__batch_id__preview_post']
     delete?: never
     options?: never
@@ -1781,7 +2073,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Save */
+    /**
+     * 确认保存或发布听读导入
+     * @description 使用预览凭证核对批次、候选指纹及提交方式，逐项保存草稿或发布并返回结果。
+     */
     post: operations['save_api_admin_v1_listening_imports__batch_id__save_post']
     delete?: never
     options?: never
@@ -1793,2131 +2088,4247 @@ export interface paths {
 export type webhooks = Record<string, never>
 export interface components {
   schemas: {
-    /** AcceptSave */
+    /** 确认保存导入资料 */
     AcceptSave: {
-      /** Version */
+      /**
+       * 导入确认快照版本
+       * @description 原样提交本次选择范围对应的确认摘要；资料变化后需重新取得。
+       */
       version: string
       /**
-       * Confirmed
+       * 已确认操作
+       * @description 提交操作时必须明确确认为 true，表示已核对本次操作范围。
        * @constant
        */
       confirmed: true
-      /** Item Ids */
+      /**
+       * 选择的导入资料
+       * @description 限定本次确认或保存范围的导入资料 ID 列表。
+       */
       item_ids?: string[] | null
     }
-    /** AccessEvent */
+    /** 学习权限变更事件 */
     AccessEvent: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Action */
+      /**
+       * 权限变更操作
+       * @description 该审计事件记录的授权开通、续期、设置到期日或撤销操作标识。
+       */
       action: string
-      /** Admin Id */
+      /**
+       * 管理员标识
+       * @description 执行该管理操作的管理员 ID。
+       */
       admin_id: string
-      /** Before */
+      /**
+       * 变更前内容
+       * @description 操作执行前或预览时读取的原业务数据快照。
+       */
       before: {
         [key: string]: unknown
       }
-      /** After */
+      /**
+       * 变更后内容
+       * @description 本次操作拟生效或已生效的业务数据快照。
+       */
       after: {
         [key: string]: unknown
       }
-      /** Occurred At */
+      /**
+       * 操作发生时间
+       * @description 该权限变更审计事件发生的时间。
+       */
       occurred_at: string
     }
-    /** AccessHistoryPage */
+    /** 学习权限变更记录分页 */
     AccessHistoryPage: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['AccessEvent'][]
-      /** Total */
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
       total: number
-      /** Page */
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
       page: number
-      /** Limit */
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
       limit: number
     }
-    /** ActionBatchView */
+    /** 场景管理操作批次 */
     ActionBatchView: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
       /**
-       * Action
+       * 场景管理动作
+       * @description offline 为下架，delete 为删除。
        * @enum {string}
        */
       action: 'offline' | 'delete'
-      /** Created At */
+      /**
+       * 创建时间
+       * @description 该资源或记录的创建时间。
+       */
       created_at: string
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['ActionResult'][]
     }
-    /** ActionResult */
+    /** 单个场景管理操作结果 */
     ActionResult: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Card Id */
+      /**
+       * 场景卡片标识
+       * @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。
+       */
       card_id: string
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
       /**
-       * Title En
+       * 英文标题
+       * @description 场景或听读文章向用户展示的英文标题。
        * @default
        */
       title_en: string
-      /** State */
+      /**
+       * 管理操作任务状态
+       * @description queued 为排队，running 为执行中，retry 为等待重试，succeeded 为成功，failed 为失败，skipped 为跳过。
+       */
       state: string
-      /** Error Code */
+      /**
+       * 错误代码
+       * @description 异步处理或当前操作失败时的稳定错误代码；无错误时为空。
+       */
       error_code: string | null
-      /** Job Id */
+      /**
+       * 异步任务标识
+       * @description 处理当前资源或操作的持久异步任务 ID；未创建任务时可为空。
+       */
       job_id: string | null
-      /** Needs Review */
+      /**
+       * 需要重新核对
+       * @description 内容状态或版本已变化，管理员需要重新核对后再执行操作。
+       */
       needs_review: boolean
     }
-    /** ActionSelection */
+    /** 场景管理操作选择快照 */
     ActionSelection: {
-      /** Card Id */
+      /**
+       * 场景卡片标识
+       * @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。
+       */
       card_id: string
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
       /**
-       * Status
+       * 确认时场景状态
+       * @description draft 为草稿，published 为已发布，offline 为已下架，deleted 为已删除，missing 为不存在。
        * @enum {string}
        */
       status: 'draft' | 'published' | 'offline' | 'deleted' | 'missing'
-      /** Version Id */
+      /**
+       * 发布版本标识
+       * @description 绑定此次学习或操作的不可变内容发布版本 ID。
+       */
       version_id?: string | null
     }
-    /** AdminCardPage */
+    /** 后台场景列表分页 */
     AdminCardPage: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['CardView'][]
-      /** Total */
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
       total: number
-      /** Page */
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
       page: number
-      /** Limit */
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
       limit: number
+      /**
+       * 学习权限策略
+       * @description 后台列表关联的免费内容策略和版本信息。
+       */
       learning_policy?: components['schemas']['PolicyView'] | null
-      /** Total Pages */
+      /**
+       * 总页数
+       * @description 按当前筛选总数量及每页数量计算的分页总页数。
+       */
       total_pages: number
     }
-    /** AdminLogin */
+    /** 管理员登录请求 */
     AdminLogin: {
-      /** Username */
+      /**
+       * 管理员登录名
+       * @description 用于管理员身份认证和会话展示的登录名。
+       */
       username: string
-      /** Password */
+      /**
+       * 登录密码
+       * @description 管理员登录时输入的密码，仅用于当前身份认证。
+       */
       password: string
     }
-    /** AdminLoginResponse */
+    /** 管理员登录结果 */
     AdminLoginResponse: {
+      /**
+       * 管理员身份
+       * @description 本次登录成功的管理员 ID 和登录名。
+       */
       administrator: components['schemas']['AdministratorIdentity']
-      /** Csrf Token */
+      /**
+       * CSRF 校验令牌
+       * @description 管理会话的 CSRF 令牌，提交写请求时通过约定的请求头携带。
+       */
       csrf_token: string
     }
-    /** AdminMessage */
+    /** 管理员反馈回复与处理动作 */
     AdminMessage: {
-      /** Text */
+      /**
+       * 消息正文
+       * @description 用户反馈或管理员回复的文字内容，提交时去除首尾空白。
+       */
       text?: string | null
-      /** Status */
+      /**
+       * 处理动作
+       * @description processing 为处理中，needs_info 为需要用户补充，resolved 为已处理；不改变状态时可为空。
+       */
       status?: ('processing' | 'needs_info' | 'resolved') | null
-      /** Expected Latest Event Id */
+      /**
+       * 预期最新事件标识
+       * @description 管理员操作前看到的最后一个反馈事件 ID，用于识别并发新消息。
+       */
       expected_latest_event_id?: number | null
     }
-    /** AdminSessionResponse */
+    /** 当前管理员会话 */
     AdminSessionResponse: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Username */
+      /**
+       * 管理员登录名
+       * @description 用于管理员身份认证和会话展示的登录名。
+       */
       username: string
-      /** Csrf Token */
+      /**
+       * CSRF 校验令牌
+       * @description 管理会话的 CSRF 令牌，提交写请求时通过约定的请求头携带。
+       */
       csrf_token: string
     }
-    /** AdminUser */
+    /** 后台用户详情 */
     AdminUser: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Nickname */
+      /**
+       * 用户昵称
+       * @description 用户明确设置的个人展示名称。
+       */
       nickname: string
-      /** Avatar Id */
+      /**
+       * 头像素材标识
+       * @description 用户自己上传的头像媒体 ID；为空表示未设置头像。
+       */
       avatar_id: string | null
-      /** Phone */
+      /**
+       * 联系电话
+       * @description 用户自愿提交的联系电话；未提供时为空。
+       */
       phone: string | null
-      /** Wechat Contact */
+      /**
+       * 微信联系方式
+       * @description 用户自愿提交的微信联系信息；未提供时为空。
+       */
       wechat_contact: string | null
-      /** Phone Source */
+      /**
+       * 电话来源
+       * @description user_entered_unverified 表示用户自行填写且未经验证；未记录时为空。
+       */
       phone_source: string | null
-      /** Wechat Source */
+      /**
+       * 微信联系方式来源
+       * @description user_entered_unverified 表示用户自行填写且未经验证；未记录时为空。
+       */
       wechat_source: string | null
-      /** Profile Version */
+      /**
+       * 个人资料版本
+       * @description 昵称和头像的当前版本；修改个人资料时用于并发校验。
+       */
       profile_version: number
-      /** Contact Version */
+      /**
+       * 联系方式版本
+       * @description 用户联系方式的当前版本；修改联系方式时用于并发校验。
+       */
       contact_version: number
-      /** Registered At */
+      /**
+       * 注册时间
+       * @description 用户首次成功注册的时间。
+       */
       registered_at: string
-      /** Last Login At */
+      /**
+       * 最近登录时间
+       * @description 用户最近一次成功登录的时间。
+       */
       last_login_at: string
-      /** User Code */
+      /**
+       * 用户编号
+       * @description 供后台检索和人工识别使用的用户业务编号。
+       */
       user_code: string
+      /**
+       * 学习授权
+       * @description 当前用户的统一学习授权状态、有效日期及修订号。
+       */
       authorization?: components['schemas']['AuthorizationView'] | null
+      /**
+       * 本人学习统计
+       * @description 场景、听读完成数量、收藏数量及打卡情况等统计。
+       */
       statistics: components['schemas']['Statistics']
     }
-    /** AdminUserPage */
+    /** 后台用户列表分页 */
     AdminUserPage: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['AdminUser'][]
-      /** Total */
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
       total: number
-      /** Page */
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
       page: number
-      /** Limit */
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
       limit: number
-      /** Statistical Date */
+      /**
+       * 统计业务日期
+       * @description 本次统计采用的 Asia/Shanghai 业务日期。
+       */
       statistical_date: string
     }
-    /** AdministratorIdentity */
+    /** 管理员身份信息 */
     AdministratorIdentity: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Username */
+      /**
+       * 管理员登录名
+       * @description 用于管理员身份认证和会话展示的登录名。
+       */
       username: string
     }
-    /** Article */
+    /** 后台听读文章 */
     Article: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Topic Id */
+      /**
+       * 主题标识
+       * @description 历史兼容字段或主题资源接口使用的主题 ID；文章可不再关联主题。
+       */
       topic_id?: string | null
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id: string
       /**
-       * Category Name
+       * 听读分类名称
+       * @description 文章所属分类的中文名称。
        * @default
        */
       category_name: string
       /**
-       * Category Order
+       * 分类内顺序
+       * @description 文章在所属分类中的排序值，按升序展示。
        * @default 0
        */
       category_order: number
-      /** Status */
+      /**
+       * 听读文章状态
+       * @description draft 为草稿，published 为已发布，offline 为已下架；删除情况另见 deleted_at。
+       */
       status: string
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
-      /** Version Id */
+      /**
+       * 发布版本标识
+       * @description 绑定此次学习或操作的不可变内容发布版本 ID。
+       */
       version_id: string | null
-      /** Topic Order */
+      /**
+       * 主题内顺序
+       * @description 历史兼容字段：文章保存的原主题内排序值。
+       */
       topic_order: number
-      /** Global Order */
+      /**
+       * 全局顺序
+       * @description 历史兼容字段：文章保存的全局排序值。
+       */
       global_order: number
+      /**
+       * 听读正文资料
+       * @description 文章标题、英文正文、译文、词汇、表达及媒体关联信息。
+       */
       payload: components['schemas']['ListeningPayload']
-      /** Word Count */
+      /**
+       * 英文词数
+       * @description 按服务端正文英文分词规则统计的听读文章词数。
+       */
       word_count: number
+      /**
+       * 逐词时间轴
+       * @description 正文词项与音频时间的对应信息及其处理、核对状态。
+       */
       timeline: components['schemas']['Timeline']
-      /** Created At */
+      /**
+       * 创建时间
+       * @description 该资源或记录的创建时间。
+       */
       created_at: string
-      /** Deleted At */
+      /**
+       * 删除时间
+       * @description 文章被删除的时间；未删除时为空。
+       */
       deleted_at: string | null
       /**
-       * Has Unpublished Changes
+       * 存在未发布修改
+       * @description 当前草稿与生效发布版本存在差异时为 true。
        * @default false
        */
       has_unpublished_changes: boolean
-      /** Batch Id */
+      /**
+       * 批次标识
+       * @description 本次导入、发布或管理操作批次的 ID。
+       */
       batch_id?: string | null
       /**
-       * Is Free
+       * 免费标记
+       * @description 内容是否标记为免费；实际可学习性仍取决于发布状态和实时权限。
        * @default false
        */
       is_free: boolean
       /**
-       * Free Revision
+       * 免费标记修订号
+       * @description 单个内容免费标记的修订号，修改免费状态时用于并发校验。
        * @default 1
        */
       free_revision: number
-      /** Draft Category Id */
+      /**
+       * 草稿分类标识
+       * @description 当前草稿归属的听读分类 ID，可与已发布分类不同。
+       */
       draft_category_id?: string | null
-      /** Draft Category Order */
+      /**
+       * 草稿分类内顺序
+       * @description 当前草稿在其分类中的排序值。
+       */
       draft_category_order?: number | null
-      /** Published Category Id */
+      /**
+       * 已发布分类标识
+       * @description 当前发布版本归属的听读分类 ID；无发布版本时为空。
+       */
       published_category_id?: string | null
-      /** Published Category Order */
+      /**
+       * 已发布分类内顺序
+       * @description 当前发布版本在其分类中的排序值。
+       */
       published_category_order?: number | null
-      /** Draft Topic Id */
+      /**
+       * 草稿主题标识
+       * @description 历史兼容字段：当前草稿关联的主题 ID，可为空。
+       */
       draft_topic_id?: string | null
-      /** Draft Topic Order */
+      /**
+       * 草稿主题内顺序
+       * @description 历史兼容字段：草稿在原主题中的排序值，可为空。
+       */
       draft_topic_order?: number | null
-      /** Published Topic Id */
+      /**
+       * 已发布主题标识
+       * @description 历史兼容字段：发布版本关联的原主题 ID，可为空。
+       */
       published_topic_id?: string | null
-      /** Published Topic Order */
+      /**
+       * 已发布主题内顺序
+       * @description 历史兼容字段：发布版本在原主题中的排序值。
+       */
       published_topic_order?: number | null
     }
-    /** ArticleInput */
+    /** 新建听读文章请求 */
     ArticleInput: {
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id: string
+      /**
+       * 听读正文资料
+       * @description 文章标题、英文正文、译文、词汇、表达及媒体关联信息。
+       */
       payload: components['schemas']['ListeningPayload']
     }
-    /** ArticlePreview */
+    /** 听读文章发布预览 */
     ArticlePreview: {
+      /**
+       * 听读文章
+       * @description 当前操作涉及的听读文章；没有可返回的文章时可为空。
+       */
       article: components['schemas']['Article']
-      /** Preview Token */
+      /**
+       * 预览确认凭据
+       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       */
       preview_token: string
-      /** Errors */
+      /**
+       * 校验问题
+       * @description 阻止发布或需要核对的资料问题列表。
+       */
       errors: string[]
     }
-    /** ArticleState */
+    /** 本人听读学习状态 */
     ArticleState: {
-      /** Favorite */
+      /**
+       * 已收藏
+       * @description 当前用户是否已收藏该内容；写请求表示期望的收藏状态。
+       */
       favorite: boolean
-      /** Completed */
+      /**
+       * 曾完成学习
+       * @description 当前用户是否至少完成过一次该内容。
+       */
       completed: boolean
-      /** Today Completed */
+      /**
+       * 今日已完成
+       * @description 当前用户在今日业务日期内是否已完成该内容。
+       */
       today_completed: boolean
     }
-    /** ArticleUpdate */
+    /** 更新听读文章请求 */
     ArticleUpdate: {
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id: string
+      /**
+       * 听读正文资料
+       * @description 文章标题、英文正文、译文、词汇、表达及媒体关联信息。
+       */
       payload: components['schemas']['ListeningPayload']
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
     }
-    /** AuthorizationPreview */
+    /** 学习授权变更预览请求 */
     AuthorizationPreview: {
       /**
-       * Action
+       * 授权变更方式
+       * @description grant 为开通一个月，renew 为续期一个月，set_expiry 为设置到期日，revoke 为撤销。
        * @enum {string}
        */
       action: 'grant' | 'renew' | 'set_expiry' | 'revoke'
-      /** Expires On */
+      /**
+       * 指定授权到期日
+       * @description action 为 set_expiry 时必须提供今天或未来的日期；其他动作由服务端计算到期日。
+       */
       expires_on?: string | null
     }
-    /** AuthorizationTarget */
+    /** 预览后的目标授权 */
     AuthorizationTarget: {
-      /** Starts On */
+      /**
+       * 授权开始日
+       * @description 学习授权开始的业务日期，格式为 YYYY-MM-DD；为空表示尚无授权开始记录。
+       */
       starts_on: string
-      /** Expires On */
+      /**
+       * 授权到期日
+       * @description 学习授权的最后有效业务日期，包含该日；为空表示无有效授权，不表示永久授权。
+       */
       expires_on: string | null
-      /** Status */
+      /**
+       * 目标授权状态
+       * @description active 表示确认后授权有效，none 表示确认后无有效授权。
+       */
       status: string
     }
-    /** AuthorizationView */
+    /** 学习授权状态 */
     AuthorizationView: {
       /**
-       * Status
+       * 授权状态
+       * @description none 为无有效授权，active 为授权有效，expired 为授权已到期。
        * @enum {string}
        */
       status: 'none' | 'active' | 'expired'
-      /** Starts On */
+      /**
+       * 授权开始日
+       * @description 学习授权开始的业务日期，格式为 YYYY-MM-DD；为空表示尚无授权开始记录。
+       */
       starts_on: string | null
-      /** Expires On */
+      /**
+       * 授权到期日
+       * @description 学习授权的最后有效业务日期，包含该日；为空表示无有效授权，不表示永久授权。
+       */
       expires_on: string | null
-      /** Expires At */
+      /**
+       * 授权失效时间
+       * @description 授权到期日下一天在业务时区的零点；为空表示没有授权到期记录。
+       */
       expires_at: string | null
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
     }
-    /** Batch */
+    /** 听读导入批次 */
     Batch: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Mode */
+      /**
+       * 听读批次导入方式
+       * @description zip 为 ZIP 资料包导入，docx 为 DOCX 文档导入。
+       */
       mode: string
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
-      /** Status */
+      /**
+       * 听读导入批次状态
+       * @description upload 为待上传，review 为待核对，partial 为部分保存，saved 为已完成保存。
+       */
       status: string
-      /** Packages */
+      /**
+       * 导入文件包
+       * @description 本次听读导入已接收的文件包及处理结果。
+       */
       packages: components['schemas']['Package'][]
-      /** Candidates */
+      /**
+       * 待核对文章
+       * @description 从导入文件解析出的候选文章及各自的核对、保存状态。
+       */
       candidates: components['schemas']['Candidate'][]
-      /** Counts */
+      /**
+       * 导入数量统计
+       * @description 按完整、待补充、不可读、重复、已保存等状态汇总的候选数量。
+       */
       counts: {
         [key: string]: number
       }
-      /** Created At */
+      /**
+       * 创建时间
+       * @description 该资源或记录的创建时间。
+       */
       created_at: string
     }
-    /** BatchDelete */
+    /** 批量删除文章请求 */
     BatchDelete: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['DeleteItem'][]
     }
-    /** BatchDeleteResult */
+    /** 批量删除文章结果 */
     BatchDeleteResult: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['DeleteResult'][]
     }
-    /** BatchPublishResult */
+    /** 批量发布文章结果 */
     BatchPublishResult: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['PublishResult'][]
     }
-    /** BatchView */
+    /** 场景发布批次 */
     BatchView: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Created At */
+      /**
+       * 创建时间
+       * @description 该资源或记录的创建时间。
+       */
       created_at: string
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['PublicationResult'][]
     }
-    /** Body_docx_preview_api_admin_v1_listening_docx_preview_post */
+    /** 听读 DOCX 预览文件 */
     Body_docx_preview_api_admin_v1_listening_docx_preview_post: {
-      /** File */
+      /**
+       * 上传文件
+       * @description 通过 multipart/form-data 提交的原始文件内容。
+       */
       file: string
     }
-    /** Body_upload_api_admin_v1_imports__batch_id__files_post */
+    /** 场景导入文件上传请求 */
     Body_upload_api_admin_v1_imports__batch_id__files_post: {
-      /** File */
+      /**
+       * 上传文件
+       * @description 通过 multipart/form-data 提交的原始文件内容。
+       */
       file: string
     }
-    /** Body_upload_api_admin_v1_listening_articles__article_id__media_post */
+    /** 听读文章素材上传请求 */
     Body_upload_api_admin_v1_listening_articles__article_id__media_post: {
-      /** File */
+      /**
+       * 上传文件
+       * @description 通过 multipart/form-data 提交的原始文件内容。
+       */
       file: string
     }
-    /** Body_upload_api_admin_v1_listening_imports__batch_id__files_post */
+    /** 听读批次文件上传请求 */
     Body_upload_api_admin_v1_listening_imports__batch_id__files_post: {
-      /** Files */
+      /**
+       * 文件列表
+       * @description 本次上传的文件，或批次已接收的文件及其处理状态。
+       */
       files: string[]
     }
-    /** Body_upload_api_admin_v1_media_post */
+    /** 后台媒体上传请求 */
     Body_upload_api_admin_v1_media_post: {
-      /** File */
+      /**
+       * 上传文件
+       * @description 通过 multipart/form-data 提交的原始文件内容。
+       */
       file: string
     }
-    /** Candidate */
+    /** 听读导入候选文章 */
     Candidate: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Package Id */
+      /**
+       * 导入包标识
+       * @description 候选文章所属导入文件包的 ID。
+       */
       package_id: string
-      /** Path */
+      /**
+       * 包内资料路径
+       * @description 候选文章在原导入包内的相对路径，不是服务器文件路径。
+       */
       path: string
-      /** State */
+      /**
+       * 听读导入候选状态
+       * @description complete 为完整，incomplete 为待补充，unreadable 为不可读，duplicate 为重复，saved 为已保存。
+       */
       state: string
+      /**
+       * 听读正文资料
+       * @description 文章标题、英文正文、译文、词汇、表达及媒体关联信息。
+       */
       payload: components['schemas']['ListeningPayload']
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id: string | null
       /**
-       * Category Name
+       * 听读分类名称
+       * @description 文章所属分类的中文名称。
        * @default
        */
       category_name: string
       /**
-       * Category Order
+       * 分类内顺序
+       * @description 文章在所属分类中的排序值，按升序展示。
        * @default 0
        */
       category_order: number
-      /** Errors */
+      /**
+       * 校验问题
+       * @description 阻止发布或需要核对的资料问题列表。
+       */
       errors: string[]
-      /** Article Id */
+      /**
+       * 听读文章标识
+       * @description 业务听读文章的 ID，区别于文章的发布版本 ID。
+       */
       article_id: string | null
-      /** Duplicate Of */
+      /**
+       * 重复来源标识
+       * @description 服务端识别为同一资料时，对应已有文章或候选的标识。
+       */
       duplicate_of: string | null
-      /** Removed */
+      /**
+       * 已从导入范围移除
+       * @description 该候选文章已被管理员移出本次导入范围时为 true。
+       */
       removed: boolean
+      /**
+       * 逐词时间轴
+       * @description 正文词项与音频时间的对应信息及其处理、核对状态。
+       */
       timeline: components['schemas']['Timeline']
-      /** Resources */
+      /**
+       * 候选可用素材
+       * @description 按类型分组、可供该候选文章选择的图片和音频资源。
+       */
       resources: {
         [key: string]: components['schemas']['Resource'][]
       }
-      /** Target Article Id */
+      /**
+       * 目标文章标识
+       * @description 确认更新的已有文章 ID；为空表示新建文章。
+       */
       target_article_id?: string | null
-      /** Target Revision */
+      /**
+       * 目标草稿修订号
+       * @description 更新目标当前草稿的修订号，防止覆盖其他窗口的新修改。
+       */
       target_revision?: number | null
-      /** Submit Action */
+      /**
+       * 导入提交方式
+       * @description draft 为仅保存草稿，publish 为保存并发布。
+       */
       submit_action?: ('draft' | 'publish') | null
-      /** Published Version Id */
+      /**
+       * 生成的发布版本标识
+       * @description 本次发布或导入保存生成的不可变发布版本 ID。
+       */
       published_version_id?: string | null
-      /** Parse Error */
+      /**
+       * 解析错误明细
+       * @description 无法读取候选资料时返回的错误代码和中文说明；无错误时为空。
+       */
       parse_error?: {
         [key: string]: string
       } | null
     }
-    /** CandidateInput */
+    /** 编辑听读候选文章请求 */
     CandidateInput: {
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id: string | null
+      /**
+       * 听读正文资料
+       * @description 文章标题、英文正文、译文、词汇、表达及媒体关联信息。
+       */
       payload: components['schemas']['ListeningPayload']
-      /** Target Article Id */
+      /**
+       * 目标文章标识
+       * @description 确认更新的已有文章 ID；为空表示新建文章。
+       */
       target_article_id?: string | null
-      /** Target Revision */
+      /**
+       * 目标草稿修订号
+       * @description 更新目标当前草稿的修订号，防止覆盖其他窗口的新修改。
+       */
       target_revision?: number | null
     }
-    /** CardPreview */
+    /** 场景草稿预览 */
     CardPreview: {
-      /** Preview Id */
+      /**
+       * 学习笔记
+       * @description 场景学习笔记草稿决策或当前发布PDF；请求省略表示保留，明确remove才移除。
+       */
+      study_note: components['schemas']['StudyNoteDraft']
+      /**
+       * 草稿预览标识
+       * @description 核对场景草稿后取得的预览 ID，发布时与同一修订号一起提交。
+       */
       preview_id: string
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
+      /**
+       * 场景内容
+       * @description 场景的名称、配图、音频、对话、词汇和语块资料。
+       */
       content: components['schemas']['SceneContent']
-      /** Expires At */
+      /**
+       * 失效时间
+       * @description 当前授权、会话、预览或资源链接失效的时间。
+       */
       expires_at: string
       /**
-       * Mode
+       * 预览内容版本
+       * @description 固定为 draft，表示当前预览是待发布草稿。
        * @constant
        */
       mode: 'draft'
     }
-    /** CardView */
+    /** 后台场景详情 */
     CardView: {
       /**
-       * Free Revision
+       * 学习笔记
+       * @description 场景学习笔记草稿决策或当前发布PDF；请求省略表示保留，明确remove才移除。
+       */
+      study_note: components['schemas']['StudyNoteDraft']
+      /**
+       * 已发布学习笔记
+       * @description 当前已发布的有效PDF元数据；与编辑候选分开读取，无笔记时为空。
+       */
+      published_study_note?: components['schemas']['StudyNoteMetadata'] | null
+      /**
+       * 免费标记修订号
+       * @description 单个内容免费标记的修订号，修改免费状态时用于并发校验。
        * @default 1
        */
       free_revision: number
       /**
-       * Is Free
+       * 免费标记
+       * @description 内容是否标记为免费；实际可学习性仍取决于发布状态和实时权限。
        * @default false
        */
       is_free: boolean
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Display Name */
+      /**
+       * 展示名称
+       * @description 后台列表根据当前内容版本选择展示的场景中文名称。
+       */
       display_name: string
       /**
-       * Display Title En
+       * 展示英文标题
+       * @description 后台列表当前展示内容对应的场景英文标题。
        * @default
        */
       display_title_en: string
-      /** Display Thumbnail Id */
+      /**
+       * 展示缩略图标识
+       * @description 后台列表当前展示配图对应的缩略图媒体 ID。
+       */
       display_thumbnail_id: string | null
-      /** Display Image Id */
+      /**
+       * 展示配图标识
+       * @description 后台列表当前展示内容所对应的原始配图媒体 ID。
+       */
       display_image_id?: string | null
-      /** Status */
+      /**
+       * 场景状态
+       * @description draft 为草稿，published 为已发布，offline 为已下架。
+       */
       status: string
-      /** Current Version Id */
+      /**
+       * 当前发布版本标识
+       * @description 场景当前对学习端生效的不可变发布版本 ID。
+       */
       current_version_id: string | null
-      /** Draft Revision */
+      /**
+       * 草稿修订号
+       * @description 当前场景草稿的修订号，编辑和发布时用于并发校验。
+       */
       draft_revision: number
+      /**
+       * 场景内容
+       * @description 场景的名称、配图、音频、对话、词汇和语块资料。
+       */
       content: components['schemas']['SceneContent']
-      /** Sort Order */
+      /**
+       * 展示顺序
+       * @description 资源在对应列表中的排序值，按升序展示。
+       */
       sort_order: number
-      /** Updated At */
+      /**
+       * 最后更新时间
+       * @description 该资源、记录或状态最近一次更新的时间。
+       */
       updated_at: string
-      /** Has Unpublished Changes */
+      /**
+       * 存在未发布修改
+       * @description 当前草稿与生效发布版本存在差异时为 true。
+       */
       has_unpublished_changes: boolean
-      /** Issues */
+      /**
+       * 字段核对问题
+       * @description 当前资料中需要修正的字段路径、业务代码和中文提示。
+       */
       issues: components['schemas']['FieldIssue'][]
     }
-    /** CatalogBatchDeleteResult */
+    /** 批量删除听读目录结果 */
     CatalogBatchDeleteResult: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['CatalogDeleteResult'][]
     }
-    /** CatalogDeleteResult */
+    /** 单个听读目录删除结果 */
     CatalogDeleteResult: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
       /**
-       * Status
+       * 目录删除结果
+       * @description success 为删除成功，failed 为删除失败；引用阻止删除时参见 references。
        * @enum {string}
        */
       status: 'success' | 'failed'
-      /** Error */
+      /**
+       * 错误信息
+       * @description 操作失败的原因；成功或没有错误时可为空。
+       */
       error?: string | null
-      /** References */
+      /**
+       * 目录引用数量
+       * @description 按引用类型统计仍关联当前分类或主题的内容数量。
+       */
       references?: {
         [key: string]: number
       }
-      /** Message */
+      /**
+       * 中文提示
+       * @description 供界面展示的操作结果或错误说明。
+       */
       message?: string | null
     }
-    /** CatalogOrder */
+    /** 已发布场景排序快照 */
     CatalogOrder: {
-      /** Version */
+      /**
+       * 场景排序快照版本
+       * @description 绑定已发布场景集合和当前顺序的摘要，保存排序时原样提交。
+       */
       version: string
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['OrderedCard'][]
     }
-    /** CatalogOrderInput */
+    /** 听读目录排序请求 */
     CatalogOrderInput: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['DeleteItem'][]
     }
-    /** Category */
+    /** 听读分类 */
     Category: {
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
       /**
-       * Name En
+       * 英文名称
+       * @description 听读分类或主题向用户展示的英文名称。
        * @default
        */
       name_en: string
       /**
-       * Sort Order
+       * 展示顺序
+       * @description 资源在对应列表中的排序值，按升序展示。
        * @default 0
        */
       sort_order: number
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
     }
-    /** CategoryInput */
+    /** 新建听读分类请求 */
     CategoryInput: {
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
-      /** Name En */
+      /**
+       * 英文名称
+       * @description 听读分类或主题向用户展示的英文名称。
+       */
       name_en?: string | null
       /**
-       * Sort Order
+       * 展示顺序
+       * @description 资源在对应列表中的排序值，按升序展示。
        * @default 0
        */
       sort_order: number
     }
-    /** CategoryUpdate */
+    /** 更新听读分类请求 */
     CategoryUpdate: {
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
-      /** Name En */
+      /**
+       * 英文名称
+       * @description 听读分类或主题向用户展示的英文名称。
+       */
       name_en?: string | null
       /**
-       * Sort Order
+       * 展示顺序
+       * @description 资源在对应列表中的排序值，按升序展示。
        * @default 0
        */
       sort_order: number
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
     }
-    /** CheckinRecord */
+    /** 每日打卡汇总 */
     CheckinRecord: {
-      /** Date */
+      /**
+       * 业务日期
+       * @description 按业务时区 Asia/Shanghai 归属的日期，格式为 YYYY-MM-DD。
+       */
       date: string
-      /** Card Count */
+      /**
+       * 场景完成数量
+       * @description 所选业务日期内完成的不同场景卡片数量。
+       */
       card_count: number
       /**
-       * Article Count
+       * 听读完成篇数
+       * @description 所选业务日期内完成的不同听读文章数量。
        * @default 0
        */
       article_count: number
     }
-    /** Chunk */
+    /** 场景语块 */
     Chunk: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id?: string
       /**
-       * English
+       * 英文内容
+       * @description 对应对话、语块、表达或词汇条目的英文原文。
        * @default
        */
       english: string
       /**
-       * Chinese
+       * 中文释义
+       * @description 对应英文对话、语块、表达或词项的中文翻译或释义。
        * @default
        */
       chinese: string
     }
-    /** ContentSnapshot */
+    /** 听读文章内容快照 */
     ContentSnapshot: {
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id: string | null
+      /**
+       * 听读正文资料
+       * @description 文章标题、英文正文、译文、词汇、表达及媒体关联信息。
+       */
       payload: components['schemas']['ListeningPayload']
     }
-    /** CreateActionBatch */
+    /** 创建场景管理操作批次请求 */
     CreateActionBatch: {
       /**
-       * Action
+       * 场景管理动作
+       * @description offline 为下架，delete 为删除。
        * @enum {string}
        */
       action: 'offline' | 'delete'
       /**
-       * Confirmed
+       * 已确认操作
+       * @description 提交操作时必须明确确认为 true，表示已核对本次操作范围。
        * @constant
        */
       confirmed: true
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['ActionSelection'][]
-      /** Skipped */
+      /**
+       * 跳过的选择项
+       * @description 本次已核对但不执行管理操作的场景快照。
+       */
       skipped?: components['schemas']['ActionSelection'][]
     }
-    /** CreateBatch */
+    /** 创建场景发布批次请求 */
     CreateBatch: {
       /**
-       * Confirmed
+       * 已确认操作
+       * @description 提交操作时必须明确确认为 true，表示已核对本次操作范围。
        * @constant
        */
       confirmed: true
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['SelectedPublication'][]
     }
-    /** CreateCard */
+    /** 新建场景草稿请求 */
     CreateCard: {
+      /**
+       * 场景内容
+       * @description 场景的名称、配图、音频、对话、词汇和语块资料。
+       */
       content: components['schemas']['SceneContent']
+      /**
+       * 学习笔记
+       * @description 场景学习笔记草稿决策或当前发布PDF；请求省略表示保留，明确remove才移除。
+       */
+      study_note?: components['schemas']['StudyNoteChange'] | null
     }
-    /** CreateImport */
+    /** 创建场景导入批次请求 */
     CreateImport: {
       /**
-       * Mode
+       * 场景导入方式
+       * @description zip 为 ZIP 资料包导入，docx 为 DOCX 文档导入。
        * @enum {string}
        */
       mode: 'zip' | 'docx'
       /**
-       * Single Card
+       * 单卡导入
+       * @description 为 true 时以单张场景卡片模式接收 DOCX，不进入普通批量导入历史。
        * @default false
        */
       single_card: boolean
     }
-    /** DailyRecord */
+    /** 当日场景学习记录 */
     DailyRecord: {
+      /**
+       * 学习权限
+       * @description 当前用户对该内容的实时学习和点词查询权限。
+       */
       access?: components['schemas']['LearningPermission'] | null
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
       /**
-       * Title En
+       * 英文标题
+       * @description 场景或听读文章向用户展示的英文标题。
        * @default
        */
       title_en: string
-      /** Thumbnail Id */
+      /**
+       * 缩略图标识
+       * @description 正文配图生成的缩略图媒体 ID。
+       */
       thumbnail_id: string | null
-      /** Available */
+      /**
+       * 内容是否可用
+       * @description 内容当前是否仍存在有效发布版本；实际学习还需检查 access。
+       */
       available: boolean
-      /** Version Id */
+      /**
+       * 发布版本标识
+       * @description 绑定此次学习或操作的不可变内容发布版本 ID。
+       */
       version_id: string | null
-      /** Unavailable Reason */
+      /**
+       * 内容不可用原因
+       * @description 历史收藏或记录对应内容当前无法访问的原因。
+       */
       unavailable_reason: string | null
-      /** Completed At */
+      /**
+       * 完成时间
+       * @description 该条学习记录对应的完成时间。
+       */
       completed_at: string
     }
-    /** DailyRecords */
+    /** 所选日期的场景学习记录 */
     DailyRecords: {
-      /** Date */
+      /**
+       * 业务日期
+       * @description 按业务时区 Asia/Shanghai 归属的日期，格式为 YYYY-MM-DD。
+       */
       date: string
-      /** Total */
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
       total: number
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['DailyRecord'][]
     }
-    /** DeleteImport */
+    /** 删除场景导入批次请求 */
     DeleteImport: {
-      /** Expected Updated At */
+      /**
+       * 预期最后更新时间
+       * @description 原样提交删除前读取的 updated_at 时间戳，用于防止误删已变化的批次。
+       */
       expected_updated_at: string
     }
-    /** DeleteItem */
+    /** 带修订校验的删除项 */
     DeleteItem: {
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
     }
-    /** DeleteResult */
+    /** 单个文章删除结果 */
     DeleteResult: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
       /**
-       * Status
+       * 删除结果
+       * @description success 为删除成功，failed 为删除失败。
        * @enum {string}
        */
       status: 'success' | 'failed'
-      /** Error */
+      /**
+       * 错误信息
+       * @description 操作失败的原因；成功或没有错误时可为空。
+       */
       error?: string | null
     }
-    /** DeletedCard */
+    /** 场景删除结果 */
     DeletedCard: {
-      /** Id */
-      id: string
-      /** Deleted */
-      deleted: boolean
-    }
-    /** DeletedImport */
-    DeletedImport: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
       /**
-       * Deleted
+       * 已删除
+       * @description 该资源已按本次请求完成删除时为 true。
+       */
+      deleted: boolean
+    }
+    /** 导入批次删除结果 */
+    DeletedImport: {
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
+      id: string
+      /**
+       * 已删除
+       * @description 该资源已按本次请求完成删除时为 true。
        * @constant
        */
       deleted: true
     }
-    /** Dialogue */
+    /** 场景对话行 */
     Dialogue: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id?: string
       /**
-       * Speaker
+       * 说话人
+       * @description 该句场景对话的说话人名称或角色。
        * @default
        */
       speaker: string
       /**
-       * English
+       * 英文内容
+       * @description 对应对话、语块、表达或词汇条目的英文原文。
        * @default
        */
       english: string
       /**
-       * Chinese
+       * 中文释义
+       * @description 对应英文对话、语块、表达或词项的中文翻译或释义。
        * @default
        */
       chinese: string
     }
-    /** DocxPreview */
+    /** 听读 DOCX 解析预览 */
     DocxPreview: {
+      /**
+       * 听读正文资料
+       * @description 文章标题、英文正文、译文、词汇、表达及媒体关联信息。
+       */
       payload: components['schemas']['ListeningPayload']
-      /** Hints */
+      /**
+       * 解析提示
+       * @description DOCX 内容识别过程产生的核对提示。
+       */
       hints: {
         [key: string]: string
       }
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id?: string | null
     }
-    /** ErrorBody */
+    /** 业务错误内容 */
     ErrorBody: {
-      /** Code */
+      /**
+       * 业务代码
+       * @description 用于客户端识别问题类型的稳定业务代码。
+       */
       code: string
-      /** Message */
+      /**
+       * 中文提示
+       * @description 供界面展示的操作结果或错误说明。
+       */
       message: string
-      /** Details */
+      /**
+       * 错误明细
+       * @description 错误涉及的字段或其他结构化补充信息；没有明细时为空。
+       */
       details?:
         | {
             [key: string]: unknown
           }[]
         | null
     }
-    /** ErrorResponse */
+    /** 标准错误响应 */
     ErrorResponse: {
+      /**
+       * 业务错误
+       * @description 包含稳定业务代码、中文提示及可选错误明细的标准错误对象。
+       */
       error: components['schemas']['ErrorBody']
-      /** Request Id */
+      /**
+       * 请求追踪标识
+       * @description 用于定位本次接口请求的追踪 ID。
+       */
       request_id?: string | null
     }
-    /** Expression */
+    /** 听读常用表达 */
     Expression: {
       /**
-       * English
+       * 英文内容
+       * @description 对应对话、语块、表达或词汇条目的英文原文。
        * @default
        */
       english: string
       /**
-       * Chinese
+       * 中文释义
+       * @description 对应英文对话、语块、表达或词项的中文翻译或释义。
        * @default
        */
       chinese: string
       /**
-       * Example
+       * 表达例句
+       * @description 常用英文表达的示例用法。
        * @default
        */
       example: string
     }
-    /** FeedbackDetail */
+    /** 反馈详情 */
     FeedbackDetail: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** User Id */
+      /**
+       * 用户标识
+       * @description 授权或反馈关联的用户 ID。
+       */
       user_id: string
-      /** User Code */
+      /**
+       * 用户编号
+       * @description 供后台检索和人工识别使用的用户业务编号。
+       */
       user_code: string
       /**
-       * Category
+       * 反馈类别
+       * @description content 为内容问题，pronunciation 为发音问题，display 为显示问题，function 为功能问题。
        * @enum {string}
        */
       category: 'content' | 'pronunciation' | 'display' | 'function'
       /**
-       * Status
+       * 反馈处理状态
+       * @description pending 为待处理，processing 为处理中，needs_info 为待补充，resolved 为已处理。
        * @enum {string}
        */
       status: 'pending' | 'processing' | 'needs_info' | 'resolved'
-      /** Summary */
+      /**
+       * 反馈摘要
+       * @description 用于反馈列表展示的用户反馈文字摘要。
+       */
       summary: string
       /**
-       * Source
+       * 反馈入口
+       * @description profile 为个人页通用反馈，scene 为场景内容反馈。
        * @enum {string}
        */
       source: 'profile' | 'scene'
-      /** Card Id */
+      /**
+       * 场景卡片标识
+       * @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。
+       */
       card_id: string | null
-      /** Version Id */
+      /**
+       * 发布版本标识
+       * @description 绑定此次学习或操作的不可变内容发布版本 ID。
+       */
       version_id: string | null
-      /** Source Title */
+      /**
+       * 来源场景标题
+       * @description 反馈引用场景的中文标题；无场景引用时为空。
+       */
       source_title: string | null
-      /** Source Title En */
+      /**
+       * 来源场景英文标题
+       * @description 反馈引用场景的英文标题。
+       */
       source_title_en: string
-      /** Source Available */
+      /**
+       * 反馈来源可用
+       * @description 反馈引用的原场景当前是否仍可访问。
+       */
       source_available: boolean
-      /** Source Unavailable Reason */
+      /**
+       * 来源不可用原因
+       * @description offline 为场景已下架，deleted 为场景已删除；来源可用时为空。
+       */
       source_unavailable_reason: ('offline' | 'deleted') | null
-      /** Created At */
+      /**
+       * 创建时间
+       * @description 该资源或记录的创建时间。
+       */
       created_at: string
-      /** Updated At */
+      /**
+       * 最后更新时间
+       * @description 该资源、记录或状态最近一次更新的时间。
+       */
       updated_at: string
-      /** Unread */
+      /**
+       * 存在未读反馈
+       * @description 当前查看方仍有未读反馈事件时为 true。
+       */
       unread: boolean
-      /** Latest Event Id */
+      /**
+       * 最新反馈事件标识
+       * @description 当前反馈最后一条事件的 ID，用于已读和并发回复校验。
+       */
       latest_event_id: number
-      /** Events */
+      /**
+       * 反馈事件列表
+       * @description 反馈中按时间记录的用户消息、管理员回复及处理状态变化。
+       */
       events: components['schemas']['FeedbackEvent'][]
     }
-    /** FeedbackEvent */
+    /** 反馈消息及处理事件 */
     FeedbackEvent: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: number
       /**
-       * Actor
+       * 消息发送方
+       * @description user 表示用户，admin 表示管理员。
        * @enum {string}
        */
       actor: 'user' | 'admin'
-      /** Text */
+      /**
+       * 消息正文
+       * @description 用户反馈或管理员回复的文字内容，提交时去除首尾空白。
+       */
       text: string | null
-      /** Status */
+      /**
+       * 事件附带的处理状态
+       * @description pending 为待处理，processing 为处理中，needs_info 为待补充，resolved 为已处理；可为空。
+       */
       status: ('pending' | 'processing' | 'needs_info' | 'resolved') | null
-      /** Images */
+      /**
+       * 消息截图
+       * @description 当前消息关联的已就绪反馈截图及其受控地址。
+       */
       images: components['schemas']['FeedbackImage'][]
-      /** Created At */
+      /**
+       * 创建时间
+       * @description 该资源或记录的创建时间。
+       */
       created_at: string
     }
-    /** FeedbackImage */
+    /** 反馈截图 */
     FeedbackImage: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
       /**
-       * State
+       * 截图状态
+       * @description 固定为 ready，表示图片已经处理完成，可用于反馈消息。
        * @constant
        */
       state: 'ready'
-      /** Url */
+      /**
+       * 资源访问地址
+       * @description 由服务端返回的资源访问 URL，按原值使用。
+       */
       url: string
-      /** Content Type */
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       */
       content_type: string
-      /** Width */
+      /**
+       * 图片宽度
+       * @description 解码后图片的宽度，单位为像素。
+       */
       width: number
-      /** Height */
+      /**
+       * 图片高度
+       * @description 解码后图片的高度，单位为像素。
+       */
       height: number
-      /** Size */
+      /**
+       * 文件大小
+       * @description 原始文件或返回资源的大小，单位为字节。
+       */
       size: number
     }
-    /** FeedbackPage */
+    /** 反馈列表分页 */
     FeedbackPage: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['FeedbackDetail'][]
-      /** Total */
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
       total: number
-      /** Page */
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
       page: number
-      /** Limit */
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
       limit: number
     }
-    /** FeedbackReadReceipt */
+    /** 反馈已读回执 */
     FeedbackReadReceipt: {
-      /** Feedback Id */
+      /**
+       * 反馈标识
+       * @description 本次已读回执或操作对应的反馈 ID。
+       */
       feedback_id: string
-      /** Read Event Id */
+      /**
+       * 已读到的事件标识
+       * @description 服务端已记录的反馈已读事件 ID。
+       */
       read_event_id: number
     }
-    /** FeedbackUnread */
+    /** 反馈未读汇总 */
     FeedbackUnread: {
-      /** Unread */
+      /**
+       * 存在未读反馈
+       * @description 当前查看方仍有未读反馈事件时为 true。
+       */
       unread: boolean
-      /** Count */
+      /**
+       * 未读反馈数量
+       * @description 当前查看方仍有未读事件的反馈数量。
+       */
       count: number
     }
-    /** FieldIssue */
+    /** 内容字段校验问题 */
     FieldIssue: {
-      /** Field */
+      /**
+       * 问题字段
+       * @description 需要核对或修正的内容字段路径。
+       */
       field: string
-      /** Code */
+      /**
+       * 业务代码
+       * @description 用于客户端识别问题类型的稳定业务代码。
+       */
       code: string
-      /** Message */
+      /**
+       * 中文提示
+       * @description 供界面展示的操作结果或错误说明。
+       */
       message: string
     }
-    /** FreeAccess */
+    /** 单个内容免费设置结果 */
     FreeAccess: {
-      /** Is Free */
+      /**
+       * 免费标记
+       * @description 内容是否标记为免费；实际可学习性仍取决于发布状态和实时权限。
+       */
       is_free: boolean
-      /** Revision */
-      revision: number
-      /** Effective */
-      effective: boolean
-    }
-    /** FreeAccessUpdate */
-    FreeAccessUpdate: {
-      /** Is Free */
-      is_free: boolean
-      /** Revision */
-      revision: number
-    }
-    /** FreeCount */
-    FreeCount: {
-      /** Free Count */
-      free_count: number
-    }
-    /** FreePolicy */
-    FreePolicy: {
-      /** Configured */
-      configured: boolean
-      /** Free Count */
-      free_count: number | null
-      /** Revision */
-      revision: number
-      /** Article Ids */
-      article_ids: string[]
-    }
-    /** FreePolicyPreview */
-    FreePolicyPreview: {
-      /** Enabled */
-      enabled: boolean
-      /** Free Count */
-      free_count: number | null
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
       /**
-       * Actual Free Count
+       * 免费标记已生效
+       * @description 内容已发布且免费标记当前对学习端生效时为 true。
+       */
+      effective: boolean
+    }
+    /** 修改单个内容免费设置请求 */
+    FreeAccessUpdate: {
+      /**
+       * 免费标记
+       * @description 内容是否标记为免费；实际可学习性仍取决于发布状态和实时权限。
+       */
+      is_free: boolean
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
+      revision: number
+    }
+    /** 免费数量请求 */
+    FreeCount: {
+      /**
+       * 免费内容数量
+       * @description 当前模块返回或预览配置的免费内容数量；尚未配置时可为空。
+       */
+      free_count: number
+    }
+    /** 听读免费策略 */
+    FreePolicy: {
+      /**
+       * 免费策略已配置
+       * @description 服务端是否已配置当前内容模块的免费策略。
+       */
+      configured: boolean
+      /**
+       * 免费内容数量
+       * @description 当前模块返回或预览配置的免费内容数量；尚未配置时可为空。
+       */
+      free_count: number | null
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
+      revision: number
+      /**
+       * 听读文章标识列表
+       * @description 本次操作涉及的听读文章 ID 列表；排序接口按列表顺序保存。
+       */
+      article_ids: string[]
+    }
+    /** 场景免费范围预览 */
+    FreePolicyPreview: {
+      /**
+       * 学习权限策略已启用
+       * @description 服务端统一学习权限策略的启用状态。
+       */
+      enabled: boolean
+      /**
+       * 免费内容数量
+       * @description 当前模块返回或预览配置的免费内容数量；尚未配置时可为空。
+       */
+      free_count: number | null
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
+      revision: number
+      /**
+       * 实际免费数量
+       * @description 当前已发布、可用且标记为免费的内容数量。
        * @default 0
        */
       actual_free_count: number
-      /** Proposed Count */
+      /**
+       * 拟配置免费数量
+       * @description 本次免费策略预览中提交的目标免费数量。
+       */
       proposed_count: number
-      /** Total */
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
       total: number
-      /** Page */
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
       page: number
-      /** Limit */
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
       limit: number
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['FreeScene'][]
-      /** Added Count */
+      /**
+       * 新增免费数量
+       * @description 按本次预览配置将新增为免费的内容数量。
+       */
       added_count: number
-      /** Removed Count */
+      /**
+       * 移除免费数量
+       * @description 按本次预览配置将不再免费的内容数量。
+       */
       removed_count: number
-      /** Removed */
+      /**
+       * 拟移出免费范围的场景
+       * @description 本次预览中将不再免费的场景摘要列表。
+       */
       removed: components['schemas']['FreeScene'][]
-      /** Preview Token */
+      /**
+       * 预览确认凭据
+       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       */
       preview_token: string
     }
-    /** FreePolicyUpdate */
+    /** 更新听读免费策略请求 */
     FreePolicyUpdate: {
-      /** Free Count */
+      /**
+       * 免费内容数量
+       * @description 当前模块返回或预览配置的免费内容数量；尚未配置时可为空。
+       */
       free_count: number
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
     }
-    /** FreePreview */
+    /** 场景免费数量预览请求 */
     'FreePreview-Input': {
-      /** Free Count */
+      /**
+       * 免费内容数量
+       * @description 当前模块返回或预览配置的免费内容数量；尚未配置时可为空。
+       */
       free_count: number
     }
-    /** FreePreview */
+    /** 听读免费范围预览结果 */
     'FreePreview-Output': {
-      /** Preview Token */
+      /**
+       * 预览确认凭据
+       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       */
       preview_token: string
-      /** Free Count */
+      /**
+       * 免费内容数量
+       * @description 当前模块返回或预览配置的免费内容数量；尚未配置时可为空。
+       */
       free_count: number
-      /** Article Ids */
+      /**
+       * 听读文章标识列表
+       * @description 本次操作涉及的听读文章 ID 列表；排序接口按列表顺序保存。
+       */
       article_ids: string[]
-      /** Added Ids */
+      /**
+       * 新增免费文章标识
+       * @description 本次预览中由非免费变为免费的文章 ID 列表。
+       */
       added_ids: string[]
-      /** Removed Ids */
+      /**
+       * 移除免费文章标识
+       * @description 本次预览中将从免费范围移除的文章 ID 列表。
+       */
       removed_ids: string[]
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
     }
-    /** FreeScene */
+    /** 免费范围中的场景摘要 */
     FreeScene: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
-      /** Title En */
+      /**
+       * 英文标题
+       * @description 场景或听读文章向用户展示的英文标题。
+       */
       title_en: string
-      /** Thumbnail Id */
+      /**
+       * 缩略图标识
+       * @description 正文配图生成的缩略图媒体 ID。
+       */
       thumbnail_id: string | null
-      /** Change */
+      /**
+       * 免费范围变化
+       * @description 本次免费范围预览对该场景的变更标记；无变化时可为空。
+       */
       change?: string | null
     }
-    /** GrantPreview */
+    /** 用户学习授权变更预览 */
     GrantPreview: {
-      /** User Id */
+      /**
+       * 用户标识
+       * @description 授权或反馈关联的用户 ID。
+       */
       user_id: string
+      /**
+       * 变更前内容
+       * @description 操作执行前或预览时读取的原业务数据快照。
+       */
       before: components['schemas']['AuthorizationView']
+      /**
+       * 变更后内容
+       * @description 本次操作拟生效或已生效的业务数据快照。
+       */
       after: components['schemas']['AuthorizationTarget']
-      /** Preview Token */
+      /**
+       * 预览确认凭据
+       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       */
       preview_token: string
     }
-    /** ImportBatchView */
+    /** 可恢复场景导入批次 */
     ImportBatchView: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Mode */
+      /**
+       * 场景批次导入方式
+       * @description zip 为资料包，docx 为文档批量导入，single 为单卡 DOCX 导入。
+       */
       mode: string
-      /** Created At */
+      /**
+       * 创建时间
+       * @description 该资源或记录的创建时间。
+       */
       created_at: string
-      /** Updated At */
+      /**
+       * 最后更新时间
+       * @description 该资源、记录或状态最近一次更新的时间。
+       */
       updated_at: string
-      /** Resumable */
+      /**
+       * 导入可恢复
+       * @description 批次仍有可继续核对或处理的暂存资料时为 true。
+       */
       resumable: boolean
       /**
-       * Stage
+       * 导入工作阶段
+       * @description upload 为上传，processing 为处理，review 为核对，result 为结果。
        * @enum {string}
        */
       stage: 'upload' | 'processing' | 'review' | 'result'
-      /** Source Names */
+      /**
+       * 来源文件名
+       * @description 本次导入批次接收的顶层来源文件名称列表。
+       */
       source_names: string[]
-      /** Files */
+      /**
+       * 文件列表
+       * @description 本次上传的文件，或批次已接收的文件及其处理状态。
+       */
       files: components['schemas']['ImportFileView'][]
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['ImportItemView'][]
-      /** Unused File Ids */
+      /**
+       * 未使用附件标识
+       * @description 本次导入尚未关联到资料内容的文件 ID 列表。
+       */
       unused_file_ids: string[]
     }
-    /** ImportChange */
+    /** 听读导入变更预览项 */
     ImportChange: {
-      /** Candidate Id */
+      /**
+       * 导入候选标识
+       * @description 听读导入中单篇待核对文章的候选 ID。
+       */
       candidate_id: string
       /**
-       * Operation
+       * 导入动作
+       * @description create 表示新建文章，update 表示更新已选目标文章草稿。
        * @enum {string}
        */
       operation: 'create' | 'update'
-      /** Target Article Id */
+      /**
+       * 目标文章标识
+       * @description 确认更新的已有文章 ID；为空表示新建文章。
+       */
       target_article_id: string | null
-      /** Target Revision */
+      /**
+       * 目标草稿修订号
+       * @description 更新目标当前草稿的修订号，防止覆盖其他窗口的新修改。
+       */
       target_revision: number | null
+      /**
+       * 变更前内容
+       * @description 操作执行前或预览时读取的原业务数据快照。
+       */
       before: components['schemas']['ContentSnapshot'] | null
+      /**
+       * 变更后内容
+       * @description 本次操作拟生效或已生效的业务数据快照。
+       */
       after: components['schemas']['ContentSnapshot']
     }
-    /** ImportConfirmation */
+    /** 场景导入保存确认统计 */
     ImportConfirmation: {
-      /** Version */
+      /**
+       * 导入确认快照版本
+       * @description 绑定资料内容、处理状态和选择范围的摘要，确认保存时原样提交。
+       */
       version: string
-      /** Count */
+      /**
+       * 待保存选中数量
+       * @description 当前勾选、可读取、未保存、非重复且不在保存中的导入资料数量。
+       */
       count: number
-      /** Incomplete */
+      /**
+       * 待补充资料数量
+       * @description 当前已选择且尚待保存的导入资料中存在校验问题的数量。
+       */
       incomplete: number
-      /** Saved */
+      /**
+       * 已保存数量
+       * @description 当前导入批次中已成功保存的资料数量。
+       */
       saved: number
-      /** Duplicates */
+      /**
+       * 重复资料数量
+       * @description 本次导入中已识别为重复、无需重复保存的资料数量。
+       */
       duplicates: number
-      /** Excluded */
+      /**
+       * 未选资料数量
+       * @description 可读取但未勾选且不属于重复项的导入资料数量。
+       */
       excluded: number
-      /** Unreadable */
+      /**
+       * 不可读资料数量
+       * @description 当前导入中无法解析为可核对资料的条目数。
+       */
       unreadable: number
     }
-    /** ImportFileView */
+    /** 场景导入文件状态 */
     ImportFileView: {
-      /** Processing Stage */
+      /**
+       * 错误信息
+       * @description 操作失败的原因；成功或没有错误时可为空。
+       */
+      error?: string | null
+      /**
+       * 媒体处理阶段
+       * @description 媒体解码、转换等处理阶段标记；没有阶段信息时为空。
+       */
       processing_stage?: string | null
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
-      /** Kind */
+      /**
+       * 文件类型
+       * @description 上传或处理的文件类别，例如 image、audio、study_note（PDF）、zip、docx。
+       */
       kind: string
-      /** Size */
+      /**
+       * 文件大小
+       * @description 原始文件或返回资源的大小，单位为字节。
+       */
       size: number
-      /** Media Id */
+      /**
+       * 媒体标识
+       * @description 已上传媒体的 ID，用于关联图片、音频或签发访问票据。
+       */
       media_id: string | null
-      /** State */
+      /**
+       * 导入文件状态
+       * @description processing 为处理中，ready 为已就绪，failed 为处理失败。
+       */
       state: string
-      /** Job Id */
+      /**
+       * 异步任务标识
+       * @description 处理当前资源或操作的持久异步任务 ID；未创建任务时可为空。
+       */
       job_id: string | null
-      /** Error Code */
+      /**
+       * 错误代码
+       * @description 异步处理或当前操作失败时的稳定错误代码；无错误时为空。
+       */
       error_code: string | null
-      /** Parent Id */
+      /**
+       * 父文件标识
+       * @description ZIP 内文件对应的根 ZIP 文件 ID；顶层上传文件使用空字符串。
+       */
       parent_id: string
+      /**
+       * 文件解析进度
+       * @description 当前文件解析的阶段、已处理数量和总数量；暂无进度信息时为空。
+       */
       progress?: components['schemas']['ImportProgress'] | null
     }
-    /** ImportInput */
+    /** 创建听读导入批次请求 */
     ImportInput: {
       /**
-       * Mode
+       * 听读导入方式
+       * @description zip 为 ZIP 资料包导入，docx 为 DOCX 文档导入。
        * @enum {string}
        */
       mode: 'zip' | 'docx'
     }
-    /** ImportItemView */
+    /** 场景导入核对资料 */
     ImportItemView: {
-      /** Id */
+      /**
+       * 学习笔记
+       * @description 场景学习笔记草稿决策或当前发布PDF；请求省略表示保留，明确remove才移除。
+       */
+      study_note: components['schemas']['StudyNoteDraft']
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
+      /**
+       * 场景内容
+       * @description 场景的名称、配图、音频、对话、词汇和语块资料。
+       */
       content: components['schemas']['SceneContent']
-      /** Thumbnail Id */
+      /**
+       * 缩略图标识
+       * @description 正文配图生成的缩略图媒体 ID。
+       */
       thumbnail_id: string | null
-      /** Selected */
+      /**
+       * 已选择保存
+       * @description 该导入资料是否已被勾选进入本次保存范围。
+       */
       selected: boolean
-      /** Readable */
+      /**
+       * 资料可读取
+       * @description 导入文件已成功解析为可供人工核对的场景资料时为 true。
+       */
       readable: boolean
-      /** State */
+      /**
+       * 场景导入资料状态
+       * @description ready 为可保存，incomplete 为待补充，saving 为保存中，saved 为已保存，duplicate 为重复，unreadable 为不可读，failed 为失败。
+       */
       state: string
-      /** Issues */
+      /**
+       * 字段核对问题
+       * @description 当前资料中需要修正的字段路径、业务代码和中文提示。
+       */
       issues: components['schemas']['FieldIssue'][]
-      /** Source File Id */
+      /**
+       * 来源文档标识
+       * @description 解析出该场景资料的原始导入文档 ID。
+       */
       source_file_id: string
-      /** Source Zip Id */
+      /**
+       * 来源 ZIP 标识
+       * @description 该场景资料所属的顶层 ZIP 导入文件 ID。
+       */
       source_zip_id?: string | null
-      /** Source Zip Name */
+      /**
+       * 来源 ZIP 文件名
+       * @description 该场景资料所属顶层 ZIP 的原始名称。
+       */
       source_zip_name?: string | null
-      /** Source Folder */
+      /**
+       * 来源文件夹
+       * @description 场景资料在原 ZIP 包内的相对文件夹路径。
+       */
       source_folder?: string | null
-      /** Target Card Id */
+      /**
+       * 目标场景标识
+       * @description 确认更新的已有场景 ID；为空表示保存为新卡片。
+       */
       target_card_id: string | null
-      /** Target Revision */
+      /**
+       * 目标草稿修订号
+       * @description 更新目标当前草稿的修订号，防止覆盖其他窗口的新修改。
+       */
       target_revision: number | null
-      /** Saved Card Id */
+      /**
+       * 已保存场景标识
+       * @description 该导入资料成功保存后对应的场景卡片 ID。
+       */
       saved_card_id: string | null
-      /** Saved Draft Revision */
+      /**
+       * 保存后草稿修订号
+       * @description 该导入资料最近一次保存后对应场景草稿的修订号。
+       */
       saved_draft_revision: number | null
-      /** Suggested Target Id */
+      /**
+       * 建议更新目标
+       * @description 服务端建议用于更新的已有场景 ID，仍需管理员核对确认。
+       */
       suggested_target_id: string | null
-      /** Job Id */
+      /**
+       * 异步任务标识
+       * @description 处理当前资源或操作的持久异步任务 ID；未创建任务时可为空。
+       */
       job_id: string | null
-      /** Error Code */
+      /**
+       * 错误代码
+       * @description 异步处理或当前操作失败时的稳定错误代码；无错误时为空。
+       */
       error_code: string | null
     }
-    /** ImportPreview */
+    /** 听读导入保存预览 */
     ImportPreview: {
-      /** Preview Token */
+      /**
+       * 预览确认凭据
+       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       */
       preview_token: string
-      /** Candidate Ids */
+      /**
+       * 导入候选标识列表
+       * @description 本次选择、预览或保存的听读导入候选 ID 列表。
+       */
       candidate_ids: string[]
-      /** Counts */
+      /**
+       * 导入数量统计
+       * @description 按完整、待补充、不可读、重复、已保存等状态汇总的候选数量。
+       */
       counts: {
         [key: string]: number
       }
-      /** Changes */
+      /**
+       * 导入变更明细
+       * @description 每篇候选文章的新增或更新动作，以及变更前后的分类和正文。
+       */
       changes: components['schemas']['ImportChange'][]
       /**
-       * Submit Action
+       * 导入提交方式
+       * @description draft 为仅保存草稿，publish 为保存并发布。
        * @default draft
        * @enum {string}
        */
       submit_action: 'draft' | 'publish'
     }
-    /** ImportProgress */
+    /** 场景文件解析进度 */
     ImportProgress: {
       /**
-       * Phase
+       * 解析阶段
+       * @description reading 为读取文件，parsing 为解析资料，parsed 为解析完成。
        * @enum {string}
        */
       phase: 'reading' | 'parsing' | 'parsed'
-      /** Processed */
+      /**
+       * 已处理数量
+       * @description 当前文件解析阶段已处理的条目数，与 total 使用相同统计口径。
+       */
       processed: number
-      /** Total */
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
       total: number
     }
-    /** ImportSpeechReference */
+    /** 场景导入词汇发音引用 */
     ImportSpeechReference: {
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
     }
-    /** LearningPermission */
+    /** 单个内容的实时学习权限 */
     LearningPermission: {
-      /** Can Learn */
+      /**
+       * 允许学习
+       * @description 当前内容可用且为免费内容，或用户具有有效学习授权时为 true。
+       */
       can_learn: boolean
-      /** Can Lookup */
+      /**
+       * 允许点词查询
+       * @description 当前内容可用且用户具有有效学习授权时为 true。
+       */
       can_lookup: boolean
-      /** Is Free */
+      /**
+       * 免费标记
+       * @description 内容是否标记为免费；实际可学习性仍取决于发布状态和实时权限。
+       */
       is_free: boolean
-      /** Reason */
+      /**
+       * 权限受限原因
+       * @description learning_authorization_required 为需要授权，content_unavailable 为内容不可用。
+       */
       reason: string | null
-      /** Version */
+      /**
+       * 权限计算版本
+       * @description 服务端生成的权限状态版本字符串；视为不透明值，勿拆解依赖其格式。
+       */
       version: string
-      /** Server Now */
+      /**
+       * 服务端当前时间
+       * @description 计算本次权限和有效期时使用的服务端时间。
+       */
       server_now: string
-      /** Expires At */
+      /**
+       * 授权失效时间
+       * @description 当前用户学习授权到期日之后的首个时刻；不代表免费内容也会在此时失效。
+       */
       expires_at: string | null
     }
-    /** LearningRecord */
+    /** 场景累计学习记录 */
     LearningRecord: {
+      /**
+       * 学习权限
+       * @description 当前用户对该内容的实时学习和点词查询权限。
+       */
       access?: components['schemas']['LearningPermission'] | null
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
       /**
-       * Title En
+       * 英文标题
+       * @description 场景或听读文章向用户展示的英文标题。
        * @default
        */
       title_en: string
-      /** Thumbnail Id */
+      /**
+       * 缩略图标识
+       * @description 正文配图生成的缩略图媒体 ID。
+       */
       thumbnail_id: string | null
-      /** Available */
+      /**
+       * 内容是否可用
+       * @description 内容当前是否仍存在有效发布版本；实际学习还需检查 access。
+       */
       available: boolean
-      /** Version Id */
+      /**
+       * 发布版本标识
+       * @description 绑定此次学习或操作的不可变内容发布版本 ID。
+       */
       version_id: string | null
-      /** Unavailable Reason */
+      /**
+       * 内容不可用原因
+       * @description 历史收藏或记录对应内容当前无法访问的原因。
+       */
       unavailable_reason: string | null
-      /** First Completed At */
+      /**
+       * 首次完成时间
+       * @description 当前用户首次完成该内容的时间；从未完成时可为空。
+       */
       first_completed_at: string
-      /** Last Completed At */
+      /**
+       * 最近完成时间
+       * @description 当前用户最近一次完成该内容的时间。
+       */
       last_completed_at: string
     }
-    /** ListeningDailyRecord */
+    /** 当日听读学习记录 */
     ListeningDailyRecord: {
-      /** Audio Duration Seconds */
+      /**
+       * 音频时长（秒）
+       * @description 已就绪正文音频的总秒数；音频不可用时为空。
+       */
       audio_duration_seconds?: number | null
-      /** Reading Paragraph */
+      /**
+       * 已读段落
+       * @description 根据保存的字符位置计算的非空正文段落序号，从 1 开始；未保存时为空。
+       */
       reading_paragraph?: number | null
+      /**
+       * 本人听读进度
+       * @description 该文章当前发布版本中已保存的学习进度；无可返回进度时为空。
+       */
       progress?: components['schemas']['Progress'] | null
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
       /**
-       * Content Type
+       * 业务内容类型
+       * @description 固定为 listening，表示听读文章。
        * @default listening
        * @constant
        */
       content_type: 'listening'
-      /** Topic Id */
+      /**
+       * 主题标识
+       * @description 历史兼容字段或主题资源接口使用的主题 ID；文章可不再关联主题。
+       */
       topic_id?: string | null
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id: string
       /**
-       * Category Name
+       * 听读分类名称
+       * @description 文章所属分类的中文名称。
        * @default
        */
       category_name: string
       /**
-       * Category Order
+       * 分类内顺序
+       * @description 文章在所属分类中的排序值，按升序展示。
        * @default 0
        */
       category_order: number
-      /** Title Zh */
+      /**
+       * 中文标题
+       * @description 听读文章向用户展示的中文标题。
+       */
       title_zh: string
-      /** Title En */
+      /**
+       * 英文标题
+       * @description 场景或听读文章向用户展示的英文标题。
+       */
       title_en: string
-      /** Tags */
+      /**
+       * 文章标签
+       * @description 用于展示和检索的听读文章标签列表。
+       */
       tags: string[]
-      /** Word Count */
+      /**
+       * 英文词数
+       * @description 按服务端正文英文分词规则统计的听读文章词数。
+       */
       word_count: number
-      /** Version Id */
+      /**
+       * 发布版本标识
+       * @description 绑定此次学习或操作的不可变内容发布版本 ID。
+       */
       version_id: string | null
-      /** Available */
+      /**
+       * 内容是否可用
+       * @description 内容当前是否仍存在有效发布版本；实际学习还需检查 access。
+       */
       available: boolean
-      /** Thumbnail Url */
+      /**
+       * 缩略图地址
+       * @description 用于列表展示的受控缩略图访问地址；没有可用缩略图时为空。
+       */
       thumbnail_url: string | null
+      /**
+       * 学习权限
+       * @description 当前用户对该内容的实时学习和点词查询权限。
+       */
       access: components['schemas']['LearningPermission']
+      /**
+       * 本人文章状态
+       * @description 当前用户对文章的收藏、累计完成和今日完成标记。
+       */
       state: components['schemas']['ArticleState']
-      /** First Completed At */
+      /**
+       * 首次完成时间
+       * @description 当前用户首次完成该内容的时间；从未完成时可为空。
+       */
       first_completed_at?: string | null
-      /** Last Completed At */
+      /**
+       * 最近完成时间
+       * @description 当前用户最近一次完成该内容的时间。
+       */
       last_completed_at?: string | null
-      /** Favorited At */
+      /**
+       * 收藏时间
+       * @description 当前用户收藏该内容的时间；未收藏时为空。
+       */
       favorited_at?: string | null
-      /** Completed At */
+      /**
+       * 完成时间
+       * @description 该条学习记录对应的完成时间。
+       */
       completed_at: string
     }
-    /** ListeningImportConfirmation */
+    /** 确认听读导入保存请求 */
     ListeningImportConfirmation: {
-      /** Preview Token */
+      /**
+       * 预览确认凭据
+       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       */
       preview_token: string
       /**
-       * Submit Action
+       * 导入提交方式
+       * @description draft 为仅保存草稿，publish 为保存并发布。
        * @default draft
        * @enum {string}
        */
       submit_action: 'draft' | 'publish'
     }
-    /** ListeningImportSelection */
+    /** 选择听读导入保存范围请求 */
     ListeningImportSelection: {
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
-      /** Candidate Ids */
+      /**
+       * 导入候选标识列表
+       * @description 本次选择、预览或保存的听读导入候选 ID 列表。
+       */
       candidate_ids: string[]
       /**
-       * Submit Action
+       * 导入提交方式
+       * @description draft 为仅保存草稿，publish 为保存并发布。
        * @default draft
        * @enum {string}
        */
       submit_action: 'draft' | 'publish'
     }
-    /** ListeningPayload */
+    /** 听读文章正文资料 */
     ListeningPayload: {
       /**
-       * Title Zh
+       * 中文标题
+       * @description 听读文章向用户展示的中文标题。
        * @default
        */
       title_zh: string
       /**
-       * Title En
+       * 英文标题
+       * @description 场景或听读文章向用户展示的英文标题。
        * @default
        */
       title_en: string
-      /** Tags */
+      /**
+       * 文章标签
+       * @description 用于展示和检索的听读文章标签列表。
+       */
       tags?: string[]
       /**
-       * Body En
+       * 英文正文
+       * @description 听读文章的原始英文正文；字符定位均以此文本为依据。
        * @default
        */
       body_en: string
       /**
-       * Translation Zh
+       * 中文译文
+       * @description 听读英文正文对应的完整中文翻译。
        * @default
        */
       translation_zh: string
-      /** Expressions */
+      /**
+       * 常用表达
+       * @description 听读文章中的英文表达、中文释义及例句。
+       */
       expressions?: components['schemas']['Expression'][]
-      /** Vocabulary */
+      /**
+       * 词汇列表
+       * @description 正文关联的重点词汇、音标、中文释义和原文出处。
+       */
       vocabulary?: components['schemas']['VocabularyWord'][]
-      /** Word Meanings */
+      /**
+       * 语境词义标注
+       * @description 绑定英文正文字符区间的人工词义和音标标注。
+       */
       word_meanings?: components['schemas']['WordMeaning'][]
-      /** Audio Id */
+      /**
+       * 音频素材标识
+       * @description 关联的正文音频媒体 ID；未选择音频时为空。
+       */
       audio_id?: string | null
-      /** Image Id */
+      /**
+       * 配图素材标识
+       * @description 关联的正文配图媒体 ID；未选择配图时为空。
+       */
       image_id?: string | null
     }
-    /** LogoutResponse */
+    /** 退出登录结果 */
     LogoutResponse: {
-      /** Logged Out */
+      /**
+       * 已退出登录
+       * @description 当前登录会话已失效时为 true。
+       */
       logged_out: boolean
     }
-    /** MediaMetadata */
+    /** 媒体元数据及处理状态 */
     MediaMetadata: {
-      /** Playback Id */
+      /**
+       * 播放音频标识
+       * @description 媒体处理后用于播放的音频媒体 ID。
+       */
       playback_id?: string | null
-      /** Playback Content Type */
+      /**
+       * 播放文件类型
+       * @description 转码后可播放音频的 MIME 类型。
+       */
       playback_content_type?: string | null
-      /** Processing Stage */
+      /**
+       * 媒体处理阶段
+       * @description 媒体解码、转换等处理阶段标记；没有阶段信息时为空。
+       */
       processing_stage?: string | null
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Kind */
+      /**
+       * 文件类型
+       * @description 上传或处理的文件类别，例如 image、audio、study_note（PDF）、zip、docx。
+       */
       kind: string
-      /** State */
+      /**
+       * 媒体处理状态
+       * @description processing 为处理中，ready 为可用，failed 为处理失败。
+       */
       state: string
-      /** Content Type */
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       */
       content_type: string
-      /** Size */
+      /**
+       * 文件大小
+       * @description 原始文件或返回资源的大小，单位为字节。
+       */
       size: number
-      /** Width */
+      /**
+       * 图片宽度
+       * @description 解码后图片的宽度，单位为像素。
+       */
       width: number | null
-      /** Height */
+      /**
+       * 图片高度
+       * @description 解码后图片的高度，单位为像素。
+       */
       height: number | null
-      /** Duration */
+      /**
+       * 媒体时长
+       * @description 解码后音频的总时长，单位为秒；不适用或未就绪时为空。
+       */
       duration: number | null
-      /** Thumbnail Id */
+      /**
+       * 缩略图标识
+       * @description 正文配图生成的缩略图媒体 ID。
+       */
       thumbnail_id: string | null
-      /** Original Name */
+      /**
+       * 原始文件名
+       * @description 上传文件的原始名称，不包含服务端存储路径。
+       */
       original_name?: string | null
-      /** Job Id */
+      /**
+       * 异步任务标识
+       * @description 处理当前资源或操作的持久异步任务 ID；未创建任务时可为空。
+       */
       job_id?: string | null
-      /** Error */
+      /**
+       * 错误信息
+       * @description 操作失败的原因；成功或没有错误时可为空。
+       */
       error?: string | null
-      /** Error Code */
+      /**
+       * 错误代码
+       * @description 异步处理或当前操作失败时的稳定错误代码；无错误时为空。
+       */
       error_code?: string | null
     }
-    /** MixedDay */
+    /** 所选日期的场景与听读学习记录 */
     MixedDay: {
-      /** Date */
+      /**
+       * 业务日期
+       * @description 按业务时区 Asia/Shanghai 归属的日期，格式为 YYYY-MM-DD。
+       */
       date: string
-      /** Scene Items */
+      /**
+       * 场景学习记录
+       * @description 所选日期完成的场景卡片及其完成时间。
+       */
       scene_items: components['schemas']['DailyRecord'][]
-      /** Article Items */
+      /**
+       * 听读学习记录
+       * @description 所选日期完成的听读文章及当时的完成时间。
+       */
       article_items: components['schemas']['ListeningDailyRecord'][]
-      /** Card Count */
+      /**
+       * 场景完成数量
+       * @description 所选业务日期内完成的不同场景卡片数量。
+       */
       card_count: number
-      /** Article Count */
+      /**
+       * 听读完成篇数
+       * @description 所选业务日期内完成的不同听读文章数量。
+       */
       article_count: number
     }
-    /** OperationResponse */
+    /** 幂等操作查询结果 */
     OperationResponse: {
       /**
-       * Status
+       * 幂等操作状态
+       * @description succeeded 表示该写操作已有持久化成功结果。
        * @constant
        */
       status: 'succeeded'
-      /** Result */
+      /**
+       * 操作结果
+       * @description 已持久化写操作的业务返回内容。
+       */
       result: {
         [key: string]: unknown
       }
     }
-    /** OrderInput */
+    /** 听读文章排序请求 */
     OrderInput: {
       /**
-       * Scope
+       * 排序范围
+       * @description category 为分类内排序；global 和 topic 为旧全局、主题范围标识，当前保存只支持 category。
        * @enum {string}
        */
       scope: 'category' | 'global' | 'topic'
-      /** Topic Id */
+      /**
+       * 主题标识
+       * @description 历史兼容字段或主题资源接口使用的主题 ID；文章可不再关联主题。
+       */
       topic_id?: string | null
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id?: string | null
-      /** Article Ids */
+      /**
+       * 听读文章标识列表
+       * @description 本次操作涉及的听读文章 ID 列表；排序接口按列表顺序保存。
+       */
       article_ids: string[]
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
     }
-    /** OrderResult */
+    /** 听读文章排序结果 */
     OrderResult: {
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
-      /** Article Ids */
+      /**
+       * 听读文章标识列表
+       * @description 本次操作涉及的听读文章 ID 列表；排序接口按列表顺序保存。
+       */
       article_ids: string[]
     }
-    /** OrderedCard */
+    /** 排序列表中的场景摘要 */
     OrderedCard: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
       /**
-       * Title En
+       * 英文标题
+       * @description 场景或听读文章向用户展示的英文标题。
        * @default
        */
       title_en: string
-      /** Image Id */
+      /**
+       * 配图素材标识
+       * @description 关联的正文配图媒体 ID；未选择配图时为空。
+       */
       image_id: string | null
-      /** Thumbnail Id */
+      /**
+       * 缩略图标识
+       * @description 正文配图生成的缩略图媒体 ID。
+       */
       thumbnail_id?: string | null
     }
-    /** Overview */
+    /** 后台业务统计概览 */
     Overview: {
-      /** User Count */
+      /**
+       * 用户总数
+       * @description 当前系统登记的用户数量。
+       */
       user_count: number
-      /** New Users Today */
+      /**
+       * 今日新增用户数
+       * @description 当前业务日期内新注册的用户数量。
+       */
       new_users_today: number
-      /** Published Card Count */
+      /**
+       * 已发布场景数
+       * @description 当前处于已发布状态的场景卡片数量。
+       */
       published_card_count: number
       /**
-       * Published Article Count
+       * 已发布听读篇数
+       * @description 当前处于已发布状态的听读文章数量。
        * @default 0
        */
       published_article_count: number
-      /** Statistical Date */
+      /**
+       * 统计业务日期
+       * @description 本次统计采用的 Asia/Shanghai 业务日期。
+       */
       statistical_date: string
-      /** Updated At */
+      /**
+       * 最后更新时间
+       * @description 该资源、记录或状态最近一次更新的时间。
+       */
       updated_at: string
     }
-    /** Package */
+    /** 听读导入文件包 */
     Package: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
-      /** Size */
+      /**
+       * 文件大小
+       * @description 原始文件或返回资源的大小，单位为字节。
+       */
       size: number
-      /** State */
+      /**
+       * 当前状态
+       * @description 当前资源处理状态或用户学习状态，具体结构以所在模型为准。
+       */
       state: string
-      /** Error */
+      /**
+       * 错误信息
+       * @description 操作失败的原因；成功或没有错误时可为空。
+       */
       error?: string | null
     }
-    /** Page[Article] */
+    /** 听读文章列表分页 */
     Page_Article_: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['Article'][]
-      /** Total */
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
       total: number
-      /** Page */
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
       page: number
-      /** Limit */
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
       limit: number
     }
-    /** Page[Batch] */
+    /** 听读导入批次分页 */
     Page_Batch_: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['Batch'][]
-      /** Total */
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
       total: number
-      /** Page */
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
       page: number
-      /** Limit */
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
       limit: number
     }
-    /** Page[CheckinRecord] */
+    /** 每日打卡记录分页 */
     Page_CheckinRecord_: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['CheckinRecord'][]
-      /** Total */
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
       total: number
-      /** Page */
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
       page: number
-      /** Limit */
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
       limit: number
     }
-    /** Page[LearningRecord] */
+    /** 场景累计学习记录分页 */
     Page_LearningRecord_: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['LearningRecord'][]
-      /** Total */
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
       total: number
-      /** Page */
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
       page: number
-      /** Limit */
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
       limit: number
     }
-    /** Page[Summary] */
+    /** 听读文章摘要分页 */
     Page_Summary_: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['Summary'][]
-      /** Total */
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
       total: number
-      /** Page */
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
       page: number
-      /** Limit */
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
       limit: number
     }
-    /** PolicyView */
+    /** 场景免费策略状态 */
     PolicyView: {
-      /** Enabled */
+      /**
+       * 学习权限策略已启用
+       * @description 服务端统一学习权限策略的启用状态。
+       */
       enabled: boolean
-      /** Free Count */
+      /**
+       * 免费内容数量
+       * @description 当前模块返回或预览配置的免费内容数量；尚未配置时可为空。
+       */
       free_count: number | null
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
       /**
-       * Actual Free Count
+       * 实际免费数量
+       * @description 当前已发布、可用且标记为免费的内容数量。
        * @default 0
        */
       actual_free_count: number
     }
-    /** Progress */
+    /** 已保存的听读学习进度 */
     Progress: {
-      /** Version Id */
+      /**
+       * 发布版本标识
+       * @description 绑定此次学习或操作的不可变内容发布版本 ID。
+       */
       version_id: string
       /**
-       * Reading Position
-       * @description 原始body_en的Unicode code point字符位置，非滚动像素；JS使用Array.from(body_en)计数
+       * 正文阅读字符位置
+       * @description 原始 body_en 的 Unicode code point（码点）字符位置，非滚动像素；JS 使用 Array.from(body_en) 计数。
        */
       reading_position: number
-      /** Translation Open */
+      /**
+       * 译文已展开
+       * @description 当前用户是否展开中文译文，用于恢复阅读状态。
+       */
       translation_open: boolean
-      /** Audio Position */
+      /**
+       * 音频播放位置
+       * @description 当前发布版本正文音频的播放位置，单位为秒。
+       */
       audio_position: number
       /**
-       * Playback Rate
+       * 播放倍速
+       * @description 支持 1、1.25、1.5、1.75、2 五档音频播放速度。
        * @enum {number}
        */
       playback_rate: 1 | 1.25 | 1.5 | 1.75 | 2
-      /** Updated At */
+      /**
+       * 最后更新时间
+       * @description 该资源、记录或状态最近一次更新的时间。
+       */
       updated_at?: string | null
     }
-    /** PublicationResult */
+    /** 单个场景发布任务结果 */
     PublicationResult: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Card Id */
+      /**
+       * 场景卡片标识
+       * @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。
+       */
       card_id: string
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
       /**
-       * Title En
+       * 英文标题
+       * @description 场景或听读文章向用户展示的英文标题。
        * @default
        */
       title_en: string
-      /** State */
+      /**
+       * 发布任务状态
+       * @description queued 为排队，running 为执行中，retry 为等待重试，succeeded 为成功，failed 为失败。
+       */
       state: string
-      /** Error Code */
+      /**
+       * 错误代码
+       * @description 异步处理或当前操作失败时的稳定错误代码；无错误时为空。
+       */
       error_code: string | null
-      /** Job Id */
+      /**
+       * 异步任务标识
+       * @description 处理当前资源或操作的持久异步任务 ID；未创建任务时可为空。
+       */
       job_id: string
     }
-    /** PublishCard */
+    /** 发布场景草稿请求 */
     PublishCard: {
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
-      /** Preview Id */
+      /**
+       * 草稿预览标识
+       * @description 核对场景草稿后取得的预览 ID，发布时与同一修订号一起提交。
+       */
       preview_id: string
     }
-    /** PublishInput */
+    /** 发布听读文章请求 */
     PublishInput: {
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
-      /** Preview Token */
+      /**
+       * 预览确认凭据
+       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       */
       preview_token?: string | null
     }
-    /** PublishResult */
+    /** 单个听读文章发布结果 */
     PublishResult: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
       /**
-       * Status
+       * 发布结果
+       * @description success 为发布成功，failed 为发布失败。
        * @enum {string}
        */
       status: 'success' | 'failed'
-      /** Error */
+      /**
+       * 错误信息
+       * @description 操作失败的原因；成功或没有错误时可为空。
+       */
       error?: string | null
-      /** Published Version Id */
+      /**
+       * 生成的发布版本标识
+       * @description 本次发布或导入保存生成的不可变发布版本 ID。
+       */
       published_version_id?: string | null
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision?: number | null
-      /** Message */
+      /**
+       * 中文提示
+       * @description 供界面展示的操作结果或错误说明。
+       */
       message?: string | null
     }
-    /** PublishedPreview */
+    /** 后台已发布场景预览 */
     PublishedPreview: {
-      /** Card Id */
+      /**
+       * 学习笔记
+       * @description 场景学习笔记草稿决策或当前发布PDF；请求省略表示保留，明确remove才移除。
+       */
+      study_note?: components['schemas']['StudyNoteMetadata'] | null
+      /**
+       * 场景卡片标识
+       * @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。
+       */
       card_id: string
-      /** Version Id */
+      /**
+       * 发布版本标识
+       * @description 绑定此次学习或操作的不可变内容发布版本 ID。
+       */
       version_id: string
+      /**
+       * 场景内容
+       * @description 场景的名称、配图、音频、对话、词汇和语块资料。
+       */
       content: components['schemas']['SceneContent']
       /**
-       * Mode
+       * 预览内容版本
+       * @description 固定为 published，表示当前预览是已生效发布版本。
        * @constant
        */
       mode: 'published'
     }
-    /** ReadFeedback */
+    /** 标记反馈已读请求 */
     ReadFeedback: {
-      /** Event Id */
+      /**
+       * 已读事件标识
+       * @description 用户本次已查看到的反馈事件 ID，用于推进已读位置。
+       */
       event_id: number
     }
-    /** RemoveImportFiles */
+    /** 移除场景导入 ZIP 请求 */
     RemoveImportFiles: {
-      /** File Ids */
+      /**
+       * 待移除文件标识
+       * @description 当前导入批次中选中移除的 ZIP 根文件 ID 列表。
+       */
       file_ids: string[]
     }
-    /** RemoveImportItem */
+    /** 待移除的场景导入资料 */
     RemoveImportItem: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
     }
-    /** RemoveImportItems */
+    /** 批量移除场景导入资料请求 */
     RemoveImportItems: {
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['RemoveImportItem'][]
     }
-    /** Resource */
+    /** 听读导入可选素材 */
     Resource: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
-      /** Kind */
+      /**
+       * 文件类型
+       * @description 上传或处理的文件类别，例如 image、audio、study_note（PDF）、zip、docx。
+       */
       kind: string
-      /** State */
+      /**
+       * 当前状态
+       * @description 当前资源处理状态或用户学习状态，具体结构以所在模型为准。
+       */
       state: string
-      /** Error */
+      /**
+       * 错误信息
+       * @description 操作失败的原因；成功或没有错误时可为空。
+       */
       error?: string | null
     }
-    /** SaveCard */
+    /** 保存场景草稿请求 */
     SaveCard: {
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
+      /**
+       * 场景内容
+       * @description 场景的名称、配图、音频、对话、词汇和语块资料。
+       */
       content: components['schemas']['SceneContent']
+      /**
+       * 学习笔记
+       * @description 场景学习笔记草稿决策或当前发布PDF；请求省略表示保留，明确remove才移除。
+       */
+      study_note?: components['schemas']['StudyNoteChange'] | null
     }
-    /** SaveItem */
+    /** 单篇听读导入保存结果 */
     SaveItem: {
-      /** Candidate Id */
+      /**
+       * 导入候选标识
+       * @description 听读导入中单篇待核对文章的候选 ID。
+       */
       candidate_id: string
       /**
-       * Status
+       * 导入保存结果
+       * @description success 为保存成功，failed 为保存失败，skipped 为重复或已处理而跳过。
        * @enum {string}
        */
       status: 'success' | 'failed' | 'skipped'
-      /** Article Id */
+      /**
+       * 听读文章标识
+       * @description 业务听读文章的 ID，区别于文章的发布版本 ID。
+       */
       article_id?: string | null
-      /** Error */
+      /**
+       * 错误信息
+       * @description 操作失败的原因；成功或没有错误时可为空。
+       */
       error?: string | null
-      /** Published Version Id */
+      /**
+       * 生成的发布版本标识
+       * @description 本次发布或导入保存生成的不可变发布版本 ID。
+       */
       published_version_id?: string | null
     }
-    /** SaveOrder */
+    /** 保存已发布场景排序请求 */
     SaveOrder: {
-      /** Version */
+      /**
+       * 场景排序快照版本
+       * @description 原样提交最近读取的排序快照摘要，防止覆盖已变化的目录或顺序。
+       */
       version: string
-      /** Card Ids */
+      /**
+       * 场景排序列表
+       * @description 按期望展示顺序排列的已发布场景卡片 ID。
+       */
       card_ids: string[]
     }
-    /** SaveResult */
+    /** 听读导入保存结果 */
     SaveResult: {
+      /**
+       * 导入批次结果
+       * @description 保存操作完成后返回的最新听读导入批次状态。
+       */
       batch: components['schemas']['Batch']
-      /** Items */
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
       items: components['schemas']['SaveItem'][]
       /**
-       * Submit Action
+       * 导入提交方式
+       * @description draft 为仅保存草稿，publish 为保存并发布。
        * @default draft
        * @enum {string}
        */
       submit_action: 'draft' | 'publish'
     }
-    /** SceneContent */
+    /** 场景正文资料 */
     SceneContent: {
       /**
-       * Name
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
        * @default
        */
       name: string
       /**
-       * Title En
+       * 英文标题
+       * @description 场景或听读文章向用户展示的英文标题。
        * @default
        */
       title_en: string
-      /** Image Id */
+      /**
+       * 配图素材标识
+       * @description 关联的正文配图媒体 ID；未选择配图时为空。
+       */
       image_id?: string | null
-      /** Audio Id */
+      /**
+       * 音频素材标识
+       * @description 关联的正文音频媒体 ID；未选择音频时为空。
+       */
       audio_id?: string | null
-      /** Dialogue */
+      /**
+       * 对话列表
+       * @description 按正文顺序排列的说话人、英文句子及中文翻译。
+       */
       dialogue?: components['schemas']['Dialogue'][]
-      /** Vocabulary */
+      /**
+       * 词汇列表
+       * @description 正文关联的重点词汇、音标、中文释义和原文出处。
+       */
       vocabulary?: components['schemas']['Vocabulary'][]
-      /** Chunks */
+      /**
+       * 语块列表
+       * @description 场景中的常用英文语块及其中文释义。
+       */
       chunks?: components['schemas']['Chunk'][]
     }
-    /** SelectedPublication */
+    /** 确认发布的场景草稿 */
     SelectedPublication: {
-      /** Card Id */
+      /**
+       * 场景卡片标识
+       * @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。
+       */
       card_id: string
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
-      /** Preview Id */
+      /**
+       * 草稿预览标识
+       * @description 核对场景草稿后取得的预览 ID，发布时与同一修订号一起提交。
+       */
       preview_id: string
     }
-    /** Selection */
+    /** 听读导入候选选择范围 */
     Selection: {
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
-      /** Candidate Ids */
+      /**
+       * 导入候选标识列表
+       * @description 本次选择、预览或保存的听读导入候选 ID 列表。
+       */
       candidate_ids: string[]
     }
-    /** Source */
+    /** 场景词汇原文出处 */
     Source: {
-      /** Line Id */
+      /**
+       * 对话行标识
+       * @description 场景发布内容中对应英文对话行的 ID。
+       */
       line_id: string
-      /** Start */
+      /**
+       * 原文片段起始位置
+       * @description 在 line_id 指向的英文对话行内，从零开始的 Unicode 码点位置。
+       */
       start: number
-      /** End */
+      /**
+       * 原文片段结束位置
+       * @description 在 line_id 指向的英文对话行内的结束码点位置，不包含该位置。
+       */
       end: number
-      /** Quote */
+      /**
+       * 原文片段
+       * @description 与给定字符区间完全一致的原始英文文本。
+       */
       quote: string
     }
-    /** SpeechReference */
+    /** 场景词汇发音版本引用 */
     SpeechReference: {
-      /** Version Id */
+      /**
+       * 发布版本标识
+       * @description 绑定此次学习或操作的不可变内容发布版本 ID。
+       */
       version_id?: string | null
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision?: number | null
     }
-    /** SpeechState */
+    /** 词汇发音生成状态 */
     SpeechState: {
-      /** State */
+      /**
+       * 词汇发音状态
+       * @description missing 为尚无任务，queued 为已排队，processing 为生成中，ready 为可播放，failed 为生成失败。
+       */
       state: string
-      /** Job Id */
+      /**
+       * 异步任务标识
+       * @description 处理当前资源或操作的持久异步任务 ID；未创建任务时可为空。
+       */
       job_id: string | null
-      /** Error Code */
+      /**
+       * 错误代码
+       * @description 异步处理或当前操作失败时的稳定错误代码；无错误时为空。
+       */
       error_code: string | null
-      /** Url */
+      /**
+       * 资源访问地址
+       * @description 由服务端返回的资源访问 URL，按原值使用。
+       */
       url: string | null
-      /** Retry After */
+      /**
+       * 建议重试间隔
+       * @description 异步发音仍在处理中时，建议再次查询前等待的秒数。
+       */
       retry_after: number | null
     }
-    /** StageItem */
+    /** 暂存场景导入核对修改请求 */
     StageItem: {
-      /** Revision */
+      /**
+       * 学习笔记
+       * @description 场景学习笔记草稿决策或当前发布PDF；请求省略表示保留，明确remove才移除。
+       */
+      study_note?: components['schemas']['StudyNoteChange'] | null
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
+      /**
+       * 场景内容
+       * @description 场景的名称、配图、音频、对话、词汇和语块资料。
+       */
       content: components['schemas']['SceneContent']
-      /** Selected */
+      /**
+       * 已选择保存
+       * @description 该导入资料是否已被勾选进入本次保存范围。
+       */
       selected: boolean
-      /** Target Card Id */
+      /**
+       * 目标场景标识
+       * @description 确认更新的已有场景 ID；为空表示保存为新卡片。
+       */
       target_card_id?: string | null
-      /** Target Revision */
+      /**
+       * 目标草稿修订号
+       * @description 更新目标当前草稿的修订号，防止覆盖其他窗口的新修改。
+       */
       target_revision?: number | null
       /**
-       * Update Confirmed
+       * 已确认更新目标
+       * @description 管理员已核对目标及差异并明确同意覆盖目标草稿时为 true。
        * @default false
        */
       update_confirmed: boolean
     }
-    /** Statistics */
+    /** 本人学习与打卡统计 */
     Statistics: {
-      /** Date */
+      /**
+       * 业务日期
+       * @description 按业务时区 Asia/Shanghai 归属的日期，格式为 YYYY-MM-DD。
+       */
       date: string
-      /** Completed Cards */
+      /**
+       * 已完成场景数
+       * @description 用户累计完成的不同场景卡片数量。
+       */
       completed_cards: number
-      /** Current Streak */
+      /**
+       * 当前连续打卡天数
+       * @description 截至当前统计日，用户连续产生有效学习完成记录的天数。
+       */
       current_streak: number
-      /** Longest Streak */
+      /**
+       * 最长连续打卡天数
+       * @description 用户历史上连续产生有效学习完成记录的最大天数。
+       */
       longest_streak: number
-      /** Total Checkin Days */
+      /**
+       * 累计打卡天数
+       * @description 用户历史上产生有效学习完成记录的不同业务日期数量。
+       */
       total_checkin_days: number
-      /** Checked In Today */
+      /**
+       * 今日已打卡
+       * @description 用户在今日业务日期内是否已有有效学习完成记录。
+       */
       checked_in_today: boolean
-      /** Today Completed Cards */
+      /**
+       * 今日场景完成数
+       * @description 当前用户今日完成的不同场景卡片数量。
+       */
       today_completed_cards: number
-      /** Last Studied At */
+      /**
+       * 最近学习时间
+       * @description 用户最近一次有效学习完成记录的时间；暂无记录时为空。
+       */
       last_studied_at: string | null
-      /** Favorite Count */
+      /**
+       * 场景收藏数量
+       * @description 当前用户收藏的场景卡片数量。
+       */
       favorite_count: number
       /**
-       * Completed Articles
+       * 已完成听读篇数
+       * @description 当前统计范围内用户已完成的不同听读文章数量。
        * @default 0
        */
       completed_articles: number
       /**
-       * Today Completed Articles
+       * 今日听读完成篇数
+       * @description 当前用户今日完成的不同听读文章数量。
        * @default 0
        */
       today_completed_articles: number
       /**
-       * Listening Favorite Count
+       * 听读收藏数量
+       * @description 当前用户收藏的听读文章数量。
        * @default 0
        */
       listening_favorite_count: number
     }
-    /** Summary */
+    /** 同包同目录PDF候选 */
+    StudyNoteCandidate: {
+      /**
+       * 错误信息
+       * @description 操作失败的原因；成功或没有错误时可为空。
+       */
+      error?: string | null
+      /**
+       * 导入文件标识
+       * @description 当前导入批次中的文件 ID。
+       */
+      file_id: string
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
+      name: string
+      /**
+       * 文件大小
+       * @description 原始文件或返回资源的大小，单位为字节。
+       */
+      size: number
+      /**
+       * 媒体标识
+       * @description 已上传媒体的 ID，用于关联图片、音频或签发访问票据。
+       */
+      media_id: string | null
+      /**
+       * 当前状态
+       * @description 当前资源处理状态或用户学习状态，具体结构以所在模型为准。
+       */
+      state: string
+      /**
+       * 错误代码
+       * @description 异步处理或当前操作失败时的稳定错误代码；无错误时为空。
+       */
+      error_code: string | null
+      /**
+       * 父文件标识
+       * @description ZIP 内文件对应的根 ZIP 文件 ID；顶层上传文件使用空字符串。
+       */
+      parent_id: string
+    }
+    /** 学习笔记编辑决策 */
+    StudyNoteChange: {
+      /**
+       * 操作类型
+       * @description 本次请求或审计记录对应的业务操作，取值以当前接口约束为准。
+       * @enum {string}
+       */
+      action: 'keep' | 'set' | 'remove' | 'unresolved'
+      /**
+       * 媒体标识
+       * @description 已上传媒体的 ID，用于关联图片、音频或签发访问票据。
+       */
+      media_id?: string | null
+      /**
+       * 有效保留笔记标识
+       * @description 仅set或unresolved允许：原子保存尚未落盘的有效PDF与待处理替换；须为当前管理员可合法引用的ready PDF。省略沿用服务端推导，不允许null。
+       */
+      previous_media_id?: string | null
+    }
+    /** 学习笔记候选状态 */
+    StudyNoteDraft: {
+      /**
+       * 操作类型
+       * @description 本次请求或审计记录对应的业务操作，取值以当前接口约束为准。
+       * @enum {string}
+       */
+      action: 'keep' | 'set' | 'remove' | 'unresolved'
+      /**
+       * 有效编辑附件
+       * @description 当前编辑稿的可用PDF媒体；失败替换保留原有效附件。
+       */
+      attachment?: components['schemas']['MediaMetadata'] | null
+      /**
+       * 待处理替换附件
+       * @description 当前选择但尚未可用的PDF，可保存草稿但不可发布。
+       */
+      pending_attachment?: components['schemas']['MediaMetadata'] | null
+      /**
+       * 笔记是否就绪
+       * @description 仅表示选填PDF已就绪或已明确取消，其他正文发布必填条件仍独立校验。
+       */
+      can_publish: boolean
+      /**
+       * 待核对文章
+       * @description 从导入文件解析出的候选文章及各自的核对、保存状态。
+       */
+      candidates?: components['schemas']['StudyNoteCandidate'][]
+    }
+    /** 已发布学习笔记元数据 */
+    StudyNoteMetadata: {
+      /**
+       * 发布版本标识
+       * @description 绑定此次学习或操作的不可变内容发布版本 ID。
+       */
+      version_id: string
+      /**
+       * 媒体标识
+       * @description 已上传媒体的 ID，用于关联图片、音频或签发访问票据。
+       */
+      media_id: string
+      /**
+       * 笔记文件名
+       * @description 发布时学习笔记PDF的原始文件名；仅获权详情和管理员可见。
+       */
+      filename: string
+      /**
+       * 文件大小
+       * @description 原始文件或返回资源的大小，单位为字节。
+       */
+      size: number
+      /**
+       * 当前状态
+       * @description 当前资源处理状态或用户学习状态，具体结构以所在模型为准。
+       * @constant
+       */
+      state: 'ready'
+    }
+    /** 听读文章摘要及本人状态 */
     Summary: {
-      /** Audio Duration Seconds */
+      /**
+       * 音频时长（秒）
+       * @description 已就绪正文音频的总秒数；音频不可用时为空。
+       */
       audio_duration_seconds?: number | null
-      /** Reading Paragraph */
+      /**
+       * 已读段落
+       * @description 根据保存的字符位置计算的非空正文段落序号，从 1 开始；未保存时为空。
+       */
       reading_paragraph?: number | null
+      /**
+       * 本人听读进度
+       * @description 该文章当前发布版本中已保存的学习进度；无可返回进度时为空。
+       */
       progress?: components['schemas']['Progress'] | null
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
       /**
-       * Content Type
+       * 业务内容类型
+       * @description 固定为 listening，表示听读文章。
        * @default listening
        * @constant
        */
       content_type: 'listening'
-      /** Topic Id */
+      /**
+       * 主题标识
+       * @description 历史兼容字段或主题资源接口使用的主题 ID；文章可不再关联主题。
+       */
       topic_id?: string | null
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id: string
       /**
-       * Category Name
+       * 听读分类名称
+       * @description 文章所属分类的中文名称。
        * @default
        */
       category_name: string
       /**
-       * Category Order
+       * 分类内顺序
+       * @description 文章在所属分类中的排序值，按升序展示。
        * @default 0
        */
       category_order: number
-      /** Title Zh */
+      /**
+       * 中文标题
+       * @description 听读文章向用户展示的中文标题。
+       */
       title_zh: string
-      /** Title En */
+      /**
+       * 英文标题
+       * @description 场景或听读文章向用户展示的英文标题。
+       */
       title_en: string
-      /** Tags */
+      /**
+       * 文章标签
+       * @description 用于展示和检索的听读文章标签列表。
+       */
       tags: string[]
-      /** Word Count */
+      /**
+       * 英文词数
+       * @description 按服务端正文英文分词规则统计的听读文章词数。
+       */
       word_count: number
-      /** Version Id */
+      /**
+       * 发布版本标识
+       * @description 绑定此次学习或操作的不可变内容发布版本 ID。
+       */
       version_id: string | null
-      /** Available */
+      /**
+       * 内容是否可用
+       * @description 内容当前是否仍存在有效发布版本；实际学习还需检查 access。
+       */
       available: boolean
-      /** Thumbnail Url */
+      /**
+       * 缩略图地址
+       * @description 用于列表展示的受控缩略图访问地址；没有可用缩略图时为空。
+       */
       thumbnail_url: string | null
+      /**
+       * 学习权限
+       * @description 当前用户对该内容的实时学习和点词查询权限。
+       */
       access: components['schemas']['LearningPermission']
+      /**
+       * 本人文章状态
+       * @description 当前用户对文章的收藏、累计完成和今日完成标记。
+       */
       state: components['schemas']['ArticleState']
-      /** First Completed At */
+      /**
+       * 首次完成时间
+       * @description 当前用户首次完成该内容的时间；从未完成时可为空。
+       */
       first_completed_at?: string | null
-      /** Last Completed At */
+      /**
+       * 最近完成时间
+       * @description 当前用户最近一次完成该内容的时间。
+       */
       last_completed_at?: string | null
-      /** Favorited At */
+      /**
+       * 收藏时间
+       * @description 当前用户收藏该内容的时间；未收藏时为空。
+       */
       favorited_at?: string | null
-      /** Completed At */
+      /**
+       * 完成时间
+       * @description 该条学习记录对应的完成时间。
+       */
       completed_at?: string | null
     }
-    /** Timeline */
+    /** 听读逐词时间轴状态 */
     Timeline: {
       /**
-       * State
+       * 时间轴处理状态
+       * @description pending 为待处理，processing 为处理中，ready 为可用，needs_attention 为需核对，failed 为失败，missing 为缺失。
        * @enum {string}
        */
       state: 'pending' | 'processing' | 'ready' | 'needs_attention' | 'failed' | 'missing'
-      /** Input Hash */
+      /**
+       * 时间轴输入摘要
+       * @description 绑定英文正文和音频的输入摘要；确认或保存时间轴时按原值提交。
+       */
       input_hash?: string | null
-      /** Job Id */
+      /**
+       * 异步任务标识
+       * @description 处理当前资源或操作的持久异步任务 ID；未创建任务时可为空。
+       */
       job_id?: string | null
-      /** Words */
+      /**
+       * 时间轴词项
+       * @description 每个正文词项的字符区间、音频毫秒区间和句子归属。
+       */
       words?: components['schemas']['TimelineWord'][]
-      /** Reviewed At */
+      /**
+       * 时间轴核对时间
+       * @description 管理员最近一次确认该输入时间轴的时间；尚未确认时为空。
+       */
       reviewed_at?: string | null
-      /** Error Code */
+      /**
+       * 错误代码
+       * @description 异步处理或当前操作失败时的稳定错误代码；无错误时为空。
+       */
       error_code?: string | null
     }
-    /** TimelineInput */
+    /** 修改听读时间轴请求 */
     TimelineInput: {
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
-      /** Input Hash */
+      /**
+       * 时间轴输入摘要
+       * @description 绑定英文正文和音频的输入摘要；确认或保存时间轴时按原值提交。
+       */
       input_hash: string
-      /** Words */
+      /**
+       * 时间轴词项
+       * @description 每个正文词项的字符区间、音频毫秒区间和句子归属。
+       */
       words: components['schemas']['TimelineWord'][]
     }
-    /** TimelineWord */
+    /** 听读逐词时间轴条目 */
     TimelineWord: {
-      /** Start */
+      /**
+       * 时间轴词项起始位置
+       * @description 词项在原始 body_en 中的起始 Unicode 码点位置，从零开始。
+       */
       start: number
-      /** End */
+      /**
+       * 时间轴词项结束位置
+       * @description 词项在原始 body_en 中的结束 Unicode 码点位置，不包含该位置。
+       */
       end: number
-      /** Start Ms */
+      /**
+       * 音频开始时间（毫秒）
+       * @description 该词在正文音频中的开始时间，单位为毫秒。
+       */
       start_ms: number
-      /** End Ms */
+      /**
+       * 音频结束时间（毫秒）
+       * @description 该词在正文音频中的结束时间，单位为毫秒。
+       */
       end_ms: number
-      /** Sentence Id */
+      /**
+       * 正文句子标识
+       * @description 时间轴词项对应的正文句子 ID，用于组织句内高亮。
+       */
       sentence_id: string
     }
-    /** Topic */
+    /** 听读主题兼容数据 */
     Topic: {
-      /** Name */
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
       name: string
       /**
-       * Name En
+       * 英文名称
+       * @description 听读分类或主题向用户展示的英文名称。
        * @default
        */
       name_en: string
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id: string
-      /** Sort Order */
+      /**
+       * 展示顺序
+       * @description 资源在对应列表中的排序值，按升序展示。
+       */
       sort_order: number
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
       /**
-       * Description
+       * 主题简介
+       * @description 向用户展示的主题介绍文字。
        * @default
        */
       description: string
     }
-    /** TopicInput */
+    /** 新建听读主题请求 */
     TopicInput: {
-      /** Name En */
+      /**
+       * 英文名称
+       * @description 听读分类或主题向用户展示的英文名称。
+       */
       name_en: string
       /**
-       * Name
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
        * @default
        */
       name: string
       /**
-       * Sort Order
+       * 展示顺序
+       * @description 资源在对应列表中的排序值，按升序展示。
        * @default 0
        */
       sort_order: number
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id: string
-      /** Description */
+      /**
+       * 主题简介
+       * @description 向用户展示的主题介绍文字。
+       */
       description?: string | null
     }
-    /** TopicUpdate */
+    /** 更新听读主题请求 */
     TopicUpdate: {
-      /** Name En */
+      /**
+       * 英文名称
+       * @description 听读分类或主题向用户展示的英文名称。
+       */
       name_en: string
       /**
-       * Name
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
        * @default
        */
       name: string
       /**
-       * Sort Order
+       * 展示顺序
+       * @description 资源在对应列表中的排序值，按升序展示。
        * @default 0
        */
       sort_order: number
-      /** Category Id */
+      /**
+       * 听读分类标识
+       * @description 文章或主题归属的分类 ID。
+       */
       category_id: string
-      /** Description */
+      /**
+       * 主题简介
+       * @description 向用户展示的主题介绍文字。
+       */
       description?: string | null
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
     }
-    /** UploadConfiguration */
+    /** 后台文件上传限制 */
     UploadConfiguration: {
-      /** Image Limit Bytes */
+      /**
+       * 学习笔记大小上限
+       * @description 当前服务端实际允许的单个PDF最大字节数。
+       */
+      study_note_limit_bytes: number
+      /**
+       * 图片大小上限
+       * @description 单个上传图片允许的最大字节数。
+       */
       image_limit_bytes: number
-      /** Audio Limit Bytes */
+      /**
+       * 音频大小上限
+       * @description 单个上传音频允许的最大字节数。
+       */
       audio_limit_bytes: number
-      /** Archive Limit Bytes */
+      /**
+       * 压缩包大小上限
+       * @description 单个上传压缩包允许的最大字节数。
+       */
       archive_limit_bytes: number
-      /** Import Card Limit */
+      /**
+       * 批次卡片数量上限
+       * @description 单次场景导入批次允许接收的最大卡片数量。
+       */
       import_card_limit: number
     }
-    /** Vocabulary */
+    /** 场景重点词汇 */
     Vocabulary: {
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id?: string
       /**
-       * English
+       * 英文内容
+       * @description 对应对话、语块、表达或词汇条目的英文原文。
        * @default
        */
       english: string
       /**
-       * Meaning
+       * 词义
+       * @description 词汇在正文语境中的中文含义，或词典返回的中文释义。
        * @default
        */
       meaning: string
       /**
-       * Phonetic
+       * 音标
+       * @description 英文词项的音标文字，未提供时可为空字符串。
        * @default
        */
       phonetic: string
+      /**
+       * 场景原文出处
+       * @description 绑定具体英文对话行、字符区间和原文片段；未定位时为空。
+       */
       source?: components['schemas']['Source'] | null
       /**
-       * Pronunciation Text
+       * 朗读文字
+       * @description 用于生成单词发音的明确朗读文本。
        * @default
        */
       pronunciation_text: string
       /**
-       * Pronunciation Issue
+       * 发音文字需核对
+       * @description 该词的朗读文字存在待核对问题时为 true。
        * @default false
        */
       pronunciation_issue: boolean
     }
-    /** VocabularySource */
+    /** 听读词汇原句及词形定位 */
     VocabularySource: {
-      /** Start */
+      /**
+       * 原句起始位置
+       * @description 原句在原始 body_en 中的起始 Unicode 码点位置，从零开始。
+       */
       start: number
-      /** End */
+      /**
+       * 原句结束位置
+       * @description 原句在原始 body_en 中的结束 Unicode 码点位置，不包含该位置。
+       */
       end: number
-      /** Quote */
+      /**
+       * 正文原句
+       * @description 必须与 body_en[start:end] 完全一致的原句文字。
+       */
       quote: string
-      /** Word Start */
+      /**
+       * 原文词形起始位置
+       * @description 词形在原始 body_en 中的起始码点位置，从零开始。
+       */
       word_start: number
-      /** Word End */
+      /**
+       * 原文词形结束位置
+       * @description 词形在原始 body_en 中的结束码点位置，不包含该位置。
+       */
       word_end: number
-      /** Word */
+      /**
+       * 原文词形
+       * @description 正文中实际选中的完整英文词形。
+       */
       word: string
       /**
-       * Confirmed
+       * 原文定位已确认
+       * @description 该词的原句和词形位置已确认；默认为 false，定位仍须通过正文一致性校验。
        * @default false
        */
       confirmed: boolean
     }
-    /** VocabularyWord */
+    /** 听读重点词汇 */
     VocabularyWord: {
       /**
-       * Source Hint
+       * 原句定位提示
+       * @description 导入词汇附带的原句文字，用于匹配英文正文中的真实出处。
        * @default
        */
       source_hint: string
-      /** Id */
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
       id: string
-      /** English */
+      /**
+       * 英文内容
+       * @description 对应对话、语块、表达或词汇条目的英文原文。
+       */
       english: string
-      /** Meaning */
+      /**
+       * 词义
+       * @description 词汇在正文语境中的中文含义，或词典返回的中文释义。
+       */
       meaning: string
       /**
-       * Phonetic
+       * 音标
+       * @description 英文词项的音标文字，未提供时可为空字符串。
        * @default
        */
       phonetic: string
+      /**
+       * 听读原文出处
+       * @description 绑定 body_en 中真实原句及其中的完整词形位置；未定位时为空。
+       */
       source?: components['schemas']['VocabularySource'] | null
     }
-    /** WordMeaning */
+    /** 听读正文语境词义 */
     WordMeaning: {
-      /** Start */
+      /**
+       * 词义标注起始位置
+       * @description 所选词在原始 body_en 中的起始 Unicode 码点位置，从零开始。
+       */
       start: number
-      /** End */
+      /**
+       * 词义标注结束位置
+       * @description 所选词在原始 body_en 中的结束 Unicode 码点位置，不包含该位置。
+       */
       end: number
-      /** Word */
+      /**
+       * 原文词形
+       * @description 正文中实际选中的完整英文词形。
+       */
       word: string
-      /** Lemma */
+      /**
+       * 词元
+       * @description 所选英文词形对应的词典原形；无法确定时可为空。
+       */
       lemma?: string | null
       /**
-       * Phonetic
+       * 音标
+       * @description 英文词项的音标文字，未提供时可为空字符串。
        * @default
        */
       phonetic: string
-      /** Chinese */
+      /**
+       * 中文释义
+       * @description 对应英文对话、语块、表达或词项的中文翻译或释义。
+       */
       chinese: string
     }
-    /** Confirmation */
+    /** 确认学习权限变更请求 */
     juya_api__access_api__Confirmation: {
-      /** Preview Token */
+      /**
+       * 预览确认凭据
+       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       */
       preview_token: string
     }
-    /** Revision */
+    /** 场景草稿修订引用 */
     juya_api__content_contracts__Revision: {
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
     }
-    /** Confirmation */
+    /** 确认听读预览请求 */
     juya_api__listening_contracts__Confirmation: {
-      /** Preview Token */
+      /**
+       * 预览确认凭据
+       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       */
       preview_token: string
     }
-    /** Revision */
+    /** 听读文章修订引用 */
     juya_api__listening_contracts__Revision: {
-      /** Revision */
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
       revision: number
     }
   }
@@ -3938,7 +6349,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -3947,7 +6358,7 @@ export interface operations {
           'application/json': components['schemas']['PolicyView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -3956,7 +6367,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -3965,7 +6376,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -3974,7 +6385,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -3983,7 +6394,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -3992,7 +6403,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -4001,7 +6412,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -4010,7 +6421,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -4019,7 +6430,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -4028,7 +6439,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -4046,13 +6457,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['juya_api__access_api__Confirmation']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -4061,7 +6473,7 @@ export interface operations {
           'application/json': components['schemas']['PolicyView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -4070,7 +6482,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -4079,7 +6491,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -4088,7 +6500,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -4097,7 +6509,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -4106,7 +6518,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -4115,7 +6527,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -4124,7 +6536,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -4133,7 +6545,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -4142,7 +6554,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -4156,7 +6568,9 @@ export interface operations {
   policy_history_api_admin_v1_learning_access_free_policy_history_get: {
     parameters: {
       query?: {
+        /** @description 从 1 开始的分页页码。 */
         page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
         limit?: number
       }
       header?: never
@@ -4165,7 +6579,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -4174,7 +6588,7 @@ export interface operations {
           'application/json': components['schemas']['AccessHistoryPage']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -4183,7 +6597,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -4192,7 +6606,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -4201,7 +6615,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -4210,7 +6624,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -4219,7 +6633,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -4228,7 +6642,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -4237,7 +6651,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -4246,7 +6660,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -4255,7 +6669,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -4269,20 +6683,23 @@ export interface operations {
   preview_policy_api_admin_v1_learning_access_free_policy_preview_post: {
     parameters: {
       query?: {
+        /** @description 从 1 开始的分页页码。 */
         page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
         limit?: number
       }
       header?: never
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['FreePreview-Input']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -4291,7 +6708,7 @@ export interface operations {
           'application/json': components['schemas']['FreePolicyPreview']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -4300,7 +6717,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -4309,7 +6726,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -4318,7 +6735,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -4327,7 +6744,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -4336,7 +6753,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -4345,7 +6762,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -4354,7 +6771,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -4363,7 +6780,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -4372,7 +6789,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -4388,13 +6805,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 授权或反馈关联的用户 ID。 */
         user_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -4403,7 +6821,7 @@ export interface operations {
           'application/json': components['schemas']['AuthorizationView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -4412,7 +6830,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -4421,7 +6839,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -4430,7 +6848,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -4439,7 +6857,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -4448,7 +6866,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -4457,7 +6875,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -4466,7 +6884,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -4475,7 +6893,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -4484,7 +6902,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -4500,17 +6918,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 授权或反馈关联的用户 ID。 */
         user_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['juya_api__access_api__Confirmation']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -4519,7 +6939,7 @@ export interface operations {
           'application/json': components['schemas']['AuthorizationView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -4528,7 +6948,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -4537,7 +6957,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -4546,7 +6966,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -4555,7 +6975,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -4564,7 +6984,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -4573,7 +6993,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -4582,7 +7002,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -4591,7 +7011,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -4600,7 +7020,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -4614,18 +7034,21 @@ export interface operations {
   grant_history_api_admin_v1_users__user_id__learning_authorization_history_get: {
     parameters: {
       query?: {
+        /** @description 从 1 开始的分页页码。 */
         page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
         limit?: number
       }
       header?: never
       path: {
+        /** @description 授权或反馈关联的用户 ID。 */
         user_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -4634,7 +7057,7 @@ export interface operations {
           'application/json': components['schemas']['AccessHistoryPage']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -4643,7 +7066,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -4652,7 +7075,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -4661,7 +7084,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -4670,7 +7093,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -4679,7 +7102,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -4688,7 +7111,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -4697,7 +7120,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -4706,7 +7129,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -4715,7 +7138,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -4731,17 +7154,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 授权或反馈关联的用户 ID。 */
         user_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['AuthorizationPreview']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -4750,7 +7175,7 @@ export interface operations {
           'application/json': components['schemas']['GrantPreview']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -4759,7 +7184,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -4768,7 +7193,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -4777,7 +7202,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -4786,7 +7211,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -4795,7 +7220,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -4804,7 +7229,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -4813,7 +7238,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -4822,7 +7247,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -4831,7 +7256,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -4847,13 +7272,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 当前接口需要读取或操作的业务对象 ID。 */
         identifier: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -4862,7 +7288,7 @@ export interface operations {
           'application/json': components['schemas']['FreeAccess']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -4871,7 +7297,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -4880,7 +7306,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -4889,7 +7315,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -4898,7 +7324,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -4907,7 +7333,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -4916,7 +7342,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -4925,7 +7351,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -4934,7 +7360,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -4943,7 +7369,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -4959,17 +7385,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 当前接口需要读取或操作的业务对象 ID。 */
         identifier: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['FreeAccessUpdate']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -4978,7 +7406,7 @@ export interface operations {
           'application/json': components['schemas']['FreeAccess']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -4987,7 +7415,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -4996,7 +7424,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -5005,7 +7433,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -5014,7 +7442,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -5023,7 +7451,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -5032,7 +7460,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -5041,7 +7469,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -5050,7 +7478,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -5059,7 +7487,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -5075,13 +7503,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 当前接口需要读取或操作的业务对象 ID。 */
         identifier: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -5090,7 +7519,7 @@ export interface operations {
           'application/json': components['schemas']['FreeAccess']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -5099,7 +7528,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -5108,7 +7537,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -5117,7 +7546,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -5126,7 +7555,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -5135,7 +7564,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -5144,7 +7573,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -5153,7 +7582,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -5162,7 +7591,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -5171,7 +7600,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -5187,17 +7616,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 当前接口需要读取或操作的业务对象 ID。 */
         identifier: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['FreeAccessUpdate']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -5206,7 +7637,7 @@ export interface operations {
           'application/json': components['schemas']['FreeAccess']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -5215,7 +7646,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -5224,7 +7655,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -5233,7 +7664,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -5242,7 +7673,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -5251,7 +7682,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -5260,7 +7691,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -5269,7 +7700,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -5278,7 +7709,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -5287,7 +7718,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -5305,13 +7736,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['AdminLogin']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -5320,7 +7752,7 @@ export interface operations {
           'application/json': components['schemas']['AdminLoginResponse']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -5329,7 +7761,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -5338,7 +7770,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -5347,7 +7779,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -5356,7 +7788,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -5365,7 +7797,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -5374,7 +7806,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -5383,7 +7815,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -5392,7 +7824,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -5401,7 +7833,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -5421,7 +7853,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -5430,7 +7862,7 @@ export interface operations {
           'application/json': components['schemas']['AdminSessionResponse']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -5439,7 +7871,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -5448,7 +7880,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -5457,7 +7889,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -5466,7 +7898,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -5475,7 +7907,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -5484,7 +7916,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -5493,7 +7925,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -5502,7 +7934,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -5511,7 +7943,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -5531,7 +7963,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -5540,7 +7972,7 @@ export interface operations {
           'application/json': components['schemas']['LogoutResponse']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -5549,7 +7981,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -5558,7 +7990,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -5567,7 +7999,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -5576,7 +8008,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -5585,7 +8017,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -5594,7 +8026,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -5603,7 +8035,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -5612,7 +8044,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -5621,7 +8053,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -5635,11 +8067,17 @@ export interface operations {
   listing_api_admin_v1_cards_get: {
     parameters: {
       query?: {
+        /** @description 当前对象或操作的业务状态，取值以所在模型约束为准。 */
         status?: string
+        /** @description 用于当前列表筛选的搜索文字。 */
         search?: string
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id?: string | null
+        /** @description 需要定位到的卡片 ID，用于计算该卡片所在的列表页。 */
         anchor_id?: string | null
+        /** @description 从 1 开始的分页页码。 */
         page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
         limit?: number
       }
       header?: never
@@ -5648,7 +8086,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -5657,7 +8095,7 @@ export interface operations {
           'application/json': components['schemas']['AdminCardPage']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -5666,7 +8104,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -5675,7 +8113,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -5684,7 +8122,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -5693,7 +8131,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -5702,7 +8140,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -5711,7 +8149,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -5720,7 +8158,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -5729,7 +8167,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -5738,7 +8176,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -5756,13 +8194,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['CreateCard']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 创建成功；若返回异步任务，则仅表示已受理，最终结果请查询任务状态 */
       201: {
         headers: {
           [name: string]: unknown
@@ -5771,7 +8210,7 @@ export interface operations {
           'application/json': components['schemas']['CardView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -5780,7 +8219,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -5789,7 +8228,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -5798,7 +8237,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -5807,7 +8246,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -5816,7 +8255,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -5825,7 +8264,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -5834,7 +8273,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -5843,7 +8282,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -5852,7 +8291,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -5868,13 +8307,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。 */
         card_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -5883,7 +8323,7 @@ export interface operations {
           'application/json': components['schemas']['CardView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -5892,7 +8332,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -5901,7 +8341,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -5910,7 +8350,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -5919,7 +8359,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -5928,7 +8368,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -5937,7 +8377,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -5946,7 +8386,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -5955,7 +8395,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -5964,7 +8404,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -5980,17 +8420,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。 */
         card_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['SaveCard']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -5999,7 +8441,7 @@ export interface operations {
           'application/json': components['schemas']['CardView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -6008,7 +8450,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -6017,7 +8459,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -6026,7 +8468,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -6035,7 +8477,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -6044,7 +8486,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -6053,7 +8495,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -6062,7 +8504,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -6071,7 +8513,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -6080,7 +8522,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -6096,17 +8538,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。 */
         card_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['juya_api__content_contracts__Revision']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -6115,7 +8559,7 @@ export interface operations {
           'application/json': components['schemas']['DeletedCard']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -6124,7 +8568,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -6133,7 +8577,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -6142,7 +8586,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -6151,7 +8595,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -6160,7 +8604,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -6169,7 +8613,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -6178,7 +8622,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -6187,7 +8631,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -6196,7 +8640,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -6212,13 +8656,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。 */
         card_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -6227,7 +8672,7 @@ export interface operations {
           'application/json': components['schemas']['PublishedPreview']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -6236,7 +8681,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -6245,7 +8690,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -6254,7 +8699,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -6263,7 +8708,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -6272,7 +8717,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -6281,7 +8726,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -6290,7 +8735,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -6299,7 +8744,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -6308,7 +8753,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -6324,17 +8769,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。 */
         card_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['juya_api__content_contracts__Revision']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -6343,7 +8790,7 @@ export interface operations {
           'application/json': components['schemas']['CardPreview']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -6352,7 +8799,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -6361,7 +8808,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -6370,7 +8817,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -6379,7 +8826,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -6388,7 +8835,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -6397,7 +8844,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -6406,7 +8853,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -6415,7 +8862,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -6424,7 +8871,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -6440,17 +8887,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。 */
         card_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['PublishCard']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -6459,7 +8908,7 @@ export interface operations {
           'application/json': components['schemas']['CardView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -6468,7 +8917,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -6477,7 +8926,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -6486,7 +8935,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -6495,7 +8944,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -6504,7 +8953,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -6513,7 +8962,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -6522,7 +8971,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -6531,7 +8980,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -6540,7 +8989,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -6556,17 +9005,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。 */
         card_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['juya_api__content_contracts__Revision']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -6575,7 +9026,7 @@ export interface operations {
           'application/json': components['schemas']['CardView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -6584,7 +9035,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -6593,7 +9044,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -6602,7 +9053,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -6611,7 +9062,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -6620,7 +9071,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -6629,7 +9080,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -6638,7 +9089,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -6647,7 +9098,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -6656,7 +9107,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -6676,7 +9127,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -6685,7 +9136,7 @@ export interface operations {
           'application/json': components['schemas']['ActionBatchView'][]
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -6694,7 +9145,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -6703,7 +9154,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -6712,7 +9163,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -6721,7 +9172,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -6730,7 +9181,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -6739,7 +9190,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -6748,7 +9199,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -6757,7 +9208,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -6766,7 +9217,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -6784,13 +9235,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['CreateActionBatch']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 创建成功；若返回异步任务，则仅表示已受理，最终结果请查询任务状态 */
       201: {
         headers: {
           [name: string]: unknown
@@ -6799,7 +9251,7 @@ export interface operations {
           'application/json': components['schemas']['ActionBatchView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -6808,7 +9260,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -6817,7 +9269,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -6826,7 +9278,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -6835,7 +9287,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -6844,7 +9296,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -6853,7 +9305,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -6862,7 +9314,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -6871,7 +9323,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -6880,7 +9332,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -6896,13 +9348,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -6911,7 +9364,7 @@ export interface operations {
           'application/json': components['schemas']['ActionBatchView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -6920,7 +9373,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -6929,7 +9382,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -6938,7 +9391,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -6947,7 +9400,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -6956,7 +9409,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -6965,7 +9418,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -6974,7 +9427,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -6983,7 +9436,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -6992,7 +9445,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -7008,13 +9461,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -7023,7 +9477,7 @@ export interface operations {
           'application/json': components['schemas']['ActionBatchView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -7032,7 +9486,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -7041,7 +9495,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -7050,7 +9504,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -7059,7 +9513,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -7068,7 +9522,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -7077,7 +9531,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -7086,7 +9540,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -7095,7 +9549,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -7104,7 +9558,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -7118,19 +9572,21 @@ export interface operations {
   upload_api_admin_v1_media_post: {
     parameters: {
       query: {
-        kind: 'image' | 'audio'
+        /** @description 上传或处理的文件类别，例如 image、audio、study_note（PDF）、zip、docx。 */
+        kind: 'image' | 'audio' | 'study_note'
       }
       header?: never
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'multipart/form-data': components['schemas']['Body_upload_api_admin_v1_media_post']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 创建成功；若返回异步任务，则仅表示已受理，最终结果请查询任务状态 */
       201: {
         headers: {
           [name: string]: unknown
@@ -7139,7 +9595,7 @@ export interface operations {
           'application/json': components['schemas']['MediaMetadata']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -7148,7 +9604,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -7157,7 +9613,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -7166,7 +9622,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -7175,7 +9631,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -7184,7 +9640,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -7193,7 +9649,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -7202,7 +9658,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -7211,7 +9667,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -7220,7 +9676,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -7236,13 +9692,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 已上传媒体的 ID，用于关联图片、音频或签发访问票据。 */
         media_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -7251,7 +9708,7 @@ export interface operations {
           'application/json': components['schemas']['MediaMetadata']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -7260,7 +9717,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -7269,7 +9726,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -7278,7 +9735,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -7287,7 +9744,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -7296,7 +9753,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -7305,7 +9762,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -7314,7 +9771,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -7323,7 +9780,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -7332,7 +9789,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -7352,7 +9809,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -7361,7 +9818,7 @@ export interface operations {
           'application/json': components['schemas']['UploadConfiguration']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -7370,7 +9827,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -7379,7 +9836,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -7388,7 +9845,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -7397,7 +9854,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -7406,7 +9863,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -7415,7 +9872,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -7424,7 +9881,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -7433,7 +9890,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -7442,7 +9899,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -7456,17 +9913,19 @@ export interface operations {
   read_api_admin_v1_media__media_id__get: {
     parameters: {
       query?: {
+        /** @description list 表示用于列表展示的缩略图。 */
         thumbnail?: 'list' | null
       }
       header?: never
       path: {
+        /** @description 已上传媒体的 ID，用于关联图片、音频或签发访问票据。 */
         media_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -7475,7 +9934,7 @@ export interface operations {
           'application/json': unknown
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -7484,7 +9943,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -7493,7 +9952,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -7502,7 +9961,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -7511,7 +9970,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -7520,7 +9979,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -7529,7 +9988,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -7538,7 +9997,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -7547,7 +10006,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -7556,7 +10015,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -7572,13 +10031,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 已上传媒体的 ID，用于关联图片、音频或签发访问票据。 */
         media_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -7587,7 +10047,7 @@ export interface operations {
           'application/json': components['schemas']['MediaMetadata']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -7596,7 +10056,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -7605,7 +10065,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -7614,7 +10074,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -7623,7 +10083,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -7632,7 +10092,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -7641,7 +10101,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -7650,7 +10110,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -7659,7 +10119,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -7668,7 +10128,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -7688,7 +10148,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -7697,7 +10157,7 @@ export interface operations {
           'application/json': components['schemas']['Overview']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -7706,7 +10166,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -7715,7 +10175,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -7724,7 +10184,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -7733,7 +10193,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -7742,7 +10202,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -7751,7 +10211,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -7760,7 +10220,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -7769,7 +10229,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -7778,7 +10238,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -7792,11 +10252,17 @@ export interface operations {
   listing_api_admin_v1_users_get: {
     parameters: {
       query?: {
+        /** @description 用于当前列表筛选的搜索文字。 */
         search?: string
+        /** @description all 为全部，none 为未授权，active 为有效授权，expired 为授权已到期。 */
         authorization_status?: 'all' | 'none' | 'active' | 'expired'
+        /** @description all 为全部用户，today 为当前业务日期新注册用户。 */
         registered?: 'all' | 'today'
+        /** @description all 为全部，checked 为今日已打卡，unchecked 为今日未打卡。 */
         checkin?: 'all' | 'checked' | 'unchecked'
+        /** @description 从 1 开始的分页页码。 */
         page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
         limit?: number
       }
       header?: never
@@ -7805,7 +10271,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -7814,7 +10280,7 @@ export interface operations {
           'application/json': components['schemas']['AdminUserPage']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -7823,7 +10289,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -7832,7 +10298,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -7841,7 +10307,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -7850,7 +10316,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -7859,7 +10325,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -7868,7 +10334,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -7877,7 +10343,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -7886,7 +10352,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -7895,7 +10361,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -7911,13 +10377,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 授权或反馈关联的用户 ID。 */
         user_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -7926,7 +10393,7 @@ export interface operations {
           'application/json': components['schemas']['AdminUser']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -7935,7 +10402,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -7944,7 +10411,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -7953,7 +10420,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -7962,7 +10429,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -7971,7 +10438,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -7980,7 +10447,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -7989,7 +10456,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -7998,7 +10465,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -8007,7 +10474,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -8021,18 +10488,21 @@ export interface operations {
   learned_api_admin_v1_users__user_id__learning_records_get: {
     parameters: {
       query?: {
+        /** @description 从 1 开始的分页页码。 */
         page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
         limit?: number
       }
       header?: never
       path: {
+        /** @description 授权或反馈关联的用户 ID。 */
         user_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -8041,7 +10511,7 @@ export interface operations {
           'application/json': components['schemas']['Page_LearningRecord_']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -8050,7 +10520,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -8059,7 +10529,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -8068,7 +10538,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -8077,7 +10547,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -8086,7 +10556,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -8095,7 +10565,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -8104,7 +10574,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -8113,7 +10583,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -8122,7 +10592,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -8136,18 +10606,21 @@ export interface operations {
   checkins_api_admin_v1_users__user_id__checkins_get: {
     parameters: {
       query?: {
+        /** @description 从 1 开始的分页页码。 */
         page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
         limit?: number
       }
       header?: never
       path: {
+        /** @description 授权或反馈关联的用户 ID。 */
         user_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -8156,7 +10629,7 @@ export interface operations {
           'application/json': components['schemas']['Page_CheckinRecord_']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -8165,7 +10638,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -8174,7 +10647,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -8183,7 +10656,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -8192,7 +10665,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -8201,7 +10674,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -8210,7 +10683,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -8219,7 +10692,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -8228,7 +10701,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -8237,7 +10710,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -8253,14 +10726,16 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 授权或反馈关联的用户 ID。 */
         user_id: string
+        /** @description 打卡日期，格式为 YYYY-MM-DD；日期来源队列需携带此字段。 */
         day: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -8269,7 +10744,7 @@ export interface operations {
           'application/json': components['schemas']['DailyRecords']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -8278,7 +10753,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -8287,7 +10762,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -8296,7 +10771,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -8305,7 +10780,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -8314,7 +10789,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -8323,7 +10798,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -8332,7 +10807,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -8341,7 +10816,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -8350,7 +10825,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -8370,7 +10845,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -8379,7 +10854,7 @@ export interface operations {
           'application/json': components['schemas']['CatalogOrder']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -8388,7 +10863,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -8397,7 +10872,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -8406,7 +10881,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -8415,7 +10890,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -8424,7 +10899,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -8433,7 +10908,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -8442,7 +10917,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -8451,7 +10926,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -8460,7 +10935,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -8478,13 +10953,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['SaveOrder']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -8493,7 +10969,7 @@ export interface operations {
           'application/json': components['schemas']['CatalogOrder']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -8502,7 +10978,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -8511,7 +10987,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -8520,7 +10996,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -8529,7 +11005,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -8538,7 +11014,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -8547,7 +11023,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -8556,7 +11032,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -8565,7 +11041,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -8574,7 +11050,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -8594,7 +11070,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -8603,7 +11079,7 @@ export interface operations {
           'application/json': components['schemas']['BatchView'][]
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -8612,7 +11088,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -8621,7 +11097,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -8630,7 +11106,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -8639,7 +11115,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -8648,7 +11124,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -8657,7 +11133,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -8666,7 +11142,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -8675,7 +11151,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -8684,7 +11160,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -8702,13 +11178,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['CreateBatch']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 创建成功；若返回异步任务，则仅表示已受理，最终结果请查询任务状态 */
       201: {
         headers: {
           [name: string]: unknown
@@ -8717,7 +11194,7 @@ export interface operations {
           'application/json': components['schemas']['BatchView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -8726,7 +11203,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -8735,7 +11212,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -8744,7 +11221,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -8753,7 +11230,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -8762,7 +11239,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -8771,7 +11248,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -8780,7 +11257,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -8789,7 +11266,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -8798,7 +11275,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -8814,13 +11291,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -8829,7 +11307,7 @@ export interface operations {
           'application/json': components['schemas']['BatchView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -8838,7 +11316,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -8847,7 +11325,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -8856,7 +11334,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -8865,7 +11343,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -8874,7 +11352,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -8883,7 +11361,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -8892,7 +11370,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -8901,7 +11379,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -8910,7 +11388,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -8926,13 +11404,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -8941,7 +11420,7 @@ export interface operations {
           'application/json': components['schemas']['BatchView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -8950,7 +11429,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -8959,7 +11438,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -8968,7 +11447,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -8977,7 +11456,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -8986,7 +11465,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -8995,7 +11474,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -9004,7 +11483,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -9013,7 +11492,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -9022,7 +11501,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -9036,6 +11515,7 @@ export interface operations {
   recent_api_admin_v1_imports_get: {
     parameters: {
       query?: {
+        /** @description 为 true 时返回本人全部可恢复批次；否则返回近期导入历史。 */
         resumable_only?: boolean
       }
       header?: never
@@ -9044,7 +11524,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -9053,7 +11533,7 @@ export interface operations {
           'application/json': components['schemas']['ImportBatchView'][]
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -9062,7 +11542,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -9071,7 +11551,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -9080,7 +11560,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -9089,7 +11569,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -9098,7 +11578,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -9107,7 +11587,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -9116,7 +11596,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -9125,7 +11605,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -9134,7 +11614,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -9152,13 +11632,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['CreateImport']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 创建成功；若返回异步任务，则仅表示已受理，最终结果请查询任务状态 */
       201: {
         headers: {
           [name: string]: unknown
@@ -9167,7 +11648,7 @@ export interface operations {
           'application/json': components['schemas']['ImportBatchView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -9176,7 +11657,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -9185,7 +11666,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -9194,7 +11675,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -9203,7 +11684,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -9212,7 +11693,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -9221,7 +11702,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -9230,7 +11711,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -9239,7 +11720,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -9248,7 +11729,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -9268,14 +11749,14 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
         }
         content?: never
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -9284,7 +11765,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -9293,7 +11774,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -9302,7 +11783,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -9311,7 +11792,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -9320,7 +11801,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -9329,7 +11810,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -9338,7 +11819,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -9347,7 +11828,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -9356,7 +11837,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -9370,17 +11851,19 @@ export interface operations {
   read_api_admin_v1_imports__batch_id__get: {
     parameters: {
       query?: {
+        /** @description 为 true 时仅接受仍可继续处理的导入批次，否则返回状态冲突。 */
         require_resumable?: boolean
       }
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -9389,7 +11872,7 @@ export interface operations {
           'application/json': components['schemas']['ImportBatchView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -9398,7 +11881,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -9407,7 +11890,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -9416,7 +11899,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -9425,7 +11908,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -9434,7 +11917,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -9443,7 +11926,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -9452,7 +11935,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -9461,7 +11944,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -9470,7 +11953,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -9486,17 +11969,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['DeleteImport']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -9505,7 +11990,7 @@ export interface operations {
           'application/json': components['schemas']['DeletedImport']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -9514,7 +11999,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -9523,7 +12008,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -9532,7 +12017,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -9541,7 +12026,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -9550,7 +12035,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -9559,7 +12044,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -9568,7 +12053,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -9577,7 +12062,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -9586,7 +12071,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -9600,21 +12085,24 @@ export interface operations {
   upload_api_admin_v1_imports__batch_id__files_post: {
     parameters: {
       query: {
+        /** @description 上传或处理的文件类别，例如 image、audio、study_note（PDF）、zip、docx。 */
         kind: 'zip' | 'docx' | 'image' | 'audio'
       }
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'multipart/form-data': components['schemas']['Body_upload_api_admin_v1_imports__batch_id__files_post']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 创建成功；若返回异步任务，则仅表示已受理，最终结果请查询任务状态 */
       201: {
         headers: {
           [name: string]: unknown
@@ -9623,7 +12111,7 @@ export interface operations {
           'application/json': components['schemas']['ImportFileView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -9632,7 +12120,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -9641,7 +12129,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -9650,7 +12138,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -9659,7 +12147,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -9668,7 +12156,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -9677,7 +12165,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -9686,7 +12174,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -9695,7 +12183,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -9704,7 +12192,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -9720,17 +12208,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['RemoveImportFiles']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -9739,7 +12229,7 @@ export interface operations {
           'application/json': components['schemas']['ImportBatchView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -9748,7 +12238,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -9757,7 +12247,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -9766,7 +12256,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -9775,7 +12265,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -9784,7 +12274,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -9793,7 +12283,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -9802,7 +12292,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -9811,7 +12301,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -9820,7 +12310,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -9836,17 +12326,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['RemoveImportItems']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -9855,7 +12347,7 @@ export interface operations {
           'application/json': components['schemas']['ImportBatchView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -9864,7 +12356,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -9873,7 +12365,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -9882,7 +12374,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -9891,7 +12383,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -9900,7 +12392,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -9909,7 +12401,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -9918,7 +12410,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -9927,7 +12419,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -9936,7 +12428,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -9952,14 +12444,16 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
+        /** @description 当前导入批次中的文件 ID。 */
         file_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -9968,7 +12462,7 @@ export interface operations {
           'application/json': components['schemas']['ImportFileView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -9977,7 +12471,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -9986,7 +12480,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -9995,7 +12489,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -10004,7 +12498,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -10013,7 +12507,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -10022,7 +12516,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -10031,7 +12525,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -10040,7 +12534,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -10049,7 +12543,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -10065,13 +12559,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -10080,7 +12575,7 @@ export interface operations {
           'application/json': components['schemas']['ImportBatchView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -10089,7 +12584,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -10098,7 +12593,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -10107,7 +12602,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -10116,7 +12611,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -10125,7 +12620,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -10134,7 +12629,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -10143,7 +12638,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -10152,7 +12647,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -10161,7 +12656,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -10177,18 +12672,21 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
+        /** @description 当前场景导入批次中单张待核对资料的 ID。 */
         item_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['StageItem']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -10197,7 +12695,7 @@ export interface operations {
           'application/json': components['schemas']['ImportItemView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -10206,7 +12704,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -10215,7 +12713,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -10224,7 +12722,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -10233,7 +12731,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -10242,7 +12740,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -10251,7 +12749,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -10260,7 +12758,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -10269,7 +12767,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -10278,7 +12776,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -10292,17 +12790,19 @@ export interface operations {
   review_api_admin_v1_imports__batch_id__confirmation_get: {
     parameters: {
       query?: {
+        /** @description 限定本次确认或保存范围的导入资料 ID 列表。 */
         item_ids?: string[] | null
       }
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -10311,7 +12811,7 @@ export interface operations {
           'application/json': components['schemas']['ImportConfirmation']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -10320,7 +12820,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -10329,7 +12829,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -10338,7 +12838,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -10347,7 +12847,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -10356,7 +12856,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -10365,7 +12865,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -10374,7 +12874,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -10383,7 +12883,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -10392,7 +12892,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -10408,17 +12908,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['AcceptSave']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -10427,7 +12929,7 @@ export interface operations {
           'application/json': components['schemas']['ImportBatchView']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -10436,7 +12938,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -10445,7 +12947,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -10454,7 +12956,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -10463,7 +12965,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -10472,7 +12974,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -10481,7 +12983,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -10490,7 +12992,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -10499,7 +13001,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -10508,7 +13010,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -10524,13 +13026,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 查询已接收写操作的幂等键，必须与原请求使用的键一致。 */
         key: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -10539,7 +13042,7 @@ export interface operations {
           'application/json': components['schemas']['OperationResponse']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -10548,7 +13051,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -10557,7 +13060,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -10566,7 +13069,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -10575,7 +13078,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -10584,7 +13087,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -10593,7 +13096,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -10602,7 +13105,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -10611,7 +13114,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -10620,7 +13123,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -10634,19 +13137,23 @@ export interface operations {
   read_api_admin_v1_cards__card_id__words__word_id__pronunciation_get: {
     parameters: {
       query?: {
+        /** @description 绑定此次学习或操作的不可变内容发布版本 ID。 */
         version_id?: string | null
+        /** @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。 */
         revision?: number | null
       }
       header?: never
       path: {
+        /** @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。 */
         card_id: string
+        /** @description 场景或听读词汇列表中需要生成或读取发音的词汇 ID。 */
         word_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -10655,7 +13162,7 @@ export interface operations {
           'application/json': components['schemas']['SpeechState']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -10664,7 +13171,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -10673,7 +13180,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -10682,7 +13189,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -10691,7 +13198,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -10700,7 +13207,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -10709,7 +13216,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -10718,7 +13225,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -10727,7 +13234,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -10736,7 +13243,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -10752,18 +13259,21 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。 */
         card_id: string
+        /** @description 场景或听读词汇列表中需要生成或读取发音的词汇 ID。 */
         word_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['SpeechReference']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -10772,7 +13282,7 @@ export interface operations {
           'application/json': components['schemas']['SpeechState']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -10781,7 +13291,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -10790,7 +13300,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -10799,7 +13309,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -10808,7 +13318,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -10817,7 +13327,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -10826,7 +13336,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -10835,7 +13345,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -10844,7 +13354,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -10853,7 +13363,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -10867,19 +13377,23 @@ export interface operations {
   read_import_api_admin_v1_imports__batch_id__items__item_id__words__word_id__pronunciation_get: {
     parameters: {
       query: {
+        /** @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。 */
         revision: number
       }
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
+        /** @description 当前场景导入批次中单张待核对资料的 ID。 */
         item_id: string
+        /** @description 场景或听读词汇列表中需要生成或读取发音的词汇 ID。 */
         word_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -10888,7 +13402,7 @@ export interface operations {
           'application/json': components['schemas']['SpeechState']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -10897,7 +13411,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -10906,7 +13420,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -10915,7 +13429,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -10924,7 +13438,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -10933,7 +13447,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -10942,7 +13456,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -10951,7 +13465,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -10960,7 +13474,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -10969,7 +13483,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -10985,19 +13499,23 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
+        /** @description 当前场景导入批次中单张待核对资料的 ID。 */
         item_id: string
+        /** @description 场景或听读词汇列表中需要生成或读取发音的词汇 ID。 */
         word_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['ImportSpeechReference']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -11006,7 +13524,7 @@ export interface operations {
           'application/json': components['schemas']['SpeechState']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -11015,7 +13533,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -11024,7 +13542,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -11033,7 +13551,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -11042,7 +13560,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -11051,7 +13569,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -11060,7 +13578,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -11069,7 +13587,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -11078,7 +13596,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -11087,7 +13605,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -11103,13 +13621,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 服务端签发的短期资源访问凭据，按原值使用，不解析或自行构造。 */
         credential: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -11118,7 +13637,7 @@ export interface operations {
           'application/json': unknown
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -11127,7 +13646,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -11136,7 +13655,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -11145,7 +13664,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -11154,7 +13673,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -11163,7 +13682,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -11172,7 +13691,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -11181,7 +13700,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -11190,7 +13709,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -11199,7 +13718,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -11213,9 +13732,13 @@ export interface operations {
   listing_api_admin_v1_feedback_get: {
     parameters: {
       query?: {
+        /** @description 从 1 开始的分页页码。 */
         page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
         limit?: number
+        /** @description 当前对象或操作的业务状态，取值以所在模型约束为准。 */
         status?: ('pending' | 'processing' | 'needs_info' | 'resolved') | null
+        /** @description 用于当前列表筛选的搜索文字。 */
         search?: string
       }
       header?: never
@@ -11224,7 +13747,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -11233,7 +13756,7 @@ export interface operations {
           'application/json': components['schemas']['FeedbackPage']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -11242,7 +13765,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -11251,7 +13774,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -11260,7 +13783,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -11269,7 +13792,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -11278,7 +13801,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -11287,7 +13810,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -11296,7 +13819,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -11305,7 +13828,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -11314,7 +13837,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -11334,7 +13857,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -11343,7 +13866,7 @@ export interface operations {
           'application/json': components['schemas']['FeedbackUnread']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -11352,7 +13875,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -11361,7 +13884,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -11370,7 +13893,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -11379,7 +13902,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -11388,7 +13911,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -11397,7 +13920,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -11406,7 +13929,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -11415,7 +13938,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -11424,7 +13947,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -11440,13 +13963,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 关联的正文配图媒体 ID；未选择配图时为空。 */
         image_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -11455,7 +13979,7 @@ export interface operations {
           'application/json': components['schemas']['FeedbackImage']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -11464,7 +13988,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -11473,7 +13997,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -11482,7 +14006,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -11491,7 +14015,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -11500,7 +14024,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -11509,7 +14033,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -11518,7 +14042,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -11527,7 +14051,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -11536,7 +14060,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -11552,13 +14076,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 服务端签发的短期资源访问凭据，按原值使用，不解析或自行构造。 */
         credential: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -11567,7 +14092,7 @@ export interface operations {
           'application/json': unknown
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -11576,7 +14101,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -11585,7 +14110,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -11594,7 +14119,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -11603,7 +14128,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -11612,7 +14137,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -11621,7 +14146,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -11630,7 +14155,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -11639,7 +14164,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -11648,7 +14173,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -11664,13 +14189,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次已读回执或操作对应的反馈 ID。 */
         feedback_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -11679,7 +14205,7 @@ export interface operations {
           'application/json': components['schemas']['FeedbackDetail']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -11688,7 +14214,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -11697,7 +14223,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -11706,7 +14232,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -11715,7 +14241,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -11724,7 +14250,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -11733,7 +14259,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -11742,7 +14268,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -11751,7 +14277,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -11760,7 +14286,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -11776,17 +14302,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次已读回执或操作对应的反馈 ID。 */
         feedback_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['ReadFeedback']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -11795,7 +14323,7 @@ export interface operations {
           'application/json': components['schemas']['FeedbackReadReceipt']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -11804,7 +14332,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -11813,7 +14341,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -11822,7 +14350,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -11831,7 +14359,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -11840,7 +14368,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -11849,7 +14377,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -11858,7 +14386,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -11867,7 +14395,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -11876,7 +14404,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -11892,17 +14420,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次已读回执或操作对应的反馈 ID。 */
         feedback_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['AdminMessage']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -11911,7 +14441,7 @@ export interface operations {
           'application/json': components['schemas']['FeedbackDetail']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -11920,7 +14450,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -11929,7 +14459,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -11938,7 +14468,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -11947,7 +14477,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -11956,7 +14486,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -11965,7 +14495,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -11974,7 +14504,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -11983,7 +14513,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -11992,7 +14522,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -12010,13 +14540,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['CatalogOrderInput']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -12025,7 +14556,7 @@ export interface operations {
           'application/json': components['schemas']['CatalogOrderInput']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -12034,7 +14565,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -12043,7 +14574,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -12052,7 +14583,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -12061,7 +14592,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -12070,7 +14601,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -12079,7 +14610,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -12088,7 +14619,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -12097,7 +14628,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -12106,7 +14637,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -12124,13 +14655,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['BatchDelete']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -12139,7 +14671,7 @@ export interface operations {
           'application/json': components['schemas']['CatalogBatchDeleteResult']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -12148,7 +14680,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -12157,7 +14689,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -12166,7 +14698,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -12175,7 +14707,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -12184,7 +14716,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -12193,7 +14725,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -12202,7 +14734,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -12211,7 +14743,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -12220,7 +14752,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -12236,17 +14768,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 当前接口需要读取或操作的业务对象 ID。 */
         identifier: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['juya_api__listening_contracts__Revision']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -12255,7 +14789,7 @@ export interface operations {
           'application/json': components['schemas']['CatalogDeleteResult']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -12264,7 +14798,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -12273,7 +14807,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -12282,7 +14816,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -12291,7 +14825,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -12300,7 +14834,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -12309,7 +14843,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -12318,7 +14852,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -12327,7 +14861,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -12336,7 +14870,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -12356,7 +14890,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -12367,7 +14901,7 @@ export interface operations {
           }
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -12376,7 +14910,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -12385,7 +14919,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -12394,7 +14928,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -12403,7 +14937,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -12412,7 +14946,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -12421,7 +14955,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -12430,7 +14964,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -12439,7 +14973,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -12448,7 +14982,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -12466,13 +15000,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['CategoryInput']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -12481,7 +15016,7 @@ export interface operations {
           'application/json': components['schemas']['Category']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -12490,7 +15025,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -12499,7 +15034,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -12508,7 +15043,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -12517,7 +15052,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -12526,7 +15061,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -12535,7 +15070,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -12544,7 +15079,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -12553,7 +15088,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -12562,7 +15097,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -12578,17 +15113,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 文章或主题归属的分类 ID。 */
         category_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['CategoryUpdate']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -12597,7 +15134,7 @@ export interface operations {
           'application/json': components['schemas']['Category']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -12606,7 +15143,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -12615,7 +15152,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -12624,7 +15161,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -12633,7 +15170,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -12642,7 +15179,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -12651,7 +15188,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -12660,7 +15197,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -12669,7 +15206,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -12678,7 +15215,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -12692,6 +15229,7 @@ export interface operations {
   topics_api_admin_v1_listening_topics_get: {
     parameters: {
       query?: {
+        /** @description 文章或主题归属的分类 ID。 */
         category_id?: string | null
       }
       header?: never
@@ -12700,7 +15238,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -12711,7 +15249,7 @@ export interface operations {
           }
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -12720,7 +15258,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -12729,7 +15267,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -12738,7 +15276,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -12747,7 +15285,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -12756,7 +15294,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -12765,7 +15303,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -12774,7 +15312,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -12783,7 +15321,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -12792,7 +15330,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -12810,13 +15348,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['TopicInput']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -12825,7 +15364,7 @@ export interface operations {
           'application/json': components['schemas']['Topic']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -12834,7 +15373,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -12843,7 +15382,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -12852,7 +15391,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -12861,7 +15400,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -12870,7 +15409,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -12879,7 +15418,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -12888,7 +15427,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -12897,7 +15436,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -12906,7 +15445,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -12922,17 +15461,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 历史兼容字段或主题资源接口使用的主题 ID；文章可不再关联主题。 */
         topic_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['TopicUpdate']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -12941,7 +15482,7 @@ export interface operations {
           'application/json': components['schemas']['Topic']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -12950,7 +15491,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -12959,7 +15500,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -12968,7 +15509,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -12977,7 +15518,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -12986,7 +15527,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -12995,7 +15536,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -13004,7 +15545,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -13013,7 +15554,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -13022,7 +15563,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -13036,12 +15577,19 @@ export interface operations {
   articles_api_admin_v1_listening_articles_get: {
     parameters: {
       query?: {
+        /** @description 从 1 开始的分页页码。 */
         page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
         limit?: number
+        /** @description 历史兼容字段或主题资源接口使用的主题 ID；文章可不再关联主题。 */
         topic_id?: string | null
+        /** @description 文章或主题归属的分类 ID。 */
         category_id?: string | null
+        /** @description 当前对象或操作的业务状态，取值以所在模型约束为准。 */
         status?: string | null
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id?: string | null
+        /** @description 用于筛选当前资源列表的搜索文字。 */
         q?: string
       }
       header?: never
@@ -13050,7 +15598,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -13059,7 +15607,7 @@ export interface operations {
           'application/json': components['schemas']['Page_Article_']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -13068,7 +15616,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -13077,7 +15625,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -13086,7 +15634,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -13095,7 +15643,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -13104,7 +15652,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -13113,7 +15661,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -13122,7 +15670,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -13131,7 +15679,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -13140,7 +15688,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -13158,13 +15706,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['ArticleInput']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -13173,7 +15722,7 @@ export interface operations {
           'application/json': components['schemas']['Article']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -13182,7 +15731,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -13191,7 +15740,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -13200,7 +15749,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -13209,7 +15758,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -13218,7 +15767,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -13227,7 +15776,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -13236,7 +15785,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -13245,7 +15794,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -13254,7 +15803,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -13272,13 +15821,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['BatchDelete']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -13287,7 +15837,7 @@ export interface operations {
           'application/json': components['schemas']['BatchDeleteResult']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -13296,7 +15846,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -13305,7 +15855,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -13314,7 +15864,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -13323,7 +15873,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -13332,7 +15882,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -13341,7 +15891,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -13350,7 +15900,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -13359,7 +15909,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -13368,7 +15918,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -13386,13 +15936,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['BatchDelete']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -13401,7 +15952,7 @@ export interface operations {
           'application/json': components['schemas']['BatchDeleteResult']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -13410,7 +15961,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -13419,7 +15970,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -13428,7 +15979,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -13437,7 +15988,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -13446,7 +15997,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -13455,7 +16006,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -13464,7 +16015,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -13473,7 +16024,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -13482,7 +16033,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -13500,13 +16051,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['BatchDelete']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -13515,7 +16067,7 @@ export interface operations {
           'application/json': components['schemas']['BatchPublishResult']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -13524,7 +16076,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -13533,7 +16085,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -13542,7 +16094,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -13551,7 +16103,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -13560,7 +16112,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -13569,7 +16121,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -13578,7 +16130,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -13587,7 +16139,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -13596,7 +16148,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -13612,13 +16164,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -13627,7 +16180,7 @@ export interface operations {
           'application/json': components['schemas']['Article']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -13636,7 +16189,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -13645,7 +16198,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -13654,7 +16207,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -13663,7 +16216,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -13672,7 +16225,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -13681,7 +16234,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -13690,7 +16243,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -13699,7 +16252,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -13708,7 +16261,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -13724,17 +16277,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['ArticleUpdate']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -13743,7 +16298,7 @@ export interface operations {
           'application/json': components['schemas']['Article']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -13752,7 +16307,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -13761,7 +16316,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -13770,7 +16325,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -13779,7 +16334,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -13788,7 +16343,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -13797,7 +16352,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -13806,7 +16361,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -13815,7 +16370,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -13824,7 +16379,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -13840,17 +16395,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['juya_api__listening_contracts__Revision']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -13859,7 +16416,7 @@ export interface operations {
           'application/json': components['schemas']['ArticlePreview']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -13868,7 +16425,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -13877,7 +16434,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -13886,7 +16443,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -13895,7 +16452,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -13904,7 +16461,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -13913,7 +16470,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -13922,7 +16479,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -13931,7 +16488,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -13940,7 +16497,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -13956,17 +16513,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['PublishInput']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -13975,7 +16534,7 @@ export interface operations {
           'application/json': components['schemas']['Article']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -13984,7 +16543,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -13993,7 +16552,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -14002,7 +16561,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -14011,7 +16570,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -14020,7 +16579,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -14029,7 +16588,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -14038,7 +16597,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -14047,7 +16606,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -14056,7 +16615,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -14072,17 +16631,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['juya_api__listening_contracts__Revision']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -14091,7 +16652,7 @@ export interface operations {
           'application/json': components['schemas']['Article']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -14100,7 +16661,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -14109,7 +16670,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -14118,7 +16679,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -14127,7 +16688,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -14136,7 +16697,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -14145,7 +16706,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -14154,7 +16715,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -14163,7 +16724,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -14172,7 +16733,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -14188,17 +16749,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['juya_api__listening_contracts__Revision']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -14207,7 +16770,7 @@ export interface operations {
           'application/json': components['schemas']['Article']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -14216,7 +16779,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -14225,7 +16788,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -14234,7 +16797,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -14243,7 +16806,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -14252,7 +16815,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -14261,7 +16824,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -14270,7 +16833,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -14279,7 +16842,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -14288,7 +16851,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -14302,8 +16865,11 @@ export interface operations {
   order_api_admin_v1_listening_order_get: {
     parameters: {
       query: {
+        /** @description 场景列表uncompleted为本人待学、published为全部已发布；排序接口category为分类、global为全局、topic为主题。 */
         scope: 'category' | 'global' | 'topic'
+        /** @description 文章或主题归属的分类 ID。 */
         category_id?: string | null
+        /** @description 历史兼容字段或主题资源接口使用的主题 ID；文章可不再关联主题。 */
         topic_id?: string | null
       }
       header?: never
@@ -14312,7 +16878,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -14321,7 +16887,7 @@ export interface operations {
           'application/json': components['schemas']['OrderResult']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -14330,7 +16896,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -14339,7 +16905,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -14348,7 +16914,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -14357,7 +16923,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -14366,7 +16932,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -14375,7 +16941,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -14384,7 +16950,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -14393,7 +16959,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -14402,7 +16968,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -14420,13 +16986,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['OrderInput']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -14435,7 +17002,7 @@ export interface operations {
           'application/json': components['schemas']['OrderResult']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -14444,7 +17011,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -14453,7 +17020,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -14462,7 +17029,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -14471,7 +17038,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -14480,7 +17047,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -14489,7 +17056,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -14498,7 +17065,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -14507,7 +17074,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -14516,7 +17083,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -14536,7 +17103,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -14545,7 +17112,7 @@ export interface operations {
           'application/json': components['schemas']['FreePolicy']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -14554,7 +17121,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -14563,7 +17130,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -14572,7 +17139,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -14581,7 +17148,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -14590,7 +17157,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -14599,7 +17166,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -14608,7 +17175,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -14617,7 +17184,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -14626,7 +17193,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -14644,6 +17211,7 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json':
@@ -14652,7 +17220,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -14661,7 +17229,7 @@ export interface operations {
           'application/json': components['schemas']['FreePolicy']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -14670,7 +17238,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -14679,7 +17247,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -14688,7 +17256,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -14697,7 +17265,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -14706,7 +17274,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -14715,7 +17283,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -14724,7 +17292,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -14733,7 +17301,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -14742,7 +17310,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -14760,13 +17328,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['FreeCount']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -14775,7 +17344,7 @@ export interface operations {
           'application/json': components['schemas']['FreePreview-Output']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -14784,7 +17353,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -14793,7 +17362,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -14802,7 +17371,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -14811,7 +17380,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -14820,7 +17389,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -14829,7 +17398,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -14838,7 +17407,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -14847,7 +17416,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -14856,7 +17425,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -14870,21 +17439,24 @@ export interface operations {
   upload_api_admin_v1_listening_articles__article_id__media_post: {
     parameters: {
       query: {
+        /** @description 上传或处理的文件类别，例如 image、audio、study_note（PDF）、zip、docx。 */
         kind: 'audio' | 'image'
       }
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'multipart/form-data': components['schemas']['Body_upload_api_admin_v1_listening_articles__article_id__media_post']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -14893,7 +17465,7 @@ export interface operations {
           'application/json': components['schemas']['MediaMetadata']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -14902,7 +17474,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -14911,7 +17483,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -14920,7 +17492,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -14929,7 +17501,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -14938,7 +17510,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -14947,7 +17519,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -14956,7 +17528,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -14965,7 +17537,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -14974,7 +17546,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -14990,14 +17562,16 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
+        /** @description 已上传媒体的 ID，用于关联图片、音频或签发访问票据。 */
         media_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -15006,7 +17580,7 @@ export interface operations {
           'application/json': unknown
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -15015,7 +17589,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -15024,7 +17598,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -15033,7 +17607,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -15042,7 +17616,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -15051,7 +17625,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -15060,7 +17634,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -15069,7 +17643,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -15078,7 +17652,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -15087,7 +17661,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -15103,13 +17677,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -15118,7 +17693,7 @@ export interface operations {
           'application/json': components['schemas']['Article']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -15127,7 +17702,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -15136,7 +17711,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -15145,7 +17720,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -15154,7 +17729,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -15163,7 +17738,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -15172,7 +17747,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -15181,7 +17756,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -15190,7 +17765,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -15199,7 +17774,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -15215,14 +17790,16 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
+        /** @description 已上传媒体的 ID，用于关联图片、音频或签发访问票据。 */
         media_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -15231,7 +17808,7 @@ export interface operations {
           'application/json': unknown
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -15240,7 +17817,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -15249,7 +17826,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -15258,7 +17835,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -15267,7 +17844,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -15276,7 +17853,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -15285,7 +17862,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -15294,7 +17871,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -15303,7 +17880,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -15312,7 +17889,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -15328,13 +17905,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -15343,7 +17921,7 @@ export interface operations {
           'application/json': components['schemas']['Timeline']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -15352,7 +17930,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -15361,7 +17939,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -15370,7 +17948,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -15379,7 +17957,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -15388,7 +17966,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -15397,7 +17975,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -15406,7 +17984,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -15415,7 +17993,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -15424,7 +18002,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -15440,17 +18018,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['TimelineInput']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -15459,7 +18039,7 @@ export interface operations {
           'application/json': components['schemas']['Timeline']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -15468,7 +18048,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -15477,7 +18057,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -15486,7 +18066,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -15495,7 +18075,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -15504,7 +18084,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -15513,7 +18093,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -15522,7 +18102,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -15531,7 +18111,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -15540,7 +18120,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -15556,17 +18136,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['juya_api__listening_contracts__Revision']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -15575,7 +18157,7 @@ export interface operations {
           'application/json': components['schemas']['Timeline']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -15584,7 +18166,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -15593,7 +18175,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -15602,7 +18184,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -15611,7 +18193,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -15620,7 +18202,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -15629,7 +18211,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -15638,7 +18220,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -15647,7 +18229,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -15656,7 +18238,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -15672,17 +18254,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['juya_api__listening_contracts__Revision']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -15691,7 +18275,7 @@ export interface operations {
           'application/json': components['schemas']['Timeline']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -15700,7 +18284,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -15709,7 +18293,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -15718,7 +18302,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -15727,7 +18311,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -15736,7 +18320,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -15745,7 +18329,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -15754,7 +18338,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -15763,7 +18347,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -15772,7 +18356,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -15786,18 +18370,21 @@ export interface operations {
   user_records_api_admin_v1_listening_users__user_id__records_get: {
     parameters: {
       query?: {
+        /** @description 从 1 开始的分页页码。 */
         page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
         limit?: number
       }
       header?: never
       path: {
+        /** @description 授权或反馈关联的用户 ID。 */
         user_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -15806,7 +18393,7 @@ export interface operations {
           'application/json': components['schemas']['Page_Summary_']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -15815,7 +18402,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -15824,7 +18411,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -15833,7 +18420,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -15842,7 +18429,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -15851,7 +18438,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -15860,7 +18447,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -15869,7 +18456,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -15878,7 +18465,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -15887,7 +18474,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -15903,14 +18490,16 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 授权或反馈关联的用户 ID。 */
         user_id: string
+        /** @description 打卡日期，格式为 YYYY-MM-DD；日期来源队列需携带此字段。 */
         day: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -15919,7 +18508,7 @@ export interface operations {
           'application/json': components['schemas']['MixedDay']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -15928,7 +18517,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -15937,7 +18526,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -15946,7 +18535,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -15955,7 +18544,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -15964,7 +18553,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -15973,7 +18562,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -15982,7 +18571,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -15991,7 +18580,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -16000,7 +18589,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -16014,19 +18603,23 @@ export interface operations {
   read_api_admin_v1_listening_articles__article_id__words__word_id__pronunciation_get: {
     parameters: {
       query?: {
+        /** @description 绑定此次学习或操作的不可变内容发布版本 ID。 */
         version_id?: string | null
+        /** @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。 */
         revision?: number | null
       }
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
+        /** @description 场景或听读词汇列表中需要生成或读取发音的词汇 ID。 */
         word_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -16035,7 +18628,7 @@ export interface operations {
           'application/json': components['schemas']['SpeechState']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -16044,7 +18637,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -16053,7 +18646,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -16062,7 +18655,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -16071,7 +18664,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -16080,7 +18673,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -16089,7 +18682,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -16098,7 +18691,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -16107,7 +18700,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -16116,7 +18709,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -16132,18 +18725,21 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 业务听读文章的 ID，区别于文章的发布版本 ID。 */
         article_id: string
+        /** @description 场景或听读词汇列表中需要生成或读取发音的词汇 ID。 */
         word_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['SpeechReference']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -16152,7 +18748,7 @@ export interface operations {
           'application/json': components['schemas']['SpeechState']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -16161,7 +18757,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -16170,7 +18766,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -16179,7 +18775,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -16188,7 +18784,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -16197,7 +18793,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -16206,7 +18802,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -16215,7 +18811,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -16224,7 +18820,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -16233,7 +18829,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -16247,19 +18843,23 @@ export interface operations {
   read_candidate_api_admin_v1_listening_imports__batch_id__candidates__candidate_id__words__word_id__pronunciation_get: {
     parameters: {
       query: {
+        /** @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。 */
         revision: number
       }
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
+        /** @description 听读导入中单篇待核对文章的候选 ID。 */
         candidate_id: string
+        /** @description 场景或听读词汇列表中需要生成或读取发音的词汇 ID。 */
         word_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -16268,7 +18868,7 @@ export interface operations {
           'application/json': components['schemas']['SpeechState']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -16277,7 +18877,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -16286,7 +18886,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -16295,7 +18895,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -16304,7 +18904,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -16313,7 +18913,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -16322,7 +18922,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -16331,7 +18931,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -16340,7 +18940,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -16349,7 +18949,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -16365,19 +18965,23 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
+        /** @description 听读导入中单篇待核对文章的候选 ID。 */
         candidate_id: string
+        /** @description 场景或听读词汇列表中需要生成或读取发音的词汇 ID。 */
         word_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['SpeechReference']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -16386,7 +18990,7 @@ export interface operations {
           'application/json': components['schemas']['SpeechState']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -16395,7 +18999,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -16404,7 +19008,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -16413,7 +19017,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -16422,7 +19026,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -16431,7 +19035,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -16440,7 +19044,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -16449,7 +19053,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -16458,7 +19062,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -16467,7 +19071,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -16487,7 +19091,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -16496,7 +19100,7 @@ export interface operations {
           'application/json': unknown
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -16505,7 +19109,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -16514,7 +19118,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -16523,7 +19127,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -16532,7 +19136,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -16541,7 +19145,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -16550,7 +19154,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -16559,7 +19163,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -16568,7 +19172,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -16577,7 +19181,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -16595,13 +19199,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'multipart/form-data': components['schemas']['Body_docx_preview_api_admin_v1_listening_docx_preview_post']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -16610,7 +19215,7 @@ export interface operations {
           'application/json': components['schemas']['DocxPreview']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -16619,7 +19224,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -16628,7 +19233,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -16637,7 +19242,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -16646,7 +19251,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -16655,7 +19260,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -16664,7 +19269,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -16673,7 +19278,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -16682,7 +19287,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -16691,7 +19296,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -16707,14 +19312,16 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
+        /** @description 已上传媒体的 ID，用于关联图片、音频或签发访问票据。 */
         media_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -16723,7 +19330,7 @@ export interface operations {
           'application/json': unknown
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -16732,7 +19339,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -16741,7 +19348,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -16750,7 +19357,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -16759,7 +19366,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -16768,7 +19375,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -16777,7 +19384,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -16786,7 +19393,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -16795,7 +19402,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -16804,7 +19411,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -16820,14 +19427,16 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
+        /** @description 听读导入中单篇待核对文章的候选 ID。 */
         candidate_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -16836,7 +19445,7 @@ export interface operations {
           'application/json': components['schemas']['Timeline']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -16845,7 +19454,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -16854,7 +19463,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -16863,7 +19472,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -16872,7 +19481,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -16881,7 +19490,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -16890,7 +19499,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -16899,7 +19508,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -16908,7 +19517,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -16917,7 +19526,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -16933,18 +19542,21 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
+        /** @description 听读导入中单篇待核对文章的候选 ID。 */
         candidate_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['TimelineInput']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -16953,7 +19565,7 @@ export interface operations {
           'application/json': components['schemas']['Timeline']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -16962,7 +19574,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -16971,7 +19583,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -16980,7 +19592,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -16989,7 +19601,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -16998,7 +19610,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -17007,7 +19619,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -17016,7 +19628,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -17025,7 +19637,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -17034,7 +19646,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -17050,19 +19662,23 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
+        /** @description 听读导入中单篇待核对文章的候选 ID。 */
         candidate_id: string
+        /** @description 本次请求或审计记录对应的业务操作，取值以当前接口约束为准。 */
         action: 'retry' | 'review'
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['juya_api__listening_contracts__Revision']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -17071,7 +19687,7 @@ export interface operations {
           'application/json': components['schemas']['Timeline']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -17080,7 +19696,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -17089,7 +19705,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -17098,7 +19714,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -17107,7 +19723,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -17116,7 +19732,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -17125,7 +19741,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -17134,7 +19750,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -17143,7 +19759,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -17152,7 +19768,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -17166,8 +19782,11 @@ export interface operations {
   listing_api_admin_v1_listening_imports_get: {
     parameters: {
       query?: {
+        /** @description 从 1 开始的分页页码。 */
         page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
         limit?: number
+        /** @description 为 true 时仅返回当前用户尚未完成的内容。 */
         unfinished?: boolean
       }
       header?: never
@@ -17176,7 +19795,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -17185,7 +19804,7 @@ export interface operations {
           'application/json': components['schemas']['Page_Batch_']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -17194,7 +19813,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -17203,7 +19822,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -17212,7 +19831,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -17221,7 +19840,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -17230,7 +19849,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -17239,7 +19858,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -17248,7 +19867,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -17257,7 +19876,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -17266,7 +19885,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -17284,13 +19903,14 @@ export interface operations {
       path?: never
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['ImportInput']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -17299,7 +19919,7 @@ export interface operations {
           'application/json': components['schemas']['Batch']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -17308,7 +19928,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -17317,7 +19937,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -17326,7 +19946,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -17335,7 +19955,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -17344,7 +19964,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -17353,7 +19973,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -17362,7 +19982,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -17371,7 +19991,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -17380,7 +20000,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -17396,13 +20016,14 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
     requestBody?: never
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -17411,7 +20032,7 @@ export interface operations {
           'application/json': components['schemas']['Batch']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -17420,7 +20041,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -17429,7 +20050,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -17438,7 +20059,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -17447,7 +20068,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -17456,7 +20077,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -17465,7 +20086,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -17474,7 +20095,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -17483,7 +20104,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -17492,7 +20113,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -17506,21 +20127,24 @@ export interface operations {
   upload_api_admin_v1_listening_imports__batch_id__files_post: {
     parameters: {
       query: {
+        /** @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。 */
         revision: number
       }
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'multipart/form-data': components['schemas']['Body_upload_api_admin_v1_listening_imports__batch_id__files_post']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -17529,7 +20153,7 @@ export interface operations {
           'application/json': components['schemas']['Batch']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -17538,7 +20162,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -17547,7 +20171,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -17556,7 +20180,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -17565,7 +20189,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -17574,7 +20198,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -17583,7 +20207,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -17592,7 +20216,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -17601,7 +20225,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -17610,7 +20234,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -17626,18 +20250,21 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
+        /** @description 听读导入中单篇待核对文章的候选 ID。 */
         candidate_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['CandidateInput']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -17646,7 +20273,7 @@ export interface operations {
           'application/json': components['schemas']['Batch']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -17655,7 +20282,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -17664,7 +20291,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -17673,7 +20300,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -17682,7 +20309,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -17691,7 +20318,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -17700,7 +20327,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -17709,7 +20336,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -17718,7 +20345,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -17727,7 +20354,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -17743,17 +20370,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['Selection']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -17762,7 +20391,7 @@ export interface operations {
           'application/json': components['schemas']['Batch']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -17771,7 +20400,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -17780,7 +20409,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -17789,7 +20418,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -17798,7 +20427,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -17807,7 +20436,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -17816,7 +20445,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -17825,7 +20454,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -17834,7 +20463,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -17843,7 +20472,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -17859,17 +20488,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['ListeningImportSelection']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -17878,7 +20509,7 @@ export interface operations {
           'application/json': components['schemas']['ImportPreview']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -17887,7 +20518,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -17896,7 +20527,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -17905,7 +20536,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -17914,7 +20545,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -17923,7 +20554,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -17932,7 +20563,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -17941,7 +20572,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -17950,7 +20581,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -17959,7 +20590,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown
@@ -17975,17 +20606,19 @@ export interface operations {
       query?: never
       header?: never
       path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
         batch_id: string
       }
       cookie?: never
     }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
     requestBody: {
       content: {
         'application/json': components['schemas']['ListeningImportConfirmation']
       }
     }
     responses: {
-      /** @description Successful Response */
+      /** @description 请求成功 */
       200: {
         headers: {
           [name: string]: unknown
@@ -17994,7 +20627,7 @@ export interface operations {
           'application/json': components['schemas']['SaveResult']
         }
       }
-      /** @description Bad Request */
+      /** @description 请求不符合业务规则 */
       400: {
         headers: {
           [name: string]: unknown
@@ -18003,7 +20636,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unauthorized */
+      /** @description 尚未登录，或登录凭证已失效 */
       401: {
         headers: {
           [name: string]: unknown
@@ -18012,7 +20645,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Forbidden */
+      /** @description 当前身份无权执行该操作 */
       403: {
         headers: {
           [name: string]: unknown
@@ -18021,7 +20654,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Not Found */
+      /** @description 资源不存在，或当前身份不可访问 */
       404: {
         headers: {
           [name: string]: unknown
@@ -18030,7 +20663,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Conflict */
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
       409: {
         headers: {
           [name: string]: unknown
@@ -18039,7 +20672,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Gone */
+      /** @description 资源或功能已不可用 */
       410: {
         headers: {
           [name: string]: unknown
@@ -18048,7 +20681,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Unprocessable Content */
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
       422: {
         headers: {
           [name: string]: unknown
@@ -18057,7 +20690,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Too Many Requests */
+      /** @description 请求过于频繁，请稍后重试 */
       429: {
         headers: {
           [name: string]: unknown
@@ -18066,7 +20699,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Internal Server Error */
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
       500: {
         headers: {
           [name: string]: unknown
@@ -18075,7 +20708,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
-      /** @description Service Unavailable */
+      /** @description 服务暂不可用，请稍后重试 */
       503: {
         headers: {
           [name: string]: unknown

@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import AppState from '@/components/app-state/app-state.vue'
 import SceneReader from '@/features/scenes/scene-reader.vue'
+import StudyNotePreview from '@/features/scenes/study-note-preview.vue'
 import { api, ApiError } from '@/services/http-client'
 import { publicationErrors } from '@/shared/constants/publication'
 
@@ -402,7 +403,8 @@ onBeforeUnmount(() => {
               :key="check.preview.preview_id"
               :content="check.preview.content"
               :pronunciation="{ cardId: check.id, reference: { revision: check.preview.revision } }"
-            />
+              ><template #study-note><StudyNotePreview :note="check.preview.study_note" /></template
+            ></SceneReader>
           </div>
           <div v-for="check in blocked" :key="check.id" class="blocked-card">
             <strong

@@ -109,6 +109,7 @@ onBeforeUnmount(() => audio.value?.stop())
       <button type="button" class="favorite-preview" disabled>
         <AppIcon name="heart" :size="19" />收藏（预览）
       </button>
+      <slot name="study-note" />
     </header>
     <figure v-if="content.image_id">
       <button type="button" class="picture" aria-label="查看场景大图" @click="imageExpanded = true">

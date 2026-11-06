@@ -189,3 +189,76 @@ it('recovers a committed new card with its original key before saving subsequent
   expect(router.currentRoute.value.path).toBe('/cards/card-1')
   page.unmount()
 })
+
+it('saves a pending PDF separately from content and blocks preview until explicitly cancelled', async () => {
+  const content = {
+    name: '笔记草稿',
+    title_en: 'Notes',
+    image_id: null,
+    audio_id: null,
+    dialogue: [],
+    vocabulary: [],
+    chunks: []
+  }
+  const card = {
+    id: 'note-card',
+    draft_revision: 1,
+    content,
+    study_note: { action: 'keep', can_publish: true }
+  }
+  const writes: { path: string; body: unknown }[] = []
+  network.mockImplementation(async (request: Request) => {
+    if (request.url.endsWith('/media/configuration'))
+      return Response.json({ study_note_limit_bytes: 20971520 })
+    if (request.method === 'PUT') {
+      const body = await request.json()
+      writes.push({ path: request.url, body })
+      return Response.json({
+        ...card,
+        draft_revision: 2,
+        study_note: {
+          action: 'set',
+          can_publish: false,
+          pending_attachment: { id: 'pending', state: 'processing' }
+        }
+      })
+    }
+    return Response.json(card)
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/cards/:id', component: SceneEditPage }]
+  })
+  await router.push('/cards/note-card')
+  const page = mount(SceneEditPage, {
+    global: {
+      plugins: [router],
+      stubs: {
+        SceneContentForm: { template: '<div><slot name="study-note" /></div>' },
+        SceneDocxImport: true,
+        SceneStudyNote: {
+          template:
+            "<button data-note @click=\"$emit('update:modelValue', {action: 'set', media_id: 'pending'}); $emit('blocked', true)\">处理笔记</button>"
+        },
+        ElDialog: true
+      }
+    }
+  })
+  await flushPromises()
+  await page.get('[data-note]').trigger('click')
+  await page
+    .findAll('button')
+    .find((button) => button.text() === '保存草稿')!
+    .trigger('click')
+  await flushPromises()
+  expect(writes[0]?.body).toMatchObject({
+    revision: 1,
+    study_note: { action: 'set', media_id: 'pending' },
+    content
+  })
+  await page.get('button.primary').trigger('click')
+  await flushPromises()
+  expect(page.text()).toContain('学习笔记尚未就绪')
+  expect(writes).toHaveLength(1)
+  page.unmount()
+})

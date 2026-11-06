@@ -19,6 +19,7 @@ const entry = (id: string): ImportEntry => {
       content,
       revision: 1,
       selected: true,
+      study_note: { action: 'keep' as const, can_publish: true },
       readable: true,
       state: 'ready',
       thumbnail_id: null,
@@ -87,6 +88,7 @@ it('allows duplicate removal independently of its disabled save selection', asyn
       id: 'one',
       revision: 1,
       state: 'duplicate',
+      study_note: { action: 'keep' as const, can_publish: true },
       readable: true,
       selected: true,
       content: {

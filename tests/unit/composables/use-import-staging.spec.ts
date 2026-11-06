@@ -33,6 +33,7 @@ const batch = {
         chunks: []
       },
       selected: true,
+      study_note: { action: 'keep' as const, can_publish: true },
       readable: true,
       state: 'incomplete',
       thumbnail_id: null,
@@ -216,4 +217,40 @@ it('keeps discard blocked until a previously unknown staging receipt is resolved
   expect(await staging.settle(entry)).toBe(true)
   expect(request.mock.calls.at(-1)![0]).toBe(`/api/admin/v1/operations/${operationKey}`)
   expect(entry.edit.content.name).toBe('Unwanted local changes')
+})
+
+it('preserves a PDF decision through staging and does not remove notes for legacy missing-PDF snapshots', async () => {
+  const staging = useImportStaging(() => 'batch')
+  staging.merge(batch)
+  const entry = staging.entries.one!
+  entry.edit.study_note = { action: 'set', media_id: 'pdf' }
+  request.mockResolvedValueOnce({
+    ...entry.item,
+    revision: 2,
+    study_note: {
+      action: 'set',
+      can_publish: false,
+      pending_attachment: { id: 'pdf', state: 'processing' }
+    }
+  })
+  expect(await staging.save(entry)).toBe(true)
+  expect(request).toHaveBeenLastCalledWith(
+    '/api/admin/v1/imports/batch/items/one',
+    expect.objectContaining({
+      body: expect.objectContaining({ study_note: { action: 'set', media_id: 'pdf' } })
+    })
+  )
+  expect(entry.edit.study_note).toBeUndefined()
+  expect(entry.item.study_note.pending_attachment?.id).toBe('pdf')
+  expect(staging.isDirty(entry)).toBe(false)
+})
+it('omits the displayed keep decision when a legacy ZIP changes its target', async () => {
+  const staging = useImportStaging(() => 'batch')
+  staging.merge(batch)
+  const entry = staging.entries.one!
+  entry.edit.selected = false
+  request.mockResolvedValueOnce({ ...entry.item, revision: 2 })
+  await staging.save(entry)
+  const body = request.mock.calls.at(-1)![1].body
+  expect(body).not.toHaveProperty('study_note')
 })

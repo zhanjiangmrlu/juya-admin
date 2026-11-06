@@ -239,3 +239,34 @@ it('retains processing on a query failure and clears the query error when the du
     page.unmount()
   }
 })
+it('offers the candidate PDF in the expanded batch preview', async () => {
+  const content = { name: 'PDF batch', title_en: 'Notes', dialogue: [], vocabulary: [], chunks: [] }
+  request.mockImplementation(async (path: string) =>
+    path.endsWith('/preview')
+      ? {
+          preview_id: 'pdf-preview',
+          revision: 1,
+          content,
+          study_note: {
+            action: 'set',
+            can_publish: true,
+            attachment: { id: 'candidate-pdf', state: 'ready' }
+          }
+        }
+      : {
+          id: 'pdf-card',
+          draft_revision: 1,
+          content,
+          status: 'draft',
+          has_unpublished_changes: true,
+          issues: []
+        }
+  )
+  const page = mount(SceneBatchPublication, {
+    props: { cardIds: ['pdf-card'] },
+    global: { stubs: { ElDialog: { template: '<div><slot /><slot name="footer" /></div>' } } }
+  })
+  await flushPromises()
+  expect(page.text()).toContain('查看学习笔记')
+  page.unmount()
+})
