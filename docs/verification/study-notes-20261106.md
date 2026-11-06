@@ -28,7 +28,7 @@ fixture目录需要私有credentials.json（username/password/cardId/versionId/o
 
 真实HTTP/worker/浏览器链已核对：保存新PDF草稿时发布附件不变、候选Blob可打开、发布替换成功、损坏替换保留旧件、发布移除成功，正文version_id始终不变；ZIP三包多候选、坏文件取消和旧包三卡草稿保存成功。另以统一本地验收账号只读查看5173的既有卡，未修改业务数据。
 
-TDD证据、Figma节点、私有运行截图位置和各轮结果见同级API仓库`.superpowers/sdd/2026-11-06-study-notes/task-2-report.md`。首次缺少专用Chromium时改用本机Chrome；私有fixture的ffmpeg路径及Origin白名单已补齐。未运行完整历史e2e、其他浏览器、极限20MB与真实加密PDF的UI逐项验收；后端负责真实格式和加密可读性校验。
+可重放的测试位于`tests/e2e/study-notes.spec.ts`、`tests/e2e/study-notes-live.spec.ts`及对应单测；三仓逐条验收与兼容决定见同级API仓库`docs/verification/study-notes-20261106.md`。首次缺少专用Chromium时改用本机Chrome；私有fixture的ffmpeg路径及Origin白名单已补齐。未运行完整历史e2e、其他浏览器、极限20MB与真实加密PDF的UI逐项验收；后端负责真实格式和加密可读性校验。
 
 本次仅本地实现与验证，未推送、部署、上传OSS或微信，未迁移既有业务数据库。
 
