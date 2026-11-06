@@ -283,7 +283,7 @@ onBeforeUnmount(() => {
               <p>{{ user.authorization?.expires_on || '—' }}</p></template
             ></ElTableColumn
           >
-          <ElTableColumn label="操作" :min-width="78"
+          <ElTableColumn label="操作" :width="78" fixed="right"
             ><template #default="{ row: user }"
               ><RouterLink :to="{ path: `/users/${user.id}`, query: { back: route.fullPath } }"
                 >查看详情</RouterLink

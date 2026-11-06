@@ -60,3 +60,29 @@ test('authorization date stays a date-only string and confirmation is required b
   await expect(dialog).toHaveCount(0)
   expect(saves).toBe(0)
 })
+
+test('user actions stay on the right while the table scrolls horizontally', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 800 })
+  await page.route('**/api/admin/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname
+    await route.fulfill({
+      json: path.endsWith('/auth/session')
+        ? { id: 'synthetic-admin', username: 'admin', csrf_token: 'synthetic' }
+        : path.endsWith('/users/visual-user')
+          ? user
+          : { items: [user], total: 1, page: 1, limit: 20 }
+    })
+  })
+  await page.goto('/users')
+  const action = page.getByRole('link', { name: '查看详情', exact: true })
+  await expect(action).toBeVisible()
+  const table = page.locator('.users-table')
+  const before = await action.boundingBox()
+  const bounds = await table.boundingBox()
+  expect(before!.x + before!.width).toBeLessThanOrEqual(bounds!.x + bounds!.width)
+  await table.locator('.el-scrollbar__wrap').evaluate((body) => {
+    body.scrollLeft = body.scrollWidth
+  })
+  await expect.poll(async () => (await action.boundingBox())!.x).toBeCloseTo(before!.x, 0)
+  await expect(action).toHaveAttribute('href', '/users/visual-user?back=/users')
+})
