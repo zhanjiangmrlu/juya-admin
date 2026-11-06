@@ -1,3 +1,9 @@
+# 学习笔记PDF测试发布（2026-11-06）
+
+按用户授权，test已推送，固定97937db已部署[测试后台](https://test-admin.juyayingyu.com/cards)，发布包与安装目录／公网摘要一致。双API及配套Worker为f219a39，测试库备份后0026／contract3，原数据核对保留。310单测、check／build及相关6条Chrome流程通过，公网管理员只读验收通过并退出会话。微信开发版1.5.0-test.20261106.184331已上传，体验版用户自行切换；未部署生产。完整记录见同级API仓库`docs/verification/study-notes-test-release-20261106.md`，下方本地交付为历史阶段。
+
+---
+
 # 学习笔记PDF后台本地交付（2026-11-06）
 
 整合07后台已在test分支接入学习笔记PDF独立附件与ZIP候选核对，上传校验、草稿、发布、取消迟到响应及管理员Blob预览完整闭环。旧 ZIP 确认目标按目标草稿展示附件与待处理错误；失败文件、包内候选及取消回退分别显示对应名称与保存动作。62文件310单测、check、build及相关6条Playwright通过；含隔离API/worker真实发布替换/移除与三ZIP草稿保存。仅本地，未推送或部署；原业务数据/配置保留，详见[本地交付记录](docs/verification/study-notes-20261106.md)。
