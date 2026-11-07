@@ -4630,7 +4630,7 @@ export interface components {
        * 本人文章状态
        * @description 当前用户对文章的收藏、累计完成和今日完成标记。
        */
-      state: components['schemas']['ArticleState']
+      state: components['schemas']['ArticleState'] | null
       /**
        * 首次完成时间
        * @description 当前用户首次完成该内容的时间；从未完成时可为空。
@@ -5913,7 +5913,7 @@ export interface components {
        * 本人文章状态
        * @description 当前用户对文章的收藏、累计完成和今日完成标记。
        */
-      state: components['schemas']['ArticleState']
+      state: components['schemas']['ArticleState'] | null
       /**
        * 首次完成时间
        * @description 当前用户首次完成该内容的时间；从未完成时可为空。
