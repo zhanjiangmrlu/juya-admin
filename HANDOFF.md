@@ -1,3 +1,9 @@
+# 整合08游客契约本地接续（2026-11-07）
+
+当前需求为整合08／修订17、T01—T379。后台仅同步API生成契约中的可空听读摘要state，功能提交178bcea，无业务页面改动。310单测、check／typecheck／build通过，详见[验收记录](docs/verification/integration08-guest-contract-20261107.md)。本轮未推送或部署；整体及iPhone验收尚在进行，以API仓库docs/verification/integration08-guest-20261107.md为准。原配置／账号／数据保留；下方为历史发布记录。
+
+---
+
 # 学习笔记PDF测试发布（2026-11-06）
 
 按用户授权，test已推送，固定97937db已部署[测试后台](https://test-admin.juyayingyu.com/cards)，发布包与安装目录／公网摘要一致。双API及配套Worker为f219a39，测试库备份后0026／contract3，原数据核对保留。310单测、check／build及相关6条Chrome流程通过，公网管理员只读验收通过并退出会话。微信开发版1.5.0-test.20261106.184331已上传，体验版用户自行切换；未部署生产。完整记录见同级API仓库`docs/verification/study-notes-test-release-20261106.md`，下方本地交付为历史阶段。
