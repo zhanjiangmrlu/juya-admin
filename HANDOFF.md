@@ -1,3 +1,9 @@
+# 整合08测试发布（2026-11-08）
+
+用户追加授权后，本仓源码已推送远程test。测试API5249c04与后台7d32973部署完成，schema0026／contract3无迁移。小程序6d49d98已上传**1.5.0-test.20261108.071926**，体验版由用户手动切换，未提审／正式发布；生产与原本地环境保留。完整记录以配套API的docs/verification/integration08-test-release-20261108.md及JSON回执为准。下方本地阶段记录保留追溯。
+
+---
+
 # 整合08游客契约本地接续（2026-11-07）
 
 当前需求为整合08／修订17、T01—T379。后台仅同步API生成契约中的可空听读摘要state，功能提交178bcea，无业务页面改动。310单测、check／typecheck／build通过，详见[验收记录](docs/verification/integration08-guest-contract-20261107.md)。本轮未推送或部署；本轮核心iPhone流程已通过，其他原生场景待验，以API仓库docs/verification/integration08-guest-20261107.md为准。原配置／账号／数据保留；下方为历史发布记录。
