@@ -24,6 +24,7 @@ const item = (state = 'incomplete'): ImportItem => ({
   revision: 1,
   state,
   selected: true,
+  study_note: { action: 'keep' as const, can_publish: true },
   readable: true,
   content: {
     name: '已暂存中文标题',
@@ -91,6 +92,7 @@ const open = async (candidates: RecoveryBatch[] = [], url = '/imports') => {
       return {
         image_limit_bytes: 1000,
         audio_limit_bytes: 1000,
+        study_note_limit_bytes: 20971520,
         archive_limit_bytes: 1000,
         import_card_limit: 100
       }

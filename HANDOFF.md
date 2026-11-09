@@ -1,3 +1,33 @@
+# 2026-11-09 test合并release
+
+用户本次仅授权将远程test合并到release并推送；本次没有部署、迁移数据库、上传微信或切换体验版。已有release独有提交保留，下方生产／测试发布记录均按原日期追溯，不能将本次合并视为上线。
+
+---
+
+# 整合08测试发布（2026-11-08）
+
+用户追加授权后，本仓源码已推送远程test。测试API5249c04与后台7d32973部署完成，schema0026／contract3无迁移。小程序6d49d98已上传**1.5.0-test.20261108.071926**，体验版由用户手动切换，未提审／正式发布；生产与原本地环境保留。完整记录以配套API的docs/verification/integration08-test-release-20261108.md及JSON回执为准。下方本地阶段记录保留追溯。
+
+---
+
+# 整合08游客契约本地接续（2026-11-07）
+
+当前需求为整合08／修订17、T01—T379。后台仅同步API生成契约中的可空听读摘要state，功能提交178bcea，无业务页面改动。310单测、check／typecheck／build通过，详见[验收记录](docs/verification/integration08-guest-contract-20261107.md)。本轮未推送或部署；本轮核心iPhone流程已通过，其他原生场景待验，以API仓库docs/verification/integration08-guest-20261107.md为准。原配置／账号／数据保留；下方为历史发布记录。
+
+---
+
+# 学习笔记PDF测试发布（2026-11-06）
+
+按用户授权，test已推送，固定97937db已部署[测试后台](https://test-admin.juyayingyu.com/cards)，发布包与安装目录／公网摘要一致。双API及配套Worker为f219a39，测试库备份后0026／contract3，原数据核对保留。310单测、check／build及相关6条Chrome流程通过，公网管理员只读验收通过并退出会话。微信开发版1.5.0-test.20261106.184331已上传，体验版用户自行切换；未部署生产。完整记录见同级API仓库`docs/verification/study-notes-test-release-20261106.md`，下方本地交付为历史阶段。
+
+---
+
+# 学习笔记PDF后台本地交付（2026-11-06）
+
+整合07后台已在test分支接入学习笔记PDF独立附件与ZIP候选核对，上传校验、草稿、发布、取消迟到响应及管理员Blob预览完整闭环。旧 ZIP 确认目标按目标草稿展示附件与待处理错误；失败文件、包内候选及取消回退分别显示对应名称与保存动作。62文件310单测、check、build及相关6条Playwright通过；含隔离API/worker真实发布替换/移除与三ZIP草稿保存。仅本地，未推送或部署；原业务数据/配置保留，详见[本地交付记录](docs/verification/study-notes-20261106.md)。
+
+---
+
 # 最新管理后台与接口生产同步（2026-11-05）
 
 用户授权将两个仓库 test 合并 release 并上线后，后台 c81aa8e 与双角色 API 固定运行版本 b2744ec 已完成生产发布。后台 286 测试、API 官方真实 MySQL/Redis CI 644 通过 / 3 跳过；7 服务 healthy，后台安装及公网资源哈希匹配，生产文档入口保持关闭。数据库仍 0025 / contract 3，无迁移或新增 ASR 调用；测试、基础设施及 CLI 保持。小程序本轮未再次上传，体验版由用户切换。见[发布与验收](docs/verification/admin-api-production-release-20261105.md)。下方为历史记录。

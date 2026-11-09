@@ -149,6 +149,7 @@ const applyPaste = () => {
         />
       </div>
     </section>
+    <slot name="study-note" />
     <section id="field-dialogue" class="editor-section">
       <div class="between">
         <h2><span class="section-number">2</span>场景对话</h2>

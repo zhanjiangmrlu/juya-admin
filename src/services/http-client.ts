@@ -215,7 +215,31 @@ export const createHttpClient = (
       }
       xhr.send(form)
     })
-  return { request, resume, login, operation, upload }
+  /** 读取受管理员会话保护的二进制资源
+   * @param path 管理员媒体接口路径
+   * @returns 当前认证可访问的PDF二进制数据
+   */
+  const blob = async (path: string): Promise<Blob> => {
+    const response = await transport(
+      new Request(new URL(path, baseUrl || location.origin), { credentials: 'include' })
+    )
+    if (response.status === 401) {
+      csrf = ''
+      onExpired()
+    }
+    if (!response.ok) {
+      const result = await response.json().catch(() => null)
+      throw new ApiError(
+        result?.error?.code || 'media_unavailable',
+        result?.error?.message || 'PDF暂不可用，请重试',
+        response.status
+      )
+    }
+    if (!response.headers.get('Content-Type')?.toLowerCase().includes('application/pdf'))
+      throw new ApiError('media_invalid', '返回文件不是可预览的PDF')
+    return response.blob()
+  }
+  return { request, resume, login, operation, upload, blob }
 }
 export const api = createHttpClient(import.meta.env.VITE_API_BASE_URL || '', fetch, () =>
   window.dispatchEvent(new Event('admin-session-expired'))

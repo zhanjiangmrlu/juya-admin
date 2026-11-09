@@ -15,6 +15,7 @@ import {
 import SceneContentForm from '@/features/scenes/scene-content-form.vue'
 import SceneDocxImport from '@/features/scenes/scene-docx-import.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
+import SceneStudyNote from '@/features/scenes/scene-study-note.vue'
 import { queryURL } from '@/services/display'
 import { api, ApiError } from '@/services/http-client'
 import { registerLogoutGuard } from '@/services/logout-guard'
@@ -36,7 +37,12 @@ const limits = ref<components['schemas']['UploadConfiguration'] | null>(null),
 const preview = ref<CardPreview | null>(null),
   publishError = ref(''),
   leaveOpen = ref(false)
-const dirty = computed(() => JSON.stringify(content.value) !== baseline.value)
+const studyNote = ref<components['schemas']['StudyNoteChange'] | null>(null),
+  noteTransfer = ref(false),
+  noteBlocked = ref(false)
+const dirty = computed(
+  () => JSON.stringify(content.value) !== baseline.value || studyNote.value !== null
+)
 const draftSpeech = useWordPronunciation(async (wordId, active) => {
   if (!(await save()) || !saved.value || !active()) throw new Error('请先保存资料后试听')
   const path = `/api/admin/v1/cards/${encodeURIComponent(saved.value.id)}/words/${encodeURIComponent(wordId)}/pronunciation`
@@ -78,6 +84,7 @@ const back = computed(() => String(route.query.back || '/cards'))
  */
 const accept = (card: CardView) => {
   saved.value = card
+  studyNote.value = null
   content.value = {
     ...card.content,
     dialogue: card.content.dialogue || [],
@@ -113,7 +120,7 @@ const load = async () => {
  * @returns 是否保存成功
  */
 const save = async () => {
-  if (busy.value || uploading.value || readingDocx.value) return false
+  if (busy.value || uploading.value || readingDocx.value || noteTransfer.value) return false
   if (saved.value && !dirty.value && !saving) return true
   busy.value = true
   error.value = ''
@@ -122,17 +129,26 @@ const save = async () => {
     let body = saved.value
       ? { revision: saved.value.draft_revision, content: prepareContent(content.value) }
       : { content: prepareContent(content.value) }
+    body = {
+      ...body,
+      ...(studyNote.value ? { study_note: JSON.parse(JSON.stringify(studyNote.value)) } : {})
+    }
     let fingerprint = JSON.stringify(body)
     if (saving && saving.fingerprint !== fingerprint) {
       // 先收尾已提交但回执未知的原操作，再用返回修订保存当前输入
       const wanted = prepareContent(content.value)
+      const wantedNote = studyNote.value
       const recovered = await saving.run()
       saved.value = recovered
       baseline.value = JSON.stringify(recovered.content)
       preview.value = null
       saving = null
       content.value = wanted
-      body = { revision: recovered.draft_revision, content: wanted }
+      body = {
+        revision: recovered.draft_revision,
+        content: wanted,
+        ...(wantedNote ? { study_note: JSON.parse(JSON.stringify(wantedNote)) } : {})
+      }
       fingerprint = JSON.stringify(body)
     }
     if (!saving)
@@ -164,6 +180,10 @@ const save = async () => {
 }
 /** 预览必须基于当前已保存版本，失败定位待补充资料 */
 const openPreview = async () => {
+  if (noteBlocked.value) {
+    error.value = '学习笔记尚未就绪，请完成校验或明确取消后发布'
+    return
+  }
   if (!(await save()) || !saved.value) return
   busy.value = true
   error.value = ''
@@ -209,7 +229,7 @@ const publish = async () => {
  * @param event 浏览器离开事件
  */
 const beforeUnload = (event: BeforeUnloadEvent) => {
-  if (dirty.value || uploading.value || readingDocx.value) {
+  if (dirty.value || uploading.value || readingDocx.value || noteTransfer.value) {
     event.preventDefault()
     event.returnValue = ''
   }
@@ -229,7 +249,7 @@ let pendingLeave: Promise<boolean> | null = null
  * @returns 是否明确允许离开
  */
 const confirmLeaving = (): Promise<boolean> => {
-  if (busy.value || uploading.value || readingDocx.value) {
+  if (busy.value || uploading.value || readingDocx.value || noteTransfer.value) {
     ElMessage.info('请等待当前操作完成')
     return Promise.resolve(false)
   }
@@ -284,6 +304,14 @@ onBeforeUnmount(() => {
         :disabled="busy"
         @pronounce="draftSpeech.play"
         @uploading="uploading = $event"
+        ><template #study-note>
+          <SceneStudyNote
+            v-model="studyNote"
+            :draft="saved?.study_note"
+            :limit="limits?.study_note_limit_bytes || 0"
+            :disabled="busy"
+            @transfer="noteTransfer = $event"
+            @blocked="noteBlocked = $event" /></template
         ><template #dialogue-tools>
           <SceneDocxImport
             compact
@@ -293,16 +321,21 @@ onBeforeUnmount(() => {
             @busy="readingDocx = $event"
           /> </template
       ></SceneContentForm>
+
       <footer class="editor-actions">
         <span class="muted small">{{
           uploading ? '素材正在处理，请稍候' : dirty ? '有未保存修改' : saved ? '草稿已保存' : ''
         }}</span
-        ><button type="button" :disabled="busy || uploading || readingDocx" @click="save">
+        ><button
+          type="button"
+          :disabled="busy || uploading || readingDocx || noteTransfer"
+          @click="save"
+        >
           {{ busy ? '正在处理…' : '保存草稿' }}</button
         ><button
           type="button"
           class="primary"
-          :disabled="busy || uploading || readingDocx"
+          :disabled="busy || uploading || readingDocx || noteTransfer"
           @click="openPreview"
         >
           预览并发布
@@ -311,6 +344,7 @@ onBeforeUnmount(() => {
     ><ScenePreview
       v-if="preview"
       :content="preview.content"
+      :study-note="preview.study_note"
       :pronunciation="
         saved ? { cardId: saved.id, reference: { revision: preview.revision } } : undefined
       "

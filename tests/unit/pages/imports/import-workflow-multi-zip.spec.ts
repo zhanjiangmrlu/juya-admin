@@ -31,6 +31,7 @@ const item = (id: string, state: string): ImportItem => ({
     chunks: []
   },
   selected: true,
+  study_note: { action: 'keep' as const, can_publish: true },
   readable: true,
   thumbnail_id: null,
   issues: [],
@@ -70,6 +71,7 @@ it('retries only the failed IDs and leaves newly added and successful cards outs
     if (path === '/api/admin/v1/imports?resumable_only=true') return [batch]
     if (path.endsWith('/configuration'))
       return {
+        study_note_limit_bytes: 20971520,
         archive_limit_bytes: 10000,
         image_limit_bytes: 10000,
         audio_limit_bytes: 10000,
@@ -131,6 +133,7 @@ it('removes a duplicate and ignores a stale poll without losing another card cor
   request.mockImplementation(async (path: string) => {
     if (path.endsWith('/configuration'))
       return {
+        study_note_limit_bytes: 20971520,
         archive_limit_bytes: 10000,
         image_limit_bytes: 10000,
         audio_limit_bytes: 10000,
@@ -209,6 +212,7 @@ it.each(['dirty-target', 'conflict'])(
       ) => {
         if (path.endsWith('/configuration'))
           return {
+            study_note_limit_bytes: 20971520,
             archive_limit_bytes: 10000,
             image_limit_bytes: 10000,
             audio_limit_bytes: 10000,
