@@ -89,7 +89,18 @@ it('shows the audited administrator and before/after authorization values in the
             id: 'learner',
             user_code: 'JY0001',
             nickname: '学习者',
-            statistics: {},
+            phone: '13800000000',
+            wechat_contact: 'legacy-contact',
+            phone_source: 'user_entered_unverified',
+            wechat_source: 'user_entered_unverified',
+            statistics: {
+              completed_cards: 12,
+              completed_articles: 4,
+              current_streak: 3,
+              total_checkin_days: 7,
+              favorite_count: 5,
+              listening_favorite_count: 3
+            },
             authorization: {
               status: 'active',
               starts_on: '2026-10-27',
@@ -102,13 +113,25 @@ it('shows the audited administrator and before/after authorization values in the
   )
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/users/:id', component: UserDetailPage }]
+    routes: [
+      { path: '/users/:id', component: UserDetailPage },
+      { path: '/users', component: { template: '<div />' } }
+    ]
   })
   await router.push('/users/learner')
   const page = mount(UserDetailPage, {
     global: { plugins: [router], stubs: { UserLearningRecords: true, UserAuthorization: true } }
   })
   await flushPromises()
+  const account = page.get('.account-panel').text()
+  expect(account).toContain('JY0001')
+  expect(account).toContain('微信身份登录')
+  expect(account).not.toContain('手机号')
+  expect(account).not.toContain('微信号')
+  expect(account).not.toContain('联系资料')
+  expect(account).not.toContain('13800000000')
+  expect(account).not.toContain('legacy-contact')
+  expect(page.get('.learning-panel').text()).toContain('场景 5 张／听读 3 篇')
   expect(page.text()).toContain('最近授权操作')
   const audit = page.get('.authorization-history tbody').text()
   expect(audit).toContain('operator-42')

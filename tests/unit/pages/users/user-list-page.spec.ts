@@ -12,6 +12,10 @@ const user = {
   id: 'user-one',
   user_code: 'Juya001',
   nickname: 'Readonly',
+  phone: '13800000000',
+  wechat_contact: 'legacy-contact',
+  phone_source: 'user_entered_unverified',
+  wechat_source: 'user_entered_unverified',
   registered_at: '2026-10-22T01:00:00Z',
   statistics: {
     completed_cards: 0,
@@ -173,10 +177,58 @@ it.each([0, 5, 20])(
     )
     const { page } = await open()
     await flushPromises()
-    expect(page.get('.user-pagination').text()).toContain(`共 ${total} 位用户`)
+    expect(page.get('.user-pagination').text()).toContain(
+      `${total ? '共' : '匹配'} ${total} 位用户`
+    )
     expect(page.find('.user-pagination .el-pagination').exists()).toBe(true)
     expect(page.get('.user-pagination .btn-prev').attributes('disabled')).toBeDefined()
     expect(page.get('.user-pagination .btn-next').attributes('disabled')).toBeDefined()
     page.unmount()
   }
 )
+
+it('does not expose legacy contact values while stable identity and learning data remain available', async () => {
+  const { page } = await open()
+  expect(page.get('input').attributes('placeholder')).toBe('搜索用户编号或昵称')
+  expect(page.get('thead').text()).not.toContain('联系方式')
+  expect(page.text()).not.toContain('13800000000')
+  expect(page.text()).not.toContain('legacy-contact')
+  expect(page.text()).not.toContain('联系方式与来源')
+  expect(page.get('tbody').text()).toContain('Juya001')
+  expect(page.get('thead').text()).toContain('已学场景')
+  expect(page.get('thead').text()).toContain('学习授权')
+})
+
+it('keeps the empty table and active filters available and clears them back to the first page', async () => {
+  request.mockImplementation(async (path: string) => {
+    if (!path.includes('/users?')) return user
+    const query = new URL(path, 'https://example.test').searchParams
+    return query.get('search') ? { ...rows, items: [], total: 0, page: 1 } : { ...rows, page: 1 }
+  })
+  const { page, router } = await open()
+  expect(page.get('input').element.value).toBe('Readonly')
+  expect(page.get('.users-table thead').text()).toContain('用户')
+  expect(page.get('.users-table thead').text()).toContain('学习授权')
+  expect(page.get('.users-table').text()).toContain('没有符合条件的用户')
+  expect(page.get('.users-table').text()).toContain('试试其他用户编号或昵称，或清空筛选后查看。')
+  expect(page.get('.user-pagination').text()).toContain('匹配 0 位用户')
+  expect(router.currentRoute.value.query.registered).toBe('today')
+  expect(router.currentRoute.value.query.checkin).toBe('unchecked')
+  expect(router.currentRoute.value.query.page).toBe('1')
+  await page
+    .findAll('button')
+    .find((button) => button.text() === '清空筛选')!
+    .trigger('click')
+  await flushPromises()
+  expect(router.currentRoute.value.query).toMatchObject({
+    search: '',
+    registered: 'all',
+    checkin: 'all',
+    authorization_status: 'all',
+    page: '1',
+    from: 'statistics'
+  })
+  expect(page.get('input').element.value).toBe('')
+  expect(page.get('tbody').text()).toContain('Juya001')
+  expect(page.text()).not.toContain('没有符合条件的用户')
+})

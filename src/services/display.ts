@@ -1,10 +1,3 @@
-/** 展示接口已确认的联系来源，未知历史值不提升为已验证
- * @param source 服务端返回的原始来源标记
- * @returns 管理员可读的来源说明
- */
-export const contactSourceText = (source?: string | null) =>
-  source === 'user_entered_unverified' ? '用户填写／未验证' : '历史来源未核实'
-
 /** 展示北京时间，value 为服务端 ISO 时间
  * @param value 已确认的时间或空值
  * @returns 友好的北京时间文本

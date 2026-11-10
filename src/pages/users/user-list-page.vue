@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   ElButton,
+  ElEmpty,
   ElForm,
   ElInput,
   ElOption,
@@ -22,10 +23,11 @@ import {
 } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
+import emptySearch from '@/assets/icons/empty-search.svg'
 import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
 import { useResource } from '@/composables/use-resource'
-import { contactSourceText, dateText, mediaURL, queryURL } from '@/services/display'
+import { dateText, mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -132,7 +134,7 @@ onBeforeUnmount(() => {
           >‹ 返回数据统计</RouterLink
         >
         <h1>用户列表</h1>
-        <p>联系方式与来源只读；场景、听读分别统计，共用学习授权及打卡。</p>
+        <p>场景、听读分别统计，共用学习授权及打卡。</p>
       </div>
       <ElButton :disabled="busy" @click="refresh">
         <AppIcon name="refresh" :size="18" />刷新
@@ -144,7 +146,7 @@ onBeforeUnmount(() => {
           v-model="search"
           class="user-search"
           aria-label="搜索用户"
-          placeholder="搜索编号、昵称、手机号或微信号"
+          placeholder="搜索用户编号或昵称"
         >
           <template #suffix
             ><ElButton native-type="submit" link aria-label="查询用户"
@@ -182,25 +184,29 @@ onBeforeUnmount(() => {
           <ElOption value="all" label="全部注册日期" /><ElOption value="today" label="今日注册" />
         </ElSelect>
       </ElForm>
-      <AppState
-        element-plus
-        :busy="busy"
-        :error="error"
-        :empty="data?.total === 0"
-        empty-title="暂无符合条件的用户"
-        empty-text="可调整筛选条件或清空搜索重试"
-        @retry="refresh"
-        ><ElButton
-          @click="
-            filter({ search: '', registered: 'all', checkin: 'all', authorization_status: 'all' })
-          "
-        >
-          清空条件
-        </ElButton></AppState
-      >
-      <div v-if="data && data.total && !busy && !error" class="table-wrap">
+      <AppState element-plus :busy="busy" :error="error" @retry="refresh" />
+      <div v-if="data && !busy && !error" class="table-wrap">
         <ElTable :data="data.items" class="users-table" row-key="id">
-          <ElTableColumn label="用户" :min-width="134">
+          <template #empty>
+            <ElEmpty class="user-empty" :image="emptySearch" :image-size="36">
+              <template #description>
+                <h3>没有符合条件的用户</h3>
+                <p>试试其他用户编号或昵称，或清空筛选后查看。</p>
+              </template>
+              <ElButton
+                @click="
+                  filter({
+                    search: '',
+                    registered: 'all',
+                    checkin: 'all',
+                    authorization_status: 'all'
+                  })
+                "
+                >清空筛选</ElButton
+              >
+            </ElEmpty>
+          </template>
+          <ElTableColumn label="用户" :min-width="170">
             <template #default="{ row: user }"
               ><div class="row">
                 <img v-if="user.avatar_id" :src="mediaURL(user.avatar_id)" class="avatar" alt="" />
@@ -210,35 +216,17 @@ onBeforeUnmount(() => {
               <p class="identifier">{{ user.user_code }}</p></template
             >
           </ElTableColumn>
-          <ElTableColumn label="联系方式" :min-width="235">
-            <template #default="{ row: user }"
-              ><template v-if="user.phone || user.wechat_contact"
-                ><p v-if="user.phone">
-                  {{ user.phone }}
-                  <ElTag type="warning" size="small">{{
-                    contactSourceText(user.phone_source)
-                  }}</ElTag>
-                </p>
-                <p v-if="user.wechat_contact">
-                  {{ user.wechat_contact }}
-                  <ElTag type="warning" size="small">{{
-                    contactSourceText(user.wechat_source)
-                  }}</ElTag>
-                </p></template
-              ><span v-else class="muted">未填写</span></template
-            >
-          </ElTableColumn>
-          <ElTableColumn label="已学场景" :min-width="90"
+          <ElTableColumn label="已学场景" :min-width="100"
             ><template #default="{ row: user }"
               >{{ user.statistics.completed_cards }} 张</template
             ></ElTableColumn
           >
-          <ElTableColumn label="已学听读" :min-width="90"
+          <ElTableColumn label="已学听读" :min-width="100"
             ><template #default="{ row: user }"
               >{{ user.statistics.completed_articles ?? '暂未获取' }} 篇</template
             ></ElTableColumn
           >
-          <ElTableColumn label="连续打卡" :min-width="112"
+          <ElTableColumn label="连续打卡" :min-width="120"
             ><template #default="{ row: user }"
               >{{ user.statistics.current_streak }} 天
               <p>
@@ -250,18 +238,18 @@ onBeforeUnmount(() => {
               </p></template
             ></ElTableColumn
           >
-          <ElTableColumn label="累计打卡" :min-width="90"
+          <ElTableColumn label="累计打卡" :min-width="100"
             ><template #default="{ row: user }"
               >{{ user.statistics.total_checkin_days }} 天</template
             ></ElTableColumn
           >
-          <ElTableColumn label="注册／最近学习" :min-width="179" class-name="user-times"
+          <ElTableColumn label="注册／最近学习" :min-width="200" class-name="user-times"
             ><template #default="{ row: user }"
               ><p>注册 {{ dateText(user.registered_at) }}</p>
               <p>学习 {{ dateText(user.statistics.last_studied_at) }}</p></template
             ></ElTableColumn
           >
-          <ElTableColumn label="学习授权" :min-width="112" class-name="authorization-cell"
+          <ElTableColumn label="学习授权" :min-width="120" class-name="authorization-cell"
             ><template #default="{ row: user }"
               ><ElTag
                 :type="
@@ -283,7 +271,7 @@ onBeforeUnmount(() => {
               <p>{{ user.authorization?.expires_on || '—' }}</p></template
             ></ElTableColumn
           >
-          <ElTableColumn label="操作" :width="78" fixed="right"
+          <ElTableColumn label="操作" :width="90" fixed="right"
             ><template #default="{ row: user }"
               ><RouterLink :to="{ path: `/users/${user.id}`, query: { back: route.fullPath } }"
                 >查看详情</RouterLink
@@ -293,7 +281,9 @@ onBeforeUnmount(() => {
         </ElTable>
       </div>
       <div v-if="data && !error" class="user-pagination">
-        <span class="pagination-total">共 {{ data.total }} 位用户 · 注册时间倒序</span>
+        <span class="pagination-total"
+          >{{ data.total ? '共' : '匹配' }} {{ data.total }} 位用户 · 注册时间倒序</span
+        >
         <ElPagination
           :current-page="page"
           :page-size="20"
@@ -306,12 +296,29 @@ onBeforeUnmount(() => {
         />
       </div>
       <div class="user-list-note">
-        同一授权覆盖场景学习与主题听读。两类已学数量分别计数，连续／累计打卡按同一北京时间日期计算。<br />手机号、微信号及真实来源保留，只读展示；未授权或到期仍可学习当前免费内容。
+        同一授权覆盖场景学习与主题听读。两类已学数量分别计数，连续／累计打卡按同一北京时间日期计算。<br />未授权或到期仍可学习管理员指定的免费内容。
       </div>
     </div>
   </div>
 </template>
 <style scoped lang="scss">
+.user-list-page {
+  .page-heading {
+    align-items: center;
+    min-height: 89px;
+    margin-top: -6px;
+    margin-bottom: 18px;
+
+    > div {
+      align-self: flex-start;
+    }
+
+    p {
+      font-size: 13px;
+    }
+  }
+}
+
 .back-link {
   display: block;
   font-size: 13px;
@@ -333,7 +340,7 @@ onBeforeUnmount(() => {
     width: 320px;
 
     :deep([class~='el-input__wrapper']) {
-      min-height: 48px;
+      min-height: 40px;
     }
   }
 
@@ -365,7 +372,51 @@ onBeforeUnmount(() => {
     border-radius: 12px;
   }
 
+  .user-empty {
+    min-height: 330px;
+    padding: 40px 16px;
+    line-height: 1.8;
+
+    :deep([class~='el-empty__description']) {
+      margin-top: 14px;
+    }
+
+    h3 {
+      color: var(--ink);
+      font-size: 18px;
+      line-height: 35px;
+    }
+
+    p {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 35px;
+    }
+
+    :deep([class~='el-empty__bottom']) {
+      margin-top: 14px;
+    }
+
+    .el-button {
+      width: 114px;
+      height: 40px;
+      background: var(--bg);
+    }
+  }
+
   .users-table {
+    --el-table-header-bg-color: #f3f6ee;
+
+    :deep([class~='el-table__empty-block']) {
+      min-height: 375px;
+      align-items: flex-start;
+    }
+
+    :deep([class~='el-table__empty-text']) {
+      width: 100%;
+    }
+
     :deep([class~='el-table__cell']) {
       font-size: 12px;
       overflow-wrap: anywhere;
@@ -392,7 +443,8 @@ onBeforeUnmount(() => {
     }
 
     :deep(th[class~='el-table__cell']) {
-      font-size: 13px;
+      height: 47px;
+      font-size: 12px;
     }
 
     :deep(.authorization-cell p) {
