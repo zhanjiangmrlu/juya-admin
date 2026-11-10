@@ -2372,35 +2372,10 @@ export interface components {
        */
       avatar_id: string | null
       /**
-       * 联系电话
-       * @description 用户自愿提交的联系电话；未提供时为空。
-       */
-      phone: string | null
-      /**
-       * 微信联系方式
-       * @description 用户自愿提交的微信联系信息；未提供时为空。
-       */
-      wechat_contact: string | null
-      /**
-       * 电话来源
-       * @description user_entered_unverified 表示用户自行填写且未经验证；未记录时为空。
-       */
-      phone_source: string | null
-      /**
-       * 微信联系方式来源
-       * @description user_entered_unverified 表示用户自行填写且未经验证；未记录时为空。
-       */
-      wechat_source: string | null
-      /**
        * 个人资料版本
        * @description 昵称和头像的当前版本；修改个人资料时用于并发校验。
        */
       profile_version: number
-      /**
-       * 联系方式版本
-       * @description 用户联系方式的当前版本；修改联系方式时用于并发校验。
-       */
-      contact_version: number
       /**
        * 注册时间
        * @description 用户首次成功注册的时间。
