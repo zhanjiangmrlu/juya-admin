@@ -15,12 +15,17 @@ import {
 } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { computed, nextTick, onActivated, onMounted, ref, shallowRef, watch } from 'vue'
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 
 import listeningSearchIcon from '@/assets/icons/listening-search.svg'
 import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
+import {
+  freeSelectionQueryKey,
+  useCrossPageSelection
+} from '@/composables/use-cross-page-selection'
 import FreeAccessControl from '@/features/learning-access/free-access-control.vue'
+import FreeBatchControls from '@/features/learning-access/free-batch-controls.vue'
 import { statusLabels } from '@/features/listening/listening-model'
 import ListeningPreviewPanel from '@/features/listening/listening-preview-panel.vue'
 import { dateText, queryURL } from '@/services/display'
@@ -127,8 +132,79 @@ const page = computed(() => Math.max(1, Number(route.query.page) || 1)),
   status = computed(() => String(route.query.status || '')),
   allSelected = computed(() =>
     Boolean(data.value?.items.length && selected.value.length === data.value.items.length)
-  ),
-  partialSelected = computed(() => selected.value.length > 0 && !allSelected.value)
+  )
+
+const filterEpoch = ref(0)
+const batchProcessing = ref(false)
+const freeSelection = useCrossPageSelection(
+  computed(() => data.value?.items || []),
+  page
+)
+const freeActive = freeSelection.active,
+  freeIds = freeSelection.ids,
+  freePageCount = freeSelection.pageCount
+const visibleSelection = computed(() => (freeActive.value ? freeIds.value : selected.value))
+const pageAllSelected = computed(() =>
+  freeActive.value ? freeSelection.allSelected.value : allSelected.value
+)
+const pagePartialSelected = computed(() =>
+  freeActive.value
+    ? freeSelection.partialSelected.value
+    : selected.value.length > 0 && !allSelected.value
+)
+/** 进入免费模式前清空普通本页集合 */
+const enterFree = () => {
+  selected.value = []
+  freeSelection.enter()
+}
+/** 确认后退出免费模式并清空两套选择 */
+const exitFree = async () => {
+  if (await freeSelection.exit()) selected.value = []
+}
+/** 完成后仅保留明确失败ID
+ * @param ids 原任务明确失败的稳定内容标识
+ */
+const freeCompleted = (ids: string[]) => {
+  freeSelection.retainFailures(ids)
+}
+/** 选择本页独立免费或普通集合
+ * @param checked 是否选择当前页
+ */
+const selectVisiblePage = (checked: boolean) => {
+  if (freeActive.value) freeSelection.togglePage(checked)
+  else toggleAll()
+}
+/** 选择当前行对应模式的集合
+ * @param id 稳定内容标识
+ * @param checked 是否选中
+ */
+const selectVisible = (id: string, checked: boolean) => {
+  if (freeActive.value) freeSelection.toggle(id, checked)
+  else
+    selected.value = checked
+      ? [...new Set([...selected.value, id])]
+      : selected.value.filter((item) => item !== id)
+}
+/** 条件变更先确认；取消恢复受控搜索与当前路由、选择和位置
+ * @param to 导航目标及查询条件
+ * @param to.path 目标模块路径
+ * @param to.query 目标筛选及分页条件
+ * @returns 是否允许路由切换
+ */
+const guardFreeQuery = async (to: { path: string; query: Record<string, unknown> }) => {
+  if (
+    freeActive.value &&
+    freeSelectionQueryKey(to.path, to.query) !== freeSelectionQueryKey(route.path, route.query) &&
+    !(await freeSelection.discard())
+  ) {
+    search.value = String(route.query.q || '')
+    filterEpoch.value++
+    return false
+  }
+  return true
+}
+onBeforeRouteUpdate(guardFreeQuery)
+
 let generation = 0
 let previousQuery = route.fullPath,
   scrollTop = 0,
@@ -340,7 +416,13 @@ watch(
     void load()
   }
 )
-onBeforeRouteLeave(() => {
+onBeforeRouteLeave(async (to) => {
+  if (!(await guardFreeQuery(to))) return false
+  if (freeActive.value) {
+    freeActive.value = false
+    freeSelection.clear()
+    selected.value = []
+  }
   scrollTop = preview.value ? previewReturnScroll : window.scrollY
   preview.value = null
 })
@@ -389,7 +471,8 @@ onMounted(async () => {
               >当前免费听读 <b>{{ policy.article_ids.length }}</b> 篇</span
             >
           </p>
-          <small>在每条内容的操作区启用或关闭</small>
+          <ElButton v-if="!freeActive" @click="enterFree">批量设置免费</ElButton
+          ><small v-else>免费模式 · 逐条操作继续保留</small>
         </div>
         <form class="filters" @submit.prevent="filter({ q: search || undefined, page: 1 })">
           <div class="search">
@@ -399,6 +482,7 @@ onMounted(async () => {
             </ElButton>
           </div>
           <ElSelect
+            :key="`category-${filterEpoch}`"
             :model-value="category"
             aria-label="分类"
             placeholder="全部分类"
@@ -411,6 +495,7 @@ onMounted(async () => {
               :value="item.id"
           /></ElSelect>
           <ElSelect
+            :key="`status-${filterEpoch}`"
             :model-value="status"
             aria-label="状态"
             placeholder="全部状态"
@@ -480,7 +565,35 @@ onMounted(async () => {
             仅重新选择原失败项
           </ElButton>
         </div>
-        <div v-if="selected.length" class="between selection-bar">
+        <div
+          v-show="freeActive"
+          class="free-selection-bar"
+          :class="{ 'selection-bar': freeActive }"
+        >
+          <ElCheckbox
+            :model-value="pageAllSelected"
+            :disabled="freeActive && batchProcessing"
+            :indeterminate="pagePartialSelected"
+            aria-label="免费选择本页文章"
+            @change="selectVisiblePage($event === true)"
+            >选择本页</ElCheckbox
+          >
+          <strong>已选{{ freeIds.length }}篇（跨{{ freePageCount }}页）</strong>
+          <FreeBatchControls
+            kind="listening"
+            :ids="freeIds"
+            @changed="freeChanged"
+            @completed="freeCompleted"
+            @restored="freeActive = true"
+            @processing="batchProcessing = $event"
+          />
+          <ElButton :disabled="batchProcessing" @click="freeSelection.clear">清空选择</ElButton
+          ><ElButton :disabled="batchProcessing" @click="exitFree">退出批量设置</ElButton>
+        </div>
+        <p v-if="freeActive" class="muted">
+          当前为批量设置免费模式。翻页保留勾选；“选择本页”仅选本页。发布、下线和删除在退出此模式后操作
+        </p>
+        <div v-if="!freeActive && selected.length" class="between selection-bar">
           <span>已选当前页 {{ selected.length }} 篇</span>
           <div class="row">
             <ElButton :disabled="deleting" @click="selected = []">取消选择</ElButton
@@ -508,23 +621,20 @@ onMounted(async () => {
             :row-class-name="articleRowClass"
           >
             <!-- @vue-generic {Article} -->
-            <ElTableColumn label="" width="45" class-name="list-select-cell"
+            <ElTableColumn label="" width="52" align="center" class-name="list-select-cell"
               ><template #header
                 ><ElCheckbox
                   aria-label="全选当前页文章"
-                  :model-value="allSelected"
-                  :indeterminate="partialSelected"
-                  @change="toggleAll" /></template
+                  :model-value="pageAllSelected"
+                  :disabled="freeActive && batchProcessing"
+                  :indeterminate="pagePartialSelected"
+                  @change="selectVisiblePage($event === true)" /></template
               ><template #default="{ row: item }"
                 ><ElCheckbox
-                  :model-value="selected.includes(item.id)"
+                  :model-value="visibleSelection.includes(item.id)"
+                  :disabled="freeActive && batchProcessing"
                   :aria-label="`选择${item.payload.title_zh || item.id}`"
-                  @change="
-                    selected =
-                      $event === true
-                        ? [...selected, item.id]
-                        : selected.filter((id) => id !== item.id)
-                  " /></template
+                  @change="selectVisible(item.id, $event === true)" /></template
             ></ElTableColumn>
             <!-- @vue-generic {Article} -->
             <ElTableColumn label="文章标题" :min-width="114"

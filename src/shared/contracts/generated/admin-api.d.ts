@@ -180,6 +180,86 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/v1/free-access-batches/preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * 预览跨页免费集合
+     * @description 重读完整选择的发布及权限状态，不写业务；冻结适用和跳过名单供明确确认
+     */
+    post: operations['preview_api_admin_v1_free_access_batches_preview_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/v1/free-access-batches': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * 接受跨页免费任务
+     * @description 按原操作键接受已展示适用集合，逐项执行并保留完整回执
+     */
+    post: operations['create_api_admin_v1_free_access_batches_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/v1/free-access-batches/{batch_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * 查询免费任务完整结果
+     * @description 仅原管理员可查成功、跳过、失败及待处理名单；未知先查原任务
+     */
+    get: operations['read_api_admin_v1_free_access_batches__batch_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/v1/free-access-batches/{batch_id}/retry': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * 重试原任务失败子集
+     * @description 仅接受重新预览确认的原失败项，保留父子批次及全部历史
+     */
+    post: operations['retry_api_admin_v1_free_access_batches__batch_id__retry_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/v1/auth/login': {
     parameters: {
       query?: never
@@ -2607,8 +2687,8 @@ export interface components {
        */
       article: components['schemas']['Article']
       /**
-       * 预览确认凭据
-       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       * 冻结预览凭据
+       * @description 绑定操作者、内容类型、目标状态和完整已展示集合的防篡改凭据。
        */
       preview_token: string
       /**
@@ -3303,8 +3383,8 @@ export interface components {
        */
       items: components['schemas']['ActionSelection'][]
       /**
-       * 跳过的选择项
-       * @description 本次已核对但不执行管理操作的场景快照。
+       * 跳过数量
+       * @description 确认前已展示且不会转为适用的跳过数量。
        */
       skipped?: components['schemas']['ActionSelection'][]
     }
@@ -3853,6 +3933,190 @@ export interface components {
        */
       revision: number
     }
+    /** 免费任务逐项快照 */
+    FreeBatchItem: {
+      /**
+       * 稳定内容标识
+       * @description 所选场景或听读文章的稳定ID，不使用页码或标题代替。
+       */
+      content_id: string
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
+      name: string
+      /**
+       * 发布版本标识
+       * @description 绑定此次学习或操作的不可变内容发布版本 ID。
+       */
+      version_id?: string | null
+      /**
+       * 免费标记修订号
+       * @description 单个内容免费标记的修订号，修改免费状态时用于并发校验。
+       */
+      free_revision?: number | null
+      /**
+       * 免费标记
+       * @description 内容是否标记为免费；实际可学习性仍取决于发布状态和实时权限。
+       */
+      is_free?: boolean | null
+      /**
+       * 业务状态
+       * @description 当前对象或操作的业务状态，取值以所在模型约束为准。
+       * @enum {string}
+       */
+      status: 'pending' | 'succeeded' | 'skipped' | 'failed'
+      /**
+       * 处理原因码
+       * @description 跳过或失败的稳定原因代码，完整解释见message。
+       */
+      reason?: string | null
+      /**
+       * 中文提示
+       * @description 供界面展示的操作结果或错误说明。
+       */
+      message?: string | null
+    }
+    /** 免费设置完整预览 */
+    FreeBatchPreview: {
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       * @enum {string}
+       */
+      content_type: 'scene' | 'listening'
+      /**
+       * 免费标记
+       * @description 内容是否标记为免费；实际可学习性仍取决于发布状态和实时权限。
+       */
+      is_free: boolean
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
+      total: number
+      /**
+       * 适用数量
+       * @description 此次预览可变更的完整选择数量。
+       */
+      applicable: number
+      /**
+       * 跳过数量
+       * @description 确认前已展示且不会转为适用的跳过数量。
+       */
+      skipped: number
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
+      items: components['schemas']['FreeBatchItem'][]
+      /**
+       * 冻结预览凭据
+       * @description 绑定操作者、内容类型、目标状态和完整已展示集合的防篡改凭据。
+       */
+      preview_token: string
+    }
+    /** 免费设置预览请求 */
+    FreeBatchPreviewRequest: {
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       * @enum {string}
+       */
+      content_type: 'scene' | 'listening'
+      /**
+       * 明确选择的内容标识集合
+       * @description 按稳定ID去重，不受本页十条或调度每轮五十的限制
+       */
+      ids: string[]
+      /**
+       * 免费标记
+       * @description 内容是否标记为免费；实际可学习性仍取决于发布状态和实时权限。
+       */
+      is_free: boolean
+    }
+    /** 免费任务完整结果 */
+    FreeBatchResult: {
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
+      id: string
+      /**
+       * 异步任务标识
+       * @description 处理当前资源或操作的持久异步任务 ID；未创建任务时可为空。
+       */
+      job_id: string
+      /**
+       * 原批次标识
+       * @description 失败子集重试关联的父批次，首次任务为空。
+       */
+      parent_id: string | null
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       * @enum {string}
+       */
+      content_type: 'scene' | 'listening'
+      /**
+       * 免费标记
+       * @description 内容是否标记为免费；实际可学习性仍取决于发布状态和实时权限。
+       */
+      is_free: boolean
+      /**
+       * 当前状态
+       * @description 当前资源处理状态或用户学习状态，具体结构以所在模型为准。
+       */
+      state: string
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
+      total: number
+      /**
+       * 待处理数量
+       * @description 尚未生成终态回执的选择数量。
+       */
+      pending: number
+      /**
+       * 成功数量
+       * @description 已与免费修改及审计同事务提交的数量。
+       */
+      succeeded: number
+      /**
+       * 跳过数量
+       * @description 确认前已展示且不会转为适用的跳过数量。
+       */
+      skipped: number
+      /**
+       * 失败数量
+       * @description 明确失败并可重新核对重试的数量。
+       */
+      failed: number
+      /**
+       * 创建时间
+       * @description 该资源或记录的创建时间。
+       */
+      created_at: string
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
+      items: components['schemas']['FreeBatchItem'][]
+    }
+    /** 冻结免费集合提交 */
+    FreeBatchSubmit: {
+      /**
+       * 冻结预览凭据
+       * @description 绑定操作者、内容类型、目标状态和完整已展示集合的防篡改凭据。
+       */
+      preview_token: string
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
+      items: components['schemas']['FreeBatchItem'][]
+    }
     /** 免费数量请求 */
     FreeCount: {
       /**
@@ -3948,8 +4212,8 @@ export interface components {
        */
       removed: components['schemas']['FreeScene'][]
       /**
-       * 预览确认凭据
-       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       * 冻结预览凭据
+       * @description 绑定操作者、内容类型、目标状态和完整已展示集合的防篡改凭据。
        */
       preview_token: string
     }
@@ -3977,8 +4241,8 @@ export interface components {
     /** 听读免费范围预览结果 */
     'FreePreview-Output': {
       /**
-       * 预览确认凭据
-       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       * 冻结预览凭据
+       * @description 绑定操作者、内容类型、目标状态和完整已展示集合的防篡改凭据。
        */
       preview_token: string
       /**
@@ -4053,8 +4317,8 @@ export interface components {
        */
       after: components['schemas']['AuthorizationTarget']
       /**
-       * 预览确认凭据
-       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       * 冻结预览凭据
+       * @description 绑定操作者、内容类型、目标状态和完整已展示集合的防篡改凭据。
        */
       preview_token: string
     }
@@ -4237,8 +4501,8 @@ export interface components {
        */
       error_code: string | null
       /**
-       * 父文件标识
-       * @description ZIP 内文件对应的根 ZIP 文件 ID；顶层上传文件使用空字符串。
+       * 原批次标识
+       * @description 失败子集重试关联的父批次，首次任务为空。
        */
       parent_id: string
       /**
@@ -4362,8 +4626,8 @@ export interface components {
     /** 听读导入保存预览 */
     ImportPreview: {
       /**
-       * 预览确认凭据
-       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       * 冻结预览凭据
+       * @description 绑定操作者、内容类型、目标状态和完整已展示集合的防篡改凭据。
        */
       preview_token: string
       /**
@@ -4436,8 +4700,8 @@ export interface components {
        */
       is_free: boolean
       /**
-       * 权限受限原因
-       * @description learning_authorization_required 为需要授权，content_unavailable 为内容不可用。
+       * 处理原因码
+       * @description 跳过或失败的稳定原因代码，完整解释见message。
        */
       reason: string | null
       /**
@@ -4630,8 +4894,8 @@ export interface components {
     /** 确认听读导入保存请求 */
     ListeningImportConfirmation: {
       /**
-       * 预览确认凭据
-       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       * 冻结预览凭据
+       * @description 绑定操作者、内容类型、目标状态和完整已展示集合的防篡改凭据。
        */
       preview_token: string
       /**
@@ -5220,8 +5484,8 @@ export interface components {
        */
       revision: number
       /**
-       * 预览确认凭据
-       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       * 冻结预览凭据
+       * @description 绑定操作者、内容类型、目标状态和完整已展示集合的防篡改凭据。
        */
       preview_token?: string | null
     }
@@ -5711,8 +5975,8 @@ export interface components {
        */
       error_code: string | null
       /**
-       * 父文件标识
-       * @description ZIP 内文件对应的根 ZIP 文件 ID；顶层上传文件使用空字符串。
+       * 原批次标识
+       * @description 失败子集重试关联的父批次，首次任务为空。
        */
       parent_id: string
     }
@@ -6277,8 +6541,8 @@ export interface components {
     /** 确认学习权限变更请求 */
     juya_api__access_api__Confirmation: {
       /**
-       * 预览确认凭据
-       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       * 冻结预览凭据
+       * @description 绑定操作者、内容类型、目标状态和完整已展示集合的防篡改凭据。
        */
       preview_token: string
     }
@@ -6293,8 +6557,8 @@ export interface components {
     /** 确认听读预览请求 */
     juya_api__listening_contracts__Confirmation: {
       /**
-       * 预览确认凭据
-       * @description 服务端签发的预览快照凭据，确认操作时按原值提交。
+       * 冻结预览凭据
+       * @description 绑定操作者、内容类型、目标状态和完整已展示集合的防篡改凭据。
        */
       preview_token: string
     }
@@ -7610,6 +7874,467 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['FreeAccess']
+        }
+      }
+      /** @description 请求不符合业务规则 */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 尚未登录，或登录凭证已失效 */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 当前身份无权执行该操作 */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源不存在，或当前身份不可访问 */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源或功能已不可用 */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求过于频繁，请稍后重试 */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务暂不可用，请稍后重试 */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  preview_api_admin_v1_free_access_batches_preview_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FreeBatchPreviewRequest']
+      }
+    }
+    responses: {
+      /** @description 请求成功 */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FreeBatchPreview']
+        }
+      }
+      /** @description 请求不符合业务规则 */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 尚未登录，或登录凭证已失效 */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 当前身份无权执行该操作 */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源不存在，或当前身份不可访问 */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源或功能已不可用 */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求过于频繁，请稍后重试 */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务暂不可用，请稍后重试 */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  create_api_admin_v1_free_access_batches_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FreeBatchSubmit']
+      }
+    }
+    responses: {
+      /** @description 请求成功 */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FreeBatchResult']
+        }
+      }
+      /** @description 请求不符合业务规则 */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 尚未登录，或登录凭证已失效 */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 当前身份无权执行该操作 */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源不存在，或当前身份不可访问 */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源或功能已不可用 */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求过于频繁，请稍后重试 */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务暂不可用，请稍后重试 */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  read_api_admin_v1_free_access_batches__batch_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
+        batch_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description 请求成功 */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FreeBatchResult']
+        }
+      }
+      /** @description 请求不符合业务规则 */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 尚未登录，或登录凭证已失效 */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 当前身份无权执行该操作 */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源不存在，或当前身份不可访问 */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源或功能已不可用 */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求过于频繁，请稍后重试 */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务暂不可用，请稍后重试 */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  retry_api_admin_v1_free_access_batches__batch_id__retry_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
+        batch_id: string
+      }
+      cookie?: never
+    }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FreeBatchSubmit']
+      }
+    }
+    responses: {
+      /** @description 请求成功 */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FreeBatchResult']
         }
       }
       /** @description 请求不符合业务规则 */

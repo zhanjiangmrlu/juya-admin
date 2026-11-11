@@ -1,3 +1,11 @@
+# CHG0041 本地跨页免费与勾选修复（2026-11-11）
+
+两模块新增独立跨页免费模式，共用选择/确认/结果组件；冻结preview、原Operation未知先查、失败子集重核重试，查询/页面/位置恢复，原普通发布/下线/删除仍本页规则。局部ElementPlus样式实际Chrome复现后修为18px框/44px点击区/52px列，勾号与半选线显式居中。API OpenAPI及生成类型同步0028/contract3。
+
+最终check、63文件317测试及build通过。Mock Chrome33项跨4页两模块+8视觉/状态组合通过；另临时0028SQLite/真实API/dispatcher/worker完整联调通过。原生Chrome125%未验，仅125%CSS布局证据，详细边界见[验收记录](docs/verification/chg0041-free-batches.md)。未推送、部署、上传、修改原账号配置或业务数据。
+
+---
+
 # CHG-0039 测试发布与开发版上传（2026-11-10）
 
 本次追加授权后，三仓已推送test；7个测试服务及后台已部署，微信开发版 **1.5.0-test.20261110.163037** 官方上传成功，体验版由用户手动切换。API db13c66、后台8516379、小程序e4d8cf8；官方真实MySQL/Redis780通过/3跳过，公网及契约核验通过。schema0026/contract3无迁移，原56张业务表数据及12个非目标容器不变；未执行真实历史数据清理、提审或生产发布。完整回执见同级API的docs/verification/contact-retirement-test-release-20261110.md及JSON。

@@ -11,12 +11,17 @@ import {
 } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, ref, watch } from 'vue'
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 
 import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
+import {
+  freeSelectionQueryKey,
+  useCrossPageSelection
+} from '@/composables/use-cross-page-selection'
 import { useResource } from '@/composables/use-resource'
 import FreeAccessControl from '@/features/learning-access/free-access-control.vue'
+import FreeBatchControls from '@/features/learning-access/free-batch-controls.vue'
 import SceneBatchPublication from '@/features/scenes/scene-batch-publication.vue'
 import SceneCardActions from '@/features/scenes/scene-card-actions.vue'
 import SceneCatalogOrder from '@/features/scenes/scene-catalog-order.vue'
@@ -180,7 +185,9 @@ let managementTimer: ReturnType<typeof setTimeout> | null = null,
   managementGeneration = 0,
   managementChecks = 0
 /** 从任意列表筛选进入完整已发布集合排序，并清空普通列表选择 */
-const enterSorting = () => {
+const enterSorting = async () => {
+  if (!(await freeSelection.discard())) return
+  freeActive.value = false
   clearSelection()
   sorting.value = true
 }
@@ -326,6 +333,73 @@ const selectPage = (checked: boolean) => {
   }
   selected.value = next
 }
+
+const batchProcessing = ref(false)
+const freeSelection = useCrossPageSelection(
+  computed(() => data.value?.items || []),
+  page
+)
+const freeActive = freeSelection.active,
+  freeIds = freeSelection.ids,
+  freePageCount = freeSelection.pageCount
+const visibleSelection = computed(() => (freeActive.value ? freeIds.value : selected.value))
+const pageAllSelected = computed(() =>
+  freeActive.value ? freeSelection.allSelected.value : allSelected.value
+)
+const pagePartialSelected = computed(() =>
+  freeActive.value
+    ? freeSelection.partialSelected.value
+    : selected.value.length > 0 && !allSelected.value
+)
+/** 进入免费模式前清空普通本页集合 */
+const enterFree = () => {
+  selected.value = []
+  freeSelection.enter()
+}
+/** 确认后退出免费模式并清空两套选择 */
+const exitFree = async () => {
+  if (await freeSelection.exit()) selected.value = []
+}
+/** 完成后仅保留明确失败ID
+ * @param ids 原任务明确失败的稳定内容标识
+ */
+const freeCompleted = (ids: string[]) => {
+  freeSelection.retainFailures(ids)
+}
+/** 选择本页独立免费或普通集合
+ * @param checked 是否选择当前页
+ */
+const selectVisiblePage = (checked: boolean) => {
+  if (freeActive.value) freeSelection.togglePage(checked)
+  else selectPage(checked)
+}
+/** 选择当前行对应模式的集合
+ * @param id 稳定内容标识
+ * @param checked 是否选中
+ */
+const selectVisible = (id: string, checked: boolean) => {
+  if (freeActive.value) freeSelection.toggle(id, checked)
+  else selectCard(id, checked)
+}
+/** 条件变更先确认；取消恢复受控搜索与当前路由、选择和位置
+ * @param to 导航目标及查询条件
+ * @param to.path 目标模块路径
+ * @param to.query 目标筛选及分页条件
+ * @returns 是否允许路由切换
+ */
+const guardFreeQuery = async (to: { path: string; query: Record<string, unknown> }) => {
+  if (
+    freeActive.value &&
+    freeSelectionQueryKey(to.path, to.query) !== freeSelectionQueryKey(route.path, route.query) &&
+    !(await freeSelection.discard())
+  ) {
+    search.value = String(route.query.search || '')
+    return false
+  }
+  return true
+}
+onBeforeRouteUpdate(guardFreeQuery)
+
 /** 简短显示持久化的真实逐卡结果
  * @param batch 最近一次批量发布
  * @returns 成功、失败与处理中的实际数量
@@ -461,7 +535,13 @@ watch(
   }
 )
 let listPosition: { path: string; left: number; top: number } | null = null
-onBeforeRouteLeave(() => {
+onBeforeRouteLeave(async (to) => {
+  if (!(await guardFreeQuery(to))) return false
+  if (freeActive.value) {
+    freeActive.value = false
+    freeSelection.clear()
+    selected.value = []
+  }
   listPosition = { path: route.fullPath, left: window.scrollX, top: window.scrollY }
 })
 onActivated(async () => {
@@ -526,7 +606,8 @@ onBeforeUnmount(() => {
               ><small v-if="data?.learning_policy">{{
                 `当前免费场景 ${data.learning_policy.actual_free_count} 张，其余场景需学习授权`
               }}</small></span
-            ><small>在每条内容的操作区启用或关闭</small>
+            ><ElButton v-if="!freeActive" @click="enterFree">批量设置免费</ElButton
+            ><small v-else>免费模式 · 逐条操作继续保留</small>
           </div>
           <p v-if="route.query.batch_id" class="notice between">
             <span>本次导入 · 只显示本批已保存的卡片</span
@@ -559,7 +640,35 @@ onBeforeUnmount(() => {
               </ElButton>
             </div>
           </form>
-          <div v-if="data?.items.length" class="selection-bar">
+          <div
+            v-show="freeActive"
+            class="free-selection-bar"
+            :class="{ 'selection-bar': freeActive }"
+          >
+            <ElCheckbox
+              :model-value="pageAllSelected"
+              :disabled="freeActive && batchProcessing"
+              :indeterminate="pagePartialSelected"
+              aria-label="免费选择本页卡片"
+              @change="selectVisiblePage($event === true)"
+              >选择本页</ElCheckbox
+            >
+            <strong>已选{{ freeIds.length }}张（跨{{ freePageCount }}页）</strong>
+            <FreeBatchControls
+              kind="scene"
+              :ids="freeIds"
+              @changed="freeChanged"
+              @completed="freeCompleted"
+              @restored="freeActive = true"
+              @processing="batchProcessing = $event"
+            />
+            <ElButton :disabled="batchProcessing" @click="freeSelection.clear">清空选择</ElButton
+            ><ElButton :disabled="batchProcessing" @click="exitFree">退出批量设置</ElButton>
+          </div>
+          <p v-if="freeActive" class="muted">
+            当前为批量设置免费模式。翻页保留勾选；“选择本页”仅选本页。发布、下线和删除在退出此模式后操作
+          </p>
+          <div v-if="!freeActive && data?.items.length" class="selection-bar">
             <ElCheckbox
               class="page-selection"
               :model-value="allSelected"
@@ -619,12 +728,20 @@ onBeforeUnmount(() => {
           <div v-if="data && data.total" class="table-wrap">
             <ElTable :data="data.items" row-key="id" class="scene-table" table-layout="fixed">
               <!-- @vue-generic {CardView} -->
-              <ElTableColumn label="选" :min-width="4" align="center" class-name="list-select-cell"
+              <ElTableColumn label="选" :width="52" align="center" class-name="list-select-cell"
+                ><template #header
+                  ><ElCheckbox
+                    :model-value="pageAllSelected"
+                    :disabled="freeActive && batchProcessing"
+                    :indeterminate="pagePartialSelected"
+                    aria-label="表头选择本页卡片"
+                    @change="selectVisiblePage($event === true)" /></template
                 ><template #default="{ row: card }"
                   ><ElCheckbox
-                    :model-value="selected.includes(card.id)"
+                    :model-value="visibleSelection.includes(card.id)"
+                    :disabled="freeActive && batchProcessing"
                     :aria-label="`选择 ${card.display_name || card.content.name}`"
-                    @change="selectCard(card.id, $event === true)" /></template
+                    @change="selectVisible(card.id, $event === true)" /></template
               ></ElTableColumn>
               <!-- @vue-generic {CardView} -->
               <ElTableColumn label="场景卡片" :min-width="34"
