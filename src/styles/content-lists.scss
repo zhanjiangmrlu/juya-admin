@@ -38,27 +38,50 @@
   }
 
   .el-checkbox {
+    min-width: 44px;
+    min-height: 44px;
     height: auto;
+    flex-shrink: 0;
+    justify-content: center;
     margin: 0;
     color: var(--ink);
     font-size: inherit;
     font-weight: inherit;
 
     :deep([class~='el-checkbox__inner']) {
-      width: 17px;
-      height: 17px;
+      width: 18px;
+      height: 18px;
       border-color: #767676;
       border-radius: 3px;
 
       &::after {
-        left: 5px;
-        top: 2px;
+        left: 50%;
+        top: 50%;
       }
+    }
+
+    :deep(.is-disabled [class~='el-checkbox__inner']) {
+      border-color: #a0aa9a;
+      background: #edf1e8;
+    }
+
+    &:focus-within :deep([class~='el-checkbox__inner']) {
+      outline: 2px solid var(--ink);
+      outline-offset: 3px;
     }
 
     :deep([class~='el-checkbox__label']) {
       padding-left: 12px;
       font: inherit;
+    }
+
+    :deep(.is-checked [class~='el-checkbox__inner']::after) {
+      transform: translate(-50%, -50%) rotate(45deg) scaleY(1);
+    }
+
+    :deep(.is-indeterminate [class~='el-checkbox__inner']::before) {
+      top: 50%;
+      transform: translateY(-50%) scale(0.5);
     }
 
     :deep(.is-checked),
@@ -136,4 +159,14 @@
       }
     }
   }
+}
+
+:where(.content-list) .free-selection-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--soft);
+  border-radius: 10px;
 }

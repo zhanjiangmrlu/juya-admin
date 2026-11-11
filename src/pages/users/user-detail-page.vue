@@ -10,7 +10,7 @@ import UserAuthorization from '@/features/learning-access/user-authorization.vue
 import UserAuthorizationHistory from '@/features/learning-access/user-authorization-history.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import UserLearningRecords from '@/features/users/user-learning-records.vue'
-import { contactSourceText, dateText, mediaURL } from '@/services/display'
+import { dateText, mediaURL } from '@/services/display'
 import { api } from '@/services/http-client'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -89,18 +89,6 @@ onMounted(() => {
             <ElDescriptionsItem label="注册时间">{{
               dateText(data.registered_at)
             }}</ElDescriptionsItem>
-            <ElDescriptionsItem label="手机号">
-              {{ data.phone || '未填写' }}
-              <ElTag v-if="data.phone" type="warning" size="small">{{
-                contactSourceText(data.phone_source)
-              }}</ElTag>
-            </ElDescriptionsItem>
-            <ElDescriptionsItem label="微信号">
-              {{ data.wechat_contact || '未填写' }}
-              <ElTag v-if="data.wechat_contact" type="warning" size="small">{{
-                contactSourceText(data.wechat_source)
-              }}</ElTag>
-            </ElDescriptionsItem>
             <ElDescriptionsItem label="登录方式">微信身份登录</ElDescriptionsItem>
             <ElDescriptionsItem label="最近登录">{{
               dateText(data.last_login_at)
@@ -109,7 +97,6 @@ onMounted(() => {
               dateText(data.statistics.last_studied_at)
             }}</ElDescriptionsItem>
           </ElDescriptions>
-          <p class="profile-note">已填联系资料及其来源在此只读保留，不能代用户编辑。</p>
         </ElCard>
         <ElCard shadow="never" class="learning-panel">
           <h2>总学习数据</h2>

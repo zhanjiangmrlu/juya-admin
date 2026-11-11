@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { ElCheckbox, ElPagination, ElTable } from 'element-plus'
+import { createPinia } from 'pinia'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
@@ -77,7 +78,7 @@ const open = async (cached = false) => {
     {
       attachTo: document.body,
       global: {
-        plugins: [router],
+        plugins: [createPinia(), router],
         stubs: {
           ElDialog: {
             props: ['modelValue'],

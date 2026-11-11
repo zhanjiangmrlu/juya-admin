@@ -12,6 +12,10 @@ export const useAdminStore = defineStore('administrator', () => {
   /** 清理失效身份和含个人资料的界面状态 */
   const clear = () => {
     clearClientThumbnails()
+    for (const key of Object.keys(sessionStorage)) {
+      if (key.startsWith('juya-free-task:') || key.startsWith('juya-free-operation:'))
+        sessionStorage.removeItem(key)
+    }
     identity.value = null
     checked.value = true
   }

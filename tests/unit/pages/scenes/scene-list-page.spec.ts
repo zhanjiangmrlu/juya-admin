@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { ElCheckbox, ElPagination, ElTable } from 'element-plus'
+import { createPinia } from 'pinia'
 import { afterEach, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 const { request } = vi.hoisted(() => ({ request: vi.fn() }))
@@ -35,7 +36,7 @@ it.each(['/cards', '/cards?status=draft', '/cards?search=coffee&batch_id=batch']
     const wrapper = mount(
       { template: '<RouterView />' },
       {
-        global: { plugins: [router], stubs: { ElDialog: true } }
+        global: { plugins: [createPinia(), router], stubs: { ElDialog: true } }
       }
     )
     await flushPromises()
@@ -89,7 +90,7 @@ it('filters with status segments and clears the previous page selection', async 
         '<RouterView v-slot="{ Component }"><KeepAlive><component :is="Component"/></KeepAlive></RouterView>'
     },
     {
-      global: { plugins: [router], stubs: { ElDialog: true } }
+      global: { plugins: [createPinia(), router], stubs: { ElDialog: true } }
     }
   )
   await flushPromises()
@@ -172,7 +173,7 @@ it.each(['offline', 'delete'] as const)(
       },
       {
         global: {
-          plugins: [router],
+          plugins: [createPinia(), router],
           stubs: { ElDialog: { template: '<section><slot/><slot name="footer"/></section>' } }
         }
       }
@@ -222,7 +223,7 @@ it('never lets a delayed list response rewrite the editor route', async () => {
   await router.isReady()
   const wrapper = mount(
     { components: { SceneListPage }, template: '<KeepAlive><SceneListPage/></KeepAlive>' },
-    { global: { plugins: [router], stubs: { ElDialog: true } } }
+    { global: { plugins: [createPinia(), router], stubs: { ElDialog: true } } }
   )
   await flushPromises()
   await router.push('/cards/editor?back=original')
@@ -267,7 +268,7 @@ it('requests server pages of ten, clears selection on paging and shows real boun
   await router.isReady()
   const wrapper = mount(
     { components: { SceneListPage }, template: '<KeepAlive><SceneListPage/></KeepAlive>' },
-    { global: { plugins: [router], stubs: { ElDialog: true } } }
+    { global: { plugins: [createPinia(), router], stubs: { ElDialog: true } } }
   )
   await flushPromises()
   expect(
@@ -311,7 +312,7 @@ it('keeps the original out of the list, lazy loads thumbnails and offers a fresh
   await router.push('/cards')
   const wrapper = mount(
     { components: { SceneListPage }, template: '<KeepAlive><SceneListPage/></KeepAlive>' },
-    { global: { plugins: [router], stubs: { ElDialog: true } } }
+    { global: { plugins: [createPinia(), router], stubs: { ElDialog: true } } }
   )
   await flushPromises()
   const thumbnail = wrapper.get('img.thumbnail')
@@ -399,7 +400,10 @@ it('draws a real client thumbnail when the server thumbnail is absent and keeps 
         '<RouterView v-slot="{Component}"><KeepAlive><component :is="Component"/></KeepAlive></RouterView>'
     },
     {
-      global: { plugins: [router], stubs: { ElDialog: { template: '<section><slot/></section>' } } }
+      global: {
+        plugins: [createPinia(), router],
+        stubs: { ElDialog: { template: '<section><slot/></section>' } }
+      }
     }
   )
   await flushPromises()
@@ -498,7 +502,7 @@ it.each([false, true])(
       },
       {
         global: {
-          plugins: [router],
+          plugins: [createPinia(), router],
           stubs: {
             ElDialog: {
               props: ['modelValue'],
@@ -598,7 +602,7 @@ it('ignores a delayed publication history response from a previous activation', 
         '<RouterView v-slot="{ Component }"><KeepAlive><component :is="Component"/></KeepAlive></RouterView>'
     },
     {
-      global: { plugins: [router], stubs: { ElDialog: true } }
+      global: { plugins: [createPinia(), router], stubs: { ElDialog: true } }
     }
   )
   try {
@@ -651,7 +655,7 @@ it('offers an independent per-card free action and a read-only total', async () 
       template:
         '<RouterView v-slot="{Component}"><KeepAlive><component :is="Component"/></KeepAlive></RouterView>'
     },
-    { global: { plugins: [router], stubs: { ElDialog: true } } }
+    { global: { plugins: [createPinia(), router], stubs: { ElDialog: true } } }
   )
   await flushPromises()
   expect(page.text()).not.toContain('免费开放设置')
@@ -692,7 +696,7 @@ it('keeps controlled scene selection and resets it when Element Plus pagination 
         '<RouterView v-slot="{ Component }"><KeepAlive><component :is="Component" /></KeepAlive></RouterView>'
     },
     {
-      global: { plugins: [router], stubs: { ElDialog: true } }
+      global: { plugins: [createPinia(), router], stubs: { ElDialog: true } }
     }
   )
   try {
