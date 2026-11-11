@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElButton, ElDialog, ElProgress, ElTable, ElTableColumn } from 'element-plus'
-import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { api, ApiError } from '@/services/http-client'
 import { useAdminStore } from '@/stores/admin-store'
@@ -17,39 +17,52 @@ const emit = defineEmits<{
   restored: []
   processing: [active: boolean]
 }>()
+const admin = useAdminStore()
+const owner = computed(() => admin.identity?.id || '')
+const scope = computed(
+  () => `${import.meta.env.VITE_API_BASE_URL || location.origin}:${owner.value}:${props.kind}`
+)
+const operationStorageKey = computed(() => `juya-free-operation:${scope.value}`)
+const storageKey = computed(() => `juya-free-task:${scope.value}`)
+const prefix = '/api/admin/v1/free-access-batches'
 const preview = ref<Preview | null>(null),
   result = ref<Result | null>(null),
   open = ref(false),
   busy = ref(false),
   error = ref(''),
-  unknown = ref(false)
+  unknown = ref(false),
+  restoringTaskId = ref('')
 const unit = computed(() => (props.kind === 'scene' ? '张' : '篇'))
-const hasStore = Object.getOwnPropertySymbols(getCurrentInstance()?.appContext.provides || {}).some(
-  (key) => key.description === 'pinia'
-)
-const owner = hasStore ? useAdminStore().identity?.id || 'none' : 'isolated'
-const scope = `${import.meta.env.VITE_API_BASE_URL || location.origin}:${owner}:${props.kind}`
-const operationStorageKey = `juya-free-operation:${scope}`
-const storageKey = `juya-free-task:${scope}`,
-  prefix = '/api/admin/v1/free-access-batches'
+const fenced = computed(() => unknown.value || !!restoringTaskId.value || !!result.value?.pending)
 let pending: { key: string; body: Submission; path: string } | null = null,
   timer: ReturnType<typeof setTimeout> | null = null,
   alive = true,
-  parentId = ''
-let observed = ''
+  mounted = false,
+  generation = 0,
+  parentId = '',
+  observed = ''
 const statusText: Record<string, string> = {
   pending: '处理中',
   succeeded: '成功',
   skipped: '跳过',
   failed: '失败'
 }
-/** 保存当前任务真实结果，完成后只保留明确失败项
- * @param value 原任务的权威逐项回执
+/** 仅接受仍属于当前管理员及组件代际的响应
+ * @param run 发起请求时冻结的身份代际
+ * @returns 当前响应是否仍可更新界面和私有跟踪
  */
-const observe = async (value: Result) => {
+const current = (run: number) => alive && run === generation && !!owner.value
+/** 保存原任务权威回执，完成后只保留明确失败项
+ * @param value 原任务完整逐项结果
+ * @param run 发起查询或提交时的身份代际
+ */
+const observe = (value: Result, run: number) => {
+  if (!current(run)) return
   result.value = value
+  restoringTaskId.value = ''
   emit('processing', value.pending > 0)
-  sessionStorage.setItem(storageKey, value.id)
+  if (!current(run)) return
+  sessionStorage.setItem(storageKey.value, value.id)
   if (['succeeded', 'failed'].includes(value.state) && value.pending === 0) {
     const signature = `${value.id}:${value.succeeded}:${value.failed}`
     if (observed !== signature) {
@@ -60,30 +73,46 @@ const observe = async (value: Result) => {
       )
       emit('changed')
     }
-  } else if (alive)
+  } else
     timer = setTimeout(() => {
       void query()
     }, 1000)
 }
-/** 查询原任务，网络失败不新建任务 */
+/** 只读重查原任务；首次恢复失败也保留ID和围栏 */
 const query = async () => {
-  if (!alive || busy.value || !result.value) return
+  const id = restoringTaskId.value || result.value?.id,
+    run = generation
+  if (!current(run) || busy.value || !id) return
+  const taskKey = storageKey.value
   busy.value = true
   error.value = ''
   try {
-    await observe(await api.request<Result>(`${prefix}/${result.value.id}`))
+    const value = await api.request<Result>(`${prefix}/${id}`)
+    observe(value, run)
   } catch (reason) {
+    if (!current(run)) return
     error.value = reason instanceof Error ? reason.message : '结果暂未确认，请查询原任务'
+    if (
+      reason instanceof ApiError &&
+      reason.code === 'free_batch_missing' &&
+      reason.status === 404
+    ) {
+      restoringTaskId.value = ''
+      result.value = null
+      sessionStorage.removeItem(taskKey)
+      emit('processing', false)
+    }
   } finally {
-    busy.value = false
+    if (current(run)) busy.value = false
   }
 }
-/** 重新读取完整选择并展示全部名称及跳过原因
- * @param enabled 此次明确选择的目标免费状态
- * @param retry 是否仅预览原任务失败集合
+/** 重读全部选择，展示适用与跳过名单
+ * @param enabled 当前明确选择的目标免费状态
+ * @param retry 是否仅重新核对原失败子集
  */
 const prepare = async (enabled: boolean, retry = false) => {
-  if (busy.value || unknown.value || result.value?.pending) return
+  const run = generation
+  if (!current(run) || busy.value || fenced.value) return
   const ids = retry
     ? result.value?.items
         .filter((item) => item.status === 'failed')
@@ -94,21 +123,24 @@ const prepare = async (enabled: boolean, retry = false) => {
   error.value = ''
   parentId = retry ? result.value!.id : ''
   try {
-    preview.value = await api.request<Preview>(`${prefix}/preview`, {
+    const value = await api.request<Preview>(`${prefix}/preview`, {
       method: 'POST',
       body: { content_type: props.kind, ids: [...ids], is_free: enabled }
     })
+    if (!current(run)) return
+    preview.value = value
     open.value = true
     pending = null
   } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : '预览失败，请重试'
+    if (current(run)) error.value = reason instanceof Error ? reason.message : '预览失败，请重试'
   } finally {
-    busy.value = false
+    if (current(run)) busy.value = false
   }
 }
-/** 原请求结果未知时先查持久Operation，仅明确未受理才复用原键和冻结正文 */
+/** 未知先查原Operation；只在明确未受理后以原键和冻结正文恢复 */
 const submit = async () => {
-  if (busy.value || (!preview.value && !pending)) return
+  const run = generation
+  if (!current(run) || busy.value || restoringTaskId.value || (!preview.value && !pending)) return
   if (!pending) {
     if (!preview.value?.applicable) return
     pending = {
@@ -120,7 +152,9 @@ const submit = async () => {
       }
     }
   }
-  sessionStorage.setItem(operationStorageKey, JSON.stringify(pending))
+  const write = pending,
+    operationKey = operationStorageKey.value
+  sessionStorage.setItem(operationKey, JSON.stringify(write))
   emit('processing', true)
   busy.value = true
   error.value = ''
@@ -128,23 +162,27 @@ const submit = async () => {
     let value: Result | undefined
     if (unknown.value) {
       try {
-        value = (await api.request<{ result: Result }>(`/api/admin/v1/operations/${pending.key}`))
+        value = (await api.request<{ result: Result }>(`/api/admin/v1/operations/${write.key}`))
           .result
       } catch (reason) {
+        if (!current(run)) return
         if (!(reason instanceof ApiError) || reason.code !== 'operation_unknown') throw reason
       }
     }
-    value ||= await api.request<Result>(pending.path, {
+    if (!current(run)) return
+    value ||= await api.request<Result>(write.path, {
       method: 'POST',
-      body: pending.body,
-      key: pending.key
+      body: write.body,
+      key: write.key
     })
+    if (!current(run)) return
     pending = null
-    sessionStorage.removeItem(operationStorageKey)
+    sessionStorage.removeItem(operationKey)
     unknown.value = false
     preview.value = null
-    await observe(value)
+    observe(value, run)
   } catch (reason) {
+    if (!current(run)) return
     error.value = reason instanceof Error ? reason.message : '提交结果未确认，请查询原操作'
     unknown.value =
       reason instanceof ApiError &&
@@ -152,13 +190,13 @@ const submit = async () => {
     if (!unknown.value) {
       emit('processing', false)
       pending = null
-      sessionStorage.removeItem(operationStorageKey)
+      sessionStorage.removeItem(operationKey)
     }
   } finally {
-    busy.value = false
+    if (current(run)) busy.value = false
   }
 }
-/** 取消预览不写业务，也不清空列表选择 */
+/** 取消只清预览，不清列表选择或原结果 */
 const cancel = () => {
   if (!busy.value && !unknown.value) {
     open.value = false
@@ -166,12 +204,14 @@ const cancel = () => {
     pending = null
   }
 }
-/** 关闭结果详情，保留可查询的已提交任务标识 */
+/** 关闭详情保留已受理任务和只读重查入口 */
 const close = () => {
   if (!busy.value && !unknown.value) open.value = false
 }
-onMounted(async () => {
-  const submitted = sessionStorage.getItem(operationStorageKey)
+/** 只恢复当前管理员已发送操作或已接受任务，不恢复未提交选择 */
+const restore = async () => {
+  if (!current(generation)) return
+  const submitted = sessionStorage.getItem(operationStorageKey.value)
   if (submitted) {
     try {
       pending = JSON.parse(submitted)
@@ -182,24 +222,43 @@ onMounted(async () => {
       error.value = '上次提交结果尚未确认，请先查询原操作'
       return
     } catch {
-      sessionStorage.removeItem(operationStorageKey)
+      sessionStorage.removeItem(operationStorageKey.value)
     }
   }
-  const id = sessionStorage.getItem(storageKey)
+  const id = sessionStorage.getItem(storageKey.value)
   if (!id) return
+  restoringTaskId.value = id
+  emit('processing', true)
   emit('restored')
-  busy.value = true
-  try {
-    open.value = true
-    await observe(await api.request<Result>(`${prefix}/${id}`))
-  } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : '原任务暂未确认'
-  } finally {
-    busy.value = false
-  }
+  open.value = true
+  await query()
+}
+/** 身份切换废弃旧请求、计时器与内存状态；新身份只读自己的跟踪 */
+const invalidate = () => {
+  generation++
+  if (timer) clearTimeout(timer)
+  timer = null
+  pending = null
+  parentId = ''
+  observed = ''
+  preview.value = null
+  result.value = null
+  restoringTaskId.value = ''
+  unknown.value = false
+  busy.value = false
+  error.value = ''
+  open.value = false
+  emit('processing', false)
+  if (mounted && owner.value) void restore()
+}
+watch(() => [admin.identity?.id, props.kind], invalidate, { flush: 'sync' })
+onMounted(() => {
+  mounted = true
+  void restore()
 })
 onBeforeUnmount(() => {
   alive = false
+  generation++
   if (timer) clearTimeout(timer)
 })
 </script>
@@ -208,17 +267,17 @@ onBeforeUnmount(() => {
     <ElButton
       class="primary"
       data-action="enable-free"
-      :disabled="!ids.length || busy || unknown || Boolean(result?.pending)"
+      :disabled="!owner || !ids.length || busy || fenced"
       @click="prepare(true)"
       >批量开启免费</ElButton
     >
     <ElButton
       data-action="disable-free"
-      :disabled="!ids.length || busy || unknown || Boolean(result?.pending)"
+      :disabled="!owner || !ids.length || busy || fenced"
       @click="prepare(false)"
       >批量关闭免费</ElButton
     >
-    <ElButton v-if="result" link @click="open = true">查看本次结果</ElButton>
+    <ElButton v-if="result || restoringTaskId" link @click="open = true">查看本次结果</ElButton>
     <small v-if="error && !open" role="alert">{{ error }}</small>
     <ElDialog
       :model-value="open"
@@ -292,7 +351,13 @@ onBeforeUnmount(() => {
         </template>
         <template v-else>
           <ElButton :disabled="busy" @click="close">返回列表</ElButton>
-          <ElButton v-if="result?.pending" :loading="busy" @click="query">查询处理进度</ElButton>
+          <ElButton
+            v-if="restoringTaskId || result?.pending"
+            data-action="query-task"
+            :loading="busy"
+            @click="query"
+            >{{ restoringTaskId ? '重新查询原任务' : '查询处理进度' }}</ElButton
+          >
           <ElButton
             v-if="result?.failed && !result.pending"
             class="primary"
