@@ -18,7 +18,7 @@ import {
   contentTypeLabels
 } from '@/features/content-catalog/content-catalog-model'
 import { queryURL } from '@/services/display'
-import { api } from '@/services/http-client'
+import { api, ApiError } from '@/services/http-client'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
 defineEmits<{ close: [] }>()
@@ -28,6 +28,7 @@ const data = ref<components['schemas']['HistoryPage'] | null>(null),
   busy = ref(false),
   error = ref(''),
   confirmOpen = ref(false),
+  confirmationUnknown = ref(false),
   enableOpen = ref(false),
   onlyUnclassified = ref(true),
   results = ref<{ card_id: string; status: string; reason?: string | null }[]>([])
@@ -81,6 +82,12 @@ const prepare = () => {
   })
   confirmOpen.value = true
 }
+/** 关闭尚未提交的确认，允许重新选择条目与类型 */
+const dismissConfirmation = () => {
+  if (busy.value || confirmationUnknown.value) return
+  pending = null
+  confirmOpen.value = false
+}
 /** 提交原确认操作，未知结果重试仍使用原幂等键 */
 const confirm = async () => {
   if (!pending || busy.value) return
@@ -89,9 +96,15 @@ const confirm = async () => {
   try {
     results.value = (await pending()).items
     pending = null
+    confirmationUnknown.value = false
     confirmOpen.value = false
     await load(data.value?.page || 1)
   } catch (reason) {
+    confirmationUnknown.value =
+      !(reason instanceof ApiError) ||
+      !reason.status ||
+      reason.status >= 500 ||
+      reason.code === 'response_unknown'
     error.value = (reason as Error).message
   } finally {
     busy.value = false
@@ -153,8 +166,10 @@ onMounted(() => load())
                   : selected.filter((id) => id !== row.card_id)
               " /></template></ElTableColumn
         ><ElTableColumn prop="name" label="旧卡片" /><ElTableColumn label="当前附件依据"
-          ><template #default="{ row }"
-            >{{ row.study_note_version_id ? '有效发布PDF' : '无有效发布PDF' }}
+          ><template #default="{ row }">
+            <span v-if="!row.warnings.includes('invalid_pdf')">{{
+              row.suggestion === 'intensive' ? '有效发布PDF' : '无有效发布PDF'
+            }}</span>
             <p v-for="warning in row.warnings" :key="warning" class="error">
               {{ warningLabels[warning] || warning }}
             </p></template
@@ -210,26 +225,20 @@ onMounted(() => load())
           >核验并启用双分类</ElButton
         ></template
       ><ElDialog
-        v-model="confirmOpen"
+        :model-value="confirmOpen"
         append-to-body
         title="确认明确归类"
         width="560px"
         :close-on-click-modal="false"
-        :show-close="!busy"
-        :close-on-press-escape="!busy"
+        :show-close="!busy && !confirmationUnknown"
+        :close-on-press-escape="!busy && !confirmationUnknown"
+        @close="dismissConfirmation"
         ><p v-if="error" class="error" role="alert">{{ error }}</p>
         <p>
           应用已选 {{ selected.length }} 张卡片的明确类型。并发变化将保留为待核对，不修改正文或PDF。
         </p>
         <template #footer
-          ><ElButton
-            :disabled="busy"
-            @click="
-              () => {
-                confirmOpen = false
-                pending = null
-              }
-            "
+          ><ElButton :disabled="busy || confirmationUnknown" @click="dismissConfirmation"
             >取消</ElButton
           ><ElButton :disabled="busy" @click="confirm">确认归类</ElButton></template
         ></ElDialog

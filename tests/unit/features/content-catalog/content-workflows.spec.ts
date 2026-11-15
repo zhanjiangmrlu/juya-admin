@@ -108,6 +108,34 @@ it('requires explicit history confirmation and never automatically enables categ
   await flushPromises()
   expect(operation.mock.calls.some((call) => call[1].endsWith('/enable'))).toBe(false)
 })
+it.each([
+  ['never attached', null, 'illustrated', [], '无有效发布PDF'],
+  ['valid', 'attached-note', 'intensive', [], '有效发布PDF'],
+  ['removed', 'removed-note', 'illustrated', [], '无有效发布PDF'],
+  ['broken', 'broken-note', 'illustrated', ['invalid_pdf'], '当前发布PDF引用异常']
+])(
+  'displays the verified attachment evidence for %s',
+  async (_, pointer, suggestion, warnings, label) => {
+    request.mockResolvedValue({
+      items: [
+        { card_id: 'old', name: '旧卡', study_note_version_id: pointer, suggestion, warnings }
+      ],
+      total: 1,
+      page: 1,
+      total_pages: 1
+    })
+    const wrapper = mount(SceneTypeHistory, {
+      global: {
+        stubs: { ElDialog: { template: '<section><slot/><slot name="footer"/></section>' } }
+      }
+    })
+    wrappers.push(wrapper)
+    await flushPromises()
+    const cells = wrapper.get('.el-table__row').findAll('td')
+    expect(cells[2]!.text()).toBe(label)
+    expect(cells[3]!.text()).toContain(suggestion === 'intensive' ? '精读词汇' : '图解词汇')
+  }
+)
 it.each(['scene', 'listening'] as const)(
   'loads %s persistent duplicate details across pages and prevents opening unavailable targets',
   async (module) => {

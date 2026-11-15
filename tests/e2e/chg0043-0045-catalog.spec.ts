@@ -196,11 +196,48 @@ test('history remains a suggestion until administrator confirms and enable remai
   await page.getByRole('button', { name: '确认应用选中归类（1）' }).click()
   await expect(page.getByRole('dialog', { name: '确认明确归类' })).toBeVisible()
   expect(writes).toEqual([])
+  const confirmation = page.getByRole('dialog', { name: '确认明确归类' })
+  const selection = page.getByLabel('归类 历史待归类')
+  await page.keyboard.press('Escape')
+  await expect(confirmation).not.toBeVisible()
+  await selection.uncheck()
+  await selection.check({ timeout: 2000 })
+  await page.getByRole('button', { name: '确认应用选中归类（1）' }).click()
+  await confirmation.locator('.el-dialog__headerbtn').click()
+  await selection.uncheck()
+  await selection.check({ timeout: 2000 })
+  await page.getByRole('button', { name: '确认应用选中归类（1）' }).click()
   await page.getByRole('button', { name: '取消', exact: true }).click()
   await expect(page.getByRole('dialog', { name: '确认明确归类' })).not.toBeVisible()
   await page.screenshot({ path: '/tmp/chg0043-history-1440.png', animations: 'disabled' })
 })
 
+test('an unknown history write retries the frozen selection only after explicit confirmation', async ({
+  page
+}) => {
+  await mockCatalog(page)
+  const attempts: { key: string | undefined; body: string | null }[] = []
+  await page.route('**/content-types/confirm', async (route) => {
+    const req = route.request()
+    attempts.push({ key: req.headers()['idempotency-key'], body: req.postData() })
+    if (attempts.length === 1) return route.abort()
+    return route.fulfill({ json: { items: [{ card_id: 'old', status: 'confirmed' }] } })
+  })
+  await page.goto('/cards')
+  await page.getByRole('button', { name: '旧卡类型核对' }).click()
+  await page.getByLabel('归类 历史待归类').check()
+  await page.getByRole('button', { name: '确认应用选中归类（1）' }).click()
+  const confirmation = page.getByRole('dialog', { name: '确认明确归类' })
+  await confirmation.getByRole('button', { name: '确认归类' }).click()
+  await expect(confirmation.getByRole('alert')).toContainText('网络')
+  await page.keyboard.press('Escape')
+  await expect(confirmation).toBeVisible()
+  expect(attempts).toHaveLength(1)
+  await confirmation.getByRole('button', { name: '确认归类' }).click()
+  await expect(confirmation).not.toBeVisible()
+  expect(attempts[0]?.key).toBeTruthy()
+  expect(attempts).toEqual([attempts[0], attempts[0]])
+})
 test('single scene keeps explicit type and PDF conflict, automatically verifies real word forms and shows only exceptions', async ({
   page
 }) => {
