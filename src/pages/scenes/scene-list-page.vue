@@ -38,6 +38,7 @@ import { clientThumbnail } from '@/services/client-thumbnail'
 import { dateText, mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
 import { sceneImageId, sceneThumbnailURL } from '@/services/scene-image'
+import { useAdminStore } from '@/stores/admin-store'
 
 import type { CardView } from '@/features/scenes/editor-model'
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -47,6 +48,8 @@ const statusLabels: Record<string, string> = {
   published: '已发布',
   offline: '已下线'
 }
+const admin = useAdminStore()
+const owner = computed(() => admin.identity?.id || '')
 const route = useRoute(),
   router = useRouter(),
   search = ref(String(route.query.search || ''))
@@ -57,7 +60,8 @@ const historyOpen = ref(false),
   filterEpoch = ref(0)
 let failedQuery: Record<string, unknown> | null = null,
   navigationGeneration = 0
-let prefetched: components['schemas']['AdminCardPage'] | null = null
+let pendingFreeCommit: { target: string; run: number; discard: boolean } | null = null
+let prefetched: { query: string; value: components['schemas']['AdminCardPage'] } | null = null
 /** 读取目标条件的同一列表及统计快照
  * @param query 目标筛选及页码
  * @returns 服务端组合结果
@@ -145,9 +149,12 @@ const retryThumbnail = (card: CardView) => {
 let listingGeneration = 0
 const { data, busy, error, refresh } = useResource(async () => {
   const run = ++listingGeneration,
-    requested = route.fullPath
-  const value = prefetched || (await readList(route.query))
+    requested = route.fullPath,
+    requestOwner = owner.value
+  const cached = prefetched?.query === requested ? prefetched.value : null
   prefetched = null
+  const value = cached || (await readList(route.query))
+  if (requestOwner !== owner.value) throw new Error('管理员身份已变化，请重新加载')
   if (run !== listingGeneration || requested !== route.fullPath || route.path !== '/cards')
     return value
   if (route.query.focus) focusedCard.value = String(route.query.focus)
@@ -361,7 +368,9 @@ const selectPage = (checked: boolean) => {
 const batchProcessing = ref(false)
 const freeSelection = useCrossPageSelection(
   computed(() => data.value?.items || []),
-  page
+  page,
+  undefined,
+  owner
 )
 const freeActive = freeSelection.active,
   freeIds = freeSelection.ids,
@@ -374,6 +383,34 @@ const pagePartialSelected = computed(() =>
   freeActive.value
     ? freeSelection.partialSelected.value
     : selected.value.length > 0 && !allSelected.value
+)
+/** 只在路由真实提交后清理已确认的旧查询选择 */
+const commitFreeQuery = () => {
+  const pending = pendingFreeCommit
+  if (!pending || pending.target !== route.fullPath || pending.run !== navigationGeneration) return
+  if (pending.discard) freeSelection.clear()
+  if (route.path !== '/cards') {
+    freeActive.value = false
+    selected.value = []
+  }
+  pendingFreeCommit = null
+}
+watch(() => route.fullPath, commitFreeQuery, { flush: 'sync' })
+watch(
+  owner,
+  () => {
+    navigationGeneration++
+    listingGeneration++
+    pendingFreeCommit = null
+    prefetched = null
+    failedQuery = null
+    selected.value = []
+    data.value = null
+    error.value = ''
+    busy.value = false
+    if (owner.value && route.path === '/cards') void refresh()
+  },
+  { flush: 'sync' }
 )
 /** 进入免费模式前清空普通本页集合 */
 const enterFree = () => {
@@ -409,29 +446,42 @@ const selectVisible = (id: string, checked: boolean) => {
  * @param to 导航目标及查询条件
  * @param to.path 目标模块路径
  * @param to.query 目标筛选及分页条件
+ * @param run 发起导航时冻结的身份与导航代次
  * @returns 是否允许路由切换
  */
-const guardFreeQuery = async (to: { path: string; query: Record<string, unknown> }) => {
+const guardFreeQuery = async (
+  to: { path: string; query: Record<string, unknown> },
+  run: number
+) => {
   if (
     freeActive.value &&
     freeSelectionQueryKey(to.path, to.query) !== freeSelectionQueryKey(route.path, route.query) &&
-    !(await freeSelection.discard())
+    !(await freeSelection.canDiscard())
   ) {
-    search.value = String(route.query.search || '')
-    filterEpoch.value++
+    if (run === navigationGeneration) {
+      search.value = String(route.query.search || '')
+      filterEpoch.value++
+    }
     return false
   }
   return true
 }
 onBeforeRouteUpdate(async (to) => {
-  if (!(await guardFreeQuery(to))) return false
-  if (to.path !== '/cards') return true
   const run = ++navigationGeneration
+  const discard =
+    freeActive.value &&
+    freeSelectionQueryKey(to.path, to.query) !== freeSelectionQueryKey(route.path, route.query)
+  if (!(await guardFreeQuery(to, run)) || run !== navigationGeneration) {
+    if (run === navigationGeneration) busy.value = false
+    return false
+  }
+  if (to.path !== '/cards') return true
   busy.value = true
   try {
     const value = await readList(to.query)
     if (run !== navigationGeneration) return false
-    prefetched = value
+    prefetched = { query: to.fullPath, value }
+    pendingFreeCommit = { target: to.fullPath, run, discard }
     failedQuery = null
     return true
   } catch (reason) {
@@ -446,6 +496,21 @@ onBeforeRouteUpdate(async (to) => {
   }
 })
 
+/** 其他导航守卫取消时废弃预取快照，保留原查询和全部免费选择 */
+const removeNavigationResult = router.afterEach((to, _from, failure) => {
+  if (
+    !failure ||
+    pendingFreeCommit?.target !== to.fullPath ||
+    pendingFreeCommit.run !== navigationGeneration
+  )
+    return
+  pendingFreeCommit = null
+  prefetched = null
+  busy.value = false
+  search.value = String(route.query.search || '')
+  filterEpoch.value++
+})
+onBeforeUnmount(removeNavigationResult)
 /** 简短显示持久化的真实逐卡结果
  * @param batch 最近一次批量发布
  * @returns 成功、失败与处理中的实际数量
@@ -586,12 +651,12 @@ watch(
 )
 let listPosition: { path: string; left: number; top: number } | null = null
 onBeforeRouteLeave(async (to) => {
-  if (!(await guardFreeQuery(to))) return false
-  if (freeActive.value) {
-    freeActive.value = false
-    freeSelection.clear()
-    selected.value = []
+  const run = ++navigationGeneration
+  if (!(await guardFreeQuery(to, run)) || run !== navigationGeneration) {
+    if (run === navigationGeneration) busy.value = false
+    return false
   }
+  pendingFreeCommit = { target: to.fullPath, run, discard: freeActive.value }
   listPosition = { path: route.fullPath, left: window.scrollX, top: window.scrollY }
 })
 onActivated(async () => {

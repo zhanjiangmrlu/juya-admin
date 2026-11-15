@@ -102,9 +102,38 @@ const readyPayload = {
 it.each([true, false])(
   'publishes without mandatory preview and returns to the list only on success=%s',
   async (success) => {
-    const draft = { ...saved, id: 'existing', payload: readyPayload, word_count: 2 }
+    const body = '😀 She bought tea?!"'
+    const draft = {
+      ...saved,
+      id: 'existing',
+      payload: {
+        ...readyPayload,
+        body_en: body,
+        vocabulary: [
+          {
+            id: 'verified-word',
+            english: 'buy',
+            meaning: '买',
+            phonetic: '',
+            source_hint: '',
+            source: {
+              start: 0,
+              end: [...body].length,
+              quote: body,
+              word_start: 6,
+              word_end: 12,
+              word: 'bought',
+              confirmed: false
+            }
+          }
+        ]
+      },
+      word_count: 4
+    }
     const writes: Request[] = []
     network.mockImplementation(async (request: Request) => {
+      if (request.url.endsWith('/vocabulary/sources/preview'))
+        return Response.json({ module: 'listening', vocabulary: draft.payload.vocabulary })
       if (request.method !== 'GET') writes.push(request.clone())
       if (request.url.endsWith('/categories')) return Response.json({ items: [] })
       if (request.url.endsWith('/categories'))

@@ -1,11 +1,11 @@
 import type { ArticlePayload } from './listening-types'
 export type VocabularyWord = ArticlePayload['vocabulary'][number]
-/** 从当前英文正文提取可明确选择的原句，所有偏移使用Unicode码点
+/** 从当前英文正文提取可明确选择的原句，保留服务端同规则的连续句末标点和引号，偏移使用Unicode码点
  * @param body 未改写的英文正文
  * @returns 可选择的原句及码点范围
  */
 export const sentenceOptions = (body: string) =>
-  [...body.matchAll(/[^\s.!?][^.!?\r\n]*[.!?]?/gu)].map((match) => {
+  [...body.matchAll(/[^\s.!?][^.!?\r\n]*[.!?]*[”“’"']*/gu)].map((match) => {
     const start = [...body.slice(0, match.index)].length
     return { start, end: start + [...match[0]].length, quote: match[0] }
   })
@@ -18,7 +18,9 @@ export const sentenceOptions = (body: string) =>
  */
 export const wordOptions = (body: string, source: { start: number; end: number }) => {
   const quote = [...body].slice(source.start, source.end).join('')
-  return [...quote.matchAll(/[A-Za-z]+(?:['’-][A-Za-z]+)*/gu)].map((match) => {
+  return [
+    ...quote.matchAll(/(?<![\p{L}\p{N}_])[A-Za-z]+(?:['’‘\-‑][A-Za-z]+)*(?![\p{L}\p{N}_])/gu)
+  ].map((match) => {
     const word_start = source.start + [...quote.slice(0, match.index)].length
     return { word_start, word_end: word_start + [...match[0]].length, word: match[0] }
   })
@@ -126,15 +128,15 @@ export const resolveVocabularySource = (body: string, item: VocabularyWord) => {
 /** 校验词汇资料及其当前正文来源，空词汇仍允许发布
  * @param body 当前英文正文
  * @param words 保持独立义项和顺序的词汇条目
- * @returns 需要管理员处理的字段问题
+ * @returns 需要管理员处理的字段问题，缺少服务端来源时不以本地词形规则补造
  */
 export const vocabularyErrors = (body: string, words: VocabularyWord[]) =>
   words.flatMap((item, index) => {
     const errors: string[] = [],
-      source = item.source || (item.source_hint ? resolveVocabularySource(body, item) : null),
+      source = item.source,
       chars = [...body]
     if (
-      !/^[A-Za-z]+(?:['’-][A-Za-z]+)*$/.test(item.english.trim()) ||
+      !/^[A-Za-z]+(?:['’‘\-‑][A-Za-z]+)*$/.test(item.english.trim()) ||
       !item.meaning.trim() ||
       !item.id ||
       words.filter((word) => word.id === item.id).length !== 1

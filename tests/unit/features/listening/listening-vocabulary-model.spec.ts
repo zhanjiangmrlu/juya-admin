@@ -68,9 +68,9 @@ it('accepts the specified exact source when the same word occurs elsewhere', () 
 
 it('offers the exact server sentence boundaries and rejects partial sentence or invalid English entries', () => {
   expect(sentenceOptions('Hello?!\n"Good day."  Next.')).toEqual([
-    { start: 0, end: 6, quote: 'Hello?' },
-    { start: 8, end: 18, quote: '"Good day.' },
-    { start: 18, end: 26, quote: '"  Next.' }
+    { start: 0, end: 7, quote: 'Hello?!' },
+    { start: 8, end: 19, quote: '"Good day."' },
+    { start: 21, end: 26, quote: 'Next.' }
   ])
   const word = {
     id: 'w',
@@ -170,7 +170,7 @@ it.each([
   ).toEqual(expected)
 })
 
-it('validates an older hint-only candidate without mutating its saved source', () => {
+it('requires a server source for an older hint-only candidate without using the local inflection fallback', () => {
   const word = {
     id: 'w',
     english: 'go',
@@ -179,6 +179,34 @@ it('validates an older hint-only candidate without mutating its saved source', (
     source_hint: 'She goes.',
     source: null
   }
-  expect(vocabularyErrors('He goes. She goes.', [word])).toEqual([])
+  expect(vocabularyErrors('He goes. She goes.', [word])).toContain(
+    '词汇1：正文已变化，请重新选择来源原句和词形'
+  )
   expect(word.source).toBeNull()
+})
+
+it.each([
+  'She bought tea!”',
+  'She bought tea?!"',
+  "She bought tea?!'",
+  'She bought tea!!’',
+  '😀 She bought tea?!’',
+  '“She bought tea?!”'
+])('accepts the server original punctuation and codepoint boundaries for %s', (body) => {
+  const start = [...body.slice(0, body.indexOf('bought'))].length
+  const source = {
+    start: 0,
+    end: [...body].length,
+    quote: body,
+    word_start: start,
+    word_end: start + 6,
+    word: 'bought',
+    confirmed: false
+  }
+  expect(sentenceOptions(body)).toEqual([{ start: 0, end: [...body].length, quote: body }])
+  expect(
+    vocabularyErrors(body, [
+      { id: 'w', english: 'buy', meaning: '买', phonetic: '', source_hint: '', source }
+    ])
+  ).toEqual([])
 })

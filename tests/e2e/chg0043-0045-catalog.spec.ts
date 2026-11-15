@@ -6,9 +6,11 @@ import { emptyPayload } from '../../src/features/listening/listening-model'
 
 /** 提供两模块的同快照列表、分类统计及历史建议，写入仅记录隔离Mock
  * @param page 当前浏览器测试页面
+ * @param options 控制只在指定筛选时失败的独立回归场景
+ * @param options.failFilter 是否让非空搜索的组合快照返回503
  * @returns 本轮只读及写入Mock请求记录
  */
-const mockCatalog = async (page: Page) => {
+const mockCatalog = async (page: Page, options: { failFilter?: boolean } = {}) => {
   let fail = true
   const requests: string[] = [],
     writes: string[] = []
@@ -47,6 +49,11 @@ const mockCatalog = async (page: Page) => {
       })
     if (path.endsWith('/cards') || path.endsWith('/articles')) {
       requests.push(request.url())
+      if (options.failFilter && (url.searchParams.get('search') || url.searchParams.get('q')))
+        return route.fulfill({
+          status: 503,
+          json: { error: { code: 'temporarily_unavailable', message: '筛选组合快照失败' } }
+        })
       const current = Number(url.searchParams.get('page') || 1),
         isScene = path.endsWith('/cards'),
         empty = url.searchParams.get('search') === 'empty' || url.searchParams.get('q') === 'empty'
@@ -593,4 +600,124 @@ test('listening restored duplicates remain excluded and open retained candidates
     path: '/tmp/chg0044-listening-candidate-1440.png',
     animations: 'disabled'
   })
+})
+
+for (const path of ['/cards', '/listening']) {
+  test(`${path} retains confirmed cross-page free selection after a filter 503`, async ({
+    page
+  }) => {
+    await mockCatalog(page, { failFilter: true })
+    await page.goto(path)
+    await page.getByRole('button', { name: '批量设置免费', exact: true }).click()
+    await page.locator('tbody tr').first().locator('.el-checkbox').click()
+    await page.getByLabel('前往页码').fill('2')
+    await page.getByRole('button', { name: '跳转', exact: true }).click()
+    await expect(page.locator('.pagination')).toContainText('第 2 / 3 页')
+    await page.locator('tbody tr').first().locator('.el-checkbox').click()
+    await expect(page.locator('.free-selection-bar')).toContainText('跨2页')
+    await page.locator('.filters input').first().fill('failed-filter')
+    await page.locator('.filters button[type=submit]').click()
+    await page.getByRole('button', { name: '清空并继续', exact: true }).click()
+    await expect(page.getByLabel('分类统计')).toContainText('保留旧快照，未刷新')
+    expect(new URL(page.url()).searchParams.get('page')).toBe('2')
+    expect(new URL(page.url()).searchParams.get(path === '/cards' ? 'search' : 'q')).toBeNull()
+    await expect(page.locator('.free-selection-bar')).toContainText('跨2页')
+    await expect(page.locator('tbody tr').first().locator('input[type=checkbox]')).toBeChecked()
+    await page.getByLabel('前往页码').fill('1')
+    await page.getByRole('button', { name: '跳转', exact: true }).click()
+    await expect(page.locator('.pagination')).toContainText('第 1 / 3 页')
+    await expect(page.locator('tbody tr').first().locator('input[type=checkbox]')).toBeChecked()
+    await expect(page.locator('.free-selection-bar')).toContainText('跨2页')
+  })
+}
+
+test('listening publishes a server source with emoji, repeated punctuation and the original closing quote', async ({
+  page
+}) => {
+  const body = '😀 She bought tea?!"'
+  const vocabulary = [
+    {
+      id: 'word',
+      english: 'buy',
+      meaning: '买',
+      phonetic: '',
+      source_hint: '',
+      source: {
+        start: 0,
+        end: [...body].length,
+        quote: body,
+        word_start: 6,
+        word_end: 12,
+        word: 'bought',
+        confirmed: false
+      }
+    }
+  ]
+  const payload = {
+    ...emptyPayload(),
+    title_zh: '服务端原句',
+    title_en: 'Original Server Quote',
+    body_en: body,
+    translation_zh: '她买了茶',
+    audio_id: 'audio',
+    expressions: Array.from({ length: 5 }, () => ({
+      english: 'expression',
+      chinese: '表达',
+      example: 'Example.'
+    })),
+    vocabulary
+  }
+  const article = {
+    id: 'quoted',
+    category_id: 'c',
+    status: 'draft',
+    revision: 1,
+    payload,
+    word_count: 4,
+    timeline: { state: 'missing' },
+    is_free: false,
+    free_revision: 1
+  }
+  let published = 0
+  await page.route('**/api/admin/v1/**', async (route) => {
+    const request = route.request(),
+      path = new URL(request.url()).pathname
+    if (path.endsWith('/auth/session'))
+      return route.fulfill({
+        json: { id: 'quoted-admin', username: '隔离验收', csrf_token: 'synthetic' }
+      })
+    if (path.endsWith('/categories'))
+      return route.fulfill({
+        json: { items: [{ id: 'c', name: '生活听读', revision: 1, sort_order: 1 }] }
+      })
+    if (path.endsWith('/vocabulary/sources/preview'))
+      return route.fulfill({ json: { module: 'listening', vocabulary } })
+    if (path.endsWith('/articles/quoted/publish')) {
+      published++
+      expect(request.postDataJSON()).toEqual({ revision: 1 })
+      return route.fulfill({ json: { ...article, status: 'published', revision: 2 } })
+    }
+    if (path.endsWith('/articles/quoted')) return route.fulfill({ json: article })
+    if (path.endsWith('/articles'))
+      return route.fulfill({
+        json: {
+          items: [],
+          total: 0,
+          page: 1,
+          limit: 10,
+          total_pages: 0,
+          statistics: { total: 0, published: 0, free: 0, remaining: 0 },
+          all_statistics: { total: 0, published: 0, free: 0, remaining: 0 }
+        }
+      })
+    return route.fulfill({
+      json: path.endsWith('/free-policy') ? { article_ids: [], revision: 1 } : []
+    })
+  })
+  await page.goto('/listening/quoted')
+  const publish = page.locator('.save-panel').getByRole('button', { name: '发布', exact: true })
+  await expect(publish).toBeEnabled()
+  await publish.click()
+  await expect(page).toHaveURL(/\/listening$/)
+  expect(published).toBe(1)
 })
