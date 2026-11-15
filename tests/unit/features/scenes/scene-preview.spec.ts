@@ -19,6 +19,7 @@ const content = {
       english: 'tea',
       meaning: '茶',
       phonetic: '',
+      source_hint: '',
       pronunciation_text: '',
       pronunciation_issue: false,
       source: { line_id: 'line', start: 5, end: 8, quote: 'tea' }

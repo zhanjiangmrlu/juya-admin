@@ -10,6 +10,7 @@ import type { ImportBatch, ImportEdit, ImportEntry, ImportItem } from '@/shared/
  * @returns 可编辑正文与明确更新目标
  */
 const editValue = (item: ImportItem): ImportEdit => ({
+  content_type: item.content_type || null,
   content: JSON.parse(
     JSON.stringify({
       ...item.content,
@@ -86,6 +87,7 @@ export const useImportStaging = (batchId: () => string) => {
    * @returns 本次冻结快照是否已落盘
    */
   const save = (entry: ImportEntry): Promise<boolean> => {
+    if (entry.item.state === 'duplicate') return Promise.resolve(!isDirty(entry))
     const existing = running.get(entry.item.id)
     if (existing) return existing
     if (!isDirty(entry) && !pending.has(entry.item.id)) return Promise.resolve(true)

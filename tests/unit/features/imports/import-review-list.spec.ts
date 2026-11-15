@@ -142,3 +142,18 @@ it('allows duplicate removal independently of its disabled save selection', asyn
   expect(page.emitted('select')).toBeUndefined()
   page.unmount()
 })
+
+it('keeps unknown and multiple document type values visible before a single-item review', () => {
+  const invalid = entry('unknown-type')
+  invalid.item.type_raw = ['未知类型', '精读词汇']
+  invalid.item.content_type = null
+  invalid.item.issues = [
+    { field: 'content_type', code: 'invalid', message: '文件类型存在未知或多个值，请逐项核对' }
+  ]
+  const page = mount(ImportReviewList, { props: { entries: [invalid], busy: false, dirtyIds: [] } })
+  expect(page.get('[data-item-id="unknown-type"]').text()).toContain('未知类型、精读词汇')
+  expect(page.text()).toContain('请逐项核对')
+  expect(page.text()).toContain('待补类型')
+  expect(page.text()).not.toContain('资料完整')
+  page.unmount()
+})

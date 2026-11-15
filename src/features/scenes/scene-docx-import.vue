@@ -2,6 +2,7 @@
 import { onBeforeUnmount, ref } from 'vue'
 
 import AppUploadProgress from '@/components/app-upload-progress/app-upload-progress.vue'
+import { contentTypeLabels } from '@/features/content-catalog/content-catalog-model'
 import SceneReader from '@/features/scenes/scene-reader.vue'
 import SceneTitle from '@/features/scenes/scene-title.vue'
 import { api, ApiError } from '@/services/http-client'
@@ -12,7 +13,14 @@ import type { components } from '@/shared/contracts/generated/admin-api'
 import type { ImportBatch, ImportFile } from '@/shared/types/import'
 import type { UploadProgress } from '@/shared/types/media'
 const props = defineProps<{ content: SceneContent; disabled?: boolean; compact?: boolean }>()
-const emit = defineEmits<{ apply: [content: SceneContent]; busy: [value: boolean] }>()
+const emit = defineEmits<{
+  apply: [content: SceneContent]
+  type: [value: 'illustrated' | 'intensive' | null]
+  typeRaw: [value: string[]]
+  busy: [value: boolean]
+}>()
+const candidateType = ref<'illustrated' | 'intensive' | null>(null),
+  candidateTypeRaw = ref<string[]>([])
 const candidate = ref<SceneContent | null>(null),
   open = ref(false),
   busy = ref(false),
@@ -97,6 +105,8 @@ const read = async () => {
       if (source?.state === 'ready') {
         if (value.items.length !== 1 || !value.items[0]?.readable)
           throw new Error('单卡DOCX必须恰好一张卡片，多卡请改用批量导入')
+        candidateType.value = value.items[0].content_type || null
+        candidateTypeRaw.value = value.items[0].type_raw || []
         const content = value.items[0].content
         candidateIssues.value = (value.items[0].issues || []).filter(
           (issue) => issue.field === 'title_en'
@@ -150,6 +160,8 @@ const cancel = () => {
 /** 明确核对后替换双标题和三组文本，保留当前图片与音频引用 */
 const apply = () => {
   if (!candidate.value) return
+  emit('type', candidateType.value)
+  emit('typeRaw', candidateTypeRaw.value)
   emit('apply', {
     ...props.content,
     name: candidate.value.name.trim(),
@@ -203,6 +215,11 @@ onBeforeUnmount(() => {
         }}个→{{ candidate.vocabulary.length }}个、语块{{ content.chunks.length }}个→{{
           candidate.chunks.length
         }}个及中英文标题。图片和音频保留；请核对标题后确认。
+      </p>
+      <p class="notice">
+        文件内容类型：{{
+          candidateType ? contentTypeLabels[candidateType] : '未明确类型，应用后请补选'
+        }}<span v-if="candidateTypeRaw.length"> · 原始值：{{ candidateTypeRaw.join('、') }}</span>
       </p>
       <div class="candidate-titles">
         <label

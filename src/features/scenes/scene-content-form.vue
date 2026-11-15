@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ElMessageBox } from 'element-plus'
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
+
+import VocabularySourceReview from '@/features/content-catalog/vocabulary-source-review.vue'
 
 import type { components } from '@/shared/contracts/generated/admin-api'
 import type { WordPronunciationState } from '@/shared/types/scene-components'
@@ -18,6 +20,17 @@ defineProps<{
   pronunciationDisabled?: boolean
 }>()
 const emit = defineEmits<{ uploading: [value: boolean]; pronounce: [id: string] }>()
+const onlySourceErrors = ref(false)
+/** 展开异常词条并定位到原有编辑表单
+ * @param id 待修正词条的稳定标识
+ */
+const repairWord = async (id: string) => {
+  onlySourceErrors.value = false
+  await nextTick()
+  const entry = document.querySelector(`[data-word-id="${CSS.escape(id)}"]`)
+  entry?.scrollIntoView?.({ block: 'center' })
+  entry?.querySelector('input')?.focus()
+}
 const pasted = ref(''),
   pasteOpen = ref(false),
   pasteError = ref(''),
@@ -73,9 +86,23 @@ const addWord = () =>
     meaning: '',
     phonetic: '',
     source: null,
+    source_hint: '',
     pronunciation_text: '',
     pronunciation_issue: false
   })
+/** 管理员明确选择当前原句后替换冲突提示，保留原文UTF-16范围
+ * @param word 正在核对的独立资料词条
+ * @param source 管理员实际选择的当前正文位置
+ */
+const selectWordSource = (
+  word: SceneContent['vocabulary'][number],
+  source: components['schemas']['Source']
+) => {
+  word.source = source
+  word.source_hint =
+    content.value.dialogue.find((line) => line.id === source.line_id)?.english || ''
+  word.source_reason = null
+}
 /** 新增选填语块输入框
  * @returns 当前语块数量
  */
@@ -216,12 +243,23 @@ const applyPaste = () => {
         ＋ 添加一组对话
       </button>
     </section>
+    <VocabularySourceReview
+      module="scene"
+      :content="content"
+      :disabled="disabled"
+      @matched="content.vocabulary = $event as SceneContent['vocabulary']"
+      @exceptions="onlySourceErrors = $event"
+      @remove="content.vocabulary = content.vocabulary.filter((word) => word.id !== $event)"
+      @repair="repairWord"
+    />
     <section id="field-vocabulary" class="editor-section">
       <h2><span class="section-number">3</span>重点词汇</h2>
       <p class="section-help">本句释义与音标独立选填，请确认对应原句中的具体片段</p>
       <div
         v-for="(word, index) in content.vocabulary"
+        v-show="!onlySourceErrors || !word.source || !!word.source_reason"
         :key="word.id"
+        :data-word-id="word.id"
         class="entry vocabulary-entry"
       >
         <div class="between">
@@ -296,7 +334,7 @@ const applyPaste = () => {
         <SceneWordSource
           :dialogue="content.dialogue"
           :word="word"
-          @select="word.source = $event"
+          @select="selectWordSource(word, $event)"
         /><label class="check-field"
           ><input
             v-model="word.pronunciation_issue"

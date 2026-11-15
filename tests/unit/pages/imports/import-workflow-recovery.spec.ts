@@ -56,6 +56,7 @@ const item = (state = 'incomplete'): ImportItem => ({
  */
 const batch = (id = 'batch-one', stage: RecoveryBatch['stage'] = 'review'): RecoveryBatch => ({
   id,
+  removed_count: 0,
   mode: 'zip',
   created_at: '2026-10-20T00:00:00Z',
   updated_at: '2026-10-22T01:20:00Z',

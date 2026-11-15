@@ -14,6 +14,7 @@ vi.mock('@/services/http-client', async (original) => ({
 const pages: ReturnType<typeof mount>[] = []
 const batch: ImportBatch = {
   id: 'batch/one',
+  removed_count: 0,
   mode: 'zip',
   created_at: '',
   updated_at: '2026-10-23T01:02:03.123456Z',

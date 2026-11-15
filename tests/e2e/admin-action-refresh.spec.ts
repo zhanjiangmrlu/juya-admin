@@ -12,7 +12,7 @@ for (const action of ['offline', 'delete'] as const) {
     await page.getByLabel('管理员账号').fill(credentials.username)
     await page.getByLabel('密码', { exact: true }).fill(credentials.password)
     await page.getByRole('button', { name: '登录后台' }).click()
-    await expect(page.getByRole('heading', { name: '卡片管理', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '场景卡片', exact: true })).toBeVisible()
     const session = await (await page.request.get('/api/admin/v1/auth/session')).json()
     /** 为每个真实写请求生成独立幂等键
      * @returns 当前会话及本次操作的请求头

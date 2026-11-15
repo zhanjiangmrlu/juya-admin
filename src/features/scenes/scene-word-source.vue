@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+import { sourceReasonLabels } from '@/features/content-catalog/content-catalog-model'
+
 import type { components } from '@/shared/contracts/generated/admin-api'
 
 import { findSources, type SceneContent } from './editor-model'
@@ -16,6 +18,7 @@ const actual = computed(() => {
   const source = props.word.source
   return (
     source &&
+    !props.word.source_reason &&
     props.dialogue.some(
       (line) =>
         line.id === source.line_id && line.english.slice(source.start, source.end) === source.quote
@@ -36,11 +39,12 @@ const selection = (event: Event, line: SceneContent['dialogue'][number]) => {
 </script>
 <template>
   <div class="word-source">
+    <p v-if="word.source_hint" class="source-sentence">资料原句：{{ word.source_hint }}</p>
     <template v-if="actual"
       ><p class="source-ok">
-        已关联原句 · <mark>{{ word.source?.quote }}</mark>
+        自动通过／无需手动确认 · 正文实际词形 <mark>{{ word.source?.quote }}</mark>
       </p></template
-    ><template v-else-if="candidates.length === 1"
+    ><template v-else-if="!word.source_reason && candidates.length === 1"
       ><p class="source-ok">
         唯一对应位置 · <mark>{{ candidates[0]?.quote }}</mark>
       </p>
@@ -48,9 +52,11 @@ const selection = (event: Event, line: SceneContent['dialogue'][number]) => {
     ><template v-else
       ><p class="muted small">
         {{
-          candidates.length
-            ? '找到多处位置，请选择本条词汇对应的原句'
-            : '未找到对应位置，请修改词汇，或手动选择原句片段'
+          word.source_reason
+            ? '来源待核对：' + (sourceReasonLabels[word.source_reason] || '请重新核对来源')
+            : candidates.length
+              ? '待服务端统一匹配，可靠结果无需手动确认'
+              : '未找到对应位置，请修改词汇，或手动选择原句片段'
         }}
       </p>
       <button

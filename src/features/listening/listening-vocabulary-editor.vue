@@ -18,6 +18,8 @@ import {
 const words = defineModel<VocabularyWord[]>({ required: true })
 const props = defineProps<{
   body: string
+  serverMatching?: boolean
+  onlyErrors?: boolean
   disabled?: boolean
   pronunciation?: ListeningPronunciationContext
 }>()
@@ -78,7 +80,9 @@ const selectWord = (item: VocabularyWord, start: number) => {
 }
 /** 按当前正文更新词汇来源，无法匹配时保留文档原句供修正 */
 const matchSources = () => {
+  if (props.serverMatching) return
   const next = words.value.map((item) => {
+    if (item.source_reason) return item
     const matched = resolveVocabularySource(props.body, item)
     // 手动指定原句后保留待选词形状态，未知变形也可以从真实正文中调整
     const pending =
@@ -117,7 +121,13 @@ watch(
       同词不同义分别保存；原句须来自当前正文。单词发音由受控服务生成，不上传逐词音频。
     </p>
     <p v-if="!words.length" class="muted small">没有词汇仍可发布，阅读预览隐藏整个词汇区</p>
-    <article v-for="(item, index) in words" :key="item.id" class="vocabulary-card">
+    <article
+      v-for="(item, index) in words"
+      v-show="!onlyErrors || !item.source || !!item.source_reason"
+      :key="item.id"
+      :data-word-id="item.id"
+      class="vocabulary-card"
+    >
       <div class="between">
         <strong>{{ item.english || '待填词汇' }} · {{ item.meaning || '待填释义' }}</strong>
         <div class="row">
@@ -160,7 +170,12 @@ watch(
             v-model="item.english"
             :aria-label="`词汇${index + 1}英文`"
             :disabled="disabled"
-            @input="item.source = null"
+            @input="
+              () => {
+                item.source = null
+                item.source_reason = null
+              }
+            "
         /></label>
         <label class="field"
           ><span class="field-label">音标（选填）</span
@@ -215,7 +230,8 @@ watch(
         }}
       </p>
       <p v-else class="source-confirmed">
-        <img :src="confirmedIcon" width="15" height="15" alt="" />来源已匹配 · 不同义项独立保存
+        <img :src="confirmedIcon" width="15" height="15" alt="" />自动通过／无需手动确认 ·
+        不同义项独立保存
       </p>
       <p
         v-if="speech.current.value === item.id && speech.error.value"

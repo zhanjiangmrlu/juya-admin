@@ -15,6 +15,7 @@ export interface ImportRemoved {
   itemIds: string[]
 }
 export interface ImportEdit {
+  content_type?: 'illustrated' | 'intensive' | null
   study_note?: components['schemas']['StudyNoteChange'] | null
   content: SceneContent
   selected: boolean

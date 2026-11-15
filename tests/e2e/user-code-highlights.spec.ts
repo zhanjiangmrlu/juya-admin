@@ -14,7 +14,7 @@ test('publishes overlapping highlights and uses one stable code across users and
   await page.getByLabel('管理员账号').fill(fixture.username)
   await page.getByLabel('密码', { exact: true }).fill(fixture.password)
   await page.getByRole('button', { name: '登录后台' }).click()
-  await expect(page.getByRole('heading', { name: '卡片管理', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '场景卡片', exact: true })).toBeVisible()
   await page.goto(`/cards/${fixture.card_id}`)
   await page.getByRole('button', { name: '预览并发布', exact: true }).click()
   const preview = page.getByRole('dialog', { name: '发布前预览' })
@@ -25,7 +25,7 @@ test('publishes overlapping highlights and uses one stable code across users and
     animations: 'disabled'
   })
   await page.getByRole('button', { name: '确认发布', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '卡片管理', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '场景卡片', exact: true })).toBeVisible()
   await page.goto('/users?search=Juya001')
   const users = page.locator('tbody')
   await expect(users).toContainText('Juya001')

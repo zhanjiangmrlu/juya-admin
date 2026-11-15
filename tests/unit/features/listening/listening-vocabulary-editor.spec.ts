@@ -46,7 +46,7 @@ it('marks a source stale when the body changes', async () => {
       ]
     }
   })
-  expect(page.text()).toContain('来源已匹配')
+  expect(page.text()).toContain('自动通过／无需手动确认')
   await page.setProps({ body: 'She goes.' })
   await flushPromises()
   expect(page.text()).toContain('正文已变化')
@@ -81,7 +81,7 @@ it('automatically shows and saves the DOCX sentence and inflected word without m
     confirmed: true
   })
   await page.setProps({ modelValue: matched })
-  expect(page.text()).toContain('来源已匹配')
+  expect(page.text()).toContain('自动通过／无需手动确认')
   expect(page.find('input[type=checkbox]').exists()).toBe(false)
   expect(page.find('[role=alert]').exists()).toBe(false)
   page.unmount()

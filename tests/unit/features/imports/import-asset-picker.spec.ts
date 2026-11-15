@@ -27,6 +27,7 @@ const file = (id: string, name: string, parentId: string, kind: string): ImportF
 it('only offers media in the current ZIP and exact card folder', () => {
   const batch = {
     id: 'batch',
+    removed_count: 0,
     mode: 'zip',
     files: [
       file('source', 'outer/one/内容.docx', 'zip-one', 'docx'),

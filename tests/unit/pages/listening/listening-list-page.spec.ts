@@ -95,7 +95,7 @@ it('shows direct category ownership, real free membership and audio status for e
   const { page } = await open()
   expect(page.get('tbody').text()).toContain('日常生活')
   expect(page.get('tbody').text()).toContain('免费开放')
-  expect(page.get('tbody').text()).toContain('需学习授权')
+  expect(page.get('tbody').text()).toContain('暂未开放')
   expect(page.get('tbody').text()).toContain('音频待补充')
   page.unmount()
 })
@@ -251,7 +251,13 @@ it('keeps controlled article selection and clears it on pagination and filter ch
   const original = network.getMockImplementation()!
   network.mockImplementation(async (request: Request) => {
     if (new URL(request.url).pathname.endsWith('/articles'))
-      return Response.json({ items: [article('1'), article('2')], total: 20, page: 1, limit: 10 })
+      return Response.json({
+        items: [article('1'), article('2')],
+        total: 20,
+        page: Number(new URL(request.url).searchParams.get('page') || 1),
+        limit: 10,
+        total_pages: 2
+      })
     return original(request)
   })
   const { page, router } = await open()
@@ -353,4 +359,81 @@ it('marks only failed article deletions and keeps retry limited to the original 
   } finally {
     page.unmount()
   }
+})
+
+it('retains article selection, URL and combined statistics when a manual jump fails, then commits the retry', async () => {
+  const original = network.getMockImplementation()!
+  let fail = true
+  network.mockImplementation(async (request: Request) => {
+    const url = new URL(request.url)
+    if (!url.pathname.endsWith('/articles')) return original(request)
+    const target = Number(url.searchParams.get('page') || 1)
+    if (target === 3 && fail)
+      return Response.json(
+        { error: { code: 'temporarily_unavailable', message: '稍后重试' } },
+        { status: 503 }
+      )
+    return Response.json({
+      items: [article(String(target))],
+      page: target,
+      limit: 10,
+      total: 30,
+      total_pages: 3,
+      statistics: { total: 100, published: 80, free: 30, remaining: 50 },
+      all_statistics: { total: 130, published: 90, free: 35, remaining: 55 },
+      snapshot_at: 'one-snapshot'
+    })
+  })
+  const { page, router } = await open()
+  await page.get('[aria-label="选择文章1"] input').setValue(true)
+  await page.get('[aria-label="前往页码"]').setValue('003')
+  await page.get('.page-jump').trigger('submit')
+  await flushPromises()
+  expect(router.currentRoute.value.query.page).toBeUndefined()
+  expect(page.get('[aria-label="选择文章1"] input').element).toHaveProperty('checked', true)
+  expect(page.get('[aria-label="分类统计"]').text()).toContain('保留旧快照，未刷新')
+  expect(page.text()).toContain('100')
+  fail = false
+  await page.get('.page-jump').trigger('submit')
+  await flushPromises()
+  expect(router.currentRoute.value.query.page).toBe('3')
+  expect(page.text()).toContain('第 3 / 3 页')
+  expect(page.find('.selection-bar').exists()).toBe(false)
+  page.unmount()
+})
+
+it('uses the server effective article page when the last page disappears and disables jumping at zero', async () => {
+  const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+  const original = network.getMockImplementation()!
+  let empty = false
+  network.mockImplementation(async (request: Request) =>
+    new URL(request.url).pathname.endsWith('/articles')
+      ? Response.json({
+          items: empty ? [] : [article('remaining')],
+          total: empty ? 0 : 15,
+          page: empty ? 1 : 2,
+          limit: 10,
+          total_pages: empty ? 0 : 2,
+          statistics: {
+            total: empty ? 0 : 15,
+            published: empty ? 0 : 15,
+            free: 0,
+            remaining: empty ? 0 : 15
+          }
+        })
+      : original(request)
+  )
+  const { page, router } = await open()
+  await flushPromises()
+  expect(router.currentRoute.value.query.page).toBe('2')
+  expect(page.text()).toContain('第 2 / 2 页')
+  empty = true
+  page.getComponent({ name: 'FreeAccessControl' }).vm.$emit('changed')
+  await flushPromises()
+  expect(router.currentRoute.value.query.page).toBe('1')
+  expect(page.text()).toContain('共 0 篇')
+  expect(page.text()).not.toContain('1 / 0')
+  expect(page.get('[aria-label="前往页码"]').attributes('disabled')).toBeDefined()
+  page.unmount()
+  scroll.mockRestore()
 })

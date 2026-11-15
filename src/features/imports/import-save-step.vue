@@ -42,7 +42,10 @@ const counts = computed(() => ({
         已保存{{ confirmation.saved }} · 重复跳过{{ confirmation.duplicates }} · 排除{{
           confirmation.excluded
         }}
-        · 无法读取{{ confirmation.unreadable }}
+        · 无法读取{{ confirmation.unreadable }} · 人工移除{{ confirmation.removed }} · 保存失败{{
+          confirmation.failed
+        }}
+        · 文件处理失败{{ confirmation.failed_files }} · ZIP包{{ confirmation.package_count }}个
       </p>
       <ul>
         <li

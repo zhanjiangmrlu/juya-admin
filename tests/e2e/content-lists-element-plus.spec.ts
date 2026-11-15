@@ -103,7 +103,7 @@ const mockLists = async (page: Page) => {
 
 for (const width of [1440, 1911]) {
   for (const [path, heading, selectAll] of [
-    ['/cards', '卡片管理', '选择本页卡片'],
+    ['/cards', '场景卡片', '选择本页卡片'],
     ['/listening', '听读文章管理', '全选当前页文章']
   ]) {
     test(`${path} preserves layout and list behavior at ${width}px`, async ({ page }) => {
@@ -158,7 +158,7 @@ for (const width of [1440, 1911]) {
         .click()
       await expect(
         page.getByRole('heading', {
-          name: path === '/cards' ? '听读文章管理' : '卡片管理',
+          name: path === '/cards' ? '听读文章管理' : '场景卡片',
           exact: true
         })
       ).toBeVisible()

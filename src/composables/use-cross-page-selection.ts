@@ -11,7 +11,7 @@ import type { Ref } from 'vue'
 export const freeSelectionQueryKey = (module: string, query: Record<string, unknown>) =>
   JSON.stringify([
     module,
-    ...['search', 'q', 'status', 'category_id', 'batch_id', 'sort'].map((key) =>
+    ...['search', 'q', 'status', 'category_id', 'content_type', 'batch_id', 'sort'].map((key) =>
       String(query[key] || '')
     )
   ])

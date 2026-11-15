@@ -58,6 +58,7 @@ it('pauses full audio without losing its position and ignores a late previous wo
             english: 'one',
             meaning: '一',
             phonetic: '',
+            source_hint: '',
             pronunciation_text: '',
             pronunciation_issue: false
           },
@@ -66,6 +67,7 @@ it('pauses full audio without losing its position and ignores a late previous wo
             english: 'two',
             meaning: '二',
             phonetic: '',
+            source_hint: '',
             pronunciation_text: '',
             pronunciation_issue: false
           }

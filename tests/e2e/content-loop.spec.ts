@@ -15,7 +15,7 @@ test('real admin login, private upload, immutable publication and stale editor c
   await page.getByLabel('管理员账号').fill(settings.username)
   await page.getByLabel('密码', { exact: true }).fill(settings.password)
   await page.getByRole('button', { name: '登录后台' }).click()
-  await expect(page.getByRole('heading', { name: '卡片管理', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '场景卡片', exact: true })).toBeVisible()
   await page.getByRole('link', { name: '新建卡片' }).click()
   const name = `浏览器验收咖啡场景-${Date.now()}`
   await page.getByLabel('中文标题', { exact: true }).fill(name)
@@ -60,7 +60,7 @@ test('real admin login, private upload, immutable publication and stale editor c
     fullPage: true
   })
   await page.getByRole('button', { name: '确认发布', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '卡片管理', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '场景卡片', exact: true })).toBeVisible()
   const row = page.getByRole('row').filter({ hasText: name })
   await expect(row).toContainText('已发布')
   await row.getByRole('button', { name: '查看效果' }).click()

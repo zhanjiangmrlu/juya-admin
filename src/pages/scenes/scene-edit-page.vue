@@ -13,6 +13,7 @@ import {
   type SceneContent
 } from '@/features/scenes/editor-model'
 import SceneContentForm from '@/features/scenes/scene-content-form.vue'
+import SceneContentType from '@/features/scenes/scene-content-type.vue'
 import SceneDocxImport from '@/features/scenes/scene-docx-import.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import SceneStudyNote from '@/features/scenes/scene-study-note.vue'
@@ -21,6 +22,7 @@ import { api, ApiError } from '@/services/http-client'
 import { registerLogoutGuard } from '@/services/logout-guard'
 import { loadPronunciation } from '@/services/pronunciation-service'
 
+import type { ContentType } from '@/features/content-catalog/content-catalog-model'
 import type { components } from '@/shared/contracts/generated/admin-api'
 const route = useRoute(),
   router = useRouter(),
@@ -40,8 +42,21 @@ const preview = ref<CardPreview | null>(null),
 const studyNote = ref<components['schemas']['StudyNoteChange'] | null>(null),
   noteTransfer = ref(false),
   noteBlocked = ref(false)
+const typeRaw = ref<string[]>([])
+const contentType = ref<ContentType | null>(null),
+  savedType = ref<ContentType | null>(null)
+const hasPdf = computed(() =>
+  studyNote.value?.action === 'remove'
+    ? false
+    : studyNote.value?.action === 'set'
+      ? !!studyNote.value.media_id
+      : !!saved.value?.study_note?.attachment
+)
 const dirty = computed(
-  () => JSON.stringify(content.value) !== baseline.value || studyNote.value !== null
+  () =>
+    JSON.stringify(content.value) !== baseline.value ||
+    studyNote.value !== null ||
+    contentType.value !== savedType.value
 )
 const draftSpeech = useWordPronunciation(async (wordId, active) => {
   if (!(await save()) || !saved.value || !active()) throw new Error('请先保存资料后试听')
@@ -84,6 +99,8 @@ const back = computed(() => String(route.query.back || '/cards'))
  */
 const accept = (card: CardView) => {
   saved.value = card
+  contentType.value = card.draft_content_type || null
+  savedType.value = contentType.value
   studyNote.value = null
   content.value = {
     ...card.content,
@@ -127,8 +144,12 @@ const save = async () => {
   issues.value = []
   try {
     let body = saved.value
-      ? { revision: saved.value.draft_revision, content: prepareContent(content.value) }
-      : { content: prepareContent(content.value) }
+      ? {
+          revision: saved.value.draft_revision,
+          content: prepareContent(content.value),
+          content_type: contentType.value
+        }
+      : { content: prepareContent(content.value), content_type: contentType.value }
     body = {
       ...body,
       ...(studyNote.value ? { study_note: JSON.parse(JSON.stringify(studyNote.value)) } : {})
@@ -147,6 +168,7 @@ const save = async () => {
       body = {
         revision: recovered.draft_revision,
         content: wanted,
+        content_type: contentType.value,
         ...(wantedNote ? { study_note: JSON.parse(JSON.stringify(wantedNote)) } : {})
       }
       fingerprint = JSON.stringify(body)
@@ -295,6 +317,13 @@ onBeforeUnmount(() => {
           <li v-for="(issue, index) in issues" :key="index">{{ issue.message }}</li>
         </ul>
       </div>
+      <SceneContentType
+        v-model="contentType"
+        :has-pdf="hasPdf"
+        :raw="typeRaw"
+        :blocked="noteBlocked"
+        :disabled="busy"
+      />
       <SceneContentForm
         v-model="content"
         :limits="limits"
@@ -318,6 +347,8 @@ onBeforeUnmount(() => {
             :content="content"
             :disabled="busy || uploading"
             @apply="content = $event"
+            @type="contentType = $event"
+            @type-raw="typeRaw = $event"
             @busy="readingDocx = $event"
           /> </template
       ></SceneContentForm>
