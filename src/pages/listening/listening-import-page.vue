@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ElButton } from 'element-plus'
 import {
   type ComponentPublicInstance,
   computed,
@@ -12,6 +13,7 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import AppFilePicker from '@/components/app-file-picker/app-file-picker.vue'
 import AppState from '@/components/app-state/app-state.vue'
+import ImportDuplicateDetails from '@/features/imports/import-duplicate-details.vue'
 import ListeningContentForm from '@/features/listening/listening-content-form.vue'
 import ListeningImportDifference from '@/features/listening/listening-import-difference.vue'
 import ListeningImportTarget from '@/features/listening/listening-import-target.vue'
@@ -64,6 +66,7 @@ const mode = ref<'zip' | 'docx'>(route.query.mode === 'docx' ? 'docx' : 'zip'),
   editing = ref<CandidateEditor | null>(null),
   drag = ref(false),
   candidateForm = ref<InstanceType<typeof ListeningContentForm> | null>(null)
+const duplicateOpen = ref(false)
 const candidates = computed(() => batch.value?.candidates.filter((item) => !item.removed) || []),
   selection = computed(() => candidateSelection(candidates.value, selected.value)),
   selectedCandidates = computed(() =>
@@ -234,6 +237,13 @@ const chooseFiles = (event: Event) => {
 const dropFiles = (event: DragEvent) => {
   drag.value = false
   void uploadFiles([...(event.dataTransfer?.files || [])])
+}
+/** 从全批重复明细定位保留候选，保留批次和当前核对位置
+ * @param id 服务端返回的保留候选稳定标识
+ */
+const locateCandidate = (id: string) => {
+  const candidate = candidates.value.find((item) => item.id === id)
+  if (candidate) void editCandidate(candidate)
 }
 /** 展开候选独立副本，修改前不覆盖服务端暂存
  * @param candidate 当前候选及素材对应
@@ -462,6 +472,13 @@ onMounted(async () => {
 })
 </script>
 <template>
+  <ImportDuplicateDetails
+    v-if="duplicateOpen && batch"
+    :batch-id="batch.id"
+    module="listening"
+    @close="duplicateOpen = false"
+    @candidate="locateCandidate"
+  />
   <div class="listening-import">
     <div class="page-heading between">
       <div>
@@ -632,8 +649,10 @@ onMounted(async () => {
       <p class="notice">重复资料自动跳过；无法读取项可以移除，不能保存。修改须先成功暂存</p>
       <p class="muted small">
         资料完整 {{ batch.counts.complete ?? 0 }} · 待补充 {{ batch.counts.incomplete ?? 0 }} ·
-        自动跳过 {{ batch.counts.duplicate ?? 0 }} · 无法读取 {{ batch.counts.unreadable ?? 0 }} ·
-        已保存 {{ batch.counts.saved ?? 0 }} · 已移除 {{ batch.counts.removed ?? 0 }}
+        自动跳过 {{ batch.counts.duplicate ?? 0 }}
+        <ElButton link @click="duplicateOpen = true">查看明细</ElButton> · 无法读取
+        {{ batch.counts.unreadable ?? 0 }} · 已保存 {{ batch.counts.saved ?? 0 }} · 已移除
+        {{ batch.counts.removed ?? 0 }}
       </p>
       <div class="row review-actions">
         <button
@@ -688,7 +707,7 @@ onMounted(async () => {
                       busy ||
                       Boolean(pendingSave) ||
                       Boolean(pendingCandidate) ||
-                      item.state === 'saved'
+                      ['saved', 'duplicate'].includes(item.state)
                     "
                     :aria-label="`选择${item.payload.title_zh || item.path}`"
                   />

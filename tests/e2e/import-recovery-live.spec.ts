@@ -16,7 +16,7 @@ test('isolated HTTP API restores the actual candidate collection and persisted r
   await page.getByLabel('管理员账号').fill(state.username)
   await page.getByLabel('密码', { exact: true }).fill(state.password)
   await page.getByRole('button', { name: '登录后台' }).click()
-  await expect(page.getByRole('heading', { name: '卡片管理', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '场景卡片', exact: true })).toBeVisible()
   const response = await page.request.get('/api/admin/v1/imports?resumable_only=true')
   expect(response.ok()).toBe(true)
   const values: ImportBatch[] = await response.json()
@@ -73,7 +73,7 @@ test('isolated HTTP mixed-result retry keeps the successful draft and only queue
   await page.getByLabel('管理员账号').fill(state.username)
   await page.getByLabel('密码', { exact: true }).fill(state.password)
   await page.getByRole('button', { name: '登录后台' }).click()
-  await expect(page.getByRole('heading', { name: '卡片管理', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '场景卡片', exact: true })).toBeVisible()
   const values: ImportBatch[] = await (
     await page.request.get('/api/admin/v1/imports?resumable_only=true')
   ).json()

@@ -399,3 +399,43 @@ it('changes only the routed page through pagination while keeping search and sta
   })
   page.unmount()
 })
+
+it('jumps to a valid feedback page while retaining search and status and rejects out-of-range input', async () => {
+  request.mockImplementation(async (path: string) => ({
+    items: [{ ...feedback, events: [] }],
+    total: 30,
+    page: Number(new URL(path, 'https://example.test').searchParams.get('page') || 1),
+    limit: 10
+  }))
+  const { page, router } = await open('/feedback?status=pending&search=释义&page=2')
+  const input = page.get('[aria-label="前往页码"]')
+  await input.setValue('4')
+  const before = request.mock.calls.length
+  await page.get('.page-jump').trigger('submit')
+  await flushPromises()
+  expect(request).toHaveBeenCalledTimes(before)
+  expect(page.get('.page-jump [role="alert"]').text()).toContain('1至3')
+  await input.setValue('3')
+  await page.get('.page-jump').trigger('submit')
+  await flushPromises()
+  expect(router.currentRoute.value.query).toMatchObject({
+    search: '释义',
+    status: 'pending',
+    page: '3'
+  })
+  expect(
+    new URL(request.mock.calls.at(-1)![0], 'https://example.test').searchParams.get('page')
+  ).toBe('3')
+  page.unmount()
+})
+
+it.each([0, 2, 10])('keeps feedback pagination visible for %i results', async (total) => {
+  request.mockResolvedValue({ items: total ? [feedback] : [], total, page: 1, limit: 10 })
+  const { page } = await open('/feedback')
+  expect(page.findComponent(ElPagination).exists()).toBe(true)
+  expect(page.get('.btn-prev').attributes('disabled')).toBeDefined()
+  expect(page.get('.btn-next').attributes('disabled')).toBeDefined()
+  expect(page.get('.pagination').text()).toContain(`共 ${total} 条反馈`)
+  expect(page.get('[aria-label="前往页码"]').attributes('disabled') !== undefined).toBe(total === 0)
+  page.unmount()
+})

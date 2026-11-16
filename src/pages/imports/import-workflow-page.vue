@@ -9,6 +9,8 @@ import { useImportStaging } from '@/composables/use-import-staging'
 import { useWordPronunciation } from '@/composables/use-word-pronunciation'
 import ImportAssetPicker from '@/features/imports/import-asset-picker.vue'
 import ImportBatchDeletionDialog from '@/features/imports/import-batch-deletion-dialog.vue'
+import ImportContentTypes from '@/features/imports/import-content-types.vue'
+import ImportDuplicateDetails from '@/features/imports/import-duplicate-details.vue'
 import ImportRemovalDialog from '@/features/imports/import-removal-dialog.vue'
 import ImportResumePanel from '@/features/imports/import-resume-panel.vue'
 import ImportReviewList from '@/features/imports/import-review-list.vue'
@@ -16,6 +18,7 @@ import ImportSaveStep from '@/features/imports/import-save-step.vue'
 import ImportTargetPicker from '@/features/imports/import-target-picker.vue'
 import ImportUploadPanel from '@/features/imports/import-upload-panel.vue'
 import SceneContentForm from '@/features/scenes/scene-content-form.vue'
+import SceneContentType from '@/features/scenes/scene-content-type.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import SceneReader from '@/features/scenes/scene-reader.vue'
 import SceneStudyNote from '@/features/scenes/scene-study-note.vue'
@@ -60,6 +63,17 @@ const batch = ref<ImportBatch | null>(null),
   showPreview = ref(false),
   targetOpen = ref(false),
   leaveOpen = ref(false)
+const duplicateOpen = ref(false)
+const typeItems = computed(() =>
+  entries.value
+    .filter(
+      (entry) =>
+        entry.edit.selected &&
+        entry.item.readable &&
+        !['saved', 'saving', 'duplicate'].includes(entry.item.state)
+    )
+    .map((entry) => ({ id: entry.item.id, revision: entry.item.revision }))
+)
 const editingMedia = computed(() => contentMedia.value || noteMedia.value)
 const limits = ref<components['schemas']['UploadConfiguration'] | null>(null),
   confirmation = ref<ImportConfirmation | null>(null),
@@ -481,6 +495,7 @@ watch(editingMedia, (value) => {
  * @param event 复选框操作
  */
 const selectEntry = (entry: ImportEntry, event: Event) => {
+  if (entry.item.state === 'duplicate') return
   entry.edit.selected = (event.target as HTMLInputElement).checked
   schedule(entry)
 }
@@ -834,6 +849,18 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
+  <ImportDuplicateDetails
+    v-if="duplicateOpen && batch"
+    :batch-id="batch.id"
+    module="scene"
+    @close="duplicateOpen = false"
+    @candidate="
+      (id) => {
+        activeId = id
+        expandedId = id
+      }
+    "
+  />
   <div class="import-page">
     <ImportResumePanel
       v-if="!loading && !batch"
@@ -937,7 +964,9 @@ onBeforeUnmount(() => {
           识别卡片 {{ summary.recognized }} 张 · 资料完整 {{ summary.complete }} 张 · 待补充
           {{ summary.incomplete }} 张 ·
           <span v-if="batch.mode === 'zip'">ZIP失败 {{ summary.zipFailed }} 个 · </span>
-          卡片失败 {{ summary.cardFailed }} 张 · 重复 {{ counts.skipped }} 张
+          卡片失败 {{ summary.cardFailed }} 张 · 人工移除 {{ batch.removed_count || 0 }} 张 · 重复
+          {{ counts.skipped }} 张
+          <button type="button" class="text" @click="duplicateOpen = true">查看明细</button>
         </p>
         <div v-show="step === 1">
           <div class="between upload-heading">
@@ -1022,6 +1051,13 @@ onBeforeUnmount(() => {
             </div>
           </div>
           <div class="review-layout">
+            <ImportContentTypes
+              :batch-id="batch.id"
+              :items="typeItems"
+              :disabled="busy || editingMedia"
+              :flush="staging.flush"
+              @applied="accept"
+            />
             <ImportReviewList
               :entries="entries"
               :active-id="expandedId"
@@ -1034,7 +1070,7 @@ onBeforeUnmount(() => {
               @expand="switchEntry"
               ><template #default>
                 <div v-if="active" class="review-detail">
-                  <template v-if="active.item.readable"
+                  <template v-if="active.item.readable && active.item.state !== 'duplicate'"
                     ><div class="panel between">
                       <div>
                         <h2>{{ active.edit.content.name || '核对资料' }}</h2>
@@ -1090,6 +1126,22 @@ onBeforeUnmount(() => {
                         重试暂存
                       </button>
                     </p>
+                    <SceneContentType
+                      v-model="active.edit.content_type"
+                      :has-pdf="
+                        active.edit.study_note?.action === 'remove'
+                          ? false
+                          : active.edit.study_note?.action === 'set'
+                            ? !!active.edit.study_note.media_id
+                            : !!active.item.study_note?.attachment
+                      "
+                      :blocked="
+                        active.edit.study_note?.action === 'unresolved' ||
+                        active.item.study_note?.can_publish === false
+                      "
+                      :raw="active.item.type_raw"
+                      :disabled="busy || active.item.state === 'duplicate'"
+                    />
                     <ImportAssetPicker
                       :key="active.item.id"
                       v-model="active.edit.content"
@@ -1125,7 +1177,11 @@ onBeforeUnmount(() => {
                     ></SceneContentForm>
                   </template>
                   <div v-else class="panel notice error">
-                    <h2>此资料无法读取</h2>
+                    <h2>
+                      {{
+                        active.item.state === 'duplicate' ? '重复资料已自动跳过' : '此资料无法读取'
+                      }}
+                    </h2>
                     <p v-for="issue in active.item.issues" :key="issue.code">{{ issue.message }}</p>
                     <p>请返回上一步上传修正文件；其他可读资料可以继续保存。</p>
                   </div>

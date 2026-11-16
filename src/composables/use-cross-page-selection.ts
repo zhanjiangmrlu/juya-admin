@@ -1,5 +1,5 @@
 import { ElMessageBox } from 'element-plus'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import type { Ref } from 'vue'
 
@@ -11,7 +11,7 @@ import type { Ref } from 'vue'
 export const freeSelectionQueryKey = (module: string, query: Record<string, unknown>) =>
   JSON.stringify([
     module,
-    ...['search', 'q', 'status', 'category_id', 'batch_id', 'sort'].map((key) =>
+    ...['search', 'q', 'status', 'category_id', 'content_type', 'batch_id', 'sort'].map((key) =>
       String(query[key] || '')
     )
   ])
@@ -36,15 +36,18 @@ const confirmDiscard = async () => {
  * @param rows 当前页内容，仅用于交集和本页选择
  * @param page 当前有效页码，用于记录首次选中页
  * @param confirm 用户明确确认清空的交互端口
+ * @param owner 当前管理员身份，用于废弃跨账号的迟到确认
  * @returns 免费模式与跨页选择操作
  */
 export const useCrossPageSelection = (
   rows: Ref<{ id: string }[]>,
   page: Ref<number>,
-  confirm = confirmDiscard
+  confirm = confirmDiscard,
+  owner?: Ref<string>
 ) => {
   const active = ref(false),
     selectedPages = ref<Record<string, number>>({})
+  let ownerGeneration = 0
   const ids = computed(() => Object.keys(selectedPages.value))
   const pageIds = computed(() => rows.value.map((item) => item.id))
   const intersection = computed(() => pageIds.value.filter((id) => ids.value.includes(id)))
@@ -57,6 +60,16 @@ export const useCrossPageSelection = (
   const clear = () => {
     selectedPages.value = {}
   }
+  if (owner)
+    watch(
+      owner,
+      () => {
+        ownerGeneration++
+        clear()
+        active.value = false
+      },
+      { flush: 'sync' }
+    )
   /** 进入独立免费选择模式 */
   const enter = () => {
     clear()
@@ -76,11 +89,20 @@ export const useCrossPageSelection = (
   const togglePage = (checked: boolean) => {
     for (const id of pageIds.value) toggle(id, checked)
   }
+  /** 仅确认允许丢弃，查询及导航提交前保留原集合
+   * @returns 当前管理员是否仍明确允许改变条件
+   */
+  const canDiscard = async () => {
+    const run = ownerGeneration
+    const allowed = !ids.value.length || (await confirm())
+    return run === ownerGeneration && allowed
+  }
   /** 有选择时先提示，取消不改变任何条件或选择
    * @returns 是否可以继续条件变更
    */
   const discard = async () => {
-    if (ids.value.length && !(await confirm())) return false
+    const run = ownerGeneration
+    if (!(await canDiscard()) || run !== ownerGeneration) return false
     clear()
     return true
   }
@@ -88,7 +110,8 @@ export const useCrossPageSelection = (
    * @returns 是否实际退出
    */
   const exit = async () => {
-    if (!(await discard())) return false
+    const run = ownerGeneration
+    if (!(await discard()) || run !== ownerGeneration) return false
     active.value = false
     return true
   }
@@ -110,6 +133,7 @@ export const useCrossPageSelection = (
     togglePage,
     clear,
     enter,
+    canDiscard,
     discard,
     exit,
     retainFailures

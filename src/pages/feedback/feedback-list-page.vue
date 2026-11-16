@@ -23,6 +23,7 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import AppState from '@/components/app-state/app-state.vue'
 import { useResource } from '@/composables/use-resource'
+import ContentPageJump from '@/features/content-catalog/content-page-jump.vue'
 import { dateText, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
 import { FEEDBACK_CATEGORY_LABELS, FEEDBACK_STATUS_LABELS } from '@/shared/constants/feedback'
@@ -182,7 +183,7 @@ onBeforeUnmount(() => {
             <p v-if="item.source_title_en" class="small muted">{{ item.source_title_en }}</p>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="状态" :min-width="11">
+        <ElTableColumn label="状态" :min-width="11" align="center">
           <template #default="{ row: item }"
             ><ElTag
               class="badge"
@@ -212,9 +213,8 @@ onBeforeUnmount(() => {
       </ElTable>
     </div>
     <div v-if="data && !error" class="pagination">
-      <span class="muted">共 {{ data.total }} 条反馈</span>
+      <span class="pagination-total muted">共 {{ data.total }} 条反馈 · 每页10条</span>
       <ElPagination
-        v-if="data.total > 10"
         :current-page="page"
         :page-size="10"
         :total="data.total"
@@ -224,8 +224,15 @@ onBeforeUnmount(() => {
         next-text="下一页"
         @current-change="filter({ page: $event })"
       >
-        <span>第 {{ page }} 页</span>
+        <span v-if="data.total">第 {{ data.page }} / {{ Math.ceil(data.total / 10) }} 页</span>
+        <span v-else>暂无反馈</span>
       </ElPagination>
+      <ContentPageJump
+        :page="data.page"
+        :total-pages="Math.ceil(data.total / 10)"
+        :busy="busy"
+        @jump="filter({ page: $event })"
+      />
     </div>
   </div>
 </template>
@@ -267,10 +274,19 @@ onBeforeUnmount(() => {
     .el-link {
       font-size: 13px;
     }
+
+    .badge {
+      display: inline-flex;
+      vertical-align: middle;
+    }
   }
 
   .pagination {
-    justify-content: flex-end;
+    flex-wrap: wrap;
+
+    .pagination-total {
+      margin-right: auto;
+    }
 
     .el-pagination {
       gap: 12px;

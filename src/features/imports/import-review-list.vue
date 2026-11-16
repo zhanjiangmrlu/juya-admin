@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 
+import {
+  type ContentType,
+  contentTypeLabels
+} from '@/features/content-catalog/content-catalog-model'
 import SceneTitle from '@/features/scenes/scene-title.vue'
 import { mediaURL } from '@/services/display'
 import { importStates } from '@/shared/constants/import'
@@ -91,6 +95,7 @@ const emit = defineEmits<{
         <tr>
           <th>选</th>
           <th>双语标题／来源</th>
+          <th>内容类型</th>
           <th>读取结果</th>
           <th>操作</th>
         </tr>
@@ -140,10 +145,31 @@ const emit = defineEmits<{
               </div>
             </td>
             <td>
+              {{
+                entry.edit.content_type
+                  ? contentTypeLabels[entry.edit.content_type as ContentType]
+                  : '待补类型'
+              }}<small
+                v-if="!entry.edit.content_type && entry.item.type_raw?.length"
+                class="type-raw"
+                >文件原值：{{ entry.item.type_raw.join('、') }} · 请逐项核对</small
+              ><small v-if="entry.item.type_origin">{{
+                entry.item.type_origin === 'file'
+                  ? '来自DOCX'
+                  : entry.item.type_origin === 'override'
+                    ? '人工覆盖'
+                    : '人工补选'
+              }}</small>
+            </td>
+            <td>
               <span
                 class="badge"
                 :class="{ draft: entry.item.issues.length || entry.item.state === 'duplicate' }"
-                >{{ importStates[entry.item.state] || '待核对' }}</span
+                >{{
+                  entry.item.state === 'ready' && entry.item.issues.length
+                    ? '待核对'
+                    : importStates[entry.item.state] || '待核对'
+                }}</span
               >
               <p v-if="entry.item.issues.length" class="issue">
                 {{ entry.item.issues[0]?.message }}
@@ -179,7 +205,7 @@ const emit = defineEmits<{
             :id="`review-${entry.item.id}`"
             class="expanded-row"
           >
-            <td colspan="4"><slot :entry="entry" /></td>
+            <td colspan="5"><slot :entry="entry" /></td>
           </tr>
         </template>
       </tbody>
@@ -188,6 +214,12 @@ const emit = defineEmits<{
 </template>
 <style scoped lang="scss">
 .review-list {
+  .type-raw {
+    display: block;
+    margin-top: 6px;
+    color: var(--muted);
+  }
+
   .removal-actions {
     padding: 12px 0;
     flex-wrap: wrap;
@@ -195,7 +227,7 @@ const emit = defineEmits<{
 
   table {
     table-layout: fixed;
-    min-width: 700px;
+    min-width: 840px;
   }
 
   th:first-child {
@@ -203,15 +235,19 @@ const emit = defineEmits<{
   }
 
   th:nth-child(2) {
-    width: 43%;
+    width: 35%;
   }
 
   th:nth-child(3) {
-    width: 19%;
+    width: 18%;
+  }
+
+  th:nth-child(4) {
+    width: 22%;
   }
 
   th:last-child {
-    width: 33%;
+    width: 20%;
   }
 
   th {

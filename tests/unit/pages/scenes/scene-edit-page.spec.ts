@@ -69,7 +69,7 @@ it('saves reactive chunks and publishes the saved preview before returning to th
     }
   )
   await flushPromises()
-  await wrapper.get('input').setValue('在咖啡店点单（修订）')
+  await wrapper.get<HTMLInputElement>('input:not([type=radio])').setValue('在咖啡店点单（修订）')
   await wrapper
     .findAll('button')
     .find((button) => button.text() === '保存草稿')!
@@ -91,6 +91,7 @@ it('saves reactive chunks and publishes the saved preview before returning to th
       path: '/api/admin/v1/cards/card-1',
       body: {
         revision: 1,
+        content_type: null,
         content: {
           name: '在咖啡店点单（修订）',
           title_en: '',
@@ -165,7 +166,7 @@ it('recovers a committed new card with its original key before saving subsequent
     }
   )
   await flushPromises()
-  await page.get('input').setValue('初稿名称')
+  await page.get<HTMLInputElement>('input:not([type=radio])').setValue('初稿名称')
   await page
     .findAll('button')
     .find((x) => x.text() === '保存草稿')!
@@ -173,8 +174,8 @@ it('recovers a committed new card with its original key before saving subsequent
   await flushPromises()
   expect(page.findAll('[role="alert"]')).toHaveLength(1)
   expect(page.get('[role="alert"]').text()).toContain('网络连接中断')
-  expect(page.get('input').element.value).toBe('初稿名称')
-  await page.get('input').setValue('修订后的名称')
+  expect(page.get<HTMLInputElement>('input:not([type=radio])').element.value).toBe('初稿名称')
+  await page.get<HTMLInputElement>('input:not([type=radio])').setValue('修订后的名称')
   await page
     .findAll('button')
     .find((x) => x.text() === '保存草稿')!
@@ -185,7 +186,7 @@ it('recovers a committed new card with its original key before saving subsequent
   expect(writes[0]?.key).toBe(writes[1]?.key)
   expect(writes[1]?.body.content.name).toBe('初稿名称')
   expect(writes[2]?.body).toMatchObject({ revision: 1, content: { name: '修订后的名称' } })
-  expect(page.get('input').element.value).toBe('修订后的名称')
+  expect(page.get<HTMLInputElement>('input:not([type=radio])').element.value).toBe('修订后的名称')
   expect(router.currentRoute.value.path).toBe('/cards/card-1')
   page.unmount()
 })
@@ -261,4 +262,78 @@ it('saves a pending PDF separately from content and blocks preview until explici
   expect(page.text()).toContain('学习笔记尚未就绪')
   expect(writes).toHaveLength(1)
   page.unmount()
+})
+
+it('saves an explicit type change without changing the published binding and retains the draft when PDF validation blocks preview', async () => {
+  const content = {
+    name: '明确分类',
+    title_en: 'Explicit type',
+    image_id: null,
+    audio_id: null,
+    dialogue: [],
+    vocabulary: [],
+    chunks: []
+  }
+  let card = {
+    id: 'typed',
+    draft_revision: 1,
+    status: 'published',
+    content,
+    issues: [],
+    display_name: content.name,
+    draft_content_type: 'illustrated',
+    published_content_type: 'illustrated',
+    content_type: 'illustrated',
+    study_note: { action: 'keep', can_publish: true, attachment: null }
+  }
+  const writes: { path: string; body: Record<string, unknown> }[] = []
+  network.mockImplementation(async (request: Request) => {
+    const path = new URL(request.url).pathname
+    if (path.endsWith('/media/configuration'))
+      return Response.json({ image_limit_bytes: 100, audio_limit_bytes: 100 })
+    if (request.method !== 'GET')
+      writes.push({ path, body: (await request.json()) as Record<string, unknown> })
+    if (request.method === 'PUT') {
+      card = { ...card, draft_revision: 2, draft_content_type: 'intensive' }
+      return Response.json(card)
+    }
+    if (path.endsWith('/preview'))
+      return Response.json(
+        { error: { code: 'content_type_pdf_required', message: '精读词汇需要有效PDF' } },
+        { status: 409 }
+      )
+    return Response.json(card)
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/cards/typed', component: SceneEditPage }]
+  })
+  await router.push('/cards/typed')
+  const wrapper = mount(
+    { template: '<RouterView/>' },
+    {
+      global: {
+        plugins: [router],
+        stubs: { SceneContentForm: true, SceneDocxImport: true, ElDialog: true }
+      }
+    }
+  )
+  await flushPromises()
+  await wrapper.get('input[type=radio][value=intensive]').setValue(true)
+  await wrapper
+    .findAll('button')
+    .find((button) => button.text() === '保存草稿')!
+    .trigger('click')
+  await flushPromises()
+  expect(writes[0]?.body.content_type).toBe('intensive')
+  expect(card.published_content_type).toBe('illustrated')
+  await wrapper
+    .findAll('button')
+    .find((button) => button.text() === '预览并发布')!
+    .trigger('click')
+  await flushPromises()
+  expect(wrapper.text()).toContain('精读词汇需要有效PDF')
+  expect(writes.some((write) => write.path.endsWith('/publish'))).toBe(false)
+  expect(wrapper.get('input[value=intensive]').element).toHaveProperty('checked', true)
+  wrapper.unmount()
 })

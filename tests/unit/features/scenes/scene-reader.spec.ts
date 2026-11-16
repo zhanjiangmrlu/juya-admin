@@ -34,6 +34,7 @@ describe('read-only publication preview', () => {
             english: english.slice(start, end),
             meaning: '',
             phonetic: '',
+            source_hint: '',
             pronunciation_text: '',
             pronunciation_issue: false,
             source: { line_id: 'one', start: start!, end: end!, quote: english.slice(start, end) }
@@ -64,6 +65,7 @@ describe('read-only publication preview', () => {
               english: 'drama',
               meaning: '',
               phonetic: '',
+              source_hint: '',
               pronunciation_text: '',
               pronunciation_issue: false
             }
@@ -94,6 +96,7 @@ describe('read-only publication preview', () => {
               english: 'tea',
               meaning: '茶',
               phonetic: '',
+              source_hint: '',
               pronunciation_text: '',
               pronunciation_issue: false,
               source: { line_id: 'one', start: 16, end: 19, quote: 'tea' }

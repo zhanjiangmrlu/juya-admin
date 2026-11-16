@@ -43,6 +43,7 @@ const item = (id: string, state = 'incomplete'): ImportItem => ({
  */
 const batch = (id: string, stage: ImportBatch['stage'] = 'review'): ImportBatch => ({
   id,
+  removed_count: 0,
   mode: 'zip',
   created_at: '2026-10-20T00:00:00Z',
   updated_at: '2026-10-22T01:20:00Z',
@@ -178,7 +179,7 @@ test('routed A04 distinguishes query failures and refreshes an invalid selection
   await page.locator('[data-action="refresh-resumable"]').click()
   await expect(page.locator('[data-resume-batch="stale"]')).toBeVisible()
   await page.locator('[data-action="resume-import"]').click()
-  await expect(page.getByRole('status')).toContainText('不可恢复')
+  await expect(page.getByRole('status').filter({ hasText: '不可恢复' })).toBeVisible()
   await expect(page.locator('[data-resume-batch="stale"]')).toHaveCount(0)
   await expect(page.locator('[data-resume-batch="available"]')).toBeVisible()
   await expect(page).toHaveURL(/\/imports$/)

@@ -8,6 +8,7 @@ import type { ImportBatch } from '../../src/shared/types/import'
  */
 const batch = (id: string): ImportBatch => ({
   id,
+  removed_count: 0,
   mode: 'zip',
   created_at: '2026-10-20T00:00:00Z',
   updated_at: '2026-10-23T01:02:03.123456Z',

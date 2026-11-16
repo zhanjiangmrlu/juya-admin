@@ -15,7 +15,38 @@ it.each(['partial', 'unknown'])(
   async (resultMode) => {
     let receipt: unknown = null
     let originalKey = ''
-    const payload = { ...emptyPayload(), title_zh: '资料', title_en: 'Article' }
+    const body = 'She bought tea!”'
+    const payload = {
+      ...emptyPayload(),
+      title_zh: '资料',
+      title_en: 'Article',
+      body_en: body,
+      translation_zh: '她买了茶',
+      audio_id: 'audio',
+      expressions: Array.from({ length: 5 }, () => ({
+        english: 'expression',
+        chinese: '表达',
+        example: 'Example.'
+      })),
+      vocabulary: [
+        {
+          id: 'verified-word',
+          english: 'buy',
+          meaning: '买',
+          phonetic: '',
+          source_hint: '',
+          source: {
+            start: 0,
+            end: 16,
+            quote: body,
+            word_start: 4,
+            word_end: 10,
+            word: 'bought',
+            confirmed: false
+          }
+        }
+      ]
+    }
     let batch = {
       id: 'b',
       mode: 'zip',

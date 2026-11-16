@@ -13,6 +13,7 @@ vi.mock('@/services/http-client', async (original) => ({
 }))
 const batch: ImportBatch = {
   id: 'batch',
+  removed_count: 0,
   mode: 'zip',
   created_at: '',
   updated_at: '',

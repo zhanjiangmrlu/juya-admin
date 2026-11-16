@@ -17,7 +17,7 @@ const begin = async (page: Page) => {
   await page.getByLabel('管理员账号').fill(settings.username)
   await page.getByLabel('密码', { exact: true }).fill(settings.password)
   await page.getByRole('button', { name: '登录后台' }).click()
-  await expect(page.getByRole('heading', { name: '卡片管理', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '场景卡片', exact: true })).toBeVisible()
   await page
     .getByRole('navigation', { name: '业务导航' })
     .getByRole('link', { name: '批量导入', exact: true })

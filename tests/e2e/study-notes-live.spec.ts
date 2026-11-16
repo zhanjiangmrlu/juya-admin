@@ -15,7 +15,7 @@ test('real PDF replacement and removal publish independently of the body version
   await page.getByLabel('管理员账号').fill(fixture.username)
   await page.getByLabel('密码', { exact: true }).fill(fixture.password)
   await page.getByRole('button', { name: '登录后台' }).click()
-  await expect(page.getByRole('heading', { name: '卡片管理', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '场景卡片', exact: true })).toBeVisible()
   await page.goto(`/cards/${fixture.cardId}`)
   const note = page.locator('.study-note')
   await expect(note).toContainText('学习笔记.pdf')
@@ -79,7 +79,7 @@ test('ZIP multiple PDF selection, corrupt cancellation and legacy ZIP can save i
   await page.getByLabel('管理员账号').fill(fixture.username)
   await page.getByLabel('密码', { exact: true }).fill(fixture.password)
   await page.getByRole('button', { name: '登录后台' }).click()
-  await expect(page.getByRole('heading', { name: '卡片管理', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '场景卡片', exact: true })).toBeVisible()
   await page.goto('/imports')
   await page
     .locator('input[type=file][accept=".zip"]')

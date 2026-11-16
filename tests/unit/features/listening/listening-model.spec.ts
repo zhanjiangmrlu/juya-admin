@@ -98,3 +98,48 @@ it('does not call a complete candidate publishable while its vocabulary has no v
     candidateSelection([{ id: 'c', state: 'complete', removed: false, payload }], ['c']).publish
   ).toEqual([])
 })
+
+it.each(['She bought tea!”', 'She bought tea?!"', '😀 She bought tea!!’'])(
+  'keeps server verified vocabulary in single and import publication for %s',
+  (body) => {
+    const start = [...body.slice(0, body.indexOf('bought'))].length
+    const payload = {
+      ...emptyPayload(),
+      title_zh: '合法词形',
+      title_en: 'Verified source',
+      body_en: body,
+      translation_zh: '她买了茶',
+      audio_id: 'audio',
+      expressions: Array.from({ length: 5 }, () => ({
+        english: 'expression',
+        chinese: '表达',
+        example: 'Example.'
+      })),
+      vocabulary: [
+        {
+          id: 'word',
+          english: 'buy',
+          meaning: '买',
+          phonetic: '',
+          source_hint: '',
+          source: {
+            start: 0,
+            end: [...body].length,
+            quote: body,
+            word_start: start,
+            word_end: start + 6,
+            word: 'bought',
+            confirmed: false
+          }
+        }
+      ]
+    }
+    expect(publishErrors(payload, 'category')).toEqual([])
+    expect(
+      candidateSelection(
+        [{ id: 'candidate', state: 'complete', removed: false, payload }],
+        ['candidate']
+      ).publish
+    ).toEqual(['candidate'])
+  }
+)

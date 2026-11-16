@@ -11,6 +11,7 @@ import type { ImportBatch } from '@/shared/types/import'
 
 const batch = {
   id: 'batch',
+  removed_count: 0,
   mode: 'docx',
   created_at: '',
   updated_at: '',
@@ -253,4 +254,16 @@ it('omits the displayed keep decision when a legacy ZIP changes its target', asy
   await staging.save(entry)
   const body = request.mock.calls.at(-1)![1].body
   expect(body).not.toHaveProperty('study_note')
+})
+
+it('cannot bypass duplicate exclusion by reselecting or assigning a type in a recovered batch', async () => {
+  request.mockReset()
+  const staging = useImportStaging(() => 'batch')
+  staging.merge({ ...batch, items: [{ ...batch.items[0]!, state: 'duplicate', selected: true }] })
+  const entry = staging.entries.one!
+  expect(entry.edit.selected).toBe(false)
+  entry.edit.selected = true
+  entry.edit.content_type = 'intensive'
+  expect(await staging.save(entry)).toBe(false)
+  expect(request).not.toHaveBeenCalled()
 })

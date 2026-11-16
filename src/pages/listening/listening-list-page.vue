@@ -14,7 +14,16 @@ import {
   ElTabs
 } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
-import { computed, nextTick, onActivated, onMounted, ref, shallowRef, watch } from 'vue'
+import {
+  computed,
+  nextTick,
+  onActivated,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  shallowRef,
+  watch
+} from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 
 import listeningSearchIcon from '@/assets/icons/listening-search.svg'
@@ -24,6 +33,8 @@ import {
   freeSelectionQueryKey,
   useCrossPageSelection
 } from '@/composables/use-cross-page-selection'
+import ContentCategoryStatistics from '@/features/content-catalog/content-category-statistics.vue'
+import ContentPageJump from '@/features/content-catalog/content-page-jump.vue'
 import FreeAccessControl from '@/features/learning-access/free-access-control.vue'
 import FreeBatchControls from '@/features/learning-access/free-batch-controls.vue'
 import { statusLabels } from '@/features/listening/listening-model'
@@ -34,6 +45,7 @@ import {
   listeningRecoverableOperation,
   listeningRequest
 } from '@/services/listening-service'
+import { useAdminStore } from '@/stores/admin-store'
 
 import type {
   Article,
@@ -46,6 +58,8 @@ import type { components } from '@/shared/contracts/generated/admin-api'
 import type { TabPaneName } from 'element-plus'
 
 defineOptions({ name: 'ListeningListPage' })
+const admin = useAdminStore()
+const owner = computed(() => admin.identity?.id || '')
 const route = useRoute(),
   router = useRouter()
 const data = ref<Page<Article> | null>(null),
@@ -127,7 +141,7 @@ const freeChanged = async () => {
   await nextTick()
   window.scrollTo(0, top)
 }
-const page = computed(() => Math.max(1, Number(route.query.page) || 1)),
+const page = computed(() => data.value?.page || Math.max(1, Number(route.query.page) || 1)),
   category = computed(() => String(route.query.category_id || '')),
   status = computed(() => String(route.query.status || '')),
   allSelected = computed(() =>
@@ -138,7 +152,9 @@ const filterEpoch = ref(0)
 const batchProcessing = ref(false)
 const freeSelection = useCrossPageSelection(
   computed(() => data.value?.items || []),
-  page
+  page,
+  undefined,
+  owner
 )
 const freeActive = freeSelection.active,
   freeIds = freeSelection.ids,
@@ -151,6 +167,34 @@ const pagePartialSelected = computed(() =>
   freeActive.value
     ? freeSelection.partialSelected.value
     : selected.value.length > 0 && !allSelected.value
+)
+/** 只在路由真实提交后清理已确认的旧查询选择 */
+const commitFreeQuery = () => {
+  const pending = pendingFreeCommit
+  if (!pending || pending.target !== route.fullPath || pending.run !== navigationGeneration) return
+  if (pending.discard) freeSelection.clear()
+  if (route.path !== '/listening') {
+    freeActive.value = false
+    selected.value = []
+  }
+  pendingFreeCommit = null
+}
+watch(() => route.fullPath, commitFreeQuery, { flush: 'sync' })
+watch(
+  owner,
+  () => {
+    navigationGeneration++
+    generation++
+    pendingFreeCommit = null
+    prefetched = null
+    failedQuery = null
+    selected.value = []
+    data.value = null
+    error.value = ''
+    busy.value = false
+    if (owner.value && route.path === '/listening') void load()
+  },
+  { flush: 'sync' }
 )
 /** 进入免费模式前清空普通本页集合 */
 const enterFree = () => {
@@ -189,21 +233,70 @@ const selectVisible = (id: string, checked: boolean) => {
  * @param to 导航目标及查询条件
  * @param to.path 目标模块路径
  * @param to.query 目标筛选及分页条件
+ * @param run 发起导航时冻结的身份与导航代次
  * @returns 是否允许路由切换
  */
-const guardFreeQuery = async (to: { path: string; query: Record<string, unknown> }) => {
+const guardFreeQuery = async (
+  to: { path: string; query: Record<string, unknown> },
+  run: number
+) => {
   if (
     freeActive.value &&
     freeSelectionQueryKey(to.path, to.query) !== freeSelectionQueryKey(route.path, route.query) &&
-    !(await freeSelection.discard())
+    !(await freeSelection.canDiscard())
   ) {
-    search.value = String(route.query.q || '')
-    filterEpoch.value++
+    if (run === navigationGeneration) {
+      search.value = String(route.query.q || '')
+      filterEpoch.value++
+    }
     return false
   }
   return true
 }
-onBeforeRouteUpdate(guardFreeQuery)
+onBeforeRouteUpdate(async (to) => {
+  const run = ++navigationGeneration
+  const discard =
+    freeActive.value &&
+    freeSelectionQueryKey(to.path, to.query) !== freeSelectionQueryKey(route.path, route.query)
+  if (!(await guardFreeQuery(to, run)) || run !== navigationGeneration) {
+    if (run === navigationGeneration) busy.value = false
+    return false
+  }
+  if (to.path !== '/listening') return true
+  busy.value = true
+  try {
+    const value = await readList(to.query)
+    if (run !== navigationGeneration) return false
+    prefetched = { query: to.fullPath, value }
+    pendingFreeCommit = { target: to.fullPath, run, discard }
+    failedQuery = null
+    return true
+  } catch (reason) {
+    if (run !== navigationGeneration) return false
+    failedQuery = { ...to.query }
+    error.value = reason instanceof Error ? reason.message : '列表未刷新，请重试'
+    search.value = String(route.query.q || '')
+    filterEpoch.value++
+    return false
+  } finally {
+    if (run === navigationGeneration) busy.value = false
+  }
+})
+/** 其他导航守卫取消时废弃预取快照，保留原查询和全部免费选择 */
+const removeNavigationResult = router.afterEach((to, _from, failure) => {
+  if (
+    !failure ||
+    pendingFreeCommit?.target !== to.fullPath ||
+    pendingFreeCommit.run !== navigationGeneration
+  )
+    return
+  pendingFreeCommit = null
+  prefetched = null
+  busy.value = false
+  search.value = String(route.query.q || '')
+  filterEpoch.value++
+})
+onBeforeUnmount(removeNavigationResult)
 
 let generation = 0
 let previousQuery = route.fullPath,
@@ -216,42 +309,74 @@ let previousQuery = route.fullPath,
  */
 const categoryName = (categoryId: string) =>
   categories.value.find((item) => item.id === categoryId)?.name || '分类待核对'
+let failedQuery: Record<string, unknown> | null = null,
+  navigationGeneration = 0
+let pendingFreeCommit: { target: string; run: number; discard: boolean } | null = null
+let prefetched: { query: string; value: Page<Article> } | null = null
+/** 按目标条件读取列表与分类统计的组合快照
+ * @param query 目标路由的筛选与页码
+ * @returns 当前快照
+ */
+const readList = (query: Record<string, unknown>) =>
+  listeningRequest<Page<Article>>(
+    queryURL('/articles', {
+      page: query.page || 1,
+      limit: 10,
+      category_id: query.category_id || undefined,
+      status: query.status || undefined,
+      q: query.q || undefined,
+      batch_id: query.batch_id || undefined
+    })
+  )
 /** 读取当前页真实列表并回退到最近有效页 */
 const load = async () => {
-  const run = ++generation
+  const run = ++generation,
+    requested = route.fullPath,
+    navigation = navigationGeneration,
+    requestOwner = owner.value
+  /** 核对列表、统计及后续界面副作用是否仍属于当前已提交查询
+   * @returns 当前响应是否仍有提交资格
+   */
+  const current = () =>
+    run === generation &&
+    requested === route.fullPath &&
+    navigation === navigationGeneration &&
+    requestOwner === owner.value
   busy.value = true
   error.value = ''
   try {
-    const value = await listeningRequest<Page<Article>>(
-      queryURL('/articles', {
-        page: page.value,
-        limit: 10,
-        category_id: category.value || undefined,
-        status: status.value || undefined,
-        q: route.query.q || undefined,
-        batch_id: route.query.batch_id || undefined
-      })
-    )
-    if (run !== generation) return
-    if (page.value > 1 && !value.items.length) {
-      await router.replace({
-        query: { ...route.query, page: Math.max(1, Math.ceil(value.total / 10)) }
-      })
+    const cached = prefetched?.query === requested ? prefetched.value : null
+    prefetched = null
+    const value = cached || (await readList(route.query))
+    if (!current()) return
+    const effectivePage = value.page || 1
+    if (effectivePage !== Number(route.query.page || 1)) {
+      await router.replace({ query: { ...route.query, page: effectivePage } })
+      // 成功导航由路由 watcher 提交组合快照，取消或迟到的原读取不得再次写回
       return
     }
+    const changedPage = data.value && data.value.page !== effectivePage
     data.value = value
-    selected.value = selected.value.filter((id) => value.items.some((item) => item.id === id))
+    if (changedPage) {
+      await nextTick()
+      if (!current()) return
+      document.querySelector('.article-table')?.scrollIntoView?.({ block: 'start' })
+    }
+    if (changedPage && selected.value.length) {
+      selected.value = []
+      ElMessage.info('选择已清空')
+    }
     const [p, c] = await Promise.all([
       listeningRequest<FreePolicy>('/free-policy'),
       listeningRequest<{ items: Category[] }>('/categories')
     ])
-    if (run !== generation) return
+    if (!current()) return
     policy.value = p
     categories.value = c.items
   } catch (reason) {
-    if (run === generation) error.value = reason instanceof Error ? reason.message : '文章读取失败'
+    if (current()) error.value = reason instanceof Error ? reason.message : '文章读取失败'
   } finally {
-    if (run === generation) busy.value = false
+    if (current()) busy.value = false
   }
 }
 /** 路由负责切换管理页面，阻止缓存列表记住分类 Tab 的内部选中状态
@@ -268,6 +393,11 @@ const navigateTab = (name: TabPaneName) => {
 const filter = (patch: Record<string, string | number | undefined>) => {
   void router.push({ query: { ...route.query, ...patch } })
 }
+/** 重试未提交的筛选请求，保留旧查询直到组合响应成功
+ * @returns 原筛选重试的导航或刷新结果
+ */
+const retryList = () =>
+  failedQuery ? router.replace({ query: failedQuery as typeof route.query }) : load()
 /** 标记本次删除失败的文章行
  * @param context 表格行信息
  * @param context.row 表格当前行对应的文章
@@ -417,12 +547,12 @@ watch(
   }
 )
 onBeforeRouteLeave(async (to) => {
-  if (!(await guardFreeQuery(to))) return false
-  if (freeActive.value) {
-    freeActive.value = false
-    freeSelection.clear()
-    selected.value = []
+  const run = ++navigationGeneration
+  if (!(await guardFreeQuery(to, run)) || run !== navigationGeneration) {
+    if (run === navigationGeneration) busy.value = false
+    return false
   }
+  pendingFreeCommit = { target: to.fullPath, run, discard: freeActive.value }
   scrollTop = preview.value ? previewReturnScroll : window.scrollY
   preview.value = null
 })
@@ -512,7 +642,16 @@ onMounted(async () => {
           :empty="data?.total === 0"
           empty-title="暂无符合条件的文章"
           empty-text="可以新建文章，或调整筛选条件"
-          @retry="load"
+          @retry="retryList"
+        />
+        <ContentCategoryStatistics
+          :value="data?.statistics"
+          :all="data?.all_statistics"
+          :title="category ? categoryName(category) : '全部'"
+          unit="篇"
+          :error="error"
+          :snapshot="data?.snapshot_at"
+          @retry="retryList"
         />
         <p v-if="notice" class="notice" role="status">{{ notice }}</p>
         <div v-if="unknownDelete" class="notice error">
@@ -648,7 +787,16 @@ onMounted(async () => {
             <!-- @vue-generic {Article} -->
             <ElTableColumn label="所属分类" :min-width="89"
               ><template #default="{ row: item }">
-                {{ categoryName(item.category_id) }}
+                {{ categoryName(item.published_category_id || item.category_id) }}
+                <p
+                  v-if="
+                    item.published_category_id &&
+                    item.draft_category_id !== item.published_category_id
+                  "
+                  class="muted small"
+                >
+                  草稿拟改为{{ categoryName(item.draft_category_id || '') }}
+                </p>
                 <p class="muted small">{{ item.word_count }} 词</p>
               </template></ElTableColumn
             >
@@ -662,7 +810,7 @@ onMounted(async () => {
                     ? item.status === 'published'
                       ? '免费开放'
                       : '免费已开启 · 发布后生效'
-                    : '需学习授权'
+                    : '暂未开放'
                 }}</span>
               </template></ElTableColumn
             >
@@ -725,8 +873,15 @@ onMounted(async () => {
             next-text="下一页"
             @current-change="filter({ page: $event })"
           >
-            <span>第 {{ page }} 页</span>
-          </ElPagination>
+            <span v-if="data.total"
+              >第 {{ data.page }} / {{ data.total_pages ?? Math.ceil(data.total / 10) }} 页</span
+            > </ElPagination
+          ><ContentPageJump
+            :page="data.page"
+            :total-pages="data.total_pages ?? Math.ceil(data.total / 10)"
+            :busy="busy"
+            @jump="filter({ page: $event })"
+          />
         </div>
       </ElConfigProvider>
     </div>
@@ -765,7 +920,17 @@ onMounted(async () => {
           <strong>{{ item.payload.title_zh || '中文标题待补充' }}</strong>
           <p class="muted small">{{ item.payload.title_en || '英文标题待补充' }}</p>
           <div class="between">
-            <span class="muted small">{{ categoryName(item.category_id) }}</span
+            <span class="muted small"
+              >{{ categoryName(item.published_category_id || item.category_id) }}
+              <p
+                v-if="
+                  item.published_category_id &&
+                  item.draft_category_id !== item.published_category_id
+                "
+                class="muted small"
+              >
+                草稿拟改为{{ categoryName(item.draft_category_id || '') }}
+              </p></span
             ><span class="badge">{{ statusLabels[item.status] }}</span>
           </div>
         </div>

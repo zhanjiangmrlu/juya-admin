@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ElButton, ElForm, ElInput, ElOption, ElSelect } from 'element-plus'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+
+import VocabularySourceReview from '@/features/content-catalog/vocabulary-source-review.vue'
 
 import type { ArticlePayload, Category } from './listening-types'
 import type { ListeningPronunciationContext } from '@/composables/use-listening-pronunciation'
@@ -15,6 +17,17 @@ defineProps<{
   compact?: boolean
   pronunciation?: ListeningPronunciationContext
 }>()
+const onlySourceErrors = ref(false)
+/** 展开异常词条并定位到原有编辑表单
+ * @param id 待修正词条的稳定标识
+ */
+const repairWord = async (id: string) => {
+  onlySourceErrors.value = false
+  await nextTick()
+  const entry = document.querySelector(`[data-word-id="${CSS.escape(id)}"]`)
+  entry?.scrollIntoView?.({ block: 'center' })
+  entry?.querySelector('input')?.focus()
+}
 const meanings = ref(''),
   meaningError = ref('')
 const tags = computed({
@@ -166,8 +179,19 @@ defineExpose({ meaningError })
       </div>
     </section>
     <section class="panel content-card">
+      <VocabularySourceReview
+        module="listening"
+        :content="payload"
+        :disabled="disabled"
+        @matched="payload.vocabulary = $event as ArticlePayload['vocabulary']"
+        @exceptions="onlySourceErrors = $event"
+        @remove="payload.vocabulary = payload.vocabulary.filter((word) => word.id !== $event)"
+        @repair="repairWord"
+      />
       <ListeningVocabularyEditor
         v-model="payload.vocabulary"
+        :server-matching="true"
+        :only-errors="onlySourceErrors"
         :body="payload.body_en"
         :disabled="disabled"
         :pronunciation="pronunciation"

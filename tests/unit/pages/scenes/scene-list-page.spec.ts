@@ -661,7 +661,7 @@ it('offers an independent per-card free action and a read-only total', async () 
   expect(page.text()).not.toContain('免费开放设置')
   expect(page.text()).toContain('当前免费场景 12 张')
   expect(page.get('.free-access-control').text()).toContain('启用免费')
-  expect(page.get('tbody').text()).toContain('需学习授权')
+  expect(page.get('tbody').text()).toContain('暂未开放')
   page.unmount()
 })
 
@@ -724,4 +724,135 @@ it('keeps controlled scene selection and resets it when Element Plus pagination 
   } finally {
     wrapper.unmount()
   }
+})
+
+it('commits page and normal selection only after a successful combined response, retains statistics on failure, and validates manual input', async () => {
+  let fail = false
+  let cardPage = 1
+  const stats = { total: 30, published: 25, free: 9, remaining: 16 }
+  request.mockImplementation(async (path: string) => {
+    if (!path.startsWith('/api/admin/v1/cards?')) return []
+    const query = new URL(path, 'http://test').searchParams
+    if (query.get('page') === '3' && fail) throw new Error('网络中断')
+    cardPage = Number(query.get('page'))
+    return {
+      items: [
+        {
+          id: `card-${cardPage}`,
+          display_name: `场景${cardPage}`,
+          display_title_en: 'Scene',
+          content: { name: `场景${cardPage}` },
+          content_type: 'illustrated',
+          draft_content_type: 'intensive',
+          published_content_type: 'illustrated',
+          current_version_id: 'published',
+          status: 'published',
+          issues: [],
+          updated_at: ''
+        }
+      ],
+      total: 30,
+      page: cardPage,
+      limit: 10,
+      total_pages: 3,
+      statistics: stats,
+      all_statistics: stats,
+      snapshot_at: 'snapshot-one'
+    }
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/cards', component: SceneListPage }]
+  })
+  await router.push('/cards?content_type=illustrated')
+  const wrapper = mount(
+    {
+      template:
+        '<RouterView v-slot="{Component}"><KeepAlive><component :is="Component"/></KeepAlive></RouterView>'
+    },
+    { global: { plugins: [createPinia(), router], stubs: { ElDialog: true } } }
+  )
+  await flushPromises()
+  expect(wrapper.text()).toContain('草稿拟改为精读词汇')
+  expect(wrapper.get('[aria-label="分类统计"]').text()).toContain('30')
+  await wrapper.get('[aria-label="选择 场景1"] input').setValue(true)
+  const input = wrapper.get<HTMLInputElement>('[aria-label="前往页码"]')
+  const calls = request.mock.calls.length
+  await input.setValue('2e0')
+  await wrapper.get('.page-jump').trigger('submit')
+  await flushPromises()
+  expect(request.mock.calls.length).toBe(calls)
+  expect(input.element.value).toBe('2e0')
+  fail = true
+  await input.setValue('3')
+  await wrapper.get('.page-jump').trigger('submit')
+  await flushPromises()
+  expect(router.currentRoute.value.query.page).toBeUndefined()
+  expect(wrapper.get('[aria-label="选择 场景1"] input').element).toHaveProperty('checked', true)
+  expect(wrapper.get('[aria-label="分类统计"]').text()).toContain('保留旧快照，未刷新')
+  expect(wrapper.text()).toContain('30')
+  fail = false
+  await wrapper.get('.page-jump').trigger('submit')
+  await flushPromises()
+  expect(router.currentRoute.value.query.page).toBe('3')
+  expect(wrapper.get('[aria-label="选择 场景3"] input').element).toHaveProperty('checked', false)
+  expect(wrapper.text()).toContain('第 3 / 3 页')
+  wrapper.unmount()
+})
+
+it('uses the server nearest effective page after a catalogue shrinks, including zero results', async () => {
+  const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+  let empty = false
+  request.mockImplementation(async (path: string) => {
+    if (!path.startsWith('/api/admin/v1/cards?')) return []
+    return {
+      items: empty
+        ? []
+        : [
+            {
+              id: 'remaining',
+              display_name: '剩余卡片',
+              display_title_en: 'Remaining',
+              content: { name: '剩余卡片' },
+              status: 'published',
+              issues: [],
+              updated_at: ''
+            }
+          ],
+      total: empty ? 0 : 15,
+      page: empty ? 1 : 2,
+      limit: 10,
+      total_pages: empty ? 0 : 2,
+      statistics: {
+        total: empty ? 0 : 15,
+        published: empty ? 0 : 15,
+        free: 0,
+        remaining: empty ? 0 : 15
+      }
+    }
+  })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/cards', component: SceneListPage }]
+  })
+  await router.push('/cards?page=9')
+  const page = mount(
+    {
+      template:
+        '<RouterView v-slot="{Component}"><KeepAlive><component :is="Component"/></KeepAlive></RouterView>'
+    },
+    { global: { plugins: [createPinia(), router], stubs: { ElDialog: true } } }
+  )
+  await flushPromises()
+  expect(router.currentRoute.value.query.page).toBe('2')
+  expect(page.text()).toContain('第 2 / 2 页')
+  empty = true
+  page.getComponent({ name: 'FreeAccessControl' }).vm.$emit('changed')
+  await flushPromises()
+  expect(router.currentRoute.value.query.page).toBe('1')
+  expect(page.text()).toContain('共 0 张')
+  expect(page.text()).not.toContain('1 / 0')
+  expect(page.get('[aria-label="前往页码"]').attributes('disabled')).toBeDefined()
+  page.unmount()
+  scroll.mockRestore()
 })

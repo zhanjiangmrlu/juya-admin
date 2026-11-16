@@ -51,6 +51,7 @@ const item = (id: string, state: string): ImportItem => ({
 it('retries only the failed IDs and leaves newly added and successful cards outside the save scope', async () => {
   const batch: ImportBatch = {
     id: 'batch',
+    removed_count: 0,
     mode: 'zip',
     created_at: '',
     updated_at: '',
@@ -118,6 +119,7 @@ it('retries only the failed IDs and leaves newly added and successful cards outs
 it('removes a duplicate and ignores a stale poll without losing another card correction', async () => {
   let current: ImportBatch = {
     id: 'batch',
+    removed_count: 0,
     mode: 'zip',
     created_at: '',
     updated_at: '',
@@ -187,6 +189,7 @@ it.each(['dirty-target', 'conflict'])(
   async (scenario) => {
     let current: ImportBatch = {
       id: 'discard',
+      removed_count: 0,
       mode: 'zip',
       created_at: '',
       updated_at: '',

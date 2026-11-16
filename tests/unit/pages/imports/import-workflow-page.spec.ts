@@ -13,6 +13,7 @@ import type { ImportBatch, ImportItem } from '@/shared/types/import'
 it('keeps ZIPs selected on the first screen queued until upload is explicitly started', async () => {
   const batch: ImportBatch = {
     id: 'new-batch',
+    removed_count: 0,
     mode: 'zip',
     created_at: '',
     updated_at: '',
@@ -94,6 +95,7 @@ it('restores a batch, persists review changes and only saves actual cards after 
   }
   let current: ImportBatch = {
     id: 'batch',
+    removed_count: 0,
     mode: 'docx',
     created_at: '2026-10-17T00:00:00Z',
     updated_at: '2026-10-17T00:00:00Z',

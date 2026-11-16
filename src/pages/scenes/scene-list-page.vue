@@ -5,7 +5,9 @@ import {
   ElConfigProvider,
   ElInput,
   ElMessage,
+  ElOption,
   ElPagination,
+  ElSelect,
   ElTable,
   ElTableColumn
 } from 'element-plus'
@@ -20,6 +22,9 @@ import {
   useCrossPageSelection
 } from '@/composables/use-cross-page-selection'
 import { useResource } from '@/composables/use-resource'
+import { contentTypeLabels } from '@/features/content-catalog/content-catalog-model'
+import ContentCategoryStatistics from '@/features/content-catalog/content-category-statistics.vue'
+import ContentPageJump from '@/features/content-catalog/content-page-jump.vue'
 import FreeAccessControl from '@/features/learning-access/free-access-control.vue'
 import FreeBatchControls from '@/features/learning-access/free-batch-controls.vue'
 import SceneBatchPublication from '@/features/scenes/scene-batch-publication.vue'
@@ -28,10 +33,12 @@ import SceneCatalogOrder from '@/features/scenes/scene-catalog-order.vue'
 import SceneImagePreview from '@/features/scenes/scene-image-preview.vue'
 import ScenePreview from '@/features/scenes/scene-preview.vue'
 import SceneTitle from '@/features/scenes/scene-title.vue'
+import SceneTypeHistory from '@/features/scenes/scene-type-history.vue'
 import { clientThumbnail } from '@/services/client-thumbnail'
 import { dateText, mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
 import { sceneImageId, sceneThumbnailURL } from '@/services/scene-image'
+import { useAdminStore } from '@/stores/admin-store'
 
 import type { CardView } from '@/features/scenes/editor-model'
 import type { components } from '@/shared/contracts/generated/admin-api'
@@ -41,11 +48,36 @@ const statusLabels: Record<string, string> = {
   published: '已发布',
   offline: '已下线'
 }
+const admin = useAdminStore()
+const owner = computed(() => admin.identity?.id || '')
 const route = useRoute(),
   router = useRouter(),
   search = ref(String(route.query.search || ''))
 const status = computed(() => String(route.query.status || 'all')),
-  page = computed(() => Number(route.query.page || 1))
+  page = computed(() => data.value?.page || Number(route.query.page || 1))
+const contentType = computed(() => String(route.query.content_type || ''))
+const historyOpen = ref(false),
+  filterEpoch = ref(0)
+let failedQuery: Record<string, unknown> | null = null,
+  navigationGeneration = 0
+let pendingFreeCommit: { target: string; run: number; discard: boolean } | null = null
+let prefetched: { query: string; value: components['schemas']['AdminCardPage'] } | null = null
+/** 读取目标条件的同一列表及统计快照
+ * @param query 目标筛选及页码
+ * @returns 服务端组合结果
+ */
+const readList = (query: Record<string, unknown>) =>
+  api.request<components['schemas']['AdminCardPage']>(
+    queryURL('/api/admin/v1/cards', {
+      search: query.search || '',
+      status: query.status || 'all',
+      content_type: query.content_type || undefined,
+      page: query.page || 1,
+      batch_id: query.batch_id,
+      anchor_id: query.focus,
+      limit: 10
+    })
+  )
 /** 免费保存后刷新真实状态并恢复当前滚动位置 */
 const freeChanged = async () => {
   const top = window.scrollY
@@ -117,21 +149,16 @@ const retryThumbnail = (card: CardView) => {
 let listingGeneration = 0
 const { data, busy, error, refresh } = useResource(async () => {
   const run = ++listingGeneration,
-    requested = route.fullPath
-  const value = await api.request<components['schemas']['AdminCardPage']>(
-    queryURL('/api/admin/v1/cards', {
-      search: route.query.search || '',
-      status: status.value,
-      page: page.value,
-      batch_id: route.query.batch_id,
-      anchor_id: route.query.focus,
-      limit: 10
-    })
-  )
+    requested = route.fullPath,
+    requestOwner = owner.value
+  const cached = prefetched?.query === requested ? prefetched.value : null
+  prefetched = null
+  const value = cached || (await readList(route.query))
+  if (requestOwner !== owner.value) throw new Error('管理员身份已变化，请重新加载')
   if (run !== listingGeneration || requested !== route.fullPath || route.path !== '/cards')
     return value
   if (route.query.focus) focusedCard.value = String(route.query.focus)
-  if (value.page !== page.value || route.query.focus)
+  if (value.page !== Number(route.query.page || 1) || route.query.focus)
     await router.replace({ query: { ...route.query, page: value.page, focus: undefined } })
   return value
 })
@@ -270,9 +297,11 @@ watch(data, (value) => {
 })
 watch(
   data,
-  async () => {
+  async (value, previous) => {
     await nextTick()
     await nextTick()
+    if (previous && value?.page !== previous.page)
+      document.querySelector('.scene-table')?.scrollIntoView?.({ block: 'start' })
     if (focusedCard.value) {
       document
         .querySelector(`[data-card-id="${CSS.escape(focusedCard.value)}"]`)
@@ -286,7 +315,8 @@ let listContext = JSON.stringify([
   route.query.search,
   route.query.status,
   route.query.page,
-  route.query.batch_id
+  route.query.batch_id,
+  route.query.content_type
 ])
 watch(
   () => route.fullPath,
@@ -296,7 +326,8 @@ watch(
       route.query.search,
       route.query.status,
       route.query.page,
-      route.query.batch_id
+      route.query.batch_id,
+      route.query.content_type
     ])
     if (next !== listContext) clearSelection()
     listContext = next
@@ -337,7 +368,9 @@ const selectPage = (checked: boolean) => {
 const batchProcessing = ref(false)
 const freeSelection = useCrossPageSelection(
   computed(() => data.value?.items || []),
-  page
+  page,
+  undefined,
+  owner
 )
 const freeActive = freeSelection.active,
   freeIds = freeSelection.ids,
@@ -350,6 +383,34 @@ const pagePartialSelected = computed(() =>
   freeActive.value
     ? freeSelection.partialSelected.value
     : selected.value.length > 0 && !allSelected.value
+)
+/** 只在路由真实提交后清理已确认的旧查询选择 */
+const commitFreeQuery = () => {
+  const pending = pendingFreeCommit
+  if (!pending || pending.target !== route.fullPath || pending.run !== navigationGeneration) return
+  if (pending.discard) freeSelection.clear()
+  if (route.path !== '/cards') {
+    freeActive.value = false
+    selected.value = []
+  }
+  pendingFreeCommit = null
+}
+watch(() => route.fullPath, commitFreeQuery, { flush: 'sync' })
+watch(
+  owner,
+  () => {
+    navigationGeneration++
+    listingGeneration++
+    pendingFreeCommit = null
+    prefetched = null
+    failedQuery = null
+    selected.value = []
+    data.value = null
+    error.value = ''
+    busy.value = false
+    if (owner.value && route.path === '/cards') void refresh()
+  },
+  { flush: 'sync' }
 )
 /** 进入免费模式前清空普通本页集合 */
 const enterFree = () => {
@@ -385,21 +446,71 @@ const selectVisible = (id: string, checked: boolean) => {
  * @param to 导航目标及查询条件
  * @param to.path 目标模块路径
  * @param to.query 目标筛选及分页条件
+ * @param run 发起导航时冻结的身份与导航代次
  * @returns 是否允许路由切换
  */
-const guardFreeQuery = async (to: { path: string; query: Record<string, unknown> }) => {
+const guardFreeQuery = async (
+  to: { path: string; query: Record<string, unknown> },
+  run: number
+) => {
   if (
     freeActive.value &&
     freeSelectionQueryKey(to.path, to.query) !== freeSelectionQueryKey(route.path, route.query) &&
-    !(await freeSelection.discard())
+    !(await freeSelection.canDiscard())
   ) {
-    search.value = String(route.query.search || '')
+    if (run === navigationGeneration) {
+      search.value = String(route.query.search || '')
+      filterEpoch.value++
+    }
     return false
   }
   return true
 }
-onBeforeRouteUpdate(guardFreeQuery)
+onBeforeRouteUpdate(async (to) => {
+  const run = ++navigationGeneration
+  const discard =
+    freeActive.value &&
+    freeSelectionQueryKey(to.path, to.query) !== freeSelectionQueryKey(route.path, route.query)
+  if (!(await guardFreeQuery(to, run)) || run !== navigationGeneration) {
+    if (run === navigationGeneration) busy.value = false
+    return false
+  }
+  if (to.path !== '/cards') return true
+  busy.value = true
+  try {
+    const value = await readList(to.query)
+    if (run !== navigationGeneration) return false
+    prefetched = { query: to.fullPath, value }
+    pendingFreeCommit = { target: to.fullPath, run, discard }
+    failedQuery = null
+    return true
+  } catch (reason) {
+    if (run !== navigationGeneration) return false
+    failedQuery = { ...to.query }
+    error.value = reason instanceof Error ? reason.message : '列表未刷新，请重试'
+    search.value = String(route.query.search || '')
+    filterEpoch.value++
+    return false
+  } finally {
+    if (run === navigationGeneration) busy.value = false
+  }
+})
 
+/** 其他导航守卫取消时废弃预取快照，保留原查询和全部免费选择 */
+const removeNavigationResult = router.afterEach((to, _from, failure) => {
+  if (
+    !failure ||
+    pendingFreeCommit?.target !== to.fullPath ||
+    pendingFreeCommit.run !== navigationGeneration
+  )
+    return
+  pendingFreeCommit = null
+  prefetched = null
+  busy.value = false
+  search.value = String(route.query.search || '')
+  filterEpoch.value++
+})
+onBeforeUnmount(removeNavigationResult)
 /** 简短显示持久化的真实逐卡结果
  * @param batch 最近一次批量发布
  * @returns 成功、失败与处理中的实际数量
@@ -483,9 +594,13 @@ const closeSorting = () => {
  * @param values 需要覆盖的筛选值
  */
 const filter = (values: Record<string, string | number | undefined>) => {
-  clearSelection()
   return router.replace({ query: { ...route.query, ...values, page: values.page || 1 } })
 }
+/** 重试未提交的筛选请求，成功后才更新路由与组合快照
+ * @returns 原筛选重试的导航或刷新结果
+ */
+const retryList = () =>
+  failedQuery ? router.replace({ query: failedQuery as typeof route.query }) : refresh()
 /** 打开当前发布快照
  * @param card 稳定卡片
  */
@@ -536,12 +651,12 @@ watch(
 )
 let listPosition: { path: string; left: number; top: number } | null = null
 onBeforeRouteLeave(async (to) => {
-  if (!(await guardFreeQuery(to))) return false
-  if (freeActive.value) {
-    freeActive.value = false
-    freeSelection.clear()
-    selected.value = []
+  const run = ++navigationGeneration
+  if (!(await guardFreeQuery(to, run)) || run !== navigationGeneration) {
+    if (run === navigationGeneration) busy.value = false
+    return false
   }
+  pendingFreeCommit = { target: to.fullPath, run, discard: freeActive.value }
   listPosition = { path: route.fullPath, left: window.scrollX, top: window.scrollY }
 })
 onActivated(async () => {
@@ -575,6 +690,15 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div class="card-list-page">
+    <SceneTypeHistory
+      v-if="historyOpen"
+      @close="
+        () => {
+          historyOpen = false
+          refresh()
+        }
+      "
+    />
     <ElConfigProvider v-if="!sorting" :locale="zhCn">
       <div class="content-list">
         <div class="page-heading between">
@@ -582,10 +706,11 @@ onBeforeUnmount(() => {
             <RouterLink v-if="route.query.from === 'statistics'" to="/statistics" class="back-link"
               >‹ 返回数据统计</RouterLink
             >
-            <h1>卡片管理</h1>
+            <h1>场景卡片</h1>
             <p>双语标题与当前发布状态同步至用户端。</p>
           </div>
           <div class="row">
+            <ElButton @click="historyOpen = true">旧卡类型核对</ElButton>
             <ElButton
               v-if="!sorting"
               native-type="button"
@@ -604,7 +729,7 @@ onBeforeUnmount(() => {
             <span
               ><strong>免费开放</strong
               ><small v-if="data?.learning_policy">{{
-                `当前免费场景 ${data.learning_policy.actual_free_count} 张，其余场景需学习授权`
+                `当前免费场景 ${data.learning_policy.actual_free_count} 张，其余场景暂未开放`
               }}</small></span
             ><ElButton v-if="!freeActive" @click="enterFree">批量设置免费</ElButton
             ><small v-else>免费模式 · 逐条操作继续保留</small>
@@ -622,7 +747,18 @@ onBeforeUnmount(() => {
               aria-label="搜索中文或英文标题"
               placeholder="搜索中文或英文标题"
             />
-            <ElButton native-type="submit" class="primary">查询</ElButton>
+            <ElSelect
+              :key="filterEpoch"
+              :model-value="contentType"
+              aria-label="内容类型筛选"
+              placeholder="全部类型"
+              @change="filter({ content_type: $event || undefined })"
+              ><ElOption label="全部类型" value="" /><ElOption
+                v-for="(label, value) in contentTypeLabels"
+                :key="value"
+                :value="value"
+                :label="label" /></ElSelect
+            ><ElButton native-type="submit" class="primary">查询</ElButton>
             <div class="segments" aria-label="发布状态">
               <ElButton
                 v-for="item in [
@@ -640,6 +776,15 @@ onBeforeUnmount(() => {
               </ElButton>
             </div>
           </form>
+          <ContentCategoryStatistics
+            :value="data?.statistics"
+            :all="data?.all_statistics"
+            :title="contentTypeLabels[contentType as keyof typeof contentTypeLabels] || '全部'"
+            unit="张"
+            :error="error"
+            :snapshot="data?.snapshot_at"
+            @retry="retryList"
+          />
           <div
             v-show="freeActive"
             class="free-selection-bar"
@@ -723,7 +868,7 @@ onBeforeUnmount(() => {
             :empty="data?.total === 0"
             empty-title="暂无场景卡片"
             empty-text="可以新建卡片，保存资料后预览并发布"
-            @retry="refresh"
+            @retry="retryList"
           />
           <div v-if="data && data.total" class="table-wrap">
             <ElTable :data="data.items" row-key="id" class="scene-table" table-layout="fixed">
@@ -798,6 +943,40 @@ onBeforeUnmount(() => {
                 </template></ElTableColumn
               >
               <!-- @vue-generic {CardView} -->
+              <ElTableColumn label="内容类型" :width="138"
+                ><template #default="{ row: card }"
+                  ><span>{{
+                    contentTypeLabels[card.content_type as keyof typeof contentTypeLabels] ||
+                    '待补类型'
+                  }}</span
+                  ><small
+                    v-if="
+                      card.current_version_id &&
+                      card.draft_content_type !== card.published_content_type
+                    "
+                    class="muted draft-type"
+                    >草稿拟改为{{
+                      contentTypeLabels[
+                        card.draft_content_type as keyof typeof contentTypeLabels
+                      ] || '待补类型'
+                    }}</small
+                  ></template
+                ></ElTableColumn
+              >
+              <!-- @vue-generic {CardView} -->
+              <ElTableColumn label="学习笔记" :width="145"
+                ><template #default="{ row: card }"
+                  ><template v-if="card.current_version_id"
+                    ><span>{{ card.published_study_note?.filename || '无发布PDF' }}</span
+                    ><small v-if="card.published_study_note" class="muted">{{
+                      card.status === 'published' ? '有效已发布' : '保留发布附件'
+                    }}</small></template
+                  ><template v-else>{{
+                    card.study_note?.attachment?.original_name || '暂无PDF'
+                  }}</template></template
+                ></ElTableColumn
+              >
+              <!-- @vue-generic {CardView} -->
               <ElTableColumn label="状态" :min-width="20"
                 ><template #default="{ row: card }">
                   <span class="badge" :class="card.status">{{
@@ -806,7 +985,7 @@ onBeforeUnmount(() => {
                   ><span v-if="card.is_free" class="badge">{{
                     card.status === 'published' ? '免费开放' : '免费已开启 · 发布后生效'
                   }}</span
-                  ><span v-else class="muted small">需学习授权</span>
+                  ><span v-else class="muted small">暂未开放</span>
                   <p
                     v-if="card.status === 'published' && card.has_unpublished_changes"
                     class="badge draft"
@@ -865,7 +1044,7 @@ onBeforeUnmount(() => {
               >
             </ElTable>
           </div>
-          <div v-if="data && !error" class="pagination">
+          <div v-if="data" class="pagination">
             <span class="pagination-total">共 {{ data.total }} 张 · 每页10条</span>
             <ElPagination
               :current-page="page"
@@ -878,8 +1057,13 @@ onBeforeUnmount(() => {
               @current-change="filter({ page: $event })"
             >
               <span v-if="data.total">第 {{ data.page }} / {{ data.total_pages }} 页</span>
-              <span v-else>暂无卡片</span>
-            </ElPagination>
+              <span v-else>暂无卡片</span> </ElPagination
+            ><ContentPageJump
+              :page="data.page"
+              :total-pages="data.total_pages"
+              :busy="busy"
+              @jump="filter({ page: $event })"
+            />
           </div>
           <div v-if="managementBatches.length || hasPendingAction" class="batch-history">
             <ElButton v-if="hasPendingAction" native-type="button" @click="openActions('delete')">
@@ -995,6 +1179,11 @@ onBeforeUnmount(() => {
     width: 380px;
   }
 
+  > .el-select {
+    flex: 0 0 160px;
+    width: 160px;
+  }
+
   .segments {
     margin-left: auto;
   }
@@ -1064,6 +1253,11 @@ onBeforeUnmount(() => {
   .pagination-total {
     margin-right: auto;
   }
+}
+
+.draft-type {
+  display: block;
+  margin-top: 6px;
 }
 
 .card-title-cell {

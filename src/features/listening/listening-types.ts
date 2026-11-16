@@ -17,6 +17,10 @@ export interface Page<T> {
   total: number
   page: number
   limit: number
+  total_pages?: number
+  statistics?: components['schemas']['CatalogStatistics']
+  all_statistics?: components['schemas']['CatalogStatistics']
+  snapshot_at?: string
 }
 export type Candidate = Omit<components['schemas']['Candidate'], 'payload'> & {
   payload: ArticlePayload

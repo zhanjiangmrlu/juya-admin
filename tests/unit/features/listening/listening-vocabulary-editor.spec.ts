@@ -46,7 +46,7 @@ it('marks a source stale when the body changes', async () => {
       ]
     }
   })
-  expect(page.text()).toContain('来源已匹配')
+  expect(page.text()).toContain('自动通过／无需手动确认')
   await page.setProps({ body: 'She goes.' })
   await flushPromises()
   expect(page.text()).toContain('正文已变化')
@@ -81,7 +81,7 @@ it('automatically shows and saves the DOCX sentence and inflected word without m
     confirmed: true
   })
   await page.setProps({ modelValue: matched })
-  expect(page.text()).toContain('来源已匹配')
+  expect(page.text()).toContain('自动通过／无需手动确认')
   expect(page.find('input[type=checkbox]').exists()).toBe(false)
   expect(page.find('[role=alert]').exists()).toBe(false)
   page.unmount()
@@ -165,5 +165,45 @@ it('keeps the exact repeated sentence selected by its position', async () => {
     word_end: 16,
     word: 'rest'
   })
+  page.unmount()
+})
+
+it('retains a pending sentence across server matching and records manual unknown word selection', async () => {
+  const value: VocabularyWord[] = [
+    {
+      id: 'w',
+      english: 'cactus',
+      meaning: '仙人掌',
+      phonetic: '',
+      source_hint: '',
+      source: null,
+      source_reason: 'source_unmatched'
+    }
+  ]
+  const page = mount(ListeningVocabularyEditor, {
+    props: { body: '😀 We found cacti.', modelValue: value, serverMatching: true }
+  })
+  expect(page.get('.vocabulary-card').classes()).toContain('requires-review')
+  page.findAllComponents(ElSelect)[0]!.vm.$emit('change', 0)
+  await flushPromises()
+  // A real server preview cannot confirm a sentence until the administrator chooses the actual word.
+  expect(value[0]!.source).toBeNull()
+  await page.setProps({
+    modelValue: [{ ...value[0]!, source: null, source_reason: 'source_unmatched' }]
+  })
+  expect(page.findAllComponents(ElSelect)).toHaveLength(2)
+  page.findAllComponents(ElSelect)[1]!.vm.$emit('change', 11)
+  await flushPromises()
+  const item = page.props('modelValue')[0]!
+  expect(item.source).toMatchObject({
+    word: 'cacti',
+    word_start: 11,
+    word_end: 16,
+    manual_english: 'cactus',
+    confirmed: true
+  })
+  expect(item.source_reason).toBeNull()
+  expect(page.text()).toContain('人工已确认')
+  expect(page.get('.vocabulary-card').classes()).not.toContain('requires-review')
   page.unmount()
 })

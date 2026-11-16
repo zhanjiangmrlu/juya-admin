@@ -85,4 +85,9 @@ test('user actions stay on the right while the table scrolls horizontally', asyn
   })
   await expect.poll(async () => (await action.boundingBox())!.x).toBeCloseTo(before!.x, 0)
   await expect(action).toHaveAttribute('href', '/users/visual-user?back=/users')
+  const input = page.locator('.page-jump .el-input__wrapper')
+  await expect(input).toBeVisible()
+  expect((await input.boundingBox())!.height).toBe(
+    (await page.getByRole('button', { name: '下一页', exact: true }).boundingBox())!.height
+  )
 })

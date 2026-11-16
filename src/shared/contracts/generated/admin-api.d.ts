@@ -1012,6 +1012,66 @@ export interface paths {
     patch: operations['stage_api_admin_v1_imports__batch_id__items__item_id__patch']
     trace?: never
   }
+  '/api/admin/v1/imports/{batch_id}/duplicates': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * 分页查看场景重复项
+     * @description 读取所属批次完整重复明细和命中目标当前状态。
+     */
+    get: operations['duplicates_api_admin_v1_imports__batch_id__duplicates_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/v1/imports/{batch_id}/content-types/preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * 预览批量候选分类
+     * @description 展示本次实际变更候选、原值与附件冲突。
+     */
+    post: operations['preview_types_api_admin_v1_imports__batch_id__content_types_preview_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/v1/imports/{batch_id}/content-types/apply': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * 确认批量候选分类
+     * @description 按预览摘要和逐项版本应用分类。
+     */
+    post: operations['apply_types_api_admin_v1_imports__batch_id__content_types_apply_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/v1/imports/{batch_id}/confirmation': {
     parameters: {
       query?: never
@@ -2020,6 +2080,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/v1/listening/imports/{batch_id}/duplicates': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * 分页查看听读重复项
+     * @description 读取所属批次完整重复明细和命中目标当前状态。
+     */
+    get: operations['duplicates_api_admin_v1_listening_imports__batch_id__duplicates_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/admin/v1/listening/imports': {
     parameters: {
       query?: never
@@ -2158,6 +2238,86 @@ export interface paths {
      * @description 使用预览凭证核对批次、候选指纹及提交方式，逐项保存草稿或发布并返回结果。
      */
     post: operations['save_api_admin_v1_listening_imports__batch_id__save_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/v1/content-types/history': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * 查询历史分类核对清单
+     * @description 列出当前有效发布内容、分类建议、异常及版本快照。
+     */
+    get: operations['history_api_admin_v1_content_types_history_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/v1/content-types/confirm': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * 逐项确认历史发布分类
+     * @description 检查快照和附件后写入独立的分类绑定。
+     */
+    post: operations['confirm_api_admin_v1_content_types_confirm_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/v1/content-types/enable': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * 启用雅思词汇双分类
+     * @description 在目录锁内复核全部发布卡片的分类与附件。
+     */
+    post: operations['enable_api_admin_v1_content_types_enable_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/v1/vocabulary/sources/preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * 预览词汇正文来源
+     * @description 按模块使用保存和发布共用的词形与原句匹配规则。
+     */
+    post: operations['preview_sources_api_admin_v1_vocabulary_sources_preview_post']
     delete?: never
     options?: never
     head?: never
@@ -2362,15 +2522,30 @@ export interface components {
        */
       limit: number
       /**
-       * 学习权限策略
-       * @description 后台列表关联的免费内容策略和版本信息。
+       * 本人学习统计
+       * @description 场景、听读完成数量、收藏数量及打卡情况等统计。
        */
-      learning_policy?: components['schemas']['PolicyView'] | null
+      statistics: components['schemas']['CatalogStatistics']
+      /**
+       * 全模块统计
+       * @description 全模块统计。
+       */
+      all_statistics: components['schemas']['CatalogStatistics']
+      /**
+       * 统计快照时间
+       * @description 统计快照时间。
+       */
+      snapshot_at: string
       /**
        * 总页数
        * @description 按当前筛选总数量及每页数量计算的分页总页数。
        */
       total_pages: number
+      /**
+       * 学习权限策略
+       * @description 后台列表关联的免费内容策略和版本信息。
+       */
+      learning_policy?: components['schemas']['PolicyView'] | null
     }
     /** 管理员登录请求 */
     AdminLogin: {
@@ -3056,6 +3231,11 @@ export interface components {
     /** 场景草稿预览 */
     CardPreview: {
       /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       */
+      content_type?: ('illustrated' | 'intensive') | null
+      /**
        * 学习笔记
        * @description 场景学习笔记草稿决策或当前发布PDF；请求省略表示保留，明确remove才移除。
        */
@@ -3089,6 +3269,21 @@ export interface components {
     }
     /** 后台场景详情 */
     CardView: {
+      /**
+       * 草稿拟发布类型
+       * @description 草稿拟发布类型。
+       */
+      draft_content_type?: ('illustrated' | 'intensive') | null
+      /**
+       * 当前绑定发布分类
+       * @description 当前绑定发布分类。
+       */
+      published_content_type?: ('illustrated' | 'intensive') | null
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       */
+      content_type?: ('illustrated' | 'intensive') | null
       /**
        * 学习笔记
        * @description 场景学习笔记草稿决策或当前发布PDF；请求省略表示保留，明确remove才移除。
@@ -3238,6 +3433,72 @@ export interface components {
        */
       items: components['schemas']['DeleteItem'][]
     }
+    /** 听读分类统计分页 */
+    CatalogPage_Article_: {
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
+      items: components['schemas']['Article'][]
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
+      total: number
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
+      page: number
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
+      limit: number
+      /**
+       * 本人学习统计
+       * @description 场景、听读完成数量、收藏数量及打卡情况等统计。
+       */
+      statistics: components['schemas']['CatalogStatistics']
+      /**
+       * 全模块统计
+       * @description 全模块统计。
+       */
+      all_statistics: components['schemas']['CatalogStatistics']
+      /**
+       * 统计快照时间
+       * @description 统计快照时间。
+       */
+      snapshot_at: string
+      /**
+       * 总页数
+       * @description 按当前筛选总数量及每页数量计算的分页总页数。
+       */
+      total_pages: number
+    }
+    /** 分类统计 */
+    CatalogStatistics: {
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
+      total: number
+      /**
+       * 当前有效发布数
+       * @description 当前有效发布数。
+       */
+      published: number
+      /**
+       * 已发布且免费数
+       * @description 已发布且免费数。
+       */
+      free: number
+      /**
+       * 剩余可开启免费数
+       * @description 剩余可开启免费数。
+       */
+      remaining: number
+    }
     /** 听读分类 */
     Category: {
       /**
@@ -3350,6 +3611,22 @@ export interface components {
        */
       chinese: string
     }
+    /** 历史分类确认请求 */
+    Confirm: {
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
+      items: components['schemas']['HistorySelection'][]
+    }
+    /** 历史分类确认回执 */
+    Confirmed: {
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
+      items: components['schemas']['Receipt'][]
+    }
     /** 听读文章内容快照 */
     ContentSnapshot: {
       /**
@@ -3404,6 +3681,11 @@ export interface components {
     }
     /** 新建场景草稿请求 */
     CreateCard: {
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       */
+      content_type?: ('illustrated' | 'intensive') | null
       /**
        * 场景内容
        * @description 场景的名称、配图、音频、对话、词汇和语块资料。
@@ -3609,6 +3891,85 @@ export interface components {
        * @description 文章或主题归属的分类 ID。
        */
       category_id?: string | null
+    }
+    /** 重复项明细 */
+    DuplicateDetail: {
+      /**
+       * 导入候选标识
+       * @description 听读导入中单篇待核对文章的候选 ID。
+       */
+      candidate_id: string
+      /**
+       * 来源文件名
+       * @description 来源文件名。
+       */
+      source_name: string
+      /**
+       * 来源内部路径
+       * @description 来源内部路径。
+       */
+      source_path: string
+      /**
+       * 中文标题
+       * @description 听读文章向用户展示的中文标题。
+       */
+      title_zh: string
+      /**
+       * 英文标题
+       * @description 场景或听读文章向用户展示的英文标题。
+       */
+      title_en: string
+      /**
+       * 处理原因码
+       * @description 跳过或失败的稳定原因代码，完整解释见message。
+       * @enum {string}
+       */
+      reason: 'existing_content' | 'same_package' | 'cross_package'
+      /**
+       * 命中目标对象种类
+       * @description 命中目标对象种类。
+       * @enum {string}
+       */
+      target_kind:
+        'scene_card' | 'scene_candidate' | 'listening_article' | 'listening_candidate' | 'unknown'
+      /**
+       * 命中目标稳定标识
+       * @description 命中目标稳定标识。
+       */
+      target_id: string | null
+      /**
+       * 命中目标当前可查看
+       * @description 命中目标当前可查看。
+       */
+      target_available: boolean
+    }
+    /** 重复明细分页 */
+    DuplicatePage: {
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
+      items: components['schemas']['DuplicateDetail'][]
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
+      total: number
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
+      page: number
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
+      limit: number
+      /**
+       * 总页数
+       * @description 按当前筛选总数量及每页数量计算的分页总页数。
+       */
+      total_pages: number
     }
     /** 业务错误内容 */
     ErrorBody: {
@@ -4322,8 +4683,120 @@ export interface components {
        */
       preview_token: string
     }
+    /** 历史发布核对项 */
+    HistoryItem: {
+      /**
+       * 场景卡片标识
+       * @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。
+       */
+      card_id: string
+      /**
+       * 名称
+       * @description 当前场景、分类、主题或文件的显示名称。
+       */
+      name: string
+      /**
+       * 当前发布版本标识
+       * @description 场景当前对学习端生效的不可变发布版本 ID。
+       */
+      current_version_id: string | null
+      /**
+       * 学习笔记独立版本
+       * @description 资源票据绑定的当前PDF发布版本，每次GET、HEAD及Range均重新校验。
+       */
+      study_note_version_id: string | null
+      /**
+       * 草稿修订号
+       * @description 当前场景草稿的修订号，编辑和发布时用于并发校验。
+       */
+      draft_revision: number
+      /**
+       * 草稿拟发布类型
+       * @description 草稿拟发布类型。
+       */
+      draft_content_type: ('illustrated' | 'intensive') | null
+      /**
+       * 当前绑定发布分类
+       * @description 当前绑定发布分类。
+       */
+      published_content_type: ('illustrated' | 'intensive') | null
+      /**
+       * 建议内容类型
+       * @description 建议内容类型。
+       * @enum {string}
+       */
+      suggestion: 'illustrated' | 'intensive'
+      /**
+       * 核对异常原因
+       * @description 核对异常原因。
+       */
+      warnings: string[]
+      /**
+       * 核对快照摘要
+       * @description 核对快照摘要。
+       */
+      snapshot: string
+    }
+    /** 历史发布核对分页 */
+    HistoryPage: {
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
+      items: components['schemas']['HistoryItem'][]
+      /**
+       * 总条目数
+       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
+       */
+      total: number
+      /**
+       * 页码
+       * @description 从 1 开始的分页页码。
+       */
+      page: number
+      /**
+       * 每页数量
+       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
+       */
+      limit: number
+      /**
+       * 总页数
+       * @description 按当前筛选总数量及每页数量计算的分页总页数。
+       */
+      total_pages: number
+      /**
+       * 分类是否就绪
+       * @description 分类是否就绪。
+       */
+      content_types_ready: boolean
+    }
+    /** 历史卡片选择 */
+    HistorySelection: {
+      /**
+       * 场景卡片标识
+       * @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。
+       */
+      card_id: string
+      /**
+       * 核对快照摘要
+       * @description 核对快照摘要。
+       */
+      snapshot: string
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       * @enum {string}
+       */
+      content_type: 'illustrated' | 'intensive'
+    }
     /** 可恢复场景导入批次 */
     ImportBatchView: {
+      /**
+       * 人工移除数
+       * @description 此批次明确移除的候选卡片数量。
+       * @default 0
+       */
+      removed_count: number
       /**
        * 资源标识
        * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
@@ -4412,6 +4885,30 @@ export interface components {
     }
     /** 场景导入保存确认统计 */
     ImportConfirmation: {
+      /**
+       * 移除信息
+       * @description 当前对象从本次导入选择或免费范围移除的信息。
+       * @default 0
+       */
+      removed: number
+      /**
+       * 失败数量
+       * @description 明确失败并可重新核对重试的数量。
+       * @default 0
+       */
+      failed: number
+      /**
+       * 处理失败文件数
+       * @description 源文件或媒体处理失败的文件数。
+       * @default 0
+       */
+      failed_files: number
+      /**
+       * 来源ZIP数量
+       * @description 批次内现有ZIP文件数。
+       * @default 0
+       */
+      package_count: number
       /**
        * 导入确认快照版本
        * @description 绑定资料内容、处理状态和选择范围的摘要，确认保存时原样提交。
@@ -4522,6 +5019,21 @@ export interface components {
     }
     /** 场景导入核对资料 */
     ImportItemView: {
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       */
+      content_type?: ('illustrated' | 'intensive') | null
+      /**
+       * 候选分类来源
+       * @description 候选分类来源。
+       */
+      type_origin?: string | null
+      /**
+       * 文档原始分类文字
+       * @description 文档原始分类文字。
+       */
+      type_raw?: string[]
       /**
        * 学习笔记
        * @description 场景学习笔记草稿决策或当前发布PDF；请求省略表示保留，明确remove才移除。
@@ -4686,12 +5198,12 @@ export interface components {
     LearningPermission: {
       /**
        * 允许学习
-       * @description 当前内容可用且为免费内容，或用户具有有效学习授权时为 true。
+       * @description 当前内容已发布且标记免费时为 true；学习授权暂停期间不增加访问权限。
        */
       can_learn: boolean
       /**
        * 允许点词查询
-       * @description 当前内容可用且用户具有有效学习授权时为 true。
+       * @description 内置查词暂停期间恒为 false，正文使用系统选词。
        */
       can_lookup: boolean
       /**
@@ -4925,6 +5437,33 @@ export interface components {
        * @enum {string}
        */
       submit_action: 'draft' | 'publish'
+    }
+    /** 听读来源预览请求 */
+    ListeningMatchRequest: {
+      /**
+       * @description 来源模块。 (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      module: 'listening'
+      /**
+       * 场景内容
+       * @description 场景的名称、配图、音频、对话、词汇和语块资料。
+       */
+      content: components['schemas']['ListeningPayload']
+    }
+    /** 听读来源预览结果 */
+    ListeningMatchResult: {
+      /**
+       * 来源模块
+       * @description 来源模块。
+       * @constant
+       */
+      module: 'listening'
+      /**
+       * 词汇列表
+       * @description 正文关联的重点词汇、音标、中文释义和原文出处。
+       */
+      vocabulary: components['schemas']['VocabularyWord'][]
     }
     /** 听读文章正文资料 */
     ListeningPayload: {
@@ -5251,29 +5790,6 @@ export interface components {
        */
       error?: string | null
     }
-    /** 听读文章列表分页 */
-    Page_Article_: {
-      /**
-       * 条目列表
-       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
-       */
-      items: components['schemas']['Article'][]
-      /**
-       * 总条目数
-       * @description 当前筛选范围内的总数量，分页时不只是当前页条目数。
-       */
-      total: number
-      /**
-       * 页码
-       * @description 从 1 开始的分页页码。
-       */
-      page: number
-      /**
-       * 每页数量
-       * @description 单页最多返回的条目数，实际限制以接口校验规则为准。
-       */
-      limit: number
-    }
     /** 听读导入批次分页 */
     Page_Batch_: {
       /**
@@ -5526,6 +6042,11 @@ export interface components {
     /** 后台已发布场景预览 */
     PublishedPreview: {
       /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       */
+      content_type?: ('illustrated' | 'intensive') | null
+      /**
        * 学习笔记
        * @description 场景学习笔记草稿决策或当前发布PDF；请求省略表示保留，明确remove才移除。
        */
@@ -5559,6 +6080,32 @@ export interface components {
        * @description 用户本次已查看到的反馈事件 ID，用于推进已读位置。
        */
       event_id: number
+    }
+    /** 分类启用结果 */
+    Ready: {
+      /**
+       * 分类是否就绪
+       * @description 分类是否就绪。
+       */
+      content_types_ready: boolean
+    }
+    /** 分类逐项确认结果 */
+    Receipt: {
+      /**
+       * 场景卡片标识
+       * @description 业务场景卡片的 ID，区别于卡片的发布版本 ID。
+       */
+      card_id: string
+      /**
+       * 业务状态
+       * @description 当前对象或操作的业务状态，取值以所在模型约束为准。
+       */
+      status: string
+      /**
+       * 处理原因码
+       * @description 跳过或失败的稳定原因代码，完整解释见message。
+       */
+      reason: string | null
     }
     /** 移除场景导入 ZIP 请求 */
     RemoveImportFiles: {
@@ -5624,6 +6171,11 @@ export interface components {
        * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
        */
       revision: number
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       */
+      content_type?: ('illustrated' | 'intensive') | null
       /**
        * 场景内容
        * @description 场景的名称、配图、音频、对话、词汇和语块资料。
@@ -5737,6 +6289,33 @@ export interface components {
        */
       chunks?: components['schemas']['Chunk'][]
     }
+    /** 场景来源预览请求 */
+    SceneMatchRequest: {
+      /**
+       * @description 来源模块。 (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      module: 'scene'
+      /**
+       * 场景内容
+       * @description 场景的名称、配图、音频、对话、词汇和语块资料。
+       */
+      content: components['schemas']['SceneContent']
+    }
+    /** 场景来源预览结果 */
+    SceneMatchResult: {
+      /**
+       * 来源模块
+       * @description 来源模块。
+       * @constant
+       */
+      module: 'scene'
+      /**
+       * 词汇列表
+       * @description 正文关联的重点词汇、音标、中文释义和原文出处。
+       */
+      vocabulary: components['schemas']['Vocabulary'][]
+    }
     /** 确认发布的场景草稿 */
     SelectedPublication: {
       /**
@@ -5770,6 +6349,11 @@ export interface components {
     }
     /** 场景词汇原文出处 */
     Source: {
+      /**
+       * 人工确认的词条英文
+       * @description 仅人工选择当前正文片段时填写。服务端核验此值与词条英文一致，并核验原文及坐标；自动来源不填写。
+       */
+      manual_english?: string | null
       /**
        * 对话行标识
        * @description 场景发布内容中对应英文对话行的 ID。
@@ -5834,6 +6418,11 @@ export interface components {
     }
     /** 暂存场景导入核对修改请求 */
     StageItem: {
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       */
+      content_type?: ('illustrated' | 'intensive') | null
       /**
        * 学习笔记
        * @description 场景学习笔记草稿决策或当前发布PDF；请求省略表示保留，明确remove才移除。
@@ -6359,6 +6948,98 @@ export interface components {
        */
       revision: number
     }
+    /** 批量应用分类请求 */
+    TypeApply: {
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
+      items: components['schemas']['RemoveImportItem'][]
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       * @enum {string}
+       */
+      content_type: 'illustrated' | 'intensive'
+      /**
+       * 是否覆盖已有值
+       * @description 是否覆盖已有值。
+       * @default false
+       */
+      overwrite: boolean
+      /**
+       * 数据版本
+       * @description 当前数据快照或对象版本，写入时按原值提交用于一致性校验。
+       */
+      version: string
+    }
+    /** 候选分类变更 */
+    TypeChange: {
+      /**
+       * 资源标识
+       * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
+       */
+      id: string
+      /**
+       * 修订号
+       * @description 当前对象的乐观锁版本；修改时提交最近读取的值，防止覆盖并发更新。
+       */
+      revision: number
+      /**
+       * 现有内容类型
+       * @description 现有内容类型。
+       */
+      old_type: ('illustrated' | 'intensive') | null
+      /**
+       * 拟选内容类型
+       * @description 拟选内容类型。
+       * @enum {string}
+       */
+      new_type: 'illustrated' | 'intensive'
+      /**
+       * 类型与附件冲突
+       * @description 类型与附件冲突。
+       */
+      pdf_conflict: boolean
+    }
+    /** 分类覆盖预览 */
+    TypePreview: {
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
+      items: components['schemas']['TypeChange'][]
+      /**
+       * 数量
+       * @description 当前接口统计的条目数量，统计范围由所在响应对象确定。
+       */
+      count: number
+      /**
+       * 数据版本
+       * @description 当前数据快照或对象版本，写入时按原值提交用于一致性校验。
+       */
+      version: string
+    }
+    /** 批量分类选择 */
+    TypeSelection: {
+      /**
+       * 条目列表
+       * @description 当前页、批次或操作范围内的业务条目，顺序以返回列表为准。
+       */
+      items: components['schemas']['RemoveImportItem'][]
+      /**
+       * 内容类型
+       * @description 媒体的 MIME 类型，或当前业务内容的类型标记。
+       * @enum {string}
+       */
+      content_type: 'illustrated' | 'intensive'
+      /**
+       * 是否覆盖已有值
+       * @description 是否覆盖已有值。
+       * @default false
+       */
+      overwrite: boolean
+    }
     /** 后台文件上传限制 */
     UploadConfiguration: {
       /**
@@ -6389,6 +7070,17 @@ export interface components {
     }
     /** 场景重点词汇 */
     Vocabulary: {
+      /**
+       * 原句定位提示
+       * @description 导入词汇附带的原句文字，用于匹配英文正文中的真实出处。
+       * @default
+       */
+      source_hint: string
+      /**
+       * 来源待核对原因
+       * @description 来源待核对原因。
+       */
+      source_reason?: string | null
       /**
        * 资源标识
        * @description 当前对象的唯一标识；具体对象类型由所在模型确定。
@@ -6433,6 +7125,11 @@ export interface components {
     /** 听读词汇原句及词形定位 */
     VocabularySource: {
       /**
+       * 人工确认的词条英文
+       * @description 仅人工选择当前正文片段时填写。服务端核验此值与词条英文一致，并核验原文及坐标；自动来源不填写。
+       */
+      manual_english?: string | null
+      /**
        * 原句起始位置
        * @description 原句在原始 body_en 中的起始 Unicode 码点位置，从零开始。
        */
@@ -6471,6 +7168,11 @@ export interface components {
     }
     /** 听读重点词汇 */
     VocabularyWord: {
+      /**
+       * 来源待核对原因
+       * @description 来源待核对原因。
+       */
+      source_reason?: string | null
       /**
        * 原句定位提示
        * @description 导入词汇附带的原句文字，用于匹配英文正文中的真实出处。
@@ -8769,6 +9471,8 @@ export interface operations {
       query?: {
         /** @description 当前对象或操作的业务状态，取值以所在模型约束为准。 */
         status?: string
+        /** @description 媒体的 MIME 类型，或当前业务内容的类型标记。 */
+        content_type?: ('illustrated' | 'intensive') | null
         /** @description 用于当前列表筛选的搜索文字。 */
         search?: string
         /** @description 本次导入、发布或管理操作批次的 ID。 */
@@ -13487,6 +14191,360 @@ export interface operations {
       }
     }
   }
+  duplicates_api_admin_v1_imports__batch_id__duplicates_get: {
+    parameters: {
+      query?: {
+        /** @description 从 1 开始的分页页码。 */
+        page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
+        limit?: number
+      }
+      header?: never
+      path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
+        batch_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description 请求成功 */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DuplicatePage']
+        }
+      }
+      /** @description 请求不符合业务规则 */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 尚未登录，或登录凭证已失效 */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 当前身份无权执行该操作 */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源不存在，或当前身份不可访问 */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源或功能已不可用 */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求过于频繁，请稍后重试 */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务暂不可用，请稍后重试 */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  preview_types_api_admin_v1_imports__batch_id__content_types_preview_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
+        batch_id: string
+      }
+      cookie?: never
+    }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TypeSelection']
+      }
+    }
+    responses: {
+      /** @description 请求成功 */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TypePreview']
+        }
+      }
+      /** @description 请求不符合业务规则 */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 尚未登录，或登录凭证已失效 */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 当前身份无权执行该操作 */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源不存在，或当前身份不可访问 */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源或功能已不可用 */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求过于频繁，请稍后重试 */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务暂不可用，请稍后重试 */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  apply_types_api_admin_v1_imports__batch_id__content_types_apply_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
+        batch_id: string
+      }
+      cookie?: never
+    }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TypeApply']
+      }
+    }
+    responses: {
+      /** @description 请求成功 */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ImportBatchView']
+        }
+      }
+      /** @description 请求不符合业务规则 */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 尚未登录，或登录凭证已失效 */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 当前身份无权执行该操作 */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源不存在，或当前身份不可访问 */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源或功能已不可用 */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求过于频繁，请稍后重试 */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务暂不可用，请稍后重试 */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
   review_api_admin_v1_imports__batch_id__confirmation_get: {
     parameters: {
       query?: {
@@ -16304,7 +17362,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['Page_Article_']
+          'application/json': components['schemas']['CatalogPage_Article_']
         }
       }
       /** @description 请求不符合业务规则 */
@@ -20479,6 +21537,124 @@ export interface operations {
       }
     }
   }
+  duplicates_api_admin_v1_listening_imports__batch_id__duplicates_get: {
+    parameters: {
+      query?: {
+        /** @description 从 1 开始的分页页码。 */
+        page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
+        limit?: number
+      }
+      header?: never
+      path: {
+        /** @description 本次导入、发布或管理操作批次的 ID。 */
+        batch_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description 请求成功 */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DuplicatePage']
+        }
+      }
+      /** @description 请求不符合业务规则 */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 尚未登录，或登录凭证已失效 */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 当前身份无权执行该操作 */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源不存在，或当前身份不可访问 */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源或功能已不可用 */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求过于频繁，请稍后重试 */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务暂不可用，请稍后重试 */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
   listing_api_admin_v1_listening_imports_get: {
     parameters: {
       query?: {
@@ -21325,6 +22501,467 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['SaveResult']
+        }
+      }
+      /** @description 请求不符合业务规则 */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 尚未登录，或登录凭证已失效 */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 当前身份无权执行该操作 */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源不存在，或当前身份不可访问 */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源或功能已不可用 */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求过于频繁，请稍后重试 */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务暂不可用，请稍后重试 */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  history_api_admin_v1_content_types_history_get: {
+    parameters: {
+      query?: {
+        /** @description 从 1 开始的分页页码。 */
+        page?: number
+        /** @description 单页最多返回的条目数，实际限制以接口校验规则为准。 */
+        limit?: number
+        /** @description 只查询未归类发布项。 */
+        unclassified_only?: boolean
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description 请求成功 */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HistoryPage']
+        }
+      }
+      /** @description 请求不符合业务规则 */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 尚未登录，或登录凭证已失效 */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 当前身份无权执行该操作 */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源不存在，或当前身份不可访问 */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源或功能已不可用 */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求过于频繁，请稍后重试 */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务暂不可用，请稍后重试 */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  confirm_api_admin_v1_content_types_confirm_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Confirm']
+      }
+    }
+    responses: {
+      /** @description 请求成功 */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Confirmed']
+        }
+      }
+      /** @description 请求不符合业务规则 */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 尚未登录，或登录凭证已失效 */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 当前身份无权执行该操作 */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源不存在，或当前身份不可访问 */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源或功能已不可用 */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求过于频繁，请稍后重试 */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务暂不可用，请稍后重试 */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  enable_api_admin_v1_content_types_enable_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description 请求成功 */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Ready']
+        }
+      }
+      /** @description 请求不符合业务规则 */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 尚未登录，或登录凭证已失效 */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 当前身份无权执行该操作 */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源不存在，或当前身份不可访问 */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 状态、版本或幂等请求发生冲突，请按错误码处理 */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 资源或功能已不可用 */
+      410: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求参数校验失败，或业务内容不符合要求 */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 请求过于频繁，请稍后重试 */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务器暂未完成请求，请按错误信息处理 */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description 服务暂不可用，请稍后重试 */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  preview_sources_api_admin_v1_vocabulary_sources_preview_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** @description 请求数据，字段说明和必填约束见下方数据结构。 */
+    requestBody: {
+      content: {
+        'application/json':
+          | components['schemas']['SceneMatchRequest']
+          | components['schemas']['ListeningMatchRequest']
+      }
+    }
+    responses: {
+      /** @description 请求成功 */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json':
+            | components['schemas']['SceneMatchResult']
+            | components['schemas']['ListeningMatchResult']
         }
       }
       /** @description 请求不符合业务规则 */

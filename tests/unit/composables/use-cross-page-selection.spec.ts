@@ -67,3 +67,32 @@ it('excludes pagination but includes every semantic filter in the query key', ()
   }
   expect(freeSelectionQueryKey('/cards', {})).not.toBe(freeSelectionQueryKey('/listening', {}))
 })
+
+it('separates permission to discard from committing a selection change and rejects an expired owner confirmation', async () => {
+  let resolve!: (allow: boolean) => void
+  const owner = ref('first-admin')
+  const selection = useCrossPageSelection(
+    ref([{ id: 'a' }]),
+    ref(2),
+    () =>
+      new Promise<boolean>((done) => {
+        resolve = done
+      }),
+    owner
+  )
+  selection.enter()
+  selection.togglePage(true)
+  const pending = selection.canDiscard()
+  expect(selection.ids.value).toEqual(['a'])
+  resolve(true)
+  expect(await pending).toBe(true)
+  expect(selection.ids.value).toEqual(['a'])
+  expect(selection.pageCount.value).toBe(1)
+  const changedOwner = selection.canDiscard()
+  owner.value = 'second-admin'
+  selection.enter()
+  selection.toggle('new-admin-selection', true)
+  resolve(true)
+  expect(await changedOwner).toBe(false)
+  expect(selection.ids.value).toEqual(['new-admin-selection'])
+})

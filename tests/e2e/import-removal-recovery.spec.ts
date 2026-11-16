@@ -66,6 +66,7 @@ const batch = (
   items: ImportItem[]
 ): ImportBatch => ({
   id: 'merge-regression',
+  removed_count: 0,
   mode: 'zip',
   created_at: '2026-10-20T00:00:00Z',
   updated_at: '2026-10-22T01:20:00Z',

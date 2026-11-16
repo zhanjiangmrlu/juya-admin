@@ -101,9 +101,42 @@ const mockLists = async (page: Page) => {
   })
 }
 
+for (const path of ['/cards', '/listening']) {
+  test(`${path} page jump controls match the next page button height`, async ({ page }) => {
+    await mockLists(page)
+    await page.goto(path)
+    const input = page.locator('.page-jump .el-input__wrapper'),
+      jump = page.getByRole('button', { name: '跳转', exact: true }),
+      next = page.getByRole('button', { name: '下一页', exact: true })
+    await expect(input).toBeVisible()
+    const nextBox = (await next.boundingBox())!
+    expect((await input.boundingBox())!.height).toBe(nextBox.height)
+    expect((await jump.boundingBox())!.height).toBe(nextBox.height)
+    await page.getByLabel('前往页码').fill('2')
+    await jump.click()
+    await expect(page).toHaveURL(/page=2/)
+  })
+
+  test(`${path} shows checkbox focus only for keyboard navigation`, async ({ page }) => {
+    await mockLists(page)
+    await page.goto(path)
+    const checkbox = page.locator('tbody tr').first().locator('.el-checkbox'),
+      inner = checkbox.locator('.el-checkbox__inner')
+    await checkbox.click()
+    await expect(checkbox.locator('input')).toBeChecked()
+    await expect(inner).toHaveCSS('outline-style', 'none')
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('Shift+Tab')
+    await expect(checkbox.locator('input')).toBeFocused()
+    await expect(inner).toHaveCSS('outline-style', 'solid')
+    await page.keyboard.press('Space')
+    await expect(checkbox.locator('input')).not.toBeChecked()
+  })
+}
+
 for (const width of [1440, 1911]) {
   for (const [path, heading, selectAll] of [
-    ['/cards', '卡片管理', '选择本页卡片'],
+    ['/cards', '场景卡片', '选择本页卡片'],
     ['/listening', '听读文章管理', '全选当前页文章']
   ]) {
     test(`${path} preserves layout and list behavior at ${width}px`, async ({ page }) => {
@@ -158,7 +191,7 @@ for (const width of [1440, 1911]) {
         .click()
       await expect(
         page.getByRole('heading', {
-          name: path === '/cards' ? '听读文章管理' : '卡片管理',
+          name: path === '/cards' ? '听读文章管理' : '场景卡片',
           exact: true
         })
       ).toBeVisible()
