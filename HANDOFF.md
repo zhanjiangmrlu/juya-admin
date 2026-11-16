@@ -1,8 +1,8 @@
-# 2026-11-16 所有格与人工来源修正
+# 2026-11-16 所有格与人工来源修复已发布测试
 
-已实现所有格来源消费、人工确认来源保留、场景/听读待核对条目的红色提示。后台373测试、check/build及两组相关Chrome Mock通过，真实隔离HTTP/Chrome完成两模块人工选择到发布。用户最新要求先不部署，本次代码已同步test但尚未上线，测试后台仍为此前7446218。
+已支持所有格、独立人工确认来源及红色待补提示。用户最新授权结合其他对话的远程test修改发布，组合后台3e215b9已部署[测试后台](https://test-admin.juyayingyu.com)，包含本修复5ade9d5及列表跳转、反馈、控件样式调整。组合378测试/check/build、14项Chrome Mock通过；真实隔离HTTP双模块人工选择到发布通过。
 
-修复与未部署边界见[API验证记录](https://github.com/zhanjiangmrlu/juya-api/blob/test/docs/verification/vocabulary-manual-source-20261116.md)。
+21:41最终核验78安装文件和51公网首页/JS哈希一致，配套APIfd25508的7服务健康、官方CI1026/3；gate已关闭、finalize完成。无迁移，61表指纹与12非目标容器保持。分类ready1/版本16按发布前实际值保留，下方03:32记录为历史。小程序运行包未改，生产未发布，授权/查词/动态高亮继续暂停。真实远端账号流程及微信真机未验，详见[API发布记录](https://github.com/zhanjiangmrlu/juya-api/blob/test/docs/verification/vocabulary-manual-source-20261116.md)。
 
 ---
 
