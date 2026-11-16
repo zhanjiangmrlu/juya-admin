@@ -144,6 +144,9 @@ export const vocabularyErrors = (body: string, words: VocabularyWord[]) =>
       errors.push('请补齐英文词汇和本句释义')
     if (
       !source ||
+      (source.manual_english != null &&
+        normalizedQuote(source.manual_english).toLowerCase() !==
+          normalizedQuote(item.english).toLowerCase()) ||
       !sentenceOptions(body).some(
         (sentence) =>
           sentence.start === source.start &&
@@ -156,9 +159,10 @@ export const vocabularyErrors = (body: string, words: VocabularyWord[]) =>
       source.word_start < source.start ||
       source.word_end > source.end ||
       source.word_end <= source.word_start ||
-      !wordOptions(body, { start: 0, end: chars.length }).some(
-        (word) => word.word_start === source.word_start && word.word_end === source.word_end
-      ) ||
+      (!source.manual_english &&
+        !wordOptions(body, { start: 0, end: chars.length }).some(
+          (word) => word.word_start === source.word_start && word.word_end === source.word_end
+        )) ||
       chars.slice(source.word_start, source.word_end).join('') !== source.word
     )
       errors.push('正文已变化，请重新选择来源原句和词形')

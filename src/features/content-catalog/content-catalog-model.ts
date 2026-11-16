@@ -31,6 +31,7 @@ export const typeIssue = (
 }
 
 export const sourceReasonLabels: Record<string, string> = {
+  source_manual_invalid: '人工来源已失效，请重新选择当前正文片段',
   source_hint_conflict: '资料原句与正文冲突',
   source_ambiguous: '词形来源有歧义',
   source_sense_conflict: '不同义项来源冲突',

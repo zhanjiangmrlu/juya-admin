@@ -42,7 +42,7 @@ it('replaces a conflicting document hint only after the administrator explicitly
   const source = { line_id: 'line', start: 5, end: 11, quote: 'bought' }
   page.getComponent({ name: 'SceneWordSource' }).vm.$emit('select', source)
   expect(content.vocabulary[0]?.source_hint).toBe('😀 I bought coffee.')
-  expect(content.vocabulary[0]?.source).toEqual(source)
+  expect(content.vocabulary[0]?.source).toEqual({ ...source, manual_english: 'buy' })
   expect(content.vocabulary[0]?.source_reason).toBeNull()
   page.unmount()
 })

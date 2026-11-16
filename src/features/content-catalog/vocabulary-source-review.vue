@@ -24,6 +24,18 @@ const words = computed(() => props.content.vocabulary || [])
 const passed = computed(() =>
   fresh.value ? words.value.filter((word) => word.source && !word.source_reason).length : 0
 )
+const manualCount = computed(() =>
+  fresh.value
+    ? words.value.filter((word) => word.source?.manual_english && !word.source_reason).length
+    : 0
+)
+/** 为仍待人工补充的词条提供醒目的异常行样式
+ * @param context 表格当前行及其来源核对状态
+ * @param context.row 当前词条和已保存来源
+ * @returns 待核对行的样式名称
+ */
+const rowClass = ({ row }: { row: Word }) =>
+  !row.source || row.source_reason ? 'requires-review' : ''
 const visible = computed(() =>
   onlyErrors.value ? words.value.filter((word) => !word.source || word.source_reason) : words.value
 )
@@ -112,7 +124,8 @@ onBeforeUnmount(() => {
       }}</ElButton>
     </div>
     <p>
-      自动通过 {{ passed }} · 待核对 {{ words.length - passed }}
+      自动通过 {{ passed - manualCount }} · 人工已确认 {{ manualCount }} · 待核对
+      {{ words.length - passed }}
       <ElCheckbox v-model="onlyErrors" @change="emit('exceptions', onlyErrors)"
         >仅异常核对</ElCheckbox
       >
@@ -120,7 +133,7 @@ onBeforeUnmount(() => {
     <p v-if="error" class="error" role="alert">
       来源匹配未刷新：{{ error }}，保存和发布仍由服务端重新校验
     </p>
-    <ElTable :data="visible" row-key="id"
+    <ElTable :data="visible" row-key="id" :row-class-name="rowClass"
       ><ElTableColumn prop="english" label="资料词汇" /><ElTableColumn label="正文词形"
         ><template #default="{ row }">{{ actual(row as Word) }}</template></ElTableColumn
       ><!-- @vue-generic {Word} --><ElTableColumn label="对应正文原句" min-width="220"
@@ -128,11 +141,17 @@ onBeforeUnmount(() => {
       ><ElTableColumn label="匹配结果"
         ><template #default="{ row }"
           ><span class="badge" :class="{ draft: !row.source || row.source_reason }">{{
-            fresh && row.source && !row.source_reason ? '自动通过' : '待核对'
+            fresh && row.source && !row.source_reason
+              ? row.source.manual_english
+                ? '人工已确认'
+                : '自动通过'
+              : '待人工补充'
           }}</span
           ><small>{{
             fresh && row.source && !row.source_reason
-              ? '无需手动确认'
+              ? row.source.manual_english
+                ? '已保留人工选择'
+                : '无需手动确认'
               : sourceReasonLabels[row.source_reason] || '待重新匹配'
           }}</small></template
         ></ElTableColumn
@@ -144,7 +163,9 @@ onBeforeUnmount(() => {
             ><ElButton link :disabled="disabled" @click="emit('remove', row.id || '')"
               >移除此条</ElButton
             ></template
-          ><small v-else>无需手动确认</small></template
+          ><small v-else>{{
+            row.source.manual_english ? '人工已确认' : '无需手动确认'
+          }}</small></template
         ></ElTableColumn
       ></ElTable
     ><small class="muted"
@@ -155,6 +176,19 @@ onBeforeUnmount(() => {
 <style scoped lang="scss">
 .source-review {
   margin: 24px 0;
+
+  :deep(.requires-review) {
+    --el-table-tr-bg-color: #fff3f0;
+    --el-table-row-hover-bg-color: #ffe9e2;
+
+    color: var(--red);
+
+    .badge,
+    .el-button {
+      color: var(--red);
+      font-weight: 600;
+    }
+  }
 
   .between {
     gap: 12px;

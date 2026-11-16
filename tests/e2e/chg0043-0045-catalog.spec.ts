@@ -322,7 +322,7 @@ test('single scene keeps explicit type and PDF conflict, automatically verifies 
     return route.fulfill({ json: [] })
   })
   await page.goto('/cards/typed')
-  await expect(page.locator('.source-review')).toContainText('自动通过 1 · 待核对 1')
+  await expect(page.locator('.source-review')).toContainText('自动通过 1 · 人工已确认 0 · 待核对 1')
   await expect(page.locator('.source-review')).toContainText('bought')
   await expect(page.locator('.source-review')).toContainText('无需手动确认')
   await page.locator('.source-review .el-checkbox').click()
@@ -335,7 +335,9 @@ test('single scene keeps explicit type and PDF conflict, automatically verifies 
   expect(writes[0]?.body.content_type).toBe('intensive')
   expect(card.published_content_type).toBe('illustrated')
   await page.getByRole('button', { name: '预览并发布', exact: true }).click()
-  await expect(page.locator('.editor-page [role=alert]')).toContainText('精读词汇需要有效PDF')
+  await expect(
+    page.locator('.editor-page [role=alert]').filter({ hasText: '精读词汇需要有效PDF' })
+  ).toBeVisible()
   await page.screenshot({ path: '/tmp/chg0043-0044-scene-type-source-1440.png', fullPage: true })
 })
 

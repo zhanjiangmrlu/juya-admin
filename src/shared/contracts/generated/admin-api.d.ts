@@ -6350,6 +6350,11 @@ export interface components {
     /** 场景词汇原文出处 */
     Source: {
       /**
+       * 人工确认的词条英文
+       * @description 仅人工选择当前正文片段时填写。服务端核验此值与词条英文一致，并核验原文及坐标；自动来源不填写。
+       */
+      manual_english?: string | null
+      /**
        * 对话行标识
        * @description 场景发布内容中对应英文对话行的 ID。
        */
@@ -7119,6 +7124,11 @@ export interface components {
     }
     /** 听读词汇原句及词形定位 */
     VocabularySource: {
+      /**
+       * 人工确认的词条英文
+       * @description 仅人工选择当前正文片段时填写。服务端核验此值与词条英文一致，并核验原文及坐标；自动来源不填写。
+       */
+      manual_english?: string | null
       /**
        * 原句起始位置
        * @description 原句在原始 body_en 中的起始 Unicode 码点位置，从零开始。

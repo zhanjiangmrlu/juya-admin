@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElButton, ElInput, ElOption, ElSelect } from 'element-plus'
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import confirmedIcon from '@/assets/icons/vocabulary-confirmed.svg'
 import {
@@ -24,6 +24,28 @@ const props = defineProps<{
   pronunciation?: ListeningPronunciationContext
 }>()
 const sentences = computed(() => sentenceOptions(props.body))
+const pendingSentences = ref<
+  Record<string, { start: number; end: number; quote: string; english: string }>
+>({})
+/** 保留尚未选词的原句，避免服务端自动预览清掉管理员当前选择
+ * @param item 正在核对的词汇条目
+ * @returns 当前正文中有效的待选原句或已保存来源
+ */
+const currentSentence = (item: VocabularyWord) => {
+  const pending = pendingSentences.value[item.id]
+  if (
+    pending &&
+    pending.english === item.english &&
+    sentences.value.some(
+      (sentence) =>
+        sentence.start === pending.start &&
+        sentence.end === pending.end &&
+        sentence.quote === pending.quote
+    )
+  )
+    return pending
+  return item.source
+}
 const speech = useListeningPronunciation(() => props.pronunciation)
 /** 添加独立词义条目，不按英文拼写覆盖已有资料 */
 const add = () => {
@@ -63,20 +85,42 @@ const remove = (index: number) => {
  */
 const selectSentence = (item: VocabularyWord, start: number) => {
   const source = sentences.value.find((sentence) => sentence.start === start)
+  if (source) pendingSentences.value[item.id] = { ...source, english: item.english }
+  else delete pendingSentences.value[item.id]
   item.source_hint = source?.quote || ''
-  item.source = source
-    ? { ...source, word_start: source.start, word_end: source.start, word: '', confirmed: false }
-    : null
-  item.source = resolveVocabularySource(props.body, item) || item.source
+  item.source = null
+  if (source && !props.serverMatching)
+    item.source = resolveVocabularySource(props.body, {
+      ...item,
+      source: {
+        ...source,
+        word_start: source.start,
+        word_end: source.start,
+        word: '',
+        confirmed: false
+      }
+    })
 }
 /** 保存管理员调整后的真实词形位置
  * @param item 正在编辑的独立词条
  * @param start 管理员选中词形的正文绝对位置
  */
 const selectWord = (item: VocabularyWord, start: number) => {
-  if (!item.source) return
-  const word = wordOptions(props.body, item.source).find((word) => word.word_start === start)
-  if (word) item.source = { ...item.source, ...word, confirmed: true }
+  const sentence = currentSentence(item)
+  if (!sentence) return
+  const word = wordOptions(props.body, sentence).find((word) => word.word_start === start)
+  if (word) {
+    item.source = {
+      start: sentence.start,
+      end: sentence.end,
+      quote: sentence.quote,
+      ...word,
+      confirmed: true,
+      manual_english: item.english
+    }
+    item.source_reason = null
+    delete pendingSentences.value[item.id]
+  }
 }
 /** 按当前正文更新词汇来源，无法匹配时保留文档原句供修正 */
 const matchSources = () => {
@@ -127,6 +171,9 @@ watch(
       :key="item.id"
       :data-word-id="item.id"
       class="vocabulary-card"
+      :class="{
+        'requires-review': !!item.source_reason || vocabularyErrors(body, [item]).length > 0
+      }"
     >
       <div class="between">
         <strong>{{ item.english || '待填词汇' }} · {{ item.meaning || '待填释义' }}</strong>
@@ -193,7 +240,7 @@ watch(
       <label class="field"
         ><span class="field-label">对应英文原句 *</span
         ><ElSelect
-          :model-value="item.source?.start"
+          :model-value="currentSentence(item)?.start"
           :aria-label="`词汇${index + 1}原句`"
           :disabled="disabled"
           placeholder="从当前英文正文选择原句"
@@ -204,25 +251,32 @@ watch(
             :value="sentence.start"
             :label="`${sentence.quote}（位置${sentence.start}）`" /></ElSelect
       ></label>
-      <div v-if="item.source" class="source-grid">
+      <div v-if="currentSentence(item)" class="source-grid">
         <label class="field"
           ><span class="field-label">正文实际词形 *</span
           ><ElSelect
             :model-value="
-              item.source.word_end > item.source.word_start ? item.source.word_start : undefined
+              item.source && item.source.word_end > item.source.word_start
+                ? item.source.word_start
+                : undefined
             "
             :aria-label="`词汇${index + 1}词形`"
             :disabled="disabled"
             placeholder="选择该句中对应的词"
             @change="selectWord(item, $event)"
             ><ElOption
-              v-for="word in wordOptions(body, item.source)"
+              v-for="word in wordOptions(body, currentSentence(item)!)"
               :key="word.word_start"
               :value="word.word_start"
               :label="`${word.word}（位置${word.word_start}）`" /></ElSelect
         ></label>
       </div>
-      <p v-if="vocabularyErrors(body, [item]).length" class="notice error" role="alert">
+      <p
+        v-if="item.source_reason || vocabularyErrors(body, [item]).length"
+        class="notice error"
+        role="alert"
+      >
+        待人工补充：
         {{
           vocabularyErrors(body, [item])
             .map((message) => message.replace('词汇1：', ''))
@@ -230,8 +284,10 @@ watch(
         }}
       </p>
       <p v-else class="source-confirmed">
-        <img :src="confirmedIcon" width="15" height="15" alt="" />自动通过／无需手动确认 ·
-        不同义项独立保存
+        <img :src="confirmedIcon" width="15" height="15" alt="" />{{
+          item.source?.manual_english ? '人工已确认' : '自动通过／无需手动确认'
+        }}
+        · 不同义项独立保存
       </p>
       <p
         v-if="speech.current.value === item.id && speech.error.value"
@@ -257,6 +313,15 @@ watch(
     border-radius: 11px;
     padding: 20px;
     margin-top: 16px;
+
+    &.requires-review {
+      border-color: var(--red);
+      background: #fff3f0;
+
+      :where(strong) {
+        color: var(--red);
+      }
+    }
 
     > .between {
       flex-wrap: wrap;

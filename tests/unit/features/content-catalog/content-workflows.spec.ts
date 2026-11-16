@@ -282,3 +282,46 @@ it('ignores a late vocabulary preview after the administrator changes the origin
     expect.objectContaining({ english: 'coffee' })
   ])
 })
+
+it('distinguishes manual confirmation and visually flags the row needing manual supplementation', async () => {
+  const content = blankContent()
+  content.dialogue = [
+    { id: 'line', speaker: 'A', chinese: '发现仙人掌', english: 'We found cacti.' }
+  ]
+  content.vocabulary = [
+    {
+      id: 'manual',
+      english: 'cactus',
+      meaning: '',
+      phonetic: '',
+      source_hint: '',
+      pronunciation_text: '',
+      pronunciation_issue: false,
+      source: { line_id: 'line', start: 9, end: 14, quote: 'cacti', manual_english: 'cactus' }
+    },
+    {
+      id: 'missing',
+      english: 'unknown',
+      meaning: '',
+      phonetic: '',
+      source_hint: '',
+      pronunciation_text: '',
+      pronunciation_issue: false,
+      source: null,
+      source_reason: 'source_unmatched'
+    }
+  ]
+  const wrapper = mount(VocabularySourceReview, {
+    props: { module: 'scene', content, disabled: true }
+  })
+  wrappers.push(wrapper)
+  await flushPromises()
+  const rows = wrapper.findAll('.el-table__row')
+  expect(rows[1]!.classes()).toContain('requires-review')
+  expect(rows[1]!.text()).toContain('人工')
+  await wrapper.setProps({ disabled: false })
+  request.mockResolvedValue({ module: 'scene', vocabulary: content.vocabulary })
+  await button(wrapper, '重新匹配').trigger('click')
+  await flushPromises()
+  expect(rows[0]!.text()).toContain('人工已确认')
+})

@@ -34,15 +34,24 @@ const selection = (event: Event, line: SceneContent['dialogue'][number]) => {
     start = input.selectionStart,
     end = input.selectionEnd
   selected.value =
-    end > start ? { line_id: line.id!, start, end, quote: line.english.slice(start, end) } : null
+    end > start
+      ? {
+          line_id: line.id!,
+          start,
+          end,
+          quote: line.english.slice(start, end),
+          manual_english: props.word.english
+        }
+      : null
 }
 </script>
 <template>
-  <div class="word-source">
+  <div class="word-source" :class="{ 'requires-review': !actual }">
     <p v-if="word.source_hint" class="source-sentence">资料原句：{{ word.source_hint }}</p>
     <template v-if="actual"
       ><p class="source-ok">
-        自动通过／无需手动确认 · 正文实际词形 <mark>{{ word.source?.quote }}</mark>
+        {{ word.source?.manual_english ? '人工已确认' : '自动通过／无需手动确认' }} · 正文实际词形
+        <mark>{{ word.source?.quote }}</mark>
       </p></template
     ><template v-else-if="!word.source_reason && candidates.length === 1"
       ><p class="source-ok">
@@ -50,13 +59,13 @@ const selection = (event: Event, line: SceneContent['dialogue'][number]) => {
       </p>
       <p class="source-sentence">{{ candidates[0]?.sentence }}</p></template
     ><template v-else
-      ><p class="muted small">
+      ><p class="source-warning small" role="alert">
         {{
           word.source_reason
-            ? '来源待核对：' + (sourceReasonLabels[word.source_reason] || '请重新核对来源')
+            ? '待人工补充来源：' + (sourceReasonLabels[word.source_reason] || '请重新核对来源')
             : candidates.length
               ? '待服务端统一匹配，可靠结果无需手动确认'
-              : '未找到对应位置，请修改词汇，或手动选择原句片段'
+              : '待人工补充来源：未找到对应位置，可手动选择原句片段'
         }}
       </p>
       <button
@@ -69,7 +78,8 @@ const selection = (event: Event, line: SceneContent['dialogue'][number]) => {
             line_id: candidate.line_id,
             start: candidate.start,
             end: candidate.end,
-            quote: candidate.quote
+            quote: candidate.quote,
+            manual_english: word.english
           })
         "
       >
@@ -89,7 +99,7 @@ const selection = (event: Event, line: SceneContent['dialogue'][number]) => {
       {{ actual ? '重新选择来源' : '在原句中选择片段' }}</button
     ><ElDialog v-model="manual" title="选择原句片段" width="620px" append-to-body
       ><p class="muted">
-        选中原句中对应词汇的实际片段，再确认。可绑定词形变化，如 buy 对应 bought。
+        选中原句中对应词汇的实际片段，再确认。自动未识别的词形也可人工绑定；保存时会核验片段确实来自当前正文。
       </p>
       <label v-for="line in dialogue" :key="line.id" class="field"
         ><span>{{ line.speaker }}</span
@@ -121,6 +131,17 @@ const selection = (event: Event, line: SceneContent['dialogue'][number]) => {
   background: var(--soft);
   border-radius: 8px;
   margin-top: 12px;
+  border: 1px solid transparent;
+
+  &.requires-review {
+    border-color: var(--red);
+    background: #fff3f0;
+  }
+
+  .source-warning {
+    color: var(--red);
+    font-weight: 600;
+  }
 
   .source-ok {
     font-size: 12px;

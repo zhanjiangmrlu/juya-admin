@@ -98,7 +98,7 @@ const selectWordSource = (
   word: SceneContent['vocabulary'][number],
   source: components['schemas']['Source']
 ) => {
-  word.source = source
+  word.source = { ...source, manual_english: word.english }
   word.source_hint =
     content.value.dialogue.find((line) => line.id === source.line_id)?.english || ''
   word.source_reason = null
@@ -261,6 +261,10 @@ const applyPaste = () => {
         :key="word.id"
         :data-word-id="word.id"
         class="entry vocabulary-entry"
+        :class="{
+          'requires-review':
+            !word.source || !!word.source_reason || word.pronunciation_issue || !word.english.trim()
+        }"
       >
         <div class="between">
           <strong>词汇 {{ index + 1 }}</strong>
@@ -621,6 +625,11 @@ const applyPaste = () => {
   gap: 12px 16px;
   padding: 16px 20px;
   margin: 16px 0;
+
+  &.requires-review {
+    border-color: var(--red);
+    background: #fff3f0;
+  }
 
   > .between {
     grid-column: 1 / -1;
