@@ -1,8 +1,8 @@
 # 2026-11-16 所有格与人工来源修正
 
-已实现所有格来源消费、人工确认来源保留、场景/听读待核对条目的红色提示。后台373测试、check/build及两组相关Chrome Mock通过，真实隔离HTTP/Chrome完成两模块人工选择到发布。测试更新正在本轮发布门禁中，不能将上次7446218当成新修复已上线。
+已实现所有格来源消费、人工确认来源保留、场景/听读待核对条目的红色提示。后台373测试、check/build及两组相关Chrome Mock通过，真实隔离HTTP/Chrome完成两模块人工选择到发布。用户最新要求先不部署，本次代码已同步test但尚未上线，测试后台仍为此前7446218。
 
-修复和部署结果见[API验证记录](https://github.com/zhanjiangmrlu/juya-api/blob/test/docs/verification/vocabulary-manual-source-20261116.md)。
+修复与未部署边界见[API验证记录](https://github.com/zhanjiangmrlu/juya-api/blob/test/docs/verification/vocabulary-manual-source-20261116.md)。
 
 ---
 
