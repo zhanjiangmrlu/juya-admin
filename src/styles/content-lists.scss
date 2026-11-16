@@ -65,7 +65,7 @@
       background: #edf1e8;
     }
 
-    &:focus-within :deep([class~='el-checkbox__inner']) {
+    :deep(input:focus-visible + [class~='el-checkbox__inner']) {
       outline: 2px solid var(--ink);
       outline-offset: 3px;
     }

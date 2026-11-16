@@ -169,6 +169,29 @@ it('changes the visible list page while retaining filters, source and the fixed 
   page.unmount()
 })
 
+it('jumps to an explicit user page while retaining filters and rejects pages beyond the result set', async () => {
+  const { page, router } = await open()
+  const input = page.get('[aria-label="前往页码"]')
+  await input.setValue('3')
+  await page.get('.page-jump').trigger('submit')
+  await flushPromises()
+  expect(router.currentRoute.value.query.page).toBe('2')
+  expect(page.get('.page-jump [role="alert"]').text()).toContain('1至2')
+  await input.setValue('1')
+  await page.get('.page-jump').trigger('submit')
+  await flushPromises()
+  expect(router.currentRoute.value.query).toMatchObject({
+    search: 'Readonly',
+    registered: 'today',
+    checkin: 'unchecked',
+    page: '1',
+    from: 'statistics'
+  })
+  const query = new URL(request.mock.calls.at(-1)![0], 'https://example.test').searchParams
+  expect(query.get('page')).toBe('1')
+  expect(query.get('limit')).toBe('20')
+})
+
 it.each([0, 5, 20])(
   'keeps pagination visible and both directions disabled for %i users',
   async (total) => {

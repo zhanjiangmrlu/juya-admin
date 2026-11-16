@@ -27,6 +27,7 @@ import emptySearch from '@/assets/icons/empty-search.svg'
 import AppIcon from '@/components/app-icon/app-icon.vue'
 import AppState from '@/components/app-state/app-state.vue'
 import { useResource } from '@/composables/use-resource'
+import ContentPageJump from '@/features/content-catalog/content-page-jump.vue'
 import { dateText, mediaURL, queryURL } from '@/services/display'
 import { api } from '@/services/http-client'
 
@@ -293,6 +294,12 @@ onBeforeUnmount(() => {
           prev-text="上一页"
           next-text="下一页"
           @current-change="filter({ page: $event })"
+        />
+        <ContentPageJump
+          :page="data.page"
+          :total-pages="Math.ceil(data.total / 20)"
+          :busy="busy"
+          @jump="filter({ page: $event })"
         />
       </div>
       <div class="user-list-note">

@@ -40,6 +40,17 @@ const submit = () => {
 
   .el-input {
     width: 62px;
+
+    :deep([class~='el-input__wrapper']) {
+      height: 40px;
+      min-height: 40px;
+    }
+  }
+
+  .el-button {
+    height: 40px;
+    padding: 8px 14px;
+    line-height: 22px;
   }
 
   small {

@@ -111,6 +111,81 @@ test('actual routed list preserves query and scroll when returning from a detail
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
 })
 
+test('feedback status tags are centered and pagination supports jumping, single-page and empty results', async ({
+  page
+}) => {
+  await page.route('**/api/admin/v1/**', async (route) => {
+    const url = new URL(route.request().url()),
+      current = Number(url.searchParams.get('page') || 1),
+      search = url.searchParams.get('search'),
+      total = search === 'empty' ? 0 : search === 'single' ? 2 : 21
+    await route.fulfill({
+      json: url.pathname.endsWith('/auth/session')
+        ? { id: 'admin-one', username: 'admin', csrf_token: 'synthetic-token' }
+        : {
+            items: Array.from(
+              { length: Math.min(10, Math.max(0, total - (current - 1) * 10)) },
+              (_, index) => ({
+                ...feedback,
+                id: `FB${current}-${index}`,
+                status: index % 2 ? 'resolved' : 'pending'
+              })
+            ),
+            total,
+            page: current,
+            limit: 10
+          }
+    })
+  })
+  await page.goto('/feedback?search=释义')
+  await expect(page.locator('tbody tr')).toHaveCount(10)
+  const tags = await page.locator('tbody tr').evaluateAll((rows) =>
+    rows.map((row) => {
+      const cell = row.querySelectorAll('td')[3]!.getBoundingClientRect(),
+        tagElement = row.querySelector('.el-tag')!,
+        tag = tagElement.getBoundingClientRect(),
+        range = document.createRange()
+      range.selectNodeContents(tagElement.querySelector('.el-tag__content')!)
+      const text = range.getBoundingClientRect()
+      return {
+        horizontal: Math.abs(tag.x + tag.width / 2 - cell.x - cell.width / 2),
+        vertical: Math.abs(tag.y + tag.height / 2 - cell.y - cell.height / 2),
+        textVertical: Math.abs(text.y + text.height / 2 - tag.y - tag.height / 2)
+      }
+    })
+  )
+  for (const tag of tags) {
+    expect(tag.horizontal).toBeLessThanOrEqual(1)
+    expect(tag.vertical).toBeLessThanOrEqual(1)
+    expect(tag.textVertical).toBeLessThanOrEqual(2)
+  }
+  const input = page.getByLabel('前往页码'),
+    next = page.getByRole('button', { name: '下一页', exact: true })
+  await expect(input).toBeVisible()
+  expect((await page.locator('.page-jump .el-input__wrapper').boundingBox())!.height).toBe(
+    (await next.boundingBox())!.height
+  )
+  await input.fill('3')
+  await input.press('Enter')
+  await expect(page).toHaveURL(/page=3/)
+  await expect(page.locator('tbody tr')).toHaveCount(1)
+  await expect(page.locator('.el-pagination')).toContainText('第 3 / 3 页')
+  await input.fill('1')
+  await page.getByRole('button', { name: '跳转', exact: true }).click()
+  await expect(page).toHaveURL(/page=1/)
+  for (const search of ['single', 'empty']) {
+    await page.getByLabel('搜索反馈', { exact: true }).fill(search)
+    await page.getByRole('button', { name: '查询', exact: true }).click()
+    await expect(page.locator('.pagination')).toContainText(
+      `共 ${search === 'single' ? 2 : 0} 条反馈`
+    )
+    await expect(next).toBeDisabled()
+    if (search === 'single') await expect(input).toBeEnabled()
+    else await expect(input).toBeDisabled()
+  }
+  await page.screenshot({ path: 'test-results/feedback-empty-pagination.png', fullPage: true })
+})
+
 test('expired administrator login restores the same-owner draft without submitting it', async ({
   page
 }) => {
